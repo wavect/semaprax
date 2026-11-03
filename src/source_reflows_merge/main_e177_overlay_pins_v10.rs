@@ -591,3 +591,242 @@ mod v11_tests {
         }
     }
 }
+
+// V12_PIN_DIGESTS_BEGIN: all preceding V10/V11 bytes remain unchanged.
+pub(in super::super) const SCHEMA_V12: &str = "semaprax.finite-source-overlay-page.v12";
+fn expand_v12_packed(envelope: &Value) -> Result<Value, &'static str> {
+    use std::cell::{Cell, RefCell};
+    if !super::super::keys(envelope, &["schema", "names", "digests", "page"])
+        || envelope["schema"] != SCHEMA_V12
+    {
+        return Err("v12 envelope");
+    }
+    if super::super::canonical(envelope).len() > super::super::PAGE_CAP {
+        return Err("v12 wire cap");
+    }
+    let digests = envelope["digests"].as_array().ok_or("v12 digests")?;
+    let mut prior = None;
+    for digest in digests {
+        let text = digest.as_str().ok_or("v12 digest text")?;
+        if text.len() != 64
+            || !text
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("v12 digest text");
+        }
+        if prior.is_some_and(|old| old >= text) {
+            return Err("v12 unique sorted digests");
+        }
+        prior = Some(text);
+    }
+    let packed = &envelope["page"];
+    if !packed.is_object() || packed["schema"] != SCHEMA_V10 {
+        return Err("v12 inner schema");
+    }
+    let used_digests = RefCell::new(vec![false; digests.len()]);
+    let digest_bytes = Cell::new(0usize);
+    let digested = v10_slots(packed, &|value, named| {
+        let Some(tuple) = value.as_array() else {
+            return Ok(value.clone());
+        };
+        let offset = 1 + usize::from(named);
+        let Some(slot) = tuple.get(offset) else {
+            return Ok(value.clone());
+        };
+        let digest = if slot.is_string() {
+            slot
+        } else {
+            let index = usize::try_from(slot.as_u64().ok_or("v12 digest index")?)
+                .map_err(|_| "v12 digest index")?;
+            let digest = digests.get(index).ok_or("v12 digest index")?;
+            used_digests.borrow_mut()[index] = true;
+            digest
+        };
+        let bytes = digest_bytes
+            .get()
+            .checked_add(super::super::canonical(digest).len())
+            .filter(|bytes| *bytes <= super::super::PAGE_CAP)
+            .ok_or("v12 materialized digest cap")?;
+        digest_bytes.set(bytes);
+        let mut restored = tuple.clone();
+        restored[offset] = digest.clone();
+        Ok(restored.into())
+    })?;
+    if used_digests.borrow().iter().any(|used| !used) {
+        return Err("v12 unused digests");
+    }
+    let names = envelope["names"].as_array().ok_or("v12 names")?;
+    let mut sizes = Vec::new();
+    let mut previous = None;
+    for name in names {
+        let text = name.as_str().ok_or("v12 names")?;
+        if previous.is_some_and(|old| old >= text) {
+            return Err("v12 unique sorted names");
+        }
+        previous = Some(text);
+        sizes.push(super::super::canonical(name).len());
+    }
+    let page = &digested;
+    if !page.is_object() || page["schema"] != SCHEMA_V10 {
+        return Err("v12 inner schema");
+    }
+    let used = RefCell::new(vec![false; names.len()]);
+    let materialized = Cell::new(0usize);
+    let result = v10_slots(page, &|value, named| {
+        if !named || !value.is_array() {
+            // Literal view objects, current pins, references and opaque data
+            // retain their exact old representation, including non-string names.
+            return Ok(value.clone());
+        }
+        let tuple = value.as_array().unwrap();
+        let name = tuple.first().ok_or("v12 named tuple")?;
+        let (text, size) = if let Some(text) = name.as_str() {
+            (text, super::super::canonical(name).len())
+        } else {
+            let index = usize::try_from(name.as_u64().ok_or("v12 name index")?)
+                .map_err(|_| "v12 name index")?;
+            let name = names.get(index).ok_or("v12 name index")?;
+            used.borrow_mut()[index] = true;
+            (name.as_str().unwrap(), sizes[index])
+        };
+        let bytes = materialized
+            .get()
+            .checked_add(size)
+            .filter(|bytes| *bytes <= super::super::PAGE_CAP)
+            .ok_or("v12 materialized name cap")?;
+        materialized.set(bytes);
+        // Check the complete canonical-name debit before copying table text.
+        let mut restored = tuple.clone();
+        restored[0] = text.into();
+        Ok(restored.into())
+    })?;
+    if used.borrow().iter().any(|used| !used) {
+        return Err("v12 unused names");
+    }
+    Ok(result)
+}
+pub(in super::super) fn expand_v12(
+    before: &Value,
+    policy: &Value,
+    envelope: &Value,
+) -> Result<Value, &'static str> {
+    expand_v10(before, policy, &expand_v12_packed(envelope)?)
+}
+
+#[cfg(test)]
+mod v12_tests {
+    use super::super::super::{canonical, compose_values, PAGE_CAP};
+    use super::*;
+    fn fixture() -> Value {
+        serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/finite-source-overlay-v2-20261018/pin-digest-fixtures-v12.json"
+        )))
+        .unwrap()
+    }
+    #[test]
+    fn v12_complete_published_page_and_every_logical_field_round_trip() {
+        let fixture = fixture();
+        let old: Value = serde_json::from_str(include_str!(
+            "../../e/35be3653acf8bbfbf9dd448ac27eac5133f16c485521e998ecd699c4694121d2"
+        ))
+        .unwrap();
+        let policy: Value = serde_json::from_str(include_str!(
+            "../../e/015884cd29c24b8021e244ad86871aaef404bf55e5e7a0801722a27f5d77e9ac"
+        ))
+        .unwrap();
+        assert_eq!(expand_v11_names(&old).unwrap(), fixture["input"]);
+        assert_eq!(
+            expand_v12_packed(&fixture["encoded"]).unwrap(),
+            fixture["input"]
+        );
+        assert!(canonical(&fixture["encoded"]).len() < canonical(&old).len());
+        let before = super::super::super::super::packet_before_overlay();
+        assert_eq!(
+            compose_values(before.clone(), &policy, &fixture["encoded"]).unwrap(),
+            compose_values(before, &policy, &old).unwrap()
+        );
+    }
+    #[test]
+    fn v12_tables_indices_and_unknown_envelope_fields_fail_closed() {
+        for mode in 0..9 {
+            let mut bad = fixture()["encoded"].clone();
+            match mode {
+                0 => {
+                    let first = bad["digests"][0].clone();
+                    bad["digests"].as_array_mut().unwrap().push(first);
+                }
+                1 => bad["digests"].as_array_mut().unwrap().reverse(),
+                2 => {
+                    bad["digests"]
+                        .as_array_mut()
+                        .unwrap()
+                        .push("f".repeat(64).into());
+                }
+                3 => bad["digests"][0] = "z".repeat(64).into(),
+                4 => bad["extra"] = Value::Null,
+                5 => bad["schema"] = "foreign".into(),
+                6 => bad["names"][0] = true.into(),
+                _ => {
+                    let changed = std::cell::Cell::new(false);
+                    let limit = bad["digests"].as_array().unwrap().len();
+                    bad["page"] = v10_slots(&bad["page"], &|value, named| {
+                        if let Some(tuple) = value.as_array() {
+                            let offset = 1 + usize::from(named);
+                            if tuple.get(offset).is_some_and(Value::is_u64) && !changed.get() {
+                                changed.set(true);
+                                let mut tuple = tuple.clone();
+                                tuple[offset] = if mode == 7 { limit.into() } else { true.into() };
+                                return Ok(tuple.into());
+                            }
+                        }
+                        Ok(value.clone())
+                    })
+                    .unwrap();
+                    assert!(changed.get());
+                }
+            }
+            assert!(expand_v12_packed(&bad).is_err(), "mode={mode}");
+        }
+    }
+    #[test]
+    fn v12_wire_exact_plus_one_and_materialized_digest_bound_are_unchanged() {
+        let mut wire = serde_json::json!({"schema":SCHEMA_V12,"names":[],"digests":[],
+            "page":{"schema":SCHEMA_V10,"replacements":[],"additions":[],"opaque":""}});
+        let padding = PAGE_CAP - canonical(&wire).len();
+        wire["page"]["opaque"] = "x".repeat(padding).into();
+        assert_eq!(canonical(&wire).len(), PAGE_CAP);
+        let unpacked = expand_v12_packed(&wire).unwrap();
+        assert_eq!(unpacked["opaque"], wire["page"]["opaque"]);
+        wire["page"]["opaque"] = "x".repeat(padding + 1).into();
+        assert!(expand_v12_packed(&wire).is_err());
+        let digest = Value::String("a".repeat(64));
+        let slots = PAGE_CAP / canonical(&digest).len();
+        let mut wire = serde_json::json!({"schema":SCHEMA_V12,"names":[],"digests":[digest],
+            "page":{"schema":SCHEMA_V10,"replacements":[],"additions":[
+                {"source":"fixture.rs","compiled":true,"current":[1,0],"views":vec![serde_json::json!(["v",1,0]);slots-1]}]}});
+        assert!(expand_v12_packed(&wire).is_ok());
+        wire["page"]["additions"][0]["views"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!(["v", 1, 0]));
+        assert!(expand_v12_packed(&wire).is_err());
+    }
+    #[test]
+    fn v12_preserves_the_entire_original_v10_and_v11_rust_source() {
+        let source = include_str!("main_e177_overlay_pins_v10.rs");
+        let (before, _) = source.split_once("\n// V12_PIN_DIGESTS_BEGIN:").unwrap();
+        assert_eq!(
+            before,
+            include_str!(
+                "../../e/75e5c0a5937f29211899bf354554d44f9e91684a987eb123a4927bfea9f46f01"
+            )
+        );
+        assert_eq!(before.len(), 25064);
+        assert_eq!(
+            super::super::super::digest(before.as_bytes()),
+            "75e5c0a5937f29211899bf354554d44f9e91684a987eb123a4927bfea9f46f01"
+        );
+    }
+}

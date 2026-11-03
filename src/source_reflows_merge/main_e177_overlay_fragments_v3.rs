@@ -586,6 +586,7 @@ pub(super) use pins_v9::{expand_v9, SCHEMA_V9};
 #[path = "main_e177_overlay_pins_v10.rs"]
 mod pins_v10;
 pub(super) use pins_v10::{expand_v10, expand_v11, SCHEMA_V10, SCHEMA_V11};
+pub(super) use pins_v10::{expand_v12, SCHEMA_V12};
 
 #[cfg(test)]
 mod tests {

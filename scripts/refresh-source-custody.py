@@ -12,11 +12,11 @@ records that authenticate *current* bytes, in this order:
    every composed MAIN_E177 row whose physical file no longer matches its
    current pin gets the new `[length, sha256]` pin, and its previous pin is
    appended as a named view (`whole-pre-overlay-v2-current` on the first
-   drift of an original row, `whole-before-<label>` afterwards).  A drifted
+   drift of an original row, the supplied label afterwards).  A drifted
    original row that is not yet a replacement is admitted as an `old519_index`
    replacement in predecessor order.  The new bytes are archived under
-   `e/<sha256>`.  The edit is made directly on the V11 wire, so existing rows
-   stay byte-identical;
+   `e/<sha256>`.  The V11/V12 name and digest encoding preserves the entire logical page,
+   including every existing row, view and unknown field;
 2. the policy's page pin, the POLICY/REPLACEMENTS constants in
    `overlay_page.py` and `src/source_reflows_merge/main_e177_overlay_v2.rs`;
 3. the pin chain overlay_page.py -> guard_payload.py -> check-source.py (x2)
@@ -225,7 +225,7 @@ def load_guard(repo):
     return ns
 
 
-def compact_v11_names(ov, page):
+def compact_v11_names(ov, page, codec='v11'):
     """Choose the smallest sorted name dictionary without changing any V10 byte."""
     counts = {}
     def count(name):
@@ -234,31 +234,37 @@ def compact_v11_names(ov, page):
         return name
     ov['v11_names_slots'](page, count)
     candidates = sorted(name for name, frequency in counts.items() if frequency > 1)
-    # This is an optional encoder optimization. Large dictionaries retain the
-    # complete preceding encoder, with exactly its original wire-cap check.
+    # Large dictionaries retain the original complete sorted dictionary.
     if len(candidates) > 256:
-        return ov['encode_v11_names'](page)
-    choices = {0: (0, ())}
-    for name in candidates:
-        size = len(ov['canonical'](name))
-        following = {}
-        for number, (cost, selected) in choices.items():
-            options = (
-                (number, cost + counts[name] * size, selected),
-                (number + 1, cost + size + 1 + counts[name] * len(str(number)), selected + (name,)),
-            )
-            for new_number, new_cost, new_selected in options:
-                if new_number not in following or new_cost < following[new_number][0]:
-                    following[new_number] = (new_cost, new_selected)
-        choices = following
-    # Dictionary entries have a comma each except for the final entry.
-    number, (_, selected) = min(choices.items(), key=lambda item: (item[1][0] - bool(item[0]), item[0]))
+        selected = tuple(candidates)
+    else:
+        choices = {0: (0, ())}
+        for name in candidates:
+            size = len(ov['canonical'](name))
+            following = {}
+            for number, (cost, selected) in choices.items():
+                options = (
+                    (number, cost + counts[name] * size, selected),
+                    (number + 1, cost + size + 1 + counts[name] * len(str(number)), selected + (name,)),
+                )
+                for new_number, new_cost, new_selected in options:
+                    if new_number not in following or new_cost < following[new_number][0]:
+                        following[new_number] = (new_cost, new_selected)
+            choices = following
+        # Dictionary entries have a comma each except for the final entry.
+        number, (_, selected) = min(choices.items(), key=lambda item: (item[1][0] - bool(item[0]), item[0]))
     names = list(selected)
     indices = {name: index for index, name in enumerate(names)}
     encoded = ov['v11_names_slots'](page, lambda name: indices.get(name, name))
-    result = dict(schema=ov['V11_SCHEMA'], names=names, page=encoded)
-    assert len(ov['canonical'](result)) <= ov['PAGE_CAP'], f"v11 unchanged wire cap: {len(ov['canonical'](result))}/{ov['PAGE_CAP']}"
-    assert ov['canonical'](ov['expand_v11_names'](result)) == ov['canonical'](page), 'v11 ENTIRE V10 page inverse'
+    if codec == 'v12':
+        result = ov['encode_v12_names'](encoded, names)
+        inverse = ov['expand_v12_packed'](result)
+    else:
+        assert codec == 'v11', 'known wire encoding'
+        result = dict(schema=ov['V11_SCHEMA'], names=names, page=encoded)
+        inverse = ov['expand_v11_names'](result)
+    assert len(ov['canonical'](result)) <= ov['PAGE_CAP'], f"unchanged wire cap: {len(ov['canonical'](result))}/{ov['PAGE_CAP']}"
+    assert ov['canonical'](inverse) == ov['canonical'](page), 'ENTIRE V10 page inverse'
     return result
 
 
@@ -271,7 +277,8 @@ def refresh_overlay(repo, label, admit=()):
         'overlay_page.py POLICY pin is already stale; fix it before refreshing'
     policy, wire = ov['parse'](policy_raw), ov['parse'](page_raw)
     assert policy['page']['length'] == len(page_raw) and policy['page']['sha256'] == sha(page_raw)
-    assert wire['schema'] == ov['V11_SCHEMA'], 'refresh edits only the V11 wire'
+    assert wire['schema'] in (ov['V11_SCHEMA'], ov['V12_SCHEMA']), 'known packed wire'
+    wire_schema = wire['schema']
     composed = ov['compose_values'](before, policy, wire)
     old_rows = before['rows']
     position = {r['source']: i for i, r in enumerate(old_rows)}
@@ -304,8 +311,11 @@ def refresh_overlay(repo, label, admit=()):
         cur = row['current']
         if len(data) != cur['length'] or sha(data) != cur['sha256']:
             drift.append((row['source'], data, cur))
-    if not drift and not admit:
+    if not drift and not admit and wire_schema == ov['V12_SCHEMA']:
         return []
+    if wire_schema == ov['V12_SCHEMA']:
+        unpacked = ov['expand_v12_packed'](wire)
+        wire['page'] = ov['v11_names_slots'](unpacked, name_slot)
     inner = wire['page']
     # Admit an existing compiled file whose current bytes no MAIN_E177 row
     # covers as a new overlay addition: its live bytes become the current pin
@@ -358,7 +368,7 @@ def refresh_overlay(repo, label, admit=()):
     # and enforces the unchanged page cap on the resulting wire.
     expanded = ov['v11_names_slots'](
         wire['page'], lambda value: names[value] if type(value) is int else value)
-    wire = compact_v11_names(ov, expanded)
+    wire = compact_v11_names(ov, expanded, codec='v12')
     page_bytes = ov['canonical'](wire)
     assert len(page_bytes) <= ov['PAGE_CAP'], 'overlay page exceeds its one-page cap'
     policy['page'] = dict(path=PAGE, length=len(page_bytes), sha256=sha(page_bytes))

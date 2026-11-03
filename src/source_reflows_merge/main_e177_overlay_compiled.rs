@@ -1,5 +1,6 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/continuation_storage/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/tests.rs")),
         "src/source_verify/closure.rs" => Some(include_str!("../../src/source_verify/closure.rs")),
         "src/source_verify/recovery.rs" => Some(include_str!("../../src/source_verify/recovery.rs")),
         "src/source_verify/iterative/blocks.rs" => Some(include_str!("../../src/source_verify/iterative/blocks.rs")),
@@ -571,6 +572,11 @@ mod tests {
         // restores only the new writer and tests before all historical guards.
         assert_eq!(root, restore_previous_writer(ROOT));
         assert_eq!(child, CHILD);
+        // Undo the complete new dispatch and export before every old inverse.
+        let v12_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        return compose_values_v2(before, policy, &expanded);\n    }\n";
+        assert_eq!(root.matches(v12_dispatch).count(), 1);
+        let root_before_v12 = root.replacen(v12_dispatch, "", 1);
+        let root = root_before_v12.as_str();
         // CURRENT_SCOPE_NORMALIZATION_BEGIN
         // Undo only the complete new wire dispatch and its test view; all old inverses follow.
         let mut v11_root = root.to_owned();
@@ -636,6 +642,7 @@ mod tests {
             "src/source_verify/iterative/blocks.rs",
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
+            "src/cleanup_plan/replay/continuation_storage/tests.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -648,6 +655,7 @@ mod tests {
             "src/source_verify/iterative/blocks.rs",
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
+            "src/cleanup_plan/replay/continuation_storage/tests.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

@@ -698,15 +698,25 @@ fn batch_boundaries_and_string_normalization_agree_across_backends() {
 }
 
 fn assert_batch_backend_matrix(root: &Path) {
+    let mut indexed_batch = None;
     for source in SOURCE_FILES {
         let path = root.join("src").join(source);
         let bytes = std::fs::read_to_string(&path).unwrap();
         let (program, comments) = semaprax::parse_with_comments(&bytes, &path).unwrap();
+        if *source == "batch.spx" {
+            indexed_batch = Some(
+                program
+                    .module_uses
+                    .iter()
+                    .any(|import| import.persistent_id == "std.data.json.dec.fingerprint_match"),
+            );
+        }
         assert_eq!(
             format::comments::canonical_with_comments(&program, &comments),
             bytes
         );
     }
+    let indexed_batch = indexed_batch.expect("complete batch source inventory");
     let tests_path = root.join("src/tests.spx");
     let tests_source = std::fs::read_to_string(&tests_path).unwrap();
     let tests = parse(&tests_source, &tests_path).unwrap();
@@ -1032,21 +1042,25 @@ fn assert_batch_backend_matrix(root: &Path) {
             )
             .unwrap();
             host.push('\n');
-            host.push_str(
-                &std::fs::read_to_string(
-                    Path::new(env!("CARGO_MANIFEST_DIR"))
-                        .join(if snapshot.test_program().functions.iter().any(|function| {
-                            function.id.as_str() == "std.data.json.dec.fingerprint_match"
-                        }) {
-                            "tests/useful_data/catalog_normalizer_application/decoded_index/host.mjs"
-                        } else {
-                            // The independently frozen pairwise source retains
-                            // its exact original import list and host controls.
-                            "tests/useful_data/catalog_normalizer_application.mjs"
-                        }),
-                )
-                .unwrap(),
-            );
+            let host_path = if indexed_batch {
+                "tests/useful_data/catalog_normalizer_application/decoded_index/host.mjs"
+            } else {
+                "tests/useful_data/catalog_normalizer_application/pairwise-host.mjs"
+            };
+            let host_source = std::fs::read_to_string(
+                Path::new(env!("CARGO_MANIFEST_DIR")).join(host_path),
+            ).unwrap();
+            if !indexed_batch {
+                use sha2::Digest;
+                // Complete original host from 2b336005c^, including every old
+                // import, ownership, capacity, overflow and execution control.
+                assert_eq!(host_source.len(), 2496);
+                assert_eq!(
+                    <[u8; 32]>::from(sha2::Sha256::digest(host_source.as_bytes())),
+                    [43, 20, 248, 1, 111, 245, 164, 230, 32, 200, 104, 202, 206, 48, 183, 183, 165, 230, 141, 218, 135, 165, 219, 36, 165, 16, 118, 166, 22, 115, 162, 174]
+                );
+            }
+            host.push_str(&host_source);
             std::fs::write(&script, host).unwrap();
             let node = Command::new("node")
                 .arg(&script)

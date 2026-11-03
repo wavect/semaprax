@@ -44,6 +44,10 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         frontier.advance()?;
     }
     drop(frontier);
+    // The independent replay below uses a separate scratch ledger. End this
+    // ledger's measurement before the switch; replay measures its own debit.
+    #[cfg(feature = "unstable-workflow-profiling")]
+    drop(_paid_phase);
     // Complete fresh independent replay never borrows frontier proofs.
     scratch_ledger::validate_program(program)
 }

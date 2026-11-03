@@ -390,3 +390,158 @@ mod into;
 
 #[cfg(test)]
 mod into_tests;
+
+// The caller pays the original acquisition plus one arena-root field read.
+// The arena loan makes every retained right-spine index immutable and valid.
+impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
+    pub(in crate::cleanup_plan::replay::expression_facts) fn new_prefixed(
+        arena: &'arena Arena<'hir>,
+        function: &'arena ResolvedFunction,
+        budget: &'budget mut ReplayBudget,
+    ) -> Self {
+        Self {
+            arena,
+            function,
+            budget,
+            control: Control {
+                lower: 0,
+                upper: 0,
+                at: NIL,
+                last: arena.root,
+            },
+            compared: Compared {
+                bytes: Bytes {
+                    left: &[],
+                    right: &[],
+                    end: 0,
+                    common: 0,
+                },
+                order: Ordering::Equal,
+                units: 0,
+                a: 0,
+                b: 0,
+            },
+        }
+    }
+}
+
+/// A paid common-prefix certificate for one complete immutable ordered arena.
+/// Full keys and payloads remain in that arena; no query verdict is retained.
+pub(in crate::cleanup_plan::replay::expression_facts) struct PrefixWitness<'arena, 'hir> {
+    arena: &'arena Arena<'hir>,
+    function: &'arena ResolvedFunction,
+    budget: *const ReplayBudget,
+    bytes: usize,
+}
+impl<'arena, 'hir> PrefixWitness<'arena, 'hir> {
+    pub(in crate::cleanup_plan::replay::expression_facts) fn acquire(
+        arena: &'arena Arena<'hir>,
+        function: &'arena ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<Self, Diagnostic> {
+        let frames = 2 * size_of::<Self>()
+            + 2 * size_of::<(&Arena<'_>, &ResolvedFunction, &mut ReplayBudget)>()
+            + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+            + 4 * size_of::<Result<(), Diagnostic>>()
+            + 2 * size_of::<Result<Self, Diagnostic>>()
+            + 2 * size_of::<(usize, &Node<'_>, &[u8], &[u8], usize, usize, usize)>()
+            + 4 * size_of::<(&ExpressionId, &str, &[u8])>()
+            + 4 * size_of::<bool>();
+        budget.reserve_bytes(
+            function,
+            frames,
+            "expression-fact prefix certificate acquisition",
+        )?;
+        budget.charge(
+            function,
+            20,
+            "expression-fact prefix certificate initialization",
+        )?;
+        if arena.nodes.len() < 16 {
+            return Ok(Self {
+                arena,
+                function,
+                budget,
+                bytes: 0,
+            });
+        }
+        let mut last = arena.root;
+        loop {
+            budget.charge(function, 3, "expression-fact prefix maximum acquisition")?;
+            let node = &arena.nodes[last];
+            if node.right == NIL {
+                break;
+            }
+            last = node.right;
+        }
+        budget.charge(function, 12, "expression-fact prefix endpoint acquisition")?;
+        let left = arena.nodes[arena.first].key.as_str().as_bytes();
+        let right = arena.nodes[last].key.as_str().as_bytes();
+        let end = left.len().min(right.len());
+        let units = end.checked_add(1).ok_or_else(|| {
+            budget.budget_refusal(
+                function,
+                "expression-fact prefix certificate work overflow",
+                "",
+            )
+        })?;
+        budget.charge(
+            function,
+            units,
+            "expression-fact prefix certificate byte comparison",
+        )?;
+        let mut common = 0;
+        while common < end {
+            if left[common] != right[common] {
+                break;
+            }
+            common += 1;
+        }
+        Ok(Self {
+            arena,
+            function,
+            budget,
+            bytes: common,
+        })
+    }
+}
+impl Session<'_, '_, '_> {
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_query_bytes() -> usize {
+        2 * size_of::<(
+            &mut Self,
+            &ExpressionId,
+            &PrefixWitness<'_, '_>,
+            &mut Option<&Option<CallFact<'_>>>,
+            &mut crate::cleanup_plan::replay::ordinary_receiving::Failure<'_>,
+            bool,
+        )>()
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_edge_query_bytes(
+    ) -> usize {
+        Self::prefixed_query_bytes()
+    }
+    const fn prefix_query_bytes() -> usize {
+        2 * size_of::<(*const Arena<'_>, *const Arena<'_>)>()
+            + 2 * size_of::<(*const ResolvedFunction, *const ResolvedFunction)>()
+            + 2 * size_of::<(*const ReplayBudget, *const ReplayBudget)>()
+            + 8 * size_of::<bool>()
+            + 2 * size_of::<(usize, usize)>()
+            + 2 * size_of::<usize>()
+    }
+}
+
+impl Session<'_, '_, '_> {
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_acquisition_bytes(
+    ) -> usize {
+        Self::OLD_SCRATCH
+            + Self::acquisition_bytes()
+            + crate::cleanup_plan::replay::ordinary_receiving::Failure::acquisition_bytes()
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_edge_bytes() -> usize {
+        Self::into_edge_local_bytes() + Self::prefixed_edge_query_bytes()
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_transition_bytes(
+    ) -> usize {
+        Self::prefixed_edge_bytes() + size_of::<Option<&Option<CallFact<'_>>>>()
+    }
+}

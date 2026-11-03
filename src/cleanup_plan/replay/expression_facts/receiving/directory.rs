@@ -116,6 +116,10 @@ pub(super) struct Directory<K> {
     lookup: Option<Box<status_prefix::FrozenStatusIndex>>,
 }
 
+#[allow(
+    dead_code,
+    reason = "the complete original lookup control retains mask and direction"
+)]
 struct LookupCursor {
     at: usize,
     byte: usize,
@@ -133,6 +137,8 @@ const LOOKUP_BYTES: usize = 2 * std::mem::size_of::<LookupCursor>()
     + 2 * std::mem::size_of::<Option<usize>>()
     + std::mem::size_of::<usize>()
     + std::mem::size_of::<Ordering>();
+const NIBBLE_LOOKUP_BYTES: usize =
+    LOOKUP_BYTES + 2 * std::mem::size_of::<&status_prefix::LookupJump>();
 
 struct Iter<'a, K> {
     nodes: &'a [Node<K>],
@@ -301,6 +307,198 @@ impl<K: KeyWork> Directory<K> {
             self.authenticate(function, budget)?;
             // All traversal state is one fixed receiving frame. Loop steps
             // update its paid fields rather than constructing a new path.
+            budget.reserve_bytes(function, NIBBLE_LOOKUP_BYTES, self.phase)?;
+            budget.charge(function, 24, self.phase)?;
+            let Some(query) = key.status_key() else {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            };
+            let mut cursor = LookupCursor {
+                at: index.root,
+                byte: 0,
+                mask: 0,
+                symbol: 0,
+                direction: false,
+                units: NIL,
+            };
+            cursor.byte = index.nodes[cursor.at].byte;
+            while cursor.byte != NIL {
+                // `units` holds the byte whose symbol was already read until
+                // the leaf reuses that same paid slot for comparison work.
+                // Several Patricia decisions commonly inspect the same byte.
+                // The immutable query keeps its complete original bytes.
+                budget.charge(function, VISIT_UNITS + 15, self.phase)?;
+                if cursor.units != cursor.byte {
+                    budget.charge(function, 13, self.phase)?;
+                    cursor.units = cursor.byte;
+                    cursor.symbol = if cursor.byte < query.expression.as_str().len() {
+                        256 | query.expression.as_str().as_bytes()[cursor.byte] as u16
+                    } else if cursor.byte == query.expression.as_str().len() {
+                        match query.lane {
+                            StatusLane::OwnerAdmission => 0,
+                            StatusLane::OperationFailure => 1,
+                            StatusLane::AllocationFailure => 2,
+                            StatusLane::ContractFalse => 3,
+                        }
+                    } else {
+                        0
+                    };
+                }
+                cursor.mask = (cursor.symbol >> index.jumps[cursor.at].shift) & 15;
+                cursor.at = index.jumps[cursor.at].targets[usize::from(cursor.mask)];
+                cursor.byte = index.nodes[cursor.at].byte;
+            }
+            budget.charge(function, VISIT_UNITS + 2, self.phase)?;
+            cursor.at = index.nodes[cursor.at].zero;
+            let candidate = &self.nodes[cursor.at];
+            // The index selects only a candidate. Preserve the complete old
+            // key-comparison request and actual Ord equality, without a prefix
+            // discount, identifier parsing, hashes or numeric-ID authority.
+            cursor.units = match key
+                .comparison_units(&candidate.key)
+                .and_then(|units| units.checked_add(VISIT_UNITS))
+            {
+                Some(units) => units,
+                None => {
+                    return Err(overflow(
+                        function,
+                        budget,
+                        "directory key comparison work overflow",
+                    ))
+                }
+            };
+            budget.charge(function, cursor.units, self.phase)?;
+            return Ok(Ord::cmp(key, &candidate.key) == Ordering::Equal);
+        }
+        self.authenticate(function, budget)?;
+        Ok(self.probe(function, key, budget)?.found)
+    }
+
+    #[cfg(test)]
+    #[allow(
+        dead_code,
+        reason = "complete original cached-symbol trie lookup control"
+    )]
+    pub(super) fn contains_before_nibble(
+        &self,
+        function: &ResolvedFunction,
+        key: &K,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        if let Some(index) = &self.lookup {
+            // Binding checks read no foreign payer or cached key. A rejected
+            // receiver remains rejected even after its original owner returns.
+            if index.failed.get() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            if !std::ptr::eq(index.function, function)
+                || !std::ptr::eq(index.budget, budget)
+                || !index.ledger.current()
+                || index.keys != self.nodes.as_ptr() as usize
+                || index.len != self.nodes.len()
+            {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            self.authenticate(function, budget)?;
+            // All traversal state is one fixed receiving frame. Loop steps
+            // update its paid fields rather than constructing a new path.
+            budget.reserve_bytes(function, LOOKUP_BYTES, self.phase)?;
+            budget.charge(function, 24, self.phase)?;
+            let Some(query) = key.status_key() else {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            };
+            let mut cursor = LookupCursor {
+                at: index.root,
+                byte: 0,
+                mask: 0,
+                symbol: 0,
+                direction: false,
+                units: NIL,
+            };
+            cursor.byte = index.nodes[cursor.at].byte;
+            while cursor.byte != NIL {
+                // `units` holds the byte whose symbol was already read until
+                // the leaf reuses that same paid slot for comparison work.
+                // Several Patricia decisions commonly inspect the same byte.
+                // The immutable query keeps its complete original bytes.
+                budget.charge(function, VISIT_UNITS + 15, self.phase)?;
+                if cursor.units != cursor.byte {
+                    budget.charge(function, 13, self.phase)?;
+                    cursor.units = cursor.byte;
+                    cursor.symbol = if cursor.byte < query.expression.as_str().len() {
+                        256 | query.expression.as_str().as_bytes()[cursor.byte] as u16
+                    } else if cursor.byte == query.expression.as_str().len() {
+                        match query.lane {
+                            StatusLane::OwnerAdmission => 0,
+                            StatusLane::OperationFailure => 1,
+                            StatusLane::AllocationFailure => 2,
+                            StatusLane::ContractFalse => 3,
+                        }
+                    } else {
+                        0
+                    };
+                }
+                cursor.at = if cursor.symbol & index.nodes[cursor.at].mask != 0 {
+                    index.nodes[cursor.at].one
+                } else {
+                    index.nodes[cursor.at].zero
+                };
+                cursor.byte = index.nodes[cursor.at].byte;
+            }
+            budget.charge(function, VISIT_UNITS + 2, self.phase)?;
+            cursor.at = index.nodes[cursor.at].zero;
+            let candidate = &self.nodes[cursor.at];
+            // The index selects only a candidate. Preserve the complete old
+            // key-comparison request and actual Ord equality, without a prefix
+            // discount, identifier parsing, hashes or numeric-ID authority.
+            cursor.units = match key
+                .comparison_units(&candidate.key)
+                .and_then(|units| units.checked_add(VISIT_UNITS))
+            {
+                Some(units) => units,
+                None => {
+                    return Err(overflow(
+                        function,
+                        budget,
+                        "directory key comparison work overflow",
+                    ))
+                }
+            };
+            budget.charge(function, cursor.units, self.phase)?;
+            return Ok(Ord::cmp(key, &candidate.key) == Ordering::Equal);
+        }
+        self.authenticate(function, budget)?;
+        Ok(self.probe(function, key, budget)?.found)
+    }
+
+    #[cfg(test)]
+    #[allow(dead_code, reason = "complete original symbol-per-bit lookup control")]
+    pub(super) fn contains_before_symbol_cache(
+        &self,
+        function: &ResolvedFunction,
+        key: &K,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        if let Some(index) = &self.lookup {
+            // Binding checks read no foreign payer or cached key. A rejected
+            // receiver remains rejected even after its original owner returns.
+            if index.failed.get() {
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            if !std::ptr::eq(index.function, function)
+                || !std::ptr::eq(index.budget, budget)
+                || !index.ledger.current()
+                || index.keys != self.nodes.as_ptr() as usize
+                || index.len != self.nodes.len()
+            {
+                index.failed.set(true);
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            self.authenticate(function, budget)?;
+            // All traversal state is one fixed receiving frame. Loop steps
+            // update its paid fields rather than constructing a new path.
             budget.reserve_bytes(function, LOOKUP_BYTES, self.phase)?;
             budget.charge(function, 24, self.phase)?;
             let Some(query) = key.status_key() else {
@@ -407,6 +605,51 @@ impl<K: KeyWork> Directory<K> {
             self.nodes[probe.parent].right = index;
         }
         self.rebalance(probe.parent, function, budget)?;
+        Ok(true)
+    }
+
+    #[cfg(test)]
+    pub(super) fn insert_before_height_stable(
+        &mut self,
+        function: &ResolvedFunction,
+        key: K,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        if let Some(index) = &self.lookup {
+            // Publication seals this privately owned directory. No mutation or
+            // fallback can revive a rejected read-only index.
+            index.failed.set(true);
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        self.authenticate(function, budget)?;
+        let probe = self.probe(function, &key, budget)?;
+        if probe.found {
+            return Ok(false);
+        }
+        self.grow(function, budget)?;
+        budget.charge(function, VISIT_UNITS, self.phase)?;
+        let index = self.nodes.len();
+        self.nodes.push(Node {
+            key,
+            left: NIL,
+            right: NIL,
+            parent: probe.parent,
+            next: probe.after,
+            height: 1,
+        });
+        if probe.before == NIL {
+            self.first = index;
+        } else {
+            self.nodes[probe.before].next = index;
+        }
+        if probe.parent == NIL {
+            self.root = index;
+        } else if probe.side == Ordering::Less {
+            self.nodes[probe.parent].left = index;
+        } else {
+            self.nodes[probe.parent].right = index;
+        }
+        self.rebalance_before_height_stable(probe.parent, function, budget)?;
         Ok(true)
     }
 
@@ -621,6 +864,47 @@ impl<K: KeyWork> Directory<K> {
     }
 
     fn rebalance(
+        &mut self,
+        mut at: usize,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        budget.reserve_bytes(
+            function,
+            2 * std::mem::size_of::<(u8, bool)>()
+                + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+                + 2 * std::mem::size_of::<Result<(), Diagnostic>>(),
+            "directory height-stable insertion controls",
+        )?;
+        while at != NIL {
+            budget.charge(function, REBALANCE_UNITS + 3, self.phase)?;
+            let previous_height = self.nodes[at].height;
+            self.update(at, function, budget)?;
+            let (left, right) = (self.nodes[at].left, self.nodes[at].right);
+            let top = if i16::from(self.height(left)) - i16::from(self.height(right)) > 1 {
+                if self.height(self.nodes[left].left) < self.height(self.nodes[left].right) {
+                    self.rotate_left(left, function, budget)?;
+                }
+                self.rotate_right(at, function, budget)?
+            } else if i16::from(self.height(right)) - i16::from(self.height(left)) > 1 {
+                if self.height(self.nodes[right].right) < self.height(self.nodes[right].left) {
+                    self.rotate_right(right, function, budget)?;
+                }
+                self.rotate_left(at, function, budget)?
+            } else {
+                at
+            };
+            // A balanced insertion stops propagating as soon as the repaired
+            // subtree keeps its old height; higher ancestors remain unchanged.
+            if self.nodes[top].height == previous_height {
+                break;
+            }
+            at = self.nodes[top].parent;
+        }
+        Ok(())
+    }
+    #[cfg(test)]
+    fn rebalance_before_height_stable(
         &mut self,
         mut at: usize,
         function: &ResolvedFunction,

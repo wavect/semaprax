@@ -1005,7 +1005,121 @@ impl<'hir> HeldPrefix<'_, 'hir> {
 
 // Published only after every source row and producer has passed the original
 // receiving checks. Keys remain immutable in the owning AVL directory.
+// A nibble transition compresses only structural decisions at the same
+// byte coordinate. It never supplies membership: the complete leaf key is
+// still compared by the original full-key receiver.
+#[derive(Clone, Copy)]
+pub(super) struct LookupJump {
+    pub(super) targets: [usize; 16],
+    pub(super) shift: u32,
+}
+struct JumpBuild {
+    at: usize,
+    ready: bool,
+    pattern: usize,
+    child: usize,
+    shift: u32,
+}
+fn lookup_jumps(
+    nodes: &[IndexNode],
+    root: usize,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    phase: &str,
+) -> Result<Vec<LookupJump>, Diagnostic> {
+    // Pay complete retained rows, fresh initialized row receivers, the
+    // postorder backing, complete control frame and both vector headers.
+    let rows = nodes
+        .len()
+        .checked_mul(2)
+        .ok_or_else(|| overflow(function, budget, "status jump row layout overflow"))?;
+    let frames = nodes
+        .len()
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(3))
+        .ok_or_else(|| overflow(function, budget, "status jump traversal layout overflow"))?;
+    budget.reserve_array::<LookupJump>(function, rows, phase)?;
+    budget.reserve_array::<(usize, bool)>(function, frames, phase)?;
+    budget.reserve_bytes(
+        function,
+        2 * size_of::<JumpBuild>()
+            + 2 * size_of::<Vec<LookupJump>>()
+            + 2 * size_of::<Vec<(usize, bool)>>()
+            + 2 * size_of::<Result<(), Diagnostic>>()
+            + 2 * size_of::<Result<Vec<LookupJump>, Diagnostic>>()
+            + 2 * size_of::<(
+                &[IndexNode],
+                usize,
+                &ResolvedFunction,
+                &mut ReplayBudget,
+                &str,
+            )>(),
+        phase,
+    )?;
+    let mut jumps = Vec::new();
+    jumps
+        .try_reserve_exact(nodes.len())
+        .map_err(|_| budget.budget_refusal(function, "status jump allocation refused", ""))?;
+    let mut pending = Vec::new();
+    pending.try_reserve_exact(nodes.len() + 1).map_err(|_| {
+        budget.budget_refusal(function, "status jump traversal allocation refused", "")
+    })?;
+    for _ in nodes {
+        budget.charge(function, 17, phase)?;
+        jumps.push(LookupJump {
+            targets: [0; 16],
+            shift: 0,
+        });
+    }
+    pending.push((root, false));
+    let mut cursor = JumpBuild {
+        at: root,
+        ready: false,
+        pattern: 0,
+        child: root,
+        shift: 0,
+    };
+    while let Some((at, ready)) = pending.pop() {
+        budget.charge(function, 12, phase)?;
+        cursor.at = at;
+        cursor.ready = ready;
+        if nodes[cursor.at].byte == NIL {
+            continue;
+        }
+        if !cursor.ready {
+            pending.push((cursor.at, true));
+            pending.push((nodes[cursor.at].zero, false));
+            pending.push((nodes[cursor.at].one, false));
+            continue;
+        }
+        budget.charge(function, 4, phase)?;
+        cursor.shift = nodes[cursor.at].mask.trailing_zeros() / 4 * 4;
+        jumps[cursor.at].shift = cursor.shift;
+        cursor.pattern = 0;
+        while cursor.pattern < 16 {
+            budget.charge(function, 12, phase)?;
+            cursor.child =
+                if cursor.pattern & (usize::from(nodes[cursor.at].mask) >> cursor.shift) != 0 {
+                    nodes[cursor.at].one
+                } else {
+                    nodes[cursor.at].zero
+                };
+            jumps[cursor.at].targets[cursor.pattern] = if nodes[cursor.child].byte
+                == nodes[cursor.at].byte
+                && nodes[cursor.child].mask.trailing_zeros() / 4 * 4 == cursor.shift
+            {
+                jumps[cursor.child].targets[cursor.pattern]
+            } else {
+                cursor.child
+            };
+            cursor.pattern += 1;
+        }
+    }
+    Ok(jumps)
+}
+
 pub(super) struct FrozenStatusIndex {
+    pub(super) jumps: Vec<LookupJump>,
     pub(super) nodes: Vec<IndexNode>,
     pub(super) root: usize,
     pub(super) function: *const ResolvedFunction,
@@ -1058,7 +1172,15 @@ impl HeldPrefix<'_, '_> {
         let Some(index) = self.index else {
             return Ok(());
         };
+        let jumps = lookup_jumps(
+            &index.nodes,
+            index.root.expect("complete nonempty status index"),
+            function,
+            budget,
+            self.directory.phase,
+        )?;
         let frozen = FrozenStatusIndex {
+            jumps,
             nodes: index.nodes,
             root: index.root.expect("complete nonempty status index"),
             function,

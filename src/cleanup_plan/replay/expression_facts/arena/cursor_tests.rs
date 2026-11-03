@@ -211,3 +211,111 @@ fn shallow_actual_fact_owner_releases_all_backing_and_costs_less_than_the_full_o
     }
     assert!(charges[1] < charges[0], "actual shallow collector billing");
 }
+
+#[test]
+fn whole_path_rotation_bound_pays_actual_insertion_and_preserves_complete_payloads() {
+    let program = program();
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "cursor.main")
+        .unwrap();
+    let facts = expression_facts(function).unwrap();
+    let payload = facts.values().find_map(|fact| fact.as_ref()).unwrap();
+    let mut keys = (0..256)
+        .map(|index| {
+            ExpressionId::from_owned(format!(
+                "full.opaque.{}.{index:04}",
+                "prefix".repeat(index % 9)
+            ))
+        })
+        .collect::<Vec<_>>();
+    keys.sort();
+    let orders = [
+        (0..keys.len()).collect::<Vec<_>>(),
+        (0..keys.len()).rev().collect::<Vec<_>>(),
+        (0..128).flat_map(|i| [i, 255 - i]).collect::<Vec<_>>(),
+        (0..256).map(|i| (i * 73 + 19) % 256).collect::<Vec<_>>(),
+    ];
+    for order in orders {
+        let mut physical = physical_storage::PhysicalReservation::new(usize::MAX);
+        let mut capacity =
+            capacity::FactCapacity::with_payer(function, capacity::Payer::Selected(&mut physical))
+                .unwrap();
+        let mut arena = Arena::new(&mut capacity).unwrap();
+        let mut saved = 0;
+        for index in order {
+            arena.reserve_next(&mut capacity).unwrap();
+            for duplicate in [false, true] {
+                let mut budget = ReplayBudget::unobserved();
+                let remaining = budget.remaining;
+                arena
+                    .prepare_insert_work(function, &keys[index], &mut budget)
+                    .unwrap();
+                let allowance = remaining - budget.remaining;
+                let mut original = ReplayBudget::unobserved();
+                let old_remaining = original.remaining;
+                arena
+                    .prepare_insert_work_before_rotation_bound(
+                        function,
+                        &keys[index],
+                        &mut original,
+                    )
+                    .unwrap();
+                let old_allowance = old_remaining - original.remaining;
+                assert!(allowance <= old_allowance);
+                saved += old_allowance - allowance;
+                let work = capacity.remaining_arena_work();
+                assert_eq!(
+                    arena
+                        .insert(keys[index].clone(), Some(payload.clone()), &mut capacity)
+                        .unwrap(),
+                    !duplicate
+                );
+                assert!(
+                    work - capacity.remaining_arena_work() <= allowance,
+                    "complete actual insertion exceeds prepaid bound"
+                );
+                assert!(arena.balanced());
+            }
+        }
+        assert!(saved > 0);
+        let entries = arena.entries().collect::<Vec<_>>();
+        assert_eq!(entries.len(), keys.len());
+        for ((key, fact), expected_key) in entries.into_iter().zip(&keys) {
+            assert_eq!(key, expected_key);
+            let fact = fact.as_ref().unwrap();
+            assert_eq!(fact.callee, payload.callee);
+            assert_eq!(fact.instance, payload.instance);
+            assert_eq!(fact.arguments, payload.arguments);
+            assert_eq!(fact.type_arguments, payload.type_arguments);
+        }
+    }
+}
+
+#[test]
+fn prepared_insertion_rejects_foreign_key_owners_and_cannot_revive_after_refusal() {
+    let program = program();
+    let function = &program.functions[0];
+    for foreign in ["same.opaque.é\0key", "different.opaque.é\0key"] {
+        let key = ExpressionId::from_owned("same.opaque.é\0key".into());
+        let foreign = ExpressionId::from_owned(foreign.into());
+        let mut physical = physical_storage::PhysicalReservation::new(usize::MAX);
+        let mut capacity =
+            capacity::FactCapacity::with_payer(function, capacity::Payer::Selected(&mut physical))
+                .unwrap();
+        let mut arena = Arena::new(&mut capacity).unwrap();
+        arena.reserve_next(&mut capacity).unwrap();
+        let mut budget = ReplayBudget::unobserved();
+        arena
+            .prepare_insert_work(function, &key, &mut budget)
+            .unwrap();
+        assert!(arena.insert(foreign, None, &mut capacity).is_err());
+        assert_eq!(arena.len(), 0);
+        assert!(arena.insert(key.clone(), None, &mut capacity).is_err());
+        assert!(arena
+            .prepare_insert_work(function, &key, &mut budget)
+            .is_err());
+        assert_eq!(arena.len(), 0);
+    }
+}

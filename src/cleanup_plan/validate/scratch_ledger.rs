@@ -29,7 +29,13 @@ const MAX_REPLAY_SCRATCH_BYTES: usize = if usize::BITS >= 64 {
 pub(in crate::cleanup_plan) fn validate_program(
     program: &ResolvedProgram,
 ) -> Result<(), Diagnostic> {
-    detached(|| crate::cleanup_plan::replay::validate_program(program))
+    detached(|| {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        let _paid_phase = crate::workflow_profile::plan_comparison::active_paid_phase(
+            crate::workflow_profile::plan_comparison::PaidPhase::CleanupValidation,
+        );
+        crate::cleanup_plan::replay::validate_program(program)
+    })
 }
 
 /// Complete independent replay of a projected context on the detached ledger.

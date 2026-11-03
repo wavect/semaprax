@@ -1,7 +1,7 @@
 {
   "before_head": "78419a6ca560928f6b948375566a1a4b887b3fef",
   "previous_sha256": "2d4b918d10c8c6a00340c294c7f5d8d2458ffb7ab01f9c770d366a1d0efdcfca",
-  "current_sha256": "70b1f6c41f811ca7a0a8f44a8abc87568119c00e945c58a0b97c0d9e73691cee",
+  "current_sha256": "ec292640034fe63b2a23a69ab30edec77e9a63fd575d61a1a1b243bb27c6b886",
   "inverse": [
     {
       "begin": 1266,
@@ -91,6 +91,12 @@
       "begin": 19192,
       "end": 19351,
       "current": "\n#[cfg(test)]\n#[path = \"capacity/before_types.rs\"]\nmod before_types;\n\n#[cfg(test)]\n#[path = \"capacity/type_cursor_tests.rs\"]\npub(super) mod type_cursor_tests;\n",
+      "previous": ""
+    },
+    {
+      "begin": 14523,
+      "end": 14621,
+      "current": "    #[cfg(test)]\n    pub(super) fn remaining_arena_work(&self) -> usize {\n        self.work\n    }\n",
       "previous": ""
     }
   ]

@@ -357,6 +357,10 @@ impl<'a, 'p> FactCapacity<'a, 'p> {
     pub(super) fn arena_reserve_array<T>(&mut self, count: usize) -> Result<(), Failure> {
         self.array::<T>(count)
     }
+    #[cfg(test)]
+    pub(super) fn remaining_arena_work(&self) -> usize {
+        self.work
+    }
     pub(super) fn arena_work(&mut self, units: usize) -> Result<(), Failure> {
         let remaining = self.work.checked_sub(units).ok_or(Failure {
             detail: "expression-fact arena work exceeds limit",

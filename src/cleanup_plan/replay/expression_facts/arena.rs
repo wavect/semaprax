@@ -17,8 +17,24 @@ struct Node<'hir> {
 }
 pub(in crate::cleanup_plan::replay) struct Arena<'hir> {
     nodes: Vec<Node<'hir>>,
+    shared_prefix: (usize, usize),
+    pending: std::cell::RefCell<Option<PreparedInsertion>>,
+    insertion_failed: std::cell::Cell<bool>,
     root: usize,
     first: usize,
+}
+// One immediately consumed construction proof. The complete immutable key
+// stays owned by its original Arc; no digest, numeric ID or result cache binds it.
+struct PreparedInsertion {
+    key: ExpressionId,
+    len: usize,
+    parent: usize,
+    before: usize,
+    after: usize,
+    side: Ordering,
+    found: bool,
+    prefix: usize,
+    work: usize,
 }
 fn failure(detail: &'static str, physical: bool) -> capacity::Failure {
     capacity::Failure { detail, physical }
@@ -37,6 +53,9 @@ impl<'hir> Arena<'hir> {
         capacity.arena_reserve_array::<Self>(1)?;
         Ok(Self {
             nodes: Vec::new(),
+            shared_prefix: (0, 0),
+            pending: std::cell::RefCell::new(None),
+            insertion_failed: std::cell::Cell::new(false),
             root: NIL,
             first: NIL,
         })
@@ -78,7 +97,8 @@ impl<'hir> Arena<'hir> {
         self.nodes = replacement;
         Ok(())
     }
-    pub(super) fn prepare_insert_work(
+    #[cfg(test)]
+    fn prepare_insert_work_before_rotation_bound(
         &self,
         function: &ResolvedFunction,
         key: &ExpressionId,
@@ -117,7 +137,9 @@ impl<'hir> Arena<'hir> {
         }
         Ok(())
     }
-    pub(super) fn insert(
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(super) fn insert_before_prefix(
         &mut self,
         key: ExpressionId,
         fact: Option<CallFact<'hir>>,
@@ -233,6 +255,7 @@ impl<'hir> Arena<'hir> {
         self.update(left)?;
         Ok(left)
     }
+    #[cfg(test)]
     fn rebalance(
         &mut self,
         mut at: usize,
@@ -255,6 +278,333 @@ impl<'hir> Arena<'hir> {
             } else {
                 at
             };
+            at = self.nodes[top].parent;
+        }
+        Ok(())
+    }
+    pub(super) fn prepare_insert_work(
+        &self,
+        function: &ResolvedFunction,
+        key: &ExpressionId,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        // Any new attempt destroys the previous one-use receipt, including a
+        // refused attempt. No failed preparation can leave insertion authority.
+        if self.insertion_failed.get() {
+            return Err(budget.budget_refusal(
+                function,
+                "expression-fact insertion already failed",
+                "",
+            ));
+        }
+        self.insertion_failed.set(true);
+        self.pending.borrow_mut().take();
+        budget.reserve_bytes(
+            function,
+            4 * std::mem::size_of::<PreparedInsertion>()
+                + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+                + 2 * std::mem::size_of::<(&Arena<'_>, &ExpressionId)>()
+                + 4 * std::mem::size_of::<&[u8]>()
+                + 12 * std::mem::size_of::<usize>()
+                + 2 * std::mem::size_of::<Ordering>(),
+            "expression-fact prepared insertion frames",
+        )?;
+        budget.charge(function, 8, "expression-fact insertion authority")?;
+        let prefix_work = if self.nodes.is_empty() {
+            7
+        } else {
+            self.shared_prefix
+                .0
+                .min(key.as_str().len())
+                .saturating_add(7)
+        };
+        budget.charge(
+            function,
+            prefix_work,
+            "expression-fact insertion prefix certificate",
+        )?;
+        let prefix = self.insertion_prefix(key);
+        let (mut at, mut parent, mut before, mut after) = (self.root, NIL, NIL, NIL);
+        let mut side = Ordering::Equal;
+        let mut search_work = prefix_work;
+        while at != NIL {
+            budget.charge(function, 3, "expression-fact prepared search")?;
+            search_work += 3;
+            let left = &key.as_str().as_bytes()[prefix..];
+            let right = &self.nodes[at].key.as_str().as_bytes()[prefix..];
+            let mut offset = 0;
+            side = loop {
+                budget.charge(function, 1, "expression-fact prepared comparison")?;
+                search_work += 1;
+                if offset == left.len().min(right.len()) {
+                    break left.len().cmp(&right.len());
+                }
+                let order = left[offset].cmp(&right[offset]);
+                if order != Ordering::Equal {
+                    break order;
+                }
+                offset += 1;
+            };
+            if side == Ordering::Equal {
+                break;
+            }
+            parent = at;
+            if side == Ordering::Less {
+                after = at;
+                at = self.nodes[at].left;
+            } else {
+                before = at;
+                at = self.nodes[at].right;
+            }
+        }
+        let found = at != NIL;
+        // Predict only how many existing heights can change. A repair or an
+        // unchanged subtree height ends propagation. All forty possible
+        // rotation visits remain paid before any tree link changes.
+        let mut ancestor = parent;
+        let mut direction = side;
+        let mut ancestors = 0usize;
+        if !found {
+            while ancestor != NIL {
+                budget.charge(function, 8, "expression-fact insertion height prediction")?;
+                search_work += 8;
+                let node = &self.nodes[ancestor];
+                let mut left = u16::from(self.height(node.left));
+                let mut right = u16::from(self.height(node.right));
+                if direction == Ordering::Less {
+                    left += 1;
+                } else {
+                    right += 1;
+                }
+                ancestors += 1;
+                if left.abs_diff(right) > 1 || left.max(right) + 1 == u16::from(node.height) {
+                    break;
+                }
+                let child = ancestor;
+                ancestor = node.parent;
+                if ancestor != NIL {
+                    direction = if self.nodes[ancestor].left == child {
+                        Ordering::Less
+                    } else {
+                        Ordering::Greater
+                    };
+                }
+            }
+        }
+        let work = ancestors
+            .checked_mul(19)
+            .and_then(|n| n.checked_add(53))
+            .ok_or_else(|| {
+                budget.budget_refusal(function, "expression-fact insertion work overflow", "")
+            })?;
+        budget.charge(function, work, "expression-fact prepared append and repair")?;
+        self.pending.replace(Some(PreparedInsertion {
+            key: key.clone(),
+            len: self.nodes.len(),
+            parent,
+            before,
+            after,
+            side,
+            found,
+            prefix,
+            work: search_work,
+        }));
+        self.insertion_failed.set(false);
+        Ok(())
+    }
+    fn insertion_prefix(&self, key: &ExpressionId) -> usize {
+        if self.nodes.is_empty() {
+            return key.as_str().len();
+        }
+        if self.shared_prefix.1 != self.nodes.len() {
+            return 0;
+        }
+        let first = self.nodes[self.first].key.as_str().as_bytes();
+        let query = key.as_str().as_bytes();
+        let end = self.shared_prefix.0.min(first.len()).min(query.len());
+        let mut common = 0;
+        while common < end && first[common] == query[common] {
+            common += 1;
+        }
+        common
+    }
+    pub(super) fn insert(
+        &mut self,
+        key: ExpressionId,
+        fact: Option<CallFact<'hir>>,
+        capacity: &mut capacity::FactCapacity<'hir, '_>,
+    ) -> Result<bool, capacity::Failure> {
+        if self.insertion_failed.get() {
+            return Err(failure("expression-fact insertion already failed", false));
+        }
+        let Some(prepared) = self.pending.get_mut().take() else {
+            capacity.arena_work(4)?;
+            capacity.arena_reserve_array::<Result<bool, capacity::Failure>>(2)?;
+            let result = self.insert_before_prepared(key, fact, capacity);
+            self.insertion_failed.set(result.is_err());
+            return result;
+        };
+        self.insertion_failed.set(true);
+        capacity.arena_reserve_array::<Node<'hir>>(0)?;
+        capacity.arena_work(18)?;
+        // The live complete Arc prevents allocation-address reuse. Production
+        // passes the original key's Arc clone directly from the HIR cursor.
+        if prepared.len != self.nodes.len()
+            || prepared.key.as_str().len() != key.as_str().len()
+            || prepared.key.as_str().as_ptr() != key.as_str().as_ptr()
+        {
+            return Err(failure(
+                "expression-fact prepared insertion binding differs",
+                false,
+            ));
+        }
+        capacity.arena_work(prepared.work)?;
+        if prepared.found {
+            self.insertion_failed.set(false);
+            return Ok(false);
+        }
+        let (parent, before, after, side) = (
+            prepared.parent,
+            prepared.before,
+            prepared.after,
+            prepared.side,
+        );
+        capacity.arena_work(3)?;
+        let index = self.nodes.len();
+        self.nodes.push(Node {
+            key,
+            fact,
+            left: NIL,
+            right: NIL,
+            parent,
+            next: after,
+            height: 1,
+        });
+        if before == NIL {
+            self.first = index;
+        } else {
+            self.nodes[before].next = index;
+        }
+        if parent == NIL {
+            self.root = index;
+        } else if side == Ordering::Less {
+            self.nodes[parent].left = index;
+        } else {
+            self.nodes[parent].right = index;
+        }
+        self.shared_prefix = (prepared.prefix, self.nodes.len());
+        self.rebalance_height_stable(parent, capacity)?;
+        self.insertion_failed.set(false);
+        Ok(true)
+    }
+    pub(super) fn insert_before_prepared(
+        &mut self,
+        key: ExpressionId,
+        fact: Option<CallFact<'hir>>,
+        capacity: &mut capacity::FactCapacity<'hir, '_>,
+    ) -> Result<bool, capacity::Failure> {
+        capacity.arena_reserve_array::<Node<'hir>>(0)?;
+        capacity.arena_reserve_array::<u8>(
+            2 * std::mem::size_of::<(&Arena<'_>, &ExpressionId)>()
+                + 2 * std::mem::size_of::<&[u8]>()
+                + 6 * std::mem::size_of::<usize>()
+                + 2 * std::mem::size_of::<Result<(), capacity::Failure>>(),
+        )?;
+        capacity.arena_work(
+            self.shared_prefix
+                .0
+                .min(key.as_str().len())
+                .saturating_add(7),
+        )?;
+        let prefix = self.insertion_prefix(&key);
+        let (mut at, mut parent, mut before, mut after) = (self.root, NIL, NIL, NIL);
+        let mut side = Ordering::Equal;
+        while at != NIL {
+            capacity.arena_work(3)?;
+            let candidate = &self.nodes[at].key;
+            let units = key
+                .as_str()
+                .len()
+                .min(candidate.as_str().len())
+                .checked_sub(prefix)
+                .and_then(|n| n.checked_add(1))
+                .ok_or_else(|| failure("expression-fact insertion suffix work overflow", false))?;
+            capacity.arena_work(units)?;
+            side = key.as_str().as_bytes()[prefix..].cmp(&candidate.as_str().as_bytes()[prefix..]);
+            if side == Ordering::Equal {
+                return Ok(false);
+            }
+            parent = at;
+            if side == Ordering::Less {
+                after = at;
+                at = self.nodes[at].left;
+            } else {
+                before = at;
+                at = self.nodes[at].right;
+            }
+        }
+        capacity.arena_work(3)?;
+        let index = self.nodes.len();
+        self.nodes.push(Node {
+            key,
+            fact,
+            left: NIL,
+            right: NIL,
+            parent,
+            next: after,
+            height: 1,
+        });
+        if before == NIL {
+            self.first = index;
+        } else {
+            self.nodes[before].next = index;
+        }
+        if parent == NIL {
+            self.root = index;
+        } else if side == Ordering::Less {
+            self.nodes[parent].left = index;
+        } else {
+            self.nodes[parent].right = index;
+        }
+        self.shared_prefix = (prefix, self.nodes.len());
+        self.rebalance_height_stable(parent, capacity)?;
+        Ok(true)
+    }
+    fn rebalance_height_stable(
+        &mut self,
+        mut at: usize,
+        capacity: &mut capacity::FactCapacity<'hir, '_>,
+    ) -> Result<(), capacity::Failure> {
+        // The new retained height and predicate are full primitive values;
+        // their payment call's actual/formal and Result receivers are fresh.
+        capacity.arena_reserve_array::<u8>(
+            2 * std::mem::size_of::<(u8, bool)>()
+                + 2 * std::mem::size_of::<(&mut capacity::FactCapacity<'_, '_>, usize)>()
+                + 2 * std::mem::size_of::<Result<(), capacity::Failure>>(),
+        )?;
+        while at != NIL {
+            capacity.arena_work(19)?;
+            let previous_height = self.nodes[at].height;
+            self.update(at)?;
+            let (left, right) = (self.nodes[at].left, self.nodes[at].right);
+            let top = if i16::from(self.height(left)) - i16::from(self.height(right)) > 1 {
+                if self.height(self.nodes[left].left) < self.height(self.nodes[left].right) {
+                    self.rotate_left(left, capacity)?;
+                }
+                self.rotate_right(at, capacity)?
+            } else if i16::from(self.height(right)) - i16::from(self.height(left)) > 1 {
+                if self.height(self.nodes[right].right) < self.height(self.nodes[right].left) {
+                    self.rotate_right(right, capacity)?;
+                }
+                self.rotate_left(at, capacity)?
+            } else {
+                at
+            };
+            // A repaired insertion preserves this subtree's old height.
+            // All higher ancestors already have correct heights and balance.
+            if self.nodes[top].height == previous_height {
+                break;
+            }
             at = self.nodes[top].parent;
         }
         Ok(())

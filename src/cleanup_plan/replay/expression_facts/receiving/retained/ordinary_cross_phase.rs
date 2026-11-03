@@ -3,7 +3,7 @@
 use super::case_certified::retained_lookup;
 use super::*;
 use crate::bounded_output::classifier_string::StorageParent;
-use crate::cleanup_plan::replay::expression_facts::arena::retained::Session;
+use crate::cleanup_plan::replay::expression_facts::arena::retained::{PrefixWitness, Session};
 use crate::cleanup_plan::replay::ordinary_receiving::{
     prepare_into, refuse_into, reserve_into, Failure,
 };
@@ -157,14 +157,12 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                         if arena.len() != 0 {
                             budget.reserve_bytes(
                                 function,
-                                Session::OLD_SCRATCH
-                                    + Session::acquisition_bytes()
-                                    + Failure::acquisition_bytes(),
+                                Session::prefixed_acquisition_bytes(),
                                 "retained expression-fact owner acquisition",
                             )?;
                             budget.charge(
                                 function,
-                                12,
+                                13,
                                 "retained expression-fact owner initialization",
                             )?;
                             #[cfg(test)]
@@ -175,7 +173,8 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                 budget,
                             };
                             let mut received = None;
-                            let mut session = Session::new_prepaid(arena, function, budget);
+                            let witness = PrefixWitness::acquire(arena, function, budget)?;
+                            let mut session = Session::new_prefixed(arena, function, budget);
                             loop {
                                 let source = &function.cleanup_plan.status_sources[ordinal];
                                 {
@@ -183,7 +182,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                         session.budget,
                                         function,
                                         failure,
-                                        Session::into_query_bytes(),
+                                        Session::prefixed_query_bytes(),
                                         "ordinary fact query actual and formal receiving"
                                     ) {
                                         return Err(failure
@@ -192,8 +191,9 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                             .expect("query frontier selected first error"));
                                     }
                                 }
-                                if !session.fact_into(
+                                if !session.fact_into_prefixed(
                                     &source.id.expression,
+                                    &witness,
                                     &mut received,
                                     &mut failure,
                                 ) {
@@ -397,12 +397,12 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                         )?;
                                         session.budget.reserve_bytes(
                                             function,
-                                            Session::into_edge_local_bytes()
-                                                + Session::into_edge_query_bytes(),
+                                            Session::prefixed_edge_bytes(),
                                             "retained expression-fact query result controls",
                                         )?;
-                                        if !session.fact_edge_into_prepaid(
+                                        if !session.fact_edge_into_prefixed(
                                             expression,
+                                            &witness,
                                             &mut received,
                                             &mut failure,
                                         ) {
@@ -477,13 +477,12 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                     )?;
                                     session.budget.reserve_bytes(
                                         function,
-                                        Session::into_edge_local_bytes()
-                                            + Session::into_edge_query_bytes()
-                                            + std::mem::size_of::<Option<&Option<CallFact<'_>>>>(),
+                                        Session::prefixed_transition_bytes(),
                                         "retained transition expression-fact query controls",
                                     )?;
-                                    if !session.fact_edge_into_prepaid(
+                                    if !session.fact_edge_into_prefixed(
                                         $query,
+                                        &witness,
                                         &mut received,
                                         &mut failure,
                                     ) {

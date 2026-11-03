@@ -251,3 +251,194 @@ fn genuine_arena_producer_keeps_call_and_noncall_payload_addresses() {
     }
     assert!(call && noncall);
 }
+
+#[test]
+fn immutable_maximum_cursor_keeps_full_old_query_results_and_legacy_interleaving() {
+    let program = program();
+    let function = &program.functions[0];
+    for shared in [false, true] {
+        let mut keys = ["", "\0", "a", "a\0", "λ", "識別", "🙂"]
+            .into_iter()
+            .map(|text| ExpressionId::from_owned(text.into()))
+            .collect::<Vec<_>>();
+        keys.extend((0..64).map(|n| ExpressionId::from_owned(format!("prefix.λ\0.{n:03}"))));
+        if shared {
+            keys = keys
+                .into_iter()
+                .map(|key| {
+                    ExpressionId::from_owned(format!(
+                        "{}{}",
+                        "whole.function.λ\0.prefix.".repeat(4),
+                        key.as_str()
+                    ))
+                })
+                .collect();
+        }
+        let queries = keys
+            .iter()
+            .rev()
+            .cloned()
+            .chain([
+                ExpressionId::from_owned("missing".into()),
+                ExpressionId::from_owned("zzzzzz".into()),
+            ])
+            .collect::<Vec<_>>();
+        for count in [0, 1, 15, 16, keys.len()] {
+            for edge in [false, true] {
+                let arena = arena(function, &keys[..count]);
+                let mut old_budget = ReplayBudget::unobserved();
+                let mut budget = ReplayBudget::unobserved();
+                let mut old_slot = Failure {
+                    error: None,
+                    function,
+                    budget: &old_budget,
+                };
+                let mut slot = Failure {
+                    error: None,
+                    function,
+                    budget: &budget,
+                };
+                let mut original = acquire(&arena, function, &mut old_budget).unwrap();
+                budget
+                    .reserve_bytes(
+                        function,
+                        Session::OLD_SCRATCH + Session::acquisition_bytes(),
+                        "retained maximum cursor acquisition",
+                    )
+                    .unwrap();
+                budget
+                    .charge(function, 13, "retained maximum cursor initialization")
+                    .unwrap();
+                let witness = PrefixWitness::acquire(&arena, function, &mut budget).unwrap();
+                let mut current = Session::new_prefixed(&arena, function, &mut budget);
+                let (mut old_total, mut total) = (0, 0);
+                for (ordinal, query) in queries.iter().enumerate() {
+                    let header = if edge {
+                        Session::prefixed_edge_query_bytes() + Session::into_edge_local_bytes()
+                    } else {
+                        Session::prefixed_query_bytes()
+                    };
+                    let original_header = if edge {
+                        Session::into_edge_query_bytes() + Session::into_edge_local_bytes()
+                    } else {
+                        Session::into_query_bytes()
+                    };
+                    assert!(reserve_into!(
+                        original.budget,
+                        function,
+                        old_slot,
+                        original_header,
+                        "complete original query arguments"
+                    ));
+                    assert!(reserve_into!(
+                        current.budget,
+                        function,
+                        slot,
+                        header,
+                        "complete current query arguments"
+                    ));
+                    let (old_before, before) =
+                        (original.budget.remaining, current.budget.remaining);
+                    let (mut old_output, mut output) = (None, None);
+                    if edge {
+                        assert!(original.fact_edge_into_prepaid(
+                            query,
+                            &mut old_output,
+                            &mut old_slot
+                        ));
+                        assert!(current.fact_edge_into_prefixed(
+                            query,
+                            &witness,
+                            &mut output,
+                            &mut slot
+                        ));
+                    } else {
+                        assert!(original.fact_into(query, &mut old_output, &mut old_slot));
+                        assert!(current.fact_into_prefixed(
+                            query,
+                            &witness,
+                            &mut output,
+                            &mut slot
+                        ));
+                    }
+                    assert_eq!(old_output.is_some(), output.is_some());
+                    if let (Some(old), Some(actual)) = (old_output, output) {
+                        assert!(
+                            std::ptr::eq(old, actual),
+                            "the entire actual fact remains identical"
+                        );
+                    }
+                    assert!(old_slot.error.is_none() && slot.error.is_none());
+                    let old_work = old_before - original.budget.remaining;
+                    let work = before - current.budget.remaining;
+                    assert!(work <= old_work + 19);
+                    old_total += old_work;
+                    total += work;
+                    if ordinal % 7 == 0 {
+                        let old = original.fact(query).unwrap();
+                        let actual = current.fact(query).unwrap();
+                        assert_eq!(old.is_some(), actual.is_some());
+                        if let (Some(old), Some(actual)) = (old, actual) {
+                            assert!(std::ptr::eq(old, actual));
+                        }
+                    }
+                }
+                assert!(total <= old_total + queries.len() * 19);
+                if shared && count >= 16 {
+                    assert!(
+                        total < old_total,
+                        "actual certified-prefix queries save work"
+                    );
+                }
+                current.budget.remaining = 0;
+                let mut output = None;
+                assert!(!current.fact_into_prefixed(&queries[0], &witness, &mut output, &mut slot));
+                assert!(slot.error.is_some());
+                assert!(!current.fact_into_prefixed(&queries[1], &witness, &mut output, &mut slot));
+            }
+        }
+    }
+}
+
+#[test]
+fn prefix_witness_refuses_a_foreign_arena_before_any_query_and_keeps_the_full_error() {
+    let program = program();
+    let function = &program.functions[0];
+    let keys = (0..32)
+        .map(|n| ExpressionId::from_owned(format!("full.common.prefix.{n:03}")))
+        .collect::<Vec<_>>();
+    let first = arena(function, &keys);
+    let second = arena(function, &keys);
+    let mut budget = ReplayBudget::unobserved();
+    let mut slot = Failure {
+        error: None,
+        function,
+        budget: &budget,
+    };
+    let correct = PrefixWitness::acquire(&first, function, &mut budget).unwrap();
+    let foreign = PrefixWitness::acquire(&second, function, &mut budget).unwrap();
+    budget
+        .reserve_bytes(
+            function,
+            Session::OLD_SCRATCH + Session::acquisition_bytes(),
+            "retained maximum cursor acquisition",
+        )
+        .unwrap();
+    budget
+        .charge(function, 13, "retained maximum cursor initialization")
+        .unwrap();
+    let mut session = Session::new_prefixed(&first, function, &mut budget);
+    assert!(reserve_into!(
+        session.budget,
+        function,
+        slot,
+        Session::prefixed_query_bytes(),
+        "complete prefix query arguments"
+    ));
+    let mut output = None;
+    assert!(!session.fact_into_prefixed(&keys[0], &foreign, &mut output, &mut slot));
+    let error = slot.error.clone();
+    assert!(error.is_some());
+    assert!(!session.fact_into_prefixed(&keys[1], &correct, &mut output, &mut slot));
+    assert_eq!(slot.error, error);
+}

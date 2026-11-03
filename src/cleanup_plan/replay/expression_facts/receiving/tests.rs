@@ -697,3 +697,82 @@ fn expression_fact_observer_inverse_refuses_whole_source_drift_and_old_inputs() 
         assert!(std::panic::catch_unwind(|| before_expression_fact_observer(&foreign)).is_err());
     }
 }
+
+#[test]
+fn height_stable_directory_matches_complete_original_keys_and_balances_with_less_work() {
+    let program = program();
+    let function = &program.functions[0];
+    let mut keys = (0..257)
+        .flat_map(|index| {
+            [
+                StatusLane::OwnerAdmission,
+                StatusLane::OperationFailure,
+                StatusLane::AllocationFailure,
+                StatusLane::ContractFalse,
+            ]
+            .into_iter()
+            .map(move |lane| StatusSourceId {
+                expression: ExpressionId::from_owned(format!(
+                    "full.opaque.λ\0.{}.{index:04}",
+                    "prefix".repeat(17)
+                )),
+                lane,
+            })
+        })
+        .collect::<Vec<_>>();
+    keys.sort();
+    let orders = [
+        (0..keys.len()).collect::<Vec<_>>(),
+        (0..keys.len()).rev().collect::<Vec<_>>(),
+        (0..keys.len() / 2)
+            .flat_map(|i| [i, keys.len() - 1 - i])
+            .collect::<Vec<_>>(),
+    ];
+    for order in orders {
+        let mut old_budget = ReplayBudget::unobserved();
+        let mut budget = ReplayBudget::unobserved();
+        let mut old =
+            Directory::new(function, &mut old_budget, "original directory height walk").unwrap();
+        let mut current =
+            Directory::new(function, &mut budget, "stable directory height walk").unwrap();
+        let (mut old_work, mut work) = (0, 0);
+        for index in order {
+            for duplicate in [false, true] {
+                let (old_before, before) = (old_budget.remaining, budget.remaining);
+                assert_eq!(
+                    old.insert_before_height_stable(function, keys[index].clone(), &mut old_budget)
+                        .unwrap(),
+                    !duplicate
+                );
+                assert_eq!(
+                    current
+                        .insert(function, keys[index].clone(), &mut budget)
+                        .unwrap(),
+                    !duplicate
+                );
+                old_work += old_before - old_budget.remaining;
+                work += before - budget.remaining;
+                assert!(old.balanced() && current.balanced());
+                assert_eq!(old.capacity(), current.capacity());
+            }
+        }
+        assert!(
+            work < old_work,
+            "actual ancestor walks stop after height stabilization"
+        );
+        assert_eq!(
+            old.keys().collect::<Vec<_>>(),
+            current.keys().collect::<Vec<_>>()
+        );
+        assert_eq!(
+            current.keys().collect::<Vec<_>>(),
+            keys.iter().collect::<Vec<_>>()
+        );
+        for key in &keys {
+            assert_eq!(
+                old.contains(function, key, &mut old_budget).unwrap(),
+                current.contains(function, key, &mut budget).unwrap()
+            );
+        }
+    }
+}

@@ -101,8 +101,11 @@ fn known_match_missing_case_and_admitted_conditional_receivers_remain_exact() {
 
 #[test]
 fn complete_matching_and_arm_receivers_have_exact_full_source_inverses() {
-    let mut matching =
-        ci_str!("../iterative/matching/matching_before_799.rs").replace("before_match_799_", "");
+    let mut matching = super::source_guard_views::before(
+        "src/source_verify/iterative/matching/matching_before_799.rs",
+        include_str!("../iterative/matching/matching_before_799.rs"),
+    )
+    .replace("before_match_799_", "");
     matching = matching.replace(
         "            variant_name: variant_name.into(),\n",
         "            variant_name,\n",
@@ -111,12 +114,15 @@ fn complete_matching_and_arm_receivers_have_exact_full_source_inverses() {
         matching,
         ci_str!("../../../docs/evidence/conditional-refusal-799/iterative__matching.rs.before")
     );
-    let arms = ci_str!("../iterative/match_arms/arms_before_799.rs")
-        .replace("before_match_799_", "")
-        .replace(
-            "(state.variant_name.as_ref(), state.declared_cases)",
-            "(&state.variant_name, state.declared_cases)",
-        );
+    let arms = super::source_guard_views::before(
+        "src/source_verify/iterative/match_arms/arms_before_799.rs",
+        include_str!("../iterative/match_arms/arms_before_799.rs"),
+    )
+    .replace("before_match_799_", "")
+    .replace(
+        "(state.variant_name.as_ref(), state.declared_cases)",
+        "(&state.variant_name, state.declared_cases)",
+    );
     assert_eq!(
         arms,
         ci_str!("../../../docs/evidence/conditional-refusal-799/iterative__match_arms.rs.before")
@@ -190,7 +196,11 @@ fn unknown_match_keeps_independent_aggregate_body_refusal_without_scalar_unreach
 
 #[test]
 fn packed_name_adapter_keeps_complete_saved_legacy_arm_body() {
-    let current = include_str!("../recovery_legacy/match_arms.rs").replace(
+    let current = super::source_guard_views::before(
+        "src/source_verify/recovery_legacy/match_arms.rs",
+        include_str!("../recovery_legacy/match_arms.rs"),
+    )
+    .replace(
         "(state.variant_name.as_ref(), state.declared_cases)",
         "(&state.variant_name, state.declared_cases)",
     );
@@ -199,7 +209,10 @@ fn packed_name_adapter_keeps_complete_saved_legacy_arm_body() {
 
 #[test]
 fn complete_legacy_constructor_and_match_checkpoint_adapters_preserve_saved_bodies() {
-    let legacy = include_str!("../recovery_legacy.rs");
+    let legacy = super::source_guard_views::before(
+        "src/source_verify/recovery_legacy.rs",
+        include_str!("../recovery_legacy.rs"),
+    );
     let flags =
         "            operators_before_799: false,\n            extended_before_799: false,\n";
     assert_eq!(legacy.matches(flags).count(), 1);
@@ -207,7 +220,10 @@ fn complete_legacy_constructor_and_match_checkpoint_adapters_preserve_saved_bodi
         legacy.replace(flags, ""),
         include_str!("../../../docs/evidence/packed-test-adapters-799/recovery_legacy.rs.before")
     );
-    let enter = include_str!("../recovery_legacy/enter.rs");
+    let enter = super::source_guard_views::before(
+        "src/source_verify/recovery_legacy/enter.rs",
+        include_str!("../recovery_legacy/enter.rs"),
+    );
     let checkpoint =
         "                    checkpoint: self.recovery.checkpoint(self.diagnostics),\n";
     assert_eq!(enter.matches(checkpoint).count(), 1);

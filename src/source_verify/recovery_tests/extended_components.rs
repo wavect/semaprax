@@ -418,21 +418,30 @@ fn field_receipt_requires_exact_six_fields_and_in_scope_generic_parameters() {
 fn complete_pre_extension_entry_call_and_record_receivers_are_byte_exact() {
     for (saved, archive, registration) in [
         (
-            include_str!("../iterative/enter/enter_before_extended.rs"),
+            super::source_guard_views::before(
+                "src/source_verify/iterative/enter/enter_before_extended.rs",
+                include_str!("../iterative/enter/enter_before_extended.rs"),
+            ),
             include_str!(
                 "../../../docs/evidence/extended-components-799/iterative__enter.rs.before"
             ),
             Some("#[cfg(test)]\nmod enter_before_components;\n"),
         ),
         (
-            include_str!("../iterative/calls/calls_before_extended.rs"),
+            super::source_guard_views::before(
+                "src/source_verify/iterative/calls/calls_before_extended.rs",
+                include_str!("../iterative/calls/calls_before_extended.rs"),
+            ),
             include_str!(
                 "../../../docs/evidence/extended-components-799/iterative__calls.rs.before"
             ),
             Some("#[cfg(test)]\nmod calls_before_components;\n"),
         ),
         (
-            include_str!("../iterative/records/records_before_extended.rs"),
+            super::source_guard_views::before(
+                "src/source_verify/iterative/records/records_before_extended.rs",
+                include_str!("../iterative/records/records_before_extended.rs"),
+            ),
             include_str!(
                 "../../../docs/evidence/extended-components-799/iterative__records.rs.before"
             ),
@@ -763,7 +772,13 @@ pub(super) struct VariantMatchState<'a> {
 "####;
     assert_eq!(projected.matches(original_state).count(), 1);
     projected = projected.replacen(original_state, packed_state, 1);
-    assert_eq!(projected, include_str!("../scope.rs"));
+    assert_eq!(
+        projected,
+        super::source_guard_views::before(
+            "src/source_verify/scope.rs",
+            include_str!("../scope.rs")
+        )
+    );
 }
 
 #[test]
@@ -876,7 +891,10 @@ fn declared_nominal_arity_refusal_keeps_complete_original_receipt_without_unknow
 #[test]
 fn actual_failure_repair_keeps_complete_previous_component_receiver_and_projection() {
     // Begin corrective source inverse guard.
-    let current = include_str!("extended_components.rs");
+    let current = super::source_guard_views::before(
+        "src/source_verify/recovery_tests/extended_components.rs",
+        include_str!("extended_components.rs"),
+    );
     let begin = "    // Begin corrective source inverse guard.\n";
     let end = "    // End corrective source inverse guard.\n";
     assert_eq!(current.matches(begin).count(), 1);
@@ -898,16 +916,25 @@ fn actual_failure_repair_keeps_complete_previous_component_receiver_and_projecti
         include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__recovery_tests__extended_components.rs.corrective-before")
     );
     // End corrective source inverse guard.
-    let saved = include_str!("../recovery/callee_components/callee_components_before_actual.rs")
-        .replace("use super::super::Recovery;", "use super::Recovery;")
-        .replace("before_actual_", "");
+    let saved = super::source_guard_views::before(
+        "src/source_verify/recovery/callee_components/callee_components_before_actual.rs",
+        include_str!("../recovery/callee_components/callee_components_before_actual.rs"),
+    )
+    .replace("use super::super::Recovery;", "use super::Recovery;")
+    .replace("before_actual_", "");
     assert_eq!(saved, include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__recovery__callee_components.rs.before"));
-    let calls = include_str!("../iterative/calls.rs");
+    let calls = super::source_guard_views::before(
+        "src/source_verify/iterative/calls.rs",
+        include_str!("../iterative/calls.rs"),
+    );
     let boundary =
-        "\nimpl IterativeVerifier<'_, '_, '_> {\n    // Availability and partial-move diagnostics";
+        "\nimpl IterativeVerifier<'_, '_> {\n    // Availability and partial-move diagnostics";
     assert_eq!(calls.matches(boundary).count(), 1);
     assert_eq!(calls.split_once(boundary).unwrap().0, include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__iterative__calls.rs.before"));
-    let recovery = include_str!("../recovery.rs");
+    let recovery = super::source_guard_views::before(
+        "src/source_verify/recovery.rs",
+        include_str!("../recovery.rs"),
+    );
     let begin = "\n    // Begin exact producer-origin parameter receiver.\n";
     let end = "    // End exact producer-origin parameter receiver.\n";
     assert_eq!(recovery.matches(begin).count(), 1);
@@ -925,7 +952,7 @@ fn actual_failure_repair_keeps_complete_previous_component_receiver_and_projecti
         ".any(|diagnostic| diagnostic.code == \"SPX-T001\")",
     );
     assert_eq!(recovery, include_str!("../../../docs/evidence/actual-refusal-components-799/src__source_verify__recovery.rs.before"));
-    let entry = include_str!("../iterative/enter.rs").replace(
+    let entry = super::source_guard_views::before("src/source_verify/iterative/enter.rs", include_str!("../iterative/enter.rs")).replace(
         "                if self.result_type.is_some() && self.recovery.reads_value(scope, name, expression)\n                {\n                    self.values.push(None);\n                    return Ok(());\n                }\n",
         "",
     ).replace(
@@ -1025,7 +1052,7 @@ fn complete_previous_current_parameter_signature_receiver_has_only_named_namespa
     let saved = saved
         .strip_prefix(prefix)
         .unwrap()
-        .strip_suffix("\n}\n")
+        .strip_suffix("}\n")
         .unwrap()
         .replace("before_parameter_signature(", "signature(")
         .replace(

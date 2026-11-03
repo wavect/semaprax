@@ -358,3 +358,6 @@ fn directory_and_full_receivers_observe_real_acquisition_and_receiving_drop() {
         }
     }
 }
+
+#[path = "recovery_tests/source_guard_views.rs"]
+pub(super) mod source_guard_views;

@@ -371,6 +371,48 @@ fn main043_before_successors(
     key: &str,
     outer: &mut Vec<serde_json::Value>,
 ) -> String {
+    let checkpoint = match source {
+        "src/cleanup_plan/replay/selected_entry/paid.rs" => {
+            Some("807dc71528f353dc7ff49ec568c78cac7f9c9d8a5abd0dd5ff658b3fe77ca669")
+        }
+        "src/cleanup_plan/replay/selected_profile.rs" => {
+            Some("dc436ef85505b73d04cda47a9a2b68878ac0bdcc4e36e371d9f65268e3142a05")
+        }
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs" => {
+            Some("ace17b7f4e44235a0e058e169934da367fa1d4f96f8cddcfa19200eea9fa9552")
+        }
+        _ => None,
+    };
+    if let Some(expected) = checkpoint {
+        let (_, compiled, _) = main043_raw_subject(source);
+        let current_sha = format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
+        );
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
+        let physical = main043_raw_file(&path, compiled.len(), &current_sha).unwrap();
+        assert_eq!(
+            raw, compiled,
+            "complete latest supplied/compiled selected RAW source"
+        );
+        assert_eq!(
+            physical, compiled,
+            "complete latest physical/compiled selected RAW source"
+        );
+        let previous = super::main_e177_final_inputs::value_direct(source, expected, raw);
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
+            ),
+            expected
+        );
+        let mut edit = serde_json::Map::new();
+        edit.insert(key.to_owned(), raw.into());
+        edit.insert("before".to_owned(), previous.clone().into());
+        outer.push(edit.into());
+        return previous;
+    }
     if !matches!(source,
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
         | "src/cleanup_plan/replay.rs" | "tests/hir_module_boundaries.rs"
@@ -710,6 +752,48 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
             restored, before[index],
             "all original RAW row fields and recipes retained"
         );
+    }
+    if name == "Receiving" {
+        // This unchanged row predates the exits refactor. Bind the complete
+        // latest physical and compiled source before selecting its sealed view.
+        let source = "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs";
+        let index = 4;
+        assert_eq!(before[index]["source"], source);
+        assert!(!seen.contains(&index));
+        let original = before[index]["edits"].as_array().unwrap();
+        let expected = original.last().unwrap()["after"].as_str().unwrap();
+        let compiled =
+            include_str!("../cleanup_plan/replay/expression_facts/receiving/retained/exits.rs");
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
+        let live = main043_raw_file(
+            &path,
+            compiled.len(),
+            &format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
+            ),
+        )
+        .unwrap();
+        assert_eq!(live, compiled, "complete current RAW exits input");
+        let checkpoint = super::main_e177_final_inputs::value_direct(
+            source,
+            &format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(expected.as_bytes()))
+            ),
+            &live,
+        );
+        assert_eq!(checkpoint, expected, "whole sealed RAW exits checkpoint");
+        assert_eq!(
+            rows[index], before[index],
+            "all original exits recipes retained"
+        );
+        rows[index]["edits"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "after": live, "before": checkpoint,
+            }));
     }
     if name == "ExitDirectory" {
         // This original subject had no old outer front. Bind its complete

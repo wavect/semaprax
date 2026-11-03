@@ -1,5 +1,11 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs" => Some(include_str!("../../src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs")),
+        "src/workspace_graph/identity_resolution/tests.rs" => Some(include_str!("../../src/workspace_graph/identity_resolution/tests.rs")),
+        "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs" => Some(include_str!("../../src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs")),
+        "src/cleanup_plan/replay/selected_entry/paid.rs" => Some(include_str!("../../src/cleanup_plan/replay/selected_entry/paid.rs")),
+        "src/prelude.rs" => Some(include_str!("../../src/prelude.rs")),
+        "src/source_verify/constructor_tests.rs" => Some(include_str!("../../src/source_verify/constructor_tests.rs")),
         "src/cleanup_plan/replay/continuation_storage/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/tests.rs")),
         "src/source_verify/closure.rs" => Some(include_str!("../../src/source_verify/closure.rs")),
         "src/source_verify/recovery.rs" => Some(include_str!("../../src/source_verify/recovery.rs")),
@@ -572,6 +578,15 @@ mod tests {
         // restores only the new writer and tests before all historical guards.
         assert_eq!(root, restore_previous_writer(ROOT));
         assert_eq!(child, CHILD);
+        // The complete current images were authenticated above. Restore both
+        // original call routes before every unchanged historical source inverse.
+        let cache_block = "pub(super) fn compose(before: Value) -> Value {\n    static EXPANDED: std::sync::OnceLock<(Value, Arc<Value>)> = std::sync::OnceLock::new();\n    compose_with_expansion_cache(before, &EXPANDED).unwrap()\n}\n\nfn compose_with_expansion_cache(\n    before: Value,\n    cache: &std::sync::OnceLock<(Value, Arc<Value>)>,\n) -> Result<Value, &'static str> {\n    // Keep the complete current policy/page acquisition on every invocation.\n    let (policy, page) = load()?;\n    if page[\"schema\"] != fragments_v3::SCHEMA_V11 && page[\"schema\"] != fragments_v3::SCHEMA_V12 {\n        return compose_values(before, &policy, &page);\n    }\n    if let Some((authenticated_before, expanded)) = cache.get() {\n        // A different predecessor keeps the complete original validation and\n        // its first refusal; it cannot replace or poison the cached owner.\n        return if &before == authenticated_before {\n            compose_values_v2(before, &policy, expanded)\n        } else {\n            compose_values(before, &policy, &page)\n        };\n    }\n    let expanded = if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        fragments_v3::expand_v12(&before, &policy, &page)?\n    } else {\n        fragments_v3::expand_v11(&before, &policy, &page)?\n    };\n    let result = compose_values_v2(before.clone(), &policy, &expanded)?;\n    // Both complete metadata objects remain owned. No row or unknown field is\n    // projected away, and a refused predecessor never initializes the cache.\n    let _ = cache.set((before, Arc::new(expanded)));\n    Ok(result)\n}\n\npub(super) fn compose_before_expansion_cache(before: Value) -> Value {\n    let (policy, page) = load().unwrap();\n    compose_values(before, &policy, &page).unwrap()\n}\n\n#[test]\nfn cached_expansion_keeps_the_entire_original_composition_and_rejects_poisoning() {\n    let before = super::packet_before_overlay();\n    let cache = std::sync::OnceLock::new();\n    let (policy, page) = load().unwrap();\n    let mut foreign = before.clone();\n    foreign[\"unadmitted-predecessor-field\"] = Value::Bool(true);\n    assert_eq!(\n        compose_with_expansion_cache(foreign.clone(), &cache),\n        compose_values(foreign, &policy, &page)\n    );\n    assert!(cache.get().is_none());\n    let original = compose_before_expansion_cache(before.clone());\n    assert_eq!(\n        compose_with_expansion_cache(before.clone(), &cache),\n        Ok(original.clone())\n    );\n    let (held_before, _) = cache.get().unwrap();\n    assert_eq!(held_before, &before);\n    assert_eq!(\n        compose_with_expansion_cache(before.clone(), &cache),\n        Ok(original)\n    );\n    let mut changed = before;\n    changed[\"rows\"][0][\"source\"] = Value::String(\"foreign.rs\".to_owned());\n    assert_eq!(\n        compose_with_expansion_cache(changed.clone(), &cache),\n        compose_values(changed, &policy, &page)\n    );\n}\n";
+        assert_eq!(root.matches(cache_block).count(), 1);
+        let root_without_cache = root.replacen(cache_block, "pub(super) fn compose(before: Value) -> Value {\n    let (policy, page) = load().unwrap();\n    compose_values(before, &policy, &page).unwrap()\n}\n", 1);
+        let cache_lookup = "fn affected_row(source: &str) -> Option<Value> {\n    if !REPLACEMENTS.contains(&source) && !ADDITIONS.contains(&source) {\n        return None;\n    }\n    let (policy, _page) = load().unwrap();\n    if !affected(&policy, source) {\n        return None;\n    }\n    let packet = compose(super::packet_before_overlay());\n    Some(\n        packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|r| r[\"source\"] == source)\n            .unwrap()\n            .clone(),\n    )\n}\n";
+        assert_eq!(root_without_cache.matches(cache_lookup).count(), 1);
+        let root_without_cache = root_without_cache.replacen(cache_lookup, "fn affected_row(source: &str) -> Option<Value> {\n    if !REPLACEMENTS.contains(&source) && !ADDITIONS.contains(&source) {\n        return None;\n    }\n    let (policy, page) = load().unwrap();\n    if !affected(&policy, source) {\n        return None;\n    }\n    let packet = compose_values(super::packet_before_overlay(), &policy, &page).unwrap();\n    Some(\n        packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|r| r[\"source\"] == source)\n            .unwrap()\n            .clone(),\n    )\n}\n", 1);
+        let root = root_without_cache.as_str();
         // Undo the complete new dispatch and export before every old inverse.
         let v12_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        return compose_values_v2(before, policy, &expanded);\n    }\n";
         assert_eq!(root.matches(v12_dispatch).count(), 1);
@@ -643,6 +658,12 @@ mod tests {
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
             "src/cleanup_plan/replay/continuation_storage/tests.rs",
+            "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+            "src/cleanup_plan/replay/selected_entry/paid.rs",
+            "src/prelude.rs",
+            "src/source_verify/constructor_tests.rs",
+            "src/workspace_graph/identity_resolution/tests.rs",
+            "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -656,6 +677,12 @@ mod tests {
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
             "src/cleanup_plan/replay/continuation_storage/tests.rs",
+            "src/cleanup_plan/replay/selected_entry/tests/fact_errors.rs",
+            "src/cleanup_plan/replay/selected_entry/paid.rs",
+            "src/prelude.rs",
+            "src/source_verify/constructor_tests.rs",
+            "src/workspace_graph/identity_resolution/tests.rs",
+            "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

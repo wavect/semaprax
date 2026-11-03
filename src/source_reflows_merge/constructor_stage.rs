@@ -719,3 +719,32 @@ pub(super) fn compiled_entry(
         current.to_owned()
     }
 }
+
+pub(super) fn reviewed(source: &str, current: &str) -> String {
+    let expected = match source {
+        "src/workspace_graph/identity_resolution/tests.rs" => {
+            Some("0798bf2114db010efbfa38538376fbcd849e3287c37bf377aec17aff43362ee4")
+        }
+        "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs" => {
+            Some("a3e0ce93da0450228c86e09f351830e8c4ee105a01b2fb769374e5c1b8b074e2")
+        }
+        _ => None,
+    };
+    if let Some(expected) = expected {
+        let previous = super::main_e177_final_inputs::value_direct(source, expected, current);
+        assert_eq!(
+            super::source_sha(&previous),
+            expected,
+            "complete reviewed identity tests input"
+        );
+        return previous;
+    }
+    current.to_owned()
+}
+
+pub(crate) fn main(source: &str, current: &str) -> String {
+    super::main_before_reviewed(source, &reviewed(source, current))
+}
+pub(crate) fn main927_input(source: &str, current: &str) -> String {
+    super::main927_before_reviewed(source, &reviewed(source, current))
+}

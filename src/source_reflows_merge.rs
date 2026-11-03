@@ -340,7 +340,8 @@ fn latest_previous(source: &str, current: &str) -> String {
     let current = corrected.as_str();
     runtime_json::project(runtime_json::Fixture::F11, source, current)
 }
-pub(crate) fn main(source: &str, current: &str) -> String {
+pub(crate) use constructor_stage::{main, main927_input};
+fn main_before_reviewed(source: &str, current: &str) -> String {
     if source == "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs" {
         return main_f045_input(source, current);
     }
@@ -540,7 +541,7 @@ fn main927_previous(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F37, source, current)
 }
 // Only these named inputs may enter MAIN's unchanged semantic source proofs.
-pub(crate) fn main927_input(source: &str, current: &str) -> String {
+fn main927_before_reviewed(source: &str, current: &str) -> String {
     let previous = before_setup825(source, current);
     let current = previous.as_str();
     let view = assembly_main927_input(source, current);

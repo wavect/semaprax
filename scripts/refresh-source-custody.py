@@ -246,6 +246,17 @@ def refresh_overlay(repo, label, admit=()):
     def name_slot(name):
         return names.index(name) if name in names else name
 
+    # Register all admitted children before capturing the compiled carrier's
+    # current bytes. An intermediate carrier would consume a historical view
+    # for a state that was never published.
+    if admit:
+        for source, _ in admit:
+            assert source not in position and source not in added, f'{source}: already an overlay row'
+        compiled_rs = repo.raw(OVERLAY_COMPILED_RS).decode()
+        head = 'pub(super) fn compiled(source: &str) -> Option<&\'static str> {\n    match source {\n'
+        arms = ''.join(f'        {json.dumps(s)} => Some(include_str!("../../{s}")),\n' for s, _ in admit)
+        repo.write(OVERLAY_COMPILED_RS, replace_once(compiled_rs, head, head + arms, OVERLAY_COMPILED_RS))
+
     drift = []
     for row in composed['rows']:
         path = repo.root / row['source']
@@ -341,11 +352,6 @@ def refresh_overlay(repo, label, admit=()):
     rs = re.sub(r'^const ADDITIONS: &\[&str\] = &\[.*\];$',
                 lambda _: 'const ADDITIONS: &[&str] = &' + json.dumps(additions, separators=(',', ':')) + ';',
                 rs, count=1, flags=re.M)
-    if admit:
-        compiled_rs = repo.raw(OVERLAY_COMPILED_RS).decode()
-        head = 'pub(super) fn compiled(source: &str) -> Option<&\'static str> {\n    match source {\n'
-        arms = ''.join(f'        {json.dumps(s)} => Some(include_str!("../../{s}")),\n' for s, _ in admit)
-        repo.write(OVERLAY_COMPILED_RS, replace_once(compiled_rs, head, head + arms, OVERLAY_COMPILED_RS))
     for text in (py, rs):
         assert str(len(policy_bytes)) in text and sha(policy_bytes) in text
     old_py = repo.raw(OVERLAY_PY)

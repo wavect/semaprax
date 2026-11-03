@@ -313,33 +313,48 @@ impl<'p> Recovery<'p> {
         }
     }
 
-    fn read(
-        &mut self,
+    /// A declaration conflict is not a read of the refused initializer. In
+    /// particular it must not advance the dependency frontier of a new let.
+    pub(super) fn shadows_refused(&self, scope: usize, name: &str) -> bool {
+        self.lookup(scope, name)
+            .0
+            .is_some_and(|(_, known, _)| !known)
+    }
+
+    fn lookup(
+        &self,
         mut scope: usize,
         name: &str,
-        known: bool,
-    ) -> Option<(usize, Option<&'p Type>)> {
+    ) -> (Option<(usize, bool, Option<&'p Type>)>, usize) {
+        let mut visited = 0;
         while let Some(row) = self.scopes.get(scope) {
-            #[cfg(test)]
-            {
-                self.visited += 1;
-            }
-            if let Some(&(origin, declaration_known, declared)) = row.names.get(name) {
-                // A missing declaration never outranks a real function value
-                // or checked binding. Known markers are inference-only.
-                if declaration_known != known {
-                    return None;
-                }
-                self.last_read = Some(origin);
-                self.reads += 1;
-                return Some((origin, declared));
+            visited += 1;
+            if let Some(&entry) = row.names.get(name) {
+                return (Some(entry), visited);
             }
             let Some(parent) = row.parent else {
                 break;
             };
             scope = parent;
         }
-        None
+        (None, visited)
+    }
+
+    fn read(&mut self, scope: usize, name: &str, known: bool) -> Option<(usize, Option<&'p Type>)> {
+        let (entry, _visited) = self.lookup(scope, name);
+        #[cfg(test)]
+        {
+            self.visited += _visited;
+        }
+        let (origin, declaration_known, declared) = entry?;
+        // A missing declaration never outranks a real function value
+        // or checked binding. Known markers are inference-only.
+        if declaration_known != known {
+            return None;
+        }
+        self.last_read = Some(origin);
+        self.reads += 1;
+        Some((origin, declared))
     }
 
     pub(super) fn checkpoint(&self, diagnostics: &[Diagnostic]) -> Checkpoint {

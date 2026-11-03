@@ -1,5 +1,8 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/source_verify/closure.rs" => Some(include_str!("../../src/source_verify/closure.rs")),
+        "src/source_verify/recovery.rs" => Some(include_str!("../../src/source_verify/recovery.rs")),
+        "src/source_verify/iterative/blocks.rs" => Some(include_str!("../../src/source_verify/iterative/blocks.rs")),
         "src/cleanup_plan/replay/allocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/allocation.rs")),
         "src/cleanup_plan/validate.rs" => Some(include_str!("../../src/cleanup_plan/validate.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs")),
@@ -628,6 +631,9 @@ mod tests {
             "src/cleanup_plan/replay/merge_census.rs",
             "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
             "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+            "src/source_verify/closure.rs",
+            "src/source_verify/recovery.rs",
+            "src/source_verify/iterative/blocks.rs",
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
         ] {
@@ -637,6 +643,9 @@ mod tests {
         }
         let mut current_scope_child = child.to_owned();
         for source in [
+            "src/source_verify/closure.rs",
+            "src/source_verify/recovery.rs",
+            "src/source_verify/iterative/blocks.rs",
             "src/cleanup_plan/replay/allocation.rs",
             "src/cleanup_plan/validate.rs",
         ] {

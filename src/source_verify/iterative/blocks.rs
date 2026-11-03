@@ -77,7 +77,7 @@ impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
                 #[cfg(not(test))]
                 let check_refused_name = true;
                 let refused_name =
-                    check_refused_name && self.recovery.reads_refused(block_scope, name);
+                    check_refused_name && self.recovery.shadows_refused(block_scope, name);
                 if self.scopes[block_scope].bindings.contains_key(name) || refused_name {
                     self.diagnostics.push(
                         error(

@@ -314,11 +314,13 @@ impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {
                 result: Box::new(return_type.clone()),
             })));
         } else {
-            if !value.as_ref().is_some_and(|value| {
-                !value.native_unit
-                    && value.mode == ParamMode::Value
-                    && self.recovery.explains(body, return_type)
-            }) {
+            if value.is_some()
+                && !value.as_ref().is_some_and(|value| {
+                    !value.native_unit
+                        && value.mode == ParamMode::Value
+                        && self.recovery.explains(body, return_type)
+                })
+            {
                 self.diagnostics.push(error(
                     self.program,
                     "SPX-T288",

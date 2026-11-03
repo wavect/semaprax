@@ -225,6 +225,43 @@ def load_guard(repo):
     return ns
 
 
+def compact_v11_names(ov, page):
+    """Choose the smallest sorted name dictionary without changing any V10 byte."""
+    counts = {}
+    def count(name):
+        assert type(name) is str, 'v11 encoding name'
+        counts[name] = counts.get(name, 0) + 1
+        return name
+    ov['v11_names_slots'](page, count)
+    candidates = sorted(name for name, frequency in counts.items() if frequency > 1)
+    # This is an optional encoder optimization. Large dictionaries retain the
+    # complete preceding encoder, with exactly its original wire-cap check.
+    if len(candidates) > 256:
+        return ov['encode_v11_names'](page)
+    choices = {0: (0, ())}
+    for name in candidates:
+        size = len(ov['canonical'](name))
+        following = {}
+        for number, (cost, selected) in choices.items():
+            options = (
+                (number, cost + counts[name] * size, selected),
+                (number + 1, cost + size + 1 + counts[name] * len(str(number)), selected + (name,)),
+            )
+            for new_number, new_cost, new_selected in options:
+                if new_number not in following or new_cost < following[new_number][0]:
+                    following[new_number] = (new_cost, new_selected)
+        choices = following
+    # Dictionary entries have a comma each except for the final entry.
+    number, (_, selected) = min(choices.items(), key=lambda item: (item[1][0] - bool(item[0]), item[0]))
+    names = list(selected)
+    indices = {name: index for index, name in enumerate(names)}
+    encoded = ov['v11_names_slots'](page, lambda name: indices.get(name, name))
+    result = dict(schema=ov['V11_SCHEMA'], names=names, page=encoded)
+    assert len(ov['canonical'](result)) <= ov['PAGE_CAP'], 'v11 unchanged wire cap'
+    assert ov['canonical'](ov['expand_v11_names'](result)) == ov['canonical'](page), 'v11 ENTIRE V10 page inverse'
+    return result
+
+
 def refresh_overlay(repo, label, admit=()):
     guard = load_guard(repo)
     ov = guard['_OVERLAY_NS']
@@ -320,7 +357,7 @@ def refresh_overlay(repo, label, admit=()):
     # and enforces the unchanged page cap on the resulting wire.
     expanded = ov['v11_names_slots'](
         wire['page'], lambda value: names[value] if type(value) is int else value)
-    wire = ov['encode_v11_names'](expanded)
+    wire = compact_v11_names(ov, expanded)
     page_bytes = ov['canonical'](wire)
     assert len(page_bytes) <= ov['PAGE_CAP'], 'overlay page exceeds its one-page cap'
     policy['page'] = dict(path=PAGE, length=len(page_bytes), sha256=sha(page_bytes))

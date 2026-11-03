@@ -10,6 +10,8 @@ use std::collections::BTreeMap;
 use crate::ast::{Expr, ExprKind, Function, Type};
 use crate::diagnostic::Diagnostic;
 
+type RecoveryEntry<'p> = (usize, bool, Option<&'p Type>);
+
 #[derive(Default)]
 struct Scope<'p> {
     parent: Option<usize>,
@@ -321,11 +323,7 @@ impl<'p> Recovery<'p> {
             .is_some_and(|(_, known, _)| !known)
     }
 
-    fn lookup(
-        &self,
-        mut scope: usize,
-        name: &str,
-    ) -> (Option<(usize, bool, Option<&'p Type>)>, usize) {
+    fn lookup(&self, mut scope: usize, name: &str) -> (Option<RecoveryEntry<'p>>, usize) {
         let mut visited = 0;
         while let Some(row) = self.scopes.get(scope) {
             visited += 1;

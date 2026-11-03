@@ -12,7 +12,7 @@ const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","src/cleanup_
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 117469; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "97e495fda867f59ccc947d507e2c6dd2a39d13836cfe4d5e3c9ffaae40b93849";
+const POLICY_SHA256: &str = "fecc9631fd16f8f2dfc47cb1f772d03ba698c4003a3cf8a56e82911008e21595";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -1189,7 +1189,9 @@ mod tests {
         assert_eq!(after, before);
         let (policy, page) = load().unwrap();
         // Decode only the new wire envelope before the unchanged full predecessor checks.
-        let page = if page["schema"] == fragments_v3::SCHEMA_V11 {
+        let page = if page["schema"] == fragments_v3::SCHEMA_V12 {
+            fragments_v3::expand_v12(&before, &policy, &page).unwrap()
+        } else if page["schema"] == fragments_v3::SCHEMA_V11 {
             fragments_v3::expand_v11(&before, &policy, &page).unwrap()
         } else {
             (*page).clone()

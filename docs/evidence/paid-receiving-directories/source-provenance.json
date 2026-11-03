@@ -151,6 +151,18 @@
         "from": "    }\n}\n\n#[cfg(test)]\nmod receiving_before;\n",
         "to": "    }\n}\n",
         "count": 1
+      },
+      {
+        "name": "complete type-cursor payment inverse",
+        "from": "        // The original fixture has no type argument, so it never touches the\n        // type cursor. Since c90764eeb that cursor is grown and paid on first\n        // use (two frames: the nominal root and its U8 argument) rather than\n        // being prepaid inside the owner on both runs.\n",
+        "to": "",
+        "count": 1
+      },
+      {
+        "name": "complete type-cursor payment inverse",
+        "from": "            2 * std::mem::size_of::<ResolvedType>()\n                + \"test.clone.type\".len()\n                + super::capacity::type_cursor_tests::first_two_frame_traversal(2)\n",
+        "to": "            2 * std::mem::size_of::<ResolvedType>() + \"test.clone.type\".len()\n",
+        "count": 1
       }
     ]
   },

@@ -66,10 +66,19 @@ def capture(argv, cwd, env, prompt, seconds, maximum=MAX_WIRE, on_started=lambda
         finally:
             # Also remove descendants after a successful parent exit. Nothing
             # from this one-use transport is allowed to outlive its invocation.
+            # Reap an already exited leader before signalling its group. On
+            # Darwin a zombie-only group can report EPERM instead of ESRCH.
+            process.poll()
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            except PermissionError:
+                # A live leader must still be terminated and the failure must
+                # propagate; an exited group has no signalable process left.
+                if process.poll() is None:
+                    process.kill()
+                    raise
             process.wait(timeout=5)
             process.stdout.close()
             process.stderr.close()

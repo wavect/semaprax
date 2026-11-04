@@ -108,6 +108,38 @@ compiler-owned `Option` profile is widened only to the exact Copy payload
 `u8` needed by this operation; `Option<usize>`, non-Copy options, and general
 generic widening are not implied.
 
+### Bounded little-endian word reads
+
+Status: Additive profile qualified locally; current-head CI remains pending.
+
+The additive compiler-owned `byte_read_le` operation has stable identity
+`core.bytes.read-le` and signature
+`(value: borrow Slice<u8>, index: usize, width: usize) -> Option<usize>`.
+It returns `Some` containing the unsigned little-endian word when `width` is
+in `1..=8` and all selected bytes exist. Unused high bytes are zero. Every
+other input returns `None`, including zero width, oversized width, and
+`usize::MAX` indices. Bounds use subtraction after checking `index <= length`,
+so an overflowing end index cannot authorize a read. All 64 bits are retained;
+there is no signed conversion or sentinel value.
+
+The operation borrows the current authenticated view and does not allocate a
+byte buffer or transfer ownership. Native code checks the current view before
+reading; Core-Wasm uses the existing byte host operations and adds no host ABI.
+The exact compiler-owned `Option<usize>` result has ordinary Copy metadata and
+layout. This addition does not admit arbitrary generic arguments or widen
+import/export signatures. The cross-backend regression compares dynamic
+widths and indices, empty and derived views, and high-bit words against an
+independent scalar byte loop.
+
+`byte_zero_prefix(value: borrow Slice<u8>) -> usize`, with stable identity
+`core.bytes.zero-prefix`, returns the number of leading zero bytes. It returns
+zero for an empty view and the view length for an all-zero view. The scan stops
+at the first nonzero byte; it never reads beyond that byte or the current view.
+It borrows the authenticated view, allocates no byte buffer, and uses the
+existing byte host operations in Core-Wasm. The standard-library pattern
+validator passes only its already funded header window to this operation and
+retains its original per-byte work charges and first-invalid-byte diagnostic.
+
 Indexed Byte Loop v2 permits this exact compiler-owned `Option<u8>` result to
 be matched inside bounded `while` conditions and bodies. The match must be
 exhaustive and guard-free with exact `Some { value: u8 }` and `None {}` cases,

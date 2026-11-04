@@ -141,6 +141,8 @@ pub(super) fn check_call(
         ByteOp::Partition
         | ByteOp::Len
         | ByteOp::Get
+        | ByteOp::ReadLe
+        | ByteOp::ZeroPrefix
         | ByteOp::Range
         | ByteOp::Copy
         | ByteOp::BytesAsSlice

@@ -162,7 +162,7 @@ pub(super) fn variant_declaration_id<'a>(
             && arguments.iter().any(|argument| {
                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                     && !(declaration.as_str() == crate::prelude::OPTION_ID
-                        && *argument == ResolvedType::U8)
+                        && matches!(argument, ResolvedType::U8 | ResolvedType::Usize))
             }))
     {
         return Err(backend_error(format!(

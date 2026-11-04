@@ -163,6 +163,53 @@ impl Evaluator<'_> {
                             })?;
                             Ok(Value::OptionU8(byte))
                         }
+                        (crate::byte_ops::ByteOp::ZeroPrefix, [Value::BorrowedSlice(value)]) => {
+                            let count = value.read(&mut self.fused, |bytes| {
+                                bytes.iter().take_while(|byte| **byte == 0).count()
+                            })?;
+                            Ok(Value::Usize(count as u64))
+                        }
+                        (
+                            crate::byte_ops::ByteOp::ReadLe,
+                            [Value::BorrowedSlice(value), Value::Usize(index), Value::Usize(width)],
+                        ) => {
+                            let decoded = value.read(&mut self.fused, |bytes| {
+                                let index = usize::try_from(*index).ok()?;
+                                let width = usize::try_from(*width).ok()?;
+                                if !(1..=8).contains(&width)
+                                    || index > bytes.len()
+                                    || width > bytes.len() - index
+                                {
+                                    return None;
+                                }
+                                let mut word = [0u8; 8];
+                                word[..width].copy_from_slice(&bytes[index..index + width]);
+                                Some(u64::from_le_bytes(word))
+                            })?;
+                            let (case, fields) = match decoded {
+                                Some(value) => (
+                                    hir::DeclarationId::new(crate::prelude::OPTION_SOME_ID),
+                                    BTreeMap::from([(
+                                        hir::DeclarationId::new(
+                                            crate::prelude::OPTION_SOME_VALUE_ID,
+                                        ),
+                                        Value::Usize(value),
+                                    )]),
+                                ),
+                                None => (
+                                    hir::DeclarationId::new(crate::prelude::OPTION_NONE_ID),
+                                    BTreeMap::new(),
+                                ),
+                            };
+                            Ok(Value::Variant(Arc::new(OwnedVariantValue {
+                                ty: expression.ty.clone(),
+                                variant: hir::DeclarationId::compiler(
+                                    hir::CompilerDeclaration::Option,
+                                ),
+                                case,
+                                fields,
+                            })))
+                        }
                         (crate::byte_ops::ByteOp::Copy, [Value::BorrowedSlice(value)]) => {
                             self.copy_bytes(value).map(Value::Bytes)
                         }

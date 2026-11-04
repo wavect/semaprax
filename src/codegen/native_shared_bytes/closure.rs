@@ -161,7 +161,9 @@ impl Consumer {
     /// Exhaustive: a new byte operation is a compile error here, not a gap.
     pub(crate) const fn from_byte_op(op: ByteOp) -> Self {
         match op {
-            ByteOp::Len | ByteOp::Get | ByteOp::Range => Self::BorrowedNonOwner,
+            ByteOp::Len | ByteOp::Get | ByteOp::ReadLe | ByteOp::ZeroPrefix | ByteOp::Range => {
+                Self::BorrowedNonOwner
+            }
             ByteOp::ArrayAsSlice | ByteOp::StrAsBytes | ByteOp::StringAsStr => {
                 Self::BorrowedNonOwner
             }

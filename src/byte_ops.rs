@@ -16,6 +16,10 @@ use crate::hir::{
 
 pub(crate) const LEN_NAME: &str = "byte_len";
 pub(crate) const GET_NAME: &str = "byte_get";
+pub(crate) const READ_LE_NAME: &str = "byte_read_le";
+pub(crate) const ZERO_PREFIX_NAME: &str = "byte_zero_prefix";
+pub(crate) const ZERO_PREFIX_ID: &str = "core.bytes.zero-prefix";
+pub(crate) const READ_LE_ID: &str = "core.bytes.read-le";
 pub(crate) const LEN_ID: &str = "core.bytes.len";
 pub(crate) const GET_ID: &str = "core.bytes.get";
 pub(crate) const RANGE_NAME: &str = "byte_range";
@@ -84,6 +88,10 @@ pub(crate) enum ByteOp {
     Partition,
     Len,
     Get,
+    /// Total, bounds-checked little-endian read of one through eight bytes.
+    ReadLe,
+    /// Number of leading zero bytes, stopping before the first nonzero byte.
+    ZeroPrefix,
     Range,
     Copy,
     BytesAsSlice,
@@ -110,9 +118,11 @@ pub(crate) enum ByteOp {
 }
 
 impl ByteOp {
-    pub(crate) const ALL: [Self; 14] = [
+    pub(crate) const ALL: [Self; 16] = [
         Self::Len,
         Self::Get,
+        Self::ReadLe,
+        Self::ZeroPrefix,
         Self::Range,
         Self::Copy,
         Self::BytesAsSlice,
@@ -132,6 +142,8 @@ impl ByteOp {
             Self::Partition => crate::construction_fusion::partition::NAME,
             Self::Len => LEN_NAME,
             Self::Get => GET_NAME,
+            Self::ReadLe => READ_LE_NAME,
+            Self::ZeroPrefix => ZERO_PREFIX_NAME,
             Self::Range => RANGE_NAME,
             Self::Copy => COPY_NAME,
             Self::BytesAsSlice => BYTES_AS_SLICE_NAME,
@@ -151,6 +163,8 @@ impl ByteOp {
             Self::Partition => crate::construction_fusion::partition::ID,
             Self::Len => LEN_ID,
             Self::Get => GET_ID,
+            Self::ReadLe => READ_LE_ID,
+            Self::ZeroPrefix => ZERO_PREFIX_ID,
             Self::Range => RANGE_ID,
             Self::Copy => COPY_ID,
             Self::BytesAsSlice => BYTES_AS_SLICE_ID,
@@ -167,9 +181,9 @@ impl ByteOp {
     }
     pub(crate) const fn arity(self) -> usize {
         match self {
-            Self::Len => 1,
+            Self::Len | Self::ZeroPrefix => 1,
             Self::Get | Self::ZeroedBounded => 2,
-            Self::Range | Self::Set | Self::Partition => 3,
+            Self::Range | Self::Set | Self::Partition | Self::ReadLe => 3,
             Self::Set5 => 7,
             Self::Set1Or5 | Self::Set1Or6Or48 => 5,
             Self::Copy
@@ -187,8 +201,13 @@ impl ByteOp {
                 ResolvedType::Usize,
                 ResolvedType::Usize,
             ],
-            Self::Len => &[ResolvedType::SliceU8],
+            Self::Len | Self::ZeroPrefix => &[ResolvedType::SliceU8],
             Self::Get => &[ResolvedType::SliceU8, ResolvedType::Usize],
+            Self::ReadLe => &[
+                ResolvedType::SliceU8,
+                ResolvedType::Usize,
+                ResolvedType::Usize,
+            ],
             Self::Range => &[
                 ResolvedType::SliceU8,
                 ResolvedType::Usize,
@@ -235,10 +254,14 @@ impl ByteOp {
                 declaration: DeclarationId::compiler(CompilerDeclaration::Vec),
                 arguments: vec![ResolvedType::Bytes],
             },
-            Self::Len => ResolvedType::Usize,
+            Self::Len | Self::ZeroPrefix => ResolvedType::Usize,
             Self::Get => ResolvedType::Nominal {
                 declaration: DeclarationId::compiler(CompilerDeclaration::Option),
                 arguments: vec![ResolvedType::U8],
+            },
+            Self::ReadLe => ResolvedType::Nominal {
+                declaration: DeclarationId::compiler(CompilerDeclaration::Option),
+                arguments: vec![ResolvedType::Usize],
             },
             Self::Range => ResolvedType::SliceU8,
             Self::Copy
@@ -258,10 +281,14 @@ impl ByteOp {
                 name: "Vec".to_owned(),
                 arguments: vec![Type::Bytes],
             },
-            Self::Len => Type::Usize,
+            Self::Len | Self::ZeroPrefix => Type::Usize,
             Self::Get => Type::Named {
                 name: "Option".to_owned(),
                 arguments: vec![Type::U8],
+            },
+            Self::ReadLe => Type::Named {
+                name: "Option".to_owned(),
+                arguments: vec![Type::Usize],
             },
             Self::Range => Type::SliceU8,
             Self::Copy
@@ -280,9 +307,11 @@ impl ByteOp {
         match (self, index) {
             (Self::Partition, 0) => *ty == ResolvedType::Bytes,
             (Self::Partition, 1 | 2) => *ty == ResolvedType::Usize,
-            (Self::Len | Self::Copy, 0) => *ty == ResolvedType::SliceU8,
+            (Self::Len | Self::Copy | Self::ZeroPrefix, 0) => *ty == ResolvedType::SliceU8,
             (Self::Get, 0) => *ty == ResolvedType::SliceU8,
             (Self::Get, 1) => *ty == ResolvedType::Usize,
+            (Self::ReadLe, 0) => *ty == ResolvedType::SliceU8,
+            (Self::ReadLe, 1 | 2) => *ty == ResolvedType::Usize,
             (Self::Range, 0) => *ty == ResolvedType::SliceU8,
             (Self::Range, 1 | 2) => *ty == ResolvedType::Usize,
             (Self::BytesAsSlice, 0) => *ty == ResolvedType::Bytes,
@@ -312,9 +341,11 @@ impl ByteOp {
         match (self, index) {
             (Self::Partition, 0) => *ty == Type::Bytes,
             (Self::Partition, 1 | 2) => *ty == Type::Usize,
-            (Self::Len | Self::Copy, 0) => *ty == Type::SliceU8,
+            (Self::Len | Self::Copy | Self::ZeroPrefix, 0) => *ty == Type::SliceU8,
             (Self::Get, 0) => *ty == Type::SliceU8,
             (Self::Get, 1) => *ty == Type::Usize,
+            (Self::ReadLe, 0) => *ty == Type::SliceU8,
+            (Self::ReadLe, 1 | 2) => *ty == Type::Usize,
             (Self::Range, 0) => *ty == Type::SliceU8,
             (Self::Range, 1 | 2) => *ty == Type::Usize,
             (Self::BytesAsSlice, 0) => *ty == Type::Bytes,
@@ -375,6 +406,8 @@ impl ByteOp {
                 | Self::ArrayAsSlice
                 | Self::Len
                 | Self::Get
+                | Self::ReadLe
+                | Self::ZeroPrefix
                 | Self::Range
                 | Self::Set
                 | Self::Set5
@@ -407,8 +440,10 @@ impl ByteOp {
         match self {
             Self::Partition => &["value", "count", "width"],
             Self::Get => &["value", "index"],
+            Self::ReadLe => &["value", "index", "width"],
             Self::Range => &["value", "start", "end"],
             Self::Len
+            | Self::ZeroPrefix
             | Self::Copy
             | Self::BytesAsSlice
             | Self::ArrayAsSlice
@@ -449,6 +484,8 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
         crate::construction_fusion::partition::NAME => Some(ByteOp::Partition),
         LEN_NAME => Some(ByteOp::Len),
         GET_NAME => Some(ByteOp::Get),
+        READ_LE_NAME => Some(ByteOp::ReadLe),
+        ZERO_PREFIX_NAME => Some(ByteOp::ZeroPrefix),
         RANGE_NAME => Some(ByteOp::Range),
         COPY_NAME => Some(ByteOp::Copy),
         BYTES_AS_SLICE_NAME => Some(ByteOp::BytesAsSlice),
@@ -469,6 +506,8 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
         crate::construction_fusion::partition::ID => Some(ByteOp::Partition),
         LEN_ID => Some(ByteOp::Len),
         GET_ID => Some(ByteOp::Get),
+        READ_LE_ID => Some(ByteOp::ReadLe),
+        ZERO_PREFIX_ID => Some(ByteOp::ZeroPrefix),
         RANGE_ID => Some(ByteOp::Range),
         COPY_ID => Some(ByteOp::Copy),
         BYTES_AS_SLICE_ID => Some(ByteOp::BytesAsSlice),

@@ -187,7 +187,10 @@ mod recursive {
                         let parameters = self.type_parameters.get(&declaration)?;
                         let compiler_byte_option = declaration.as_str()
                             == crate::prelude::OPTION_ID
-                            && arguments.as_slice() == [ResolvedType::U8];
+                            && matches!(
+                                arguments.as_slice(),
+                                [ResolvedType::U8 | ResolvedType::Usize]
+                            );
                         let owned_byte_variant =
                             admitted_owned_byte_prelude_instance(&declaration, &arguments)
                                 || authored_owned_byte_variant;

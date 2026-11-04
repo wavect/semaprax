@@ -1,5 +1,8 @@
 # Complete Change and Structural Change wire bindings
 
+Status: Local qualification and captured CI evidence; current CI remains authoritative.
+Audience: Compiler maintainers and CI reviewers.
+
 The original public API/CLI assertions retain their complete current wire comparisons, parsed field checks, replay verification, real application, locking, source inventory and hostile-input checks. Their expected whole-document hashes now distinguish the two measured native graph layouts, following the existing public graph test convention. No production implementation, fixture, admission limit or report payload is normalized.
 
 All 28 complete report bodies are preserved. macOS bodies come from the original fixtures at e85c1a4941d69dff460711fe1c2e45acbe68ca6d. Portable Structural Change bodies and the portable Change preview, verification and application bodies were captured from Linux CI job 126103071589. The remaining portable Change context, impact, review and evidence bodies are reconstructed using the actual cross-host graph bindings and dependent report digests. Every reconstructed full body independently matches its domain-separated digest and exact byte length in the actual Linux verification and application receipts.

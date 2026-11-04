@@ -241,6 +241,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let helper = self.resource_text_len_helper(&args[0]);
                 self.line(&format!("{temporary} = {helper}({});", arguments[0].code));
             }
+            crate::byte_ops::ByteOp::ZeroPrefix => {
+                let slice = &arguments[0].code;
+                let validator = self.resource_text_read_validator(&args[0]);
+                self.line(&format!("{validator}({slice});"));
+                self.line(&format!("{temporary} = UINT64_C(0);"));
+                self.line(&format!("while ({temporary} < ({slice}).len && ({slice}).ptr[{temporary}] == 0) {{ ++{temporary}; }}"));
+            }
+            crate::byte_ops::ByteOp::ReadLe => {
+                let slice = &arguments[0].code;
+                let validator = self.resource_text_read_validator(&args[0]);
+                self.line(&format!("{validator}({slice});"));
+                self.emit_option_word_read(
+                    &return_type,
+                    slice,
+                    &arguments[1].code,
+                    &arguments[2].code,
+                    &temporary,
+                )?;
+            }
             crate::byte_ops::ByteOp::Get => {
                 let slice = &arguments[0].code;
                 let validator = self.resource_text_read_validator(&args[0]);
@@ -603,6 +622,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     crate::byte_ops::ByteOp::Partition
                     | crate::byte_ops::ByteOp::Len
                     | crate::byte_ops::ByteOp::Get
+                    | crate::byte_ops::ByteOp::ReadLe
+                    | crate::byte_ops::ByteOp::ZeroPrefix
                     | crate::byte_ops::ByteOp::Range
                     | crate::byte_ops::ByteOp::Copy
                     | crate::byte_ops::ByteOp::Zeroed

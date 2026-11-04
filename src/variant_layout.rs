@@ -117,7 +117,10 @@ impl VariantLayout {
             return Err(layout_error(format!("`{variant}` is not a variant")));
         };
         let compiler_byte_option = variant.as_str() == crate::prelude::OPTION_ID
-            && arguments.as_slice() == [ResolvedType::U8];
+            && matches!(
+                arguments.as_slice(),
+                [ResolvedType::U8 | ResolvedType::Usize]
+            );
         let compiler_owned_byte_algebra =
             crate::hir::admitted_owned_byte_prelude_instance(variant, arguments);
         let compiler_owned_string_algebra =

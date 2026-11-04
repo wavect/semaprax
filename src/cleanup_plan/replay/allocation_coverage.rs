@@ -251,6 +251,8 @@ fn call(
                 )),
                 B::Len
                 | B::Get
+                | B::ReadLe
+                | B::ZeroPrefix
                 | B::Range
                 | B::BytesAsSlice
                 | B::ArrayAsSlice

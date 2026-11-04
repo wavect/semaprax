@@ -47,6 +47,127 @@ fn main() -> i64 {
 }
 "#;
 
+#[test]
+fn little_endian_reads_match_independent_byte_loop_on_every_engine() {
+    let source = r#"module app.byte_word;
+@id("word.reference")
+fn reference(view: borrow Slice<u8>, offset: usize, width: usize) -> usize {
+    let length = byte_len(view);
+    if width == 0usize || width > 8usize || offset > length || width > length - offset {
+        0usize
+    } else {
+        let mut index = 0usize;
+        let mut factor = 1usize;
+        let mut total = 0usize;
+        while index < width {
+            let current = match byte_get(view, offset + index) { Option::Some { value: byte } => usize_from_u8(byte), Option::None {} => 0usize, };
+            total = total + current * factor;
+            index = index + 1usize;
+            if index < width { factor = factor * 256usize; 0 } else { 0 }
+            0
+        }
+        total
+    }
+}
+@id("word.check")
+fn check(view: borrow Slice<u8>, offset: usize, width: usize) -> i64 {
+    let length = byte_len(view);
+    let valid = width != 0usize && width <= 8usize && offset <= length && width <= length - offset;
+    let actual = byte_read_le(view, offset, width);
+    match actual {
+        Option::Some { value: actual_word } => if valid && actual_word == reference(view, offset, width) { 0 } else { 1 },
+        Option::None {} => if valid { 1 } else { 0 },
+    }
+}
+@id("word.all")
+fn all(view: borrow Slice<u8>) -> i64 {
+    let mut expected_prefix = 0usize;
+    let mut scanning = true;
+    while scanning && expected_prefix < byte_len(view) {
+        let advanced = match byte_get(view, expected_prefix) {
+            Option::Some { value } => if value == 0u8 { expected_prefix = expected_prefix + 1usize; 0 } else { scanning = false; 0 },
+            Option::None {} => { scanning = false; 0 },
+        };
+        0
+    }
+    let mut width = 0usize;
+    let mut failed = if byte_zero_prefix(view) == expected_prefix { 0 } else { 1 };
+    while width < 10usize {
+        let mut offset = 0usize;
+        while offset <= byte_len(view) + 1usize {
+            failed = failed + check(view, offset, width);
+            offset = offset + 1usize;
+            0
+        }
+        width = width + 1usize;
+        0
+    }
+    failed + check(view, 18446744073709551615usize, 8usize) + check(view, 18446744073709551612usize, 8usize)
+}
+@id("app.main")
+fn main() -> i64 {
+    let data = [0u8, 1u8, 127u8, 128u8, 255u8, 0u8, 254u8, 255u8, 17u8, 42u8];
+    let view = array_as_slice(data);
+    let empty = [0u8; 0];
+    let maximum = [255u8; 8];
+    let zeros = [0u8; 64];
+    let delayed = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 255u8];
+    let owned = bytes_copy(view);
+    let owned_view = bytes_as_slice(owned);
+    let text = "SEMAPRAX";
+    let string_view = string_as_str(text);
+    let utf8 = str_as_bytes(string_view);
+    all(utf8) + all(owned_view) + all(byte_range(owned_view, 1usize, 9usize)) + all(array_as_slice(delayed)) + all(array_as_slice(zeros)) + all(view) + all(byte_range(view, 1usize, 9usize)) + all(array_as_slice(empty)) + all(array_as_slice(maximum))
+}
+"#;
+    let ast = parse(source, Path::new("little-endian-reads.spx")).unwrap();
+    let program = hir::resolve(&ast).unwrap();
+    hir::validate(&program).unwrap();
+    let root = std::env::temp_dir().join(format!("semaprax-byte-read-le-{}", std::process::id()));
+    std::fs::create_dir(&root).unwrap();
+    let source_path = root.join("read.spx");
+    std::fs::write(&source_path, source).unwrap();
+    let interpreted = interpreter::interpret(
+        &source_path,
+        "app.main",
+        &[],
+        &interpreter::InterpreterOptions::default(),
+    )
+    .unwrap();
+    assert!(interpreted.returned, "{interpreted:?}");
+    assert!(
+        interpreted.envelope.contains("\"value\":\"0\""),
+        "{}",
+        interpreted.envelope
+    );
+    let c = root.join("read.c");
+    std::fs::write(&c, codegen::emit_c(&ast).unwrap()).unwrap();
+    for optimization in ["-O0", "-O2"] {
+        let binary = root.join(format!("read{optimization}"));
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", optimization])
+            .arg(&c)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let output = Command::new(&binary).output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"0\n");
+    }
+    let wasm = semaprax::wasm::emit_module(&ast).unwrap();
+    wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
+        .validate_all(&wasm)
+        .unwrap();
+    raw_wasm(&root, "word-reads", &wasm, 0);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 fn mix(total: i64, byte: u8) -> i64 {
     (total * 31 + i64::from(byte)) % 1_000_000_007
 }

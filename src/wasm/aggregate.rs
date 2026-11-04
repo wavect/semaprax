@@ -881,7 +881,7 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
             && arguments.iter().any(|argument| {
                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                     && !(declaration.as_str() == crate::prelude::OPTION_ID
-                        && *argument == ResolvedType::U8)
+                        && matches!(argument, ResolvedType::U8 | ResolvedType::Usize))
             }))
     {
         return Err(error(format!(
@@ -6836,6 +6836,8 @@ impl Emitter<'_> {
                     ty: ResolvedType::Usize,
                 })
             }
+            crate::byte_ops::ByteOp::ZeroPrefix => self.emit_zero_prefix(expr, &values),
+            crate::byte_ops::ByteOp::ReadLe => self.emit_indexed_word_get(expr, &values),
             crate::byte_ops::ByteOp::Get => self.emit_indexed_byte_get(expr, &values),
             crate::byte_ops::ByteOp::Copy => {
                 let local = self.plan.expr_scalar(expr)?;

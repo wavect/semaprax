@@ -21,7 +21,43 @@ fn sha(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 
+// Invert only the authenticated formatter stage before the existing complete
+// control-repair and lowering inverses. Both whole prior byte streams stay pinned.
+fn before_current_format(source: &str, current: &str) -> Option<String> {
+    type FormatEdit = (usize, &'static str, &'static str);
+    type FormatStage = (
+        usize,
+        &'static str,
+        usize,
+        &'static str,
+        &'static [FormatEdit],
+    );
+    let (current_len, current_sha, prior_len, prior_sha, edits): FormatStage = match source {
+        "src/hir/ids/fixed_operation_tests.rs" => (41592, "442cc7c2ac89c309b8d1742ef59b2d3b25ef0a08c2f20f668502983cf361e74b", 40750, "f5ca1f734cd8ae4c3ecd9c73a65da5ff263d01cd412ffc97b4a00a326dc0f42d", &[
+            (9163, "    // Authenticate the complete compiled generation before reversing only the\n    // retained-source profiling accessor; the original whole-file inverse below\n    // still reconstructs every pre-profile constructor byte.\n    assert_eq!(current, include_str!(\"../../../src/list_ops.rs\"));\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2\"\n    );\n    let profiled = \"program.functions().profile_iter().any(function_uses)\";\n    let ordinary = \"program.functions().iter().any(function_uses)\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n", ""),
+            (12073, "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),\n", "        \"src/hir/ids.rs\", ci_str!(\"../../../src/hir/ids.rs\"),\n"),
+        ]),
+        "src/hir/ids/declaration_tag.rs" => (29925, "2cee894230ef7b0533f57da0523a6e9c31cdfe9470e3ded9462d3eb9eb09ef6d", 29891, "58a3bbec53e96e2f429cebfe3bfe66105293a15ffc8862afe3503e293fd26ba9", &[
+            (4199, "    ids.extend(\n        super::lowering_identity_tests::cases()\n            .into_iter()\n            .map(|(tag, _)| tag),\n    );\n", "    ids.extend(super::lowering_identity_tests::cases().into_iter().map(|(tag, _)| tag));\n"),
+            (27233, "    let ids_before_lowering =\n        super::lowering_identity_tests::prior_source(\"src/hir/ids.rs\", include_str!(\"../ids.rs\"));\n", "    let ids_before_lowering = super::lowering_identity_tests::prior_source(\n        \"src/hir/ids.rs\", include_str!(\"../ids.rs\"),\n    );\n"),
+        ]),
+        _ => return None,
+    };
+    assert_eq!(current.len(), current_len);
+    assert_eq!(sha(current.as_bytes()), current_sha);
+    let mut prior = current.to_owned();
+    for &(start, after, before) in edits.iter().rev() {
+        assert_eq!(prior.get(start..start + after.len()), Some(after));
+        prior.replace_range(start..start + after.len(), before);
+    }
+    assert_eq!(prior.len(), prior_len);
+    assert_eq!(sha(prior.as_bytes()), prior_sha);
+    Some(prior)
+}
+
 pub(super) fn prior_source(source: &str, current: &str) -> String {
+    let formatted_before = before_current_format(source, current);
+    let current = formatted_before.as_deref().unwrap_or(current);
     // Exact current control repairs precede the immutable complete lowering
     // inverse. Every archived baseline and original old-body check stays intact.
     let repaired = match source {

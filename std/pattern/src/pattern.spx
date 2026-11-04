@@ -166,21 +166,21 @@ fn bit(index: usize) -> usize
 fn load2(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3070usize
 {
-    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize }, }
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 2usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
 }
 
 @id("std.pattern.internal.load-4")
 fn load4(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3068usize
 {
-    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize + match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 16777216usize }, }
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 4usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
 }
 
 @id("std.pattern.internal.load-8")
 fn load8(state: borrow Matcher, offset: usize) -> usize
     requires carrier_valid(state) && offset <= 3064usize
 {
-    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(view, offset + 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(view, offset + 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize + match byte_get(view, offset + 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 16777216usize + match byte_get(view, offset + 4usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 4294967296usize + match byte_get(view, offset + 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1099511627776usize + match byte_get(view, offset + 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 281474976710656usize + match byte_get(view, offset + 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 72057594037927936usize }, }
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
 }
 
 @id("std.pattern.internal.store-1")
@@ -216,7 +216,7 @@ fn frame(state: own Matcher, atom: usize, start: usize, count: usize) -> Matcher
     requires atom <= 128usize && start <= 65536usize && count <= 65536usize
     requires carrier_valid(state)
 {
-    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 1664usize + atom * 8usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(count % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 5usize, u8_from_i64(i64_from_usize(count / 256usize % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 6usize, u8_from_i64(i64_from_usize(count / 65536usize % 256usize))); next = bytes_set(next, 1664usize + atom * 8usize + 7usize, u8_from_i64(i64_from_usize(count / 16777216usize % 256usize))); Matcher { storage: next, position: position } }, }
+    match own state { Matcher { storage, position } => { let base = 1664usize + atom * 8usize; let mut next = storage; next = bytes_set5(next, base, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), 0u8, u8_from_i64(i64_from_usize(count % 256usize))); next = bytes_set(next, base + 5usize, u8_from_i64(i64_from_usize(count / 256usize % 256usize))); next = bytes_set(next, base + 6usize, u8_from_i64(i64_from_usize(count / 65536usize % 256usize))); next = bytes_set(next, base + 7usize, 0u8); Matcher { storage: next, position: position } }, }
 }
 
 // Exactly 32 writes. The caller includes those stores in work_used before
@@ -227,7 +227,7 @@ fn packet(state: own Matcher, status: usize, captures: usize, reason: usize, len
     requires work <= 262144usize
     requires carrier_valid(state)
 {
-    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2696usize, 83u8, 80u8, 65u8, 84u8, 1u8); next = bytes_set5(next, 2701usize, u8_from_i64(i64_from_usize(status)), u8_from_i64(i64_from_usize(captures)), u8_from_i64(i64_from_usize(reason)), u8_from_i64(i64_from_usize(length % 256usize)), u8_from_i64(i64_from_usize(length / 256usize % 256usize))); next = bytes_set5(next, 2706usize, u8_from_i64(i64_from_usize(length / 65536usize % 256usize)), u8_from_i64(i64_from_usize(length / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(length / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(length / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(length / 281474976710656usize % 256usize))); next = bytes_set5(next, 2711usize, u8_from_i64(i64_from_usize(length / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(work % 256usize)), u8_from_i64(i64_from_usize(work / 256usize % 256usize)), u8_from_i64(i64_from_usize(work / 65536usize % 256usize)), u8_from_i64(i64_from_usize(work / 16777216usize % 256usize))); next = bytes_set5(next, 2716usize, u8_from_i64(i64_from_usize(work / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(work / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(work / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(work / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(detail % 256usize))); next = bytes_set5(next, 2721usize, u8_from_i64(i64_from_usize(detail / 256usize % 256usize)), u8_from_i64(i64_from_usize(detail / 65536usize % 256usize)), u8_from_i64(i64_from_usize(detail / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(detail / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(detail / 1099511627776usize % 256usize))); next = bytes_set(next, 2726usize, u8_from_i64(i64_from_usize(detail / 281474976710656usize % 256usize))); next = bytes_set(next, 2727usize, u8_from_i64(i64_from_usize(detail / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
+    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2696usize, 83u8, 80u8, 65u8, 84u8, 1u8); next = bytes_set5(next, 2701usize, u8_from_i64(i64_from_usize(status)), u8_from_i64(i64_from_usize(captures)), u8_from_i64(i64_from_usize(reason)), u8_from_i64(i64_from_usize(length % 256usize)), u8_from_i64(i64_from_usize(length / 256usize % 256usize))); next = bytes_set5(next, 2706usize, u8_from_i64(i64_from_usize(length / 65536usize % 256usize)), u8_from_i64(i64_from_usize(length / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(length / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(length / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(length / 281474976710656usize % 256usize))); next = bytes_set5(next, 2711usize, u8_from_i64(i64_from_usize(length / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(work % 256usize)), u8_from_i64(i64_from_usize(work / 256usize % 256usize)), u8_from_i64(i64_from_usize(work / 65536usize % 256usize)), 0u8); next = bytes_set5(next, 2716usize, 0u8, 0u8, 0u8, 0u8, u8_from_i64(i64_from_usize(detail % 256usize))); next = bytes_set5(next, 2721usize, u8_from_i64(i64_from_usize(detail / 256usize % 256usize)), u8_from_i64(i64_from_usize(detail / 65536usize % 256usize)), u8_from_i64(i64_from_usize(detail / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(detail / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(detail / 1099511627776usize % 256usize))); next = bytes_set(next, 2726usize, u8_from_i64(i64_from_usize(detail / 281474976710656usize % 256usize))); next = bytes_set(next, 2727usize, u8_from_i64(i64_from_usize(detail / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
 }
 
 @id("std.pattern.internal.capture-result")
@@ -235,7 +235,7 @@ fn capture_result(state: own Matcher, capture: usize, start: usize, end: usize) 
     requires capture < 16usize && start <= end && end <= 65536usize
     requires carrier_valid(state)
 {
-    match own state { Matcher { storage, position } => { let mut next = storage; next = bytes_set5(next, 2728usize + capture * 16usize, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), u8_from_i64(i64_from_usize(start / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(start / 4294967296usize % 256usize))); next = bytes_set5(next, 2728usize + capture * 16usize + 5usize, u8_from_i64(i64_from_usize(start / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(start / 281474976710656usize % 256usize)), u8_from_i64(i64_from_usize(start / 72057594037927936usize % 256usize)), u8_from_i64(i64_from_usize(end % 256usize)), u8_from_i64(i64_from_usize(end / 256usize % 256usize))); next = bytes_set5(next, 2728usize + capture * 16usize + 10usize, u8_from_i64(i64_from_usize(end / 65536usize % 256usize)), u8_from_i64(i64_from_usize(end / 16777216usize % 256usize)), u8_from_i64(i64_from_usize(end / 4294967296usize % 256usize)), u8_from_i64(i64_from_usize(end / 1099511627776usize % 256usize)), u8_from_i64(i64_from_usize(end / 281474976710656usize % 256usize))); next = bytes_set(next, 2728usize + capture * 16usize + 15usize, u8_from_i64(i64_from_usize(end / 72057594037927936usize % 256usize))); Matcher { storage: next, position: position } }, }
+    match own state { Matcher { storage, position } => { let base = 2728usize + capture * 16usize; let mut next = storage; next = bytes_set5(next, base, u8_from_i64(i64_from_usize(start % 256usize)), u8_from_i64(i64_from_usize(start / 256usize % 256usize)), u8_from_i64(i64_from_usize(start / 65536usize % 256usize)), 0u8, 0u8); next = bytes_set5(next, base + 5usize, 0u8, 0u8, 0u8, u8_from_i64(i64_from_usize(end % 256usize)), u8_from_i64(i64_from_usize(end / 256usize % 256usize))); next = bytes_set5(next, base + 10usize, u8_from_i64(i64_from_usize(end / 65536usize % 256usize)), 0u8, 0u8, 0u8, 0u8); next = bytes_set(next, base + 15usize, 0u8); Matcher { storage: next, position: position } }, }
 }
 
 // Budget comparison subtracts the already reserved refusal header first.
@@ -606,6 +606,60 @@ fn disjoint_follower(state: borrow Matcher, atom: usize) -> Disjoint
 // counts, then zeros through byte 63. Each used atom occupies eight bytes:
 // kind (0 literal, 1 any, 2 class), value, u16 minimum, u32 maximum.
 // 0xffffffff denotes an unbounded maximum. No unused frame is ever loaded.
+// Visit the funded zero-header prefix in byte order. A missing view byte is
+// the first unfunded position; a nonzero byte is the first malformed position.
+@id("std.pattern.internal.funded-carrier-read-1")
+fn funded_carrier_read_1(state: borrow Matcher, offset: usize) -> usize
+    requires offset <= 3071usize
+{
+    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); match byte_get(view, offset) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } }, }
+}
+
+@id("std.pattern.internal.funded-carrier-read-2")
+fn funded_carrier_read_2(state: borrow Matcher, offset: usize) -> usize
+    requires offset <= 3070usize
+{
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 2usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
+}
+
+@id("std.pattern.internal.funded-carrier-read-4")
+fn funded_carrier_read_4(state: borrow Matcher, offset: usize) -> usize
+    requires offset <= 3068usize
+{
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 4usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
+}
+
+// The caller establishes complete current-carrier validity before these
+// immutable reads. The offset check and total byte-read bounds remain local.
+@id("std.pattern.internal.funded-carrier-read-8")
+fn funded_carrier_read_8(state: borrow Matcher, offset: usize) -> usize
+    requires offset <= 3064usize
+{
+    match borrow state { Matcher { storage, position } => match byte_read_le(bytes_as_slice(storage), offset, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }, }
+}
+
+@id("std.pattern.internal.capture-pair-valid")
+fn capture_pair_valid(view: borrow Slice<u8>, base: usize, length: usize) -> bool
+    requires base <= 3064usize
+{
+    match byte_read_le(view, base, 8usize) { Option::Some { value: start } => match byte_read_le(view, base + 8usize, 8usize) { Option::Some { value: end } => start <= end && end <= length, Option::None {} => false, }, Option::None {} => false, }
+}
+
+@id("std.pattern.internal.capture-table-valid")
+fn capture_table_valid(view: borrow Slice<u8>, count: usize, length: usize) -> bool
+    requires count <= 16usize
+{
+    if count > 0usize { capture_pair_valid(view, 2728usize, length) && if count > 1usize { capture_pair_valid(view, 2744usize, length) && if count > 2usize { capture_pair_valid(view, 2760usize, length) && if count > 3usize { capture_pair_valid(view, 2776usize, length) && if count > 4usize { capture_pair_valid(view, 2792usize, length) && if count > 5usize { capture_pair_valid(view, 2808usize, length) && if count > 6usize { capture_pair_valid(view, 2824usize, length) && if count > 7usize { capture_pair_valid(view, 2840usize, length) && if count > 8usize { capture_pair_valid(view, 2856usize, length) && if count > 9usize { capture_pair_valid(view, 2872usize, length) && if count > 10usize { capture_pair_valid(view, 2888usize, length) && if count > 11usize { capture_pair_valid(view, 2904usize, length) && if count > 12usize { capture_pair_valid(view, 2920usize, length) && if count > 13usize { capture_pair_valid(view, 2936usize, length) && if count > 14usize { capture_pair_valid(view, 2952usize, length) && if count > 15usize { capture_pair_valid(view, 2968usize, length) && true } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true } } else { true }
+}
+
+// The caller supplies only the funded header window. The scan stops at the
+// first nonzero byte, so the caller retains the same per-byte work charge.
+@id("std.pattern.internal.zero-header-prefix")
+fn zero_header_prefix(input: borrow Slice<u8>) -> usize
+{
+    if byte_len(input) > 55usize { let window = byte_range(input, 0usize, 55usize); byte_zero_prefix(window) } else { byte_zero_prefix(input) }
+}
+
 @id("std.pattern.full-match")
 fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) -> Matcher
     requires carrier_valid(state)
@@ -614,6 +668,7 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
 {
     let mut matcher = state;
     let length = byte_len(input);
+    let reserved_limit = work_limit - 32usize;
     let mut work = 0usize;
     let mut exhausted = false;
     let mut invalid = false;
@@ -627,16 +682,16 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     // Header validation is read-only. Lend one exact current storage view for
     // this phase, rather than destructuring/revalidating the same Matcher for
     // each byte. Every read retains its original work preflight and order.
-    let checked_header = match borrow matcher { Matcher { storage, position } => { let compiled = bytes_as_slice(storage); while header < 64usize && !exhausted && !invalid { if affords(work, 2usize, work_limit) { work = work + 2usize; let value = input_byte(compiled, header); if header >= 9usize { invalid = value != 0usize; } else { let expected = if header == 0usize { 83usize } else { if header == 1usize { 80usize } else { if header == 2usize { 65usize } else { if header == 3usize { 67usize } else { if header == 4usize || header == 5usize { 1usize } else { 0usize } } } } }; if header == 6usize { atoms = value; invalid = atoms > 128usize; } else { if header == 7usize { classes = value; invalid = classes > 16usize; } else { if header == 8usize { captures = value; invalid = captures > 16usize; } else { invalid = value != expected; } } } } if invalid { detail = header; } header = header + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 }, };
+    let checked_header = match borrow matcher { Matcher { storage, position } => { let compiled = bytes_as_slice(storage); while header < 9usize && !exhausted && !invalid { if work <= reserved_limit && 2usize <= reserved_limit - work { work = work + 2usize; let value = input_byte(compiled, header); if header >= 9usize { invalid = value != 0usize; } else { let expected = if header == 0usize { 83usize } else { if header == 1usize { 80usize } else { if header == 2usize { 65usize } else { if header == 3usize { 67usize } else { if header == 4usize || header == 5usize { 1usize } else { 0usize } } } } }; if header == 6usize { atoms = value; invalid = atoms > 128usize; } else { if header == 7usize { classes = value; invalid = classes > 16usize; } else { if header == 8usize { captures = value; invalid = captures > 16usize; } else { invalid = value != expected; } } } } if invalid { detail = header; } header = header + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if header == 9usize && !exhausted && !invalid { let slots = (work_limit - 32usize - work) / 2usize; let end = if slots < 55usize { 9usize + slots } else { 64usize }; let funded = byte_range(compiled, 9usize, end); let stop = zero_header_prefix(funded); let malformed = stop < end - 9usize; let checked = if malformed { stop + 1usize } else { stop }; work = work + checked * 2usize; header = 9usize + checked; if malformed { invalid = true; detail = 9usize + stop; 0 } else { if header < 64usize { exhausted = true; reason = 7usize; 0 } else { 0 } } 0 } else { 0 } 0 }, };
     let mut checked_atom = 0usize;
     while checked_atom < atoms && !exhausted && !invalid {
-        if affords(work, 9usize, work_limit) { work = work + 9usize; let offset = 64usize + checked_atom * 8usize; let kind = read(matcher, offset); let value = read(matcher, offset + 1usize); let minimum = load2(matcher, offset + 2usize); let maximum = load4(matcher, offset + 4usize); if kind > 2usize { invalid = true; detail = offset; } else { if kind == 1usize && value != 0usize || kind == 2usize && value >= classes { invalid = true; detail = offset + 1usize; } else { if minimum > 255usize { invalid = true; detail = offset + 2usize; } else { if maximum != 4294967295usize && (maximum < minimum || maximum > 255usize) { invalid = true; detail = offset + 4usize; } else { 0usize } } } } checked_atom = checked_atom + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
+        if work <= reserved_limit && 9usize <= reserved_limit - work { work = work + 9usize; let offset = 64usize + checked_atom * 8usize; let atom_word = funded_carrier_read_8(matcher, offset); let kind = atom_word % 256usize; let value = atom_word / 256usize % 256usize; let minimum = atom_word / 65536usize % 65536usize; let maximum = atom_word / 4294967296usize; if kind > 2usize { invalid = true; detail = offset; } else { if kind == 1usize && value != 0usize || kind == 2usize && value >= classes { invalid = true; detail = offset + 1usize; } else { if minimum > 255usize { invalid = true; detail = offset + 2usize; } else { if maximum != 4294967295usize && (maximum < minimum || maximum > 255usize) { invalid = true; detail = offset + 4usize; } else { 0usize } } } } checked_atom = checked_atom + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     let mut checked_capture = 0usize;
     let mut previous_end = 0usize;
     while checked_capture < captures && !exhausted && !invalid {
-        if affords(work, 5usize, work_limit) { work = work + 5usize; let offset = 1600usize + checked_capture * 4usize; let start = load2(matcher, offset); let end = load2(matcher, offset + 2usize); invalid = start < previous_end || start > end || end > atoms; if invalid { detail = offset; } previous_end = end; checked_capture = checked_capture + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
+        if work <= reserved_limit && 5usize <= reserved_limit - work { work = work + 5usize; let offset = 1600usize + checked_capture * 4usize; let start = funded_carrier_read_2(matcher, offset); let end = funded_carrier_read_2(matcher, offset + 2usize); invalid = start < previous_end || start > end || end > atoms; if invalid { detail = offset; } previous_end = end; checked_capture = checked_capture + 1usize; 0 } else { exhausted = true; reason = 7usize; 0 }
         0
     }
     let mut atom = 0usize;
@@ -649,19 +704,19 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
     // table above before using this bounded necessary-condition rejection.
     // Also check many-atom records spanning at least two eight-byte windows;
     // smaller records retain the exact short-input work path.
-    if (length >= 64usize || length >= 16usize && atoms >= 6usize) && atoms != 0usize && !exhausted && !invalid { if affords(work, 2usize, work_limit) { work = work + 2usize; let final_atom = atoms - 1usize; let minimum = load2(matcher, 66usize + final_atom * 8usize); if minimum != 0usize { if affords(work, 3usize, work_limit) { work = work + 3usize; let kind = read(matcher, 64usize + final_atom * 8usize); let value = read(matcher, 65usize + final_atom * 8usize); let byte = input_byte(input, length - 1usize); if kind == 2usize { if affords(work, 1usize, work_limit) { work = work + 1usize; let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize); finished = bitmap / bit(byte % 8usize) % 2usize == 0usize; } else { exhausted = true; reason = 7usize; } } else { finished = kind == 0usize && byte != value; } } else { exhausted = true; reason = 7usize; } } } else { exhausted = true; reason = 7usize; } }
+    if (length >= 64usize || length >= 16usize && atoms >= 6usize) && atoms != 0usize && !exhausted && !invalid { if work <= reserved_limit && 2usize <= reserved_limit - work { work = work + 2usize; let final_atom = atoms - 1usize; let minimum = funded_carrier_read_2(matcher, 66usize + final_atom * 8usize); if minimum != 0usize { if work <= reserved_limit && 3usize <= reserved_limit - work { work = work + 3usize; let kind = funded_carrier_read_1(matcher, 64usize + final_atom * 8usize); let value = funded_carrier_read_1(matcher, 65usize + final_atom * 8usize); let byte = input_byte(input, length - 1usize); if kind == 2usize { if work <= reserved_limit && 1usize <= reserved_limit - work { work = work + 1usize; let bitmap = funded_carrier_read_1(matcher, 1088usize + value * 32usize + byte / 8usize); finished = bitmap / bit(byte % 8usize) % 2usize == 0usize; } else { exhausted = true; reason = 7usize; } } else { finished = kind == 0usize && byte != value; } } else { exhausted = true; reason = 7usize; } } } else { exhausted = true; reason = 7usize; } }
     while !finished && !exhausted && !invalid {
         // Any-byte membership follows from the checked input
         // extent. There are no input reads or scan iterations.
         // With a fixed prefix, reducing the terminal
         // atom can never cover an already uncovered
         // input suffix. Skip only those dead alternatives.
-        if rewinding { if atom == 0usize { if affords(work, 1usize, work_limit) { work = work + 1usize; finished = true; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if affords(work, 11usize, work_limit) { work = work + 11usize; atom = atom - 1usize; let minimum = load2(matcher, 66usize + atom * 8usize); let start = load4(matcher, 1664usize + atom * 8usize); let count = load4(matcher, 1668usize + atom * 8usize); if count > minimum { let mut separated = false; if length >= 64usize && atom + 1usize < atoms && affords(work, 7usize, work_limit) { let checked = match disjoint_follower(matcher, atom) { Disjoint::Checked { value: proof, work: used } => { separated = proof != 0usize; work = work + used; 0 }, }; } if !separated { if affords(work, 4usize, work_limit) { work = work + 4usize; matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize); position = start + count - 1usize; atom = atom + 1usize; rewinding = false; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 } else { if atom == atoms { if affords(work, 9usize, work_limit) { work = work + 9usize; matcher = frame(matcher, atom, position, 0usize); accepted = position == length; finished = accepted; rewinding = !accepted; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if affords(work, 9usize, work_limit) { work = work + 9usize; let kind = read(matcher, 64usize + atom * 8usize); let value = read(matcher, 65usize + atom * 8usize); let minimum = load2(matcher, 66usize + atom * 8usize); let maximum = load4(matcher, 68usize + atom * 8usize); let remaining = length - position; let bound = if maximum < remaining { maximum } else { remaining }; let mut count = 0usize; let mut scanning = true; if bound >= 64usize { if kind == 1usize { count = bound; scanning = false; } else { let mut mode = 0usize; if kind == 2usize && affords(work, 32usize, work_limit) { work = work + 32usize; mode = class_scan_mode(matcher, value); } if mode == 3usize { count = bound; scanning = false; } else { if kind == 0usize || mode != 0usize { let scanned = if kind == 0usize || mode >= 512usize { scan_literal(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(if kind == 0usize { value } else { mode - 512usize }))) } else { if mode >= 256usize { scan_excluding(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(mode - 256usize))) } else { if mode == 4usize { scan_token(input, position, bound, work_limit - 32usize - work) } else { if mode == 5usize { scan_path(input, position, bound, work_limit - 32usize - work) } else { if mode == 1usize { scan_cr_lf(input, position, bound, work_limit - 32usize - work) } else { scan_nul_lf(input, position, bound, work_limit - 32usize - work) } } } } }; let consumed = match scanned { Scan::Done { count: found, work: used, exhausted: stopped } => { count = found; work = work + used; exhausted = stopped != 0usize; if exhausted { reason = 7usize; } 0 }, }; scanning = false; } } } } while count < bound && scanning && !exhausted { let cost = if kind == 2usize { 3usize } else { 2usize }; if affords(work, cost, work_limit) { work = work + cost; let byte = input_byte(input, position + count); let matched = if kind == 0usize { byte == value } else { if kind == 1usize { true } else { let bitmap = read(matcher, 1088usize + value * 32usize + byte / 8usize); bitmap / bit(byte % 8usize) % 2usize == 1usize } }; if matched { count = count + 1usize; } else { scanning = false; } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if !exhausted { if affords(work, 8usize, work_limit) { work = work + 8usize; matcher = frame(matcher, atom, position, count); if count < minimum { rewinding = true; } else { if length >= 64usize && atom + 1usize == atoms && count < remaining { rewinding = true; } else { position = position + count; atom = atom + 1usize; } } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 }
+        if rewinding { if atom == 0usize { if work <= reserved_limit && 1usize <= reserved_limit - work { work = work + 1usize; finished = true; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if work <= reserved_limit && 11usize <= reserved_limit - work { work = work + 11usize; atom = atom - 1usize; let minimum = funded_carrier_read_2(matcher, 66usize + atom * 8usize); let frame_word = funded_carrier_read_8(matcher, 1664usize + atom * 8usize); let start = frame_word % 4294967296usize; let count = frame_word / 4294967296usize; if count > minimum { let mut separated = false; if length >= 64usize && atom + 1usize < atoms && (work <= reserved_limit && 7usize <= reserved_limit - work) { let checked = match disjoint_follower(matcher, atom) { Disjoint::Checked { value: proof, work: used } => { separated = proof != 0usize; work = work + used; 0 }, }; } if !separated { if work <= reserved_limit && 4usize <= reserved_limit - work { work = work + 4usize; matcher = store4(matcher, 1668usize + atom * 8usize, count - 1usize); position = start + count - 1usize; atom = atom + 1usize; rewinding = false; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 } else { if atom == atoms { if work <= reserved_limit && 9usize <= reserved_limit - work { work = work + 9usize; matcher = frame(matcher, atom, position, 0usize); accepted = position == length; finished = accepted; rewinding = !accepted; 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { if work <= reserved_limit && 9usize <= reserved_limit - work { work = work + 9usize; let atom_word = funded_carrier_read_8(matcher, 64usize + atom * 8usize); let kind = atom_word % 256usize; let value = atom_word / 256usize % 256usize; let minimum = atom_word / 65536usize % 65536usize; let maximum = atom_word / 4294967296usize; let remaining = length - position; let bound = if maximum < remaining { maximum } else { remaining }; let mut count = 0usize; let mut scanning = true; if bound >= 64usize { if kind == 1usize { count = bound; scanning = false; } else { let mut mode = 0usize; if kind == 2usize && (work <= reserved_limit && 32usize <= reserved_limit - work) { work = work + 32usize; mode = class_scan_mode(matcher, value); } if mode == 3usize { count = bound; scanning = false; } else { if kind == 0usize || mode != 0usize { let scanned = if kind == 0usize || mode >= 512usize { scan_literal(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(if kind == 0usize { value } else { mode - 512usize }))) } else { if mode >= 256usize { scan_excluding(input, position, bound, work_limit - 32usize - work, u8_from_i64(i64_from_usize(mode - 256usize))) } else { if mode == 4usize { scan_token(input, position, bound, work_limit - 32usize - work) } else { if mode == 5usize { scan_path(input, position, bound, work_limit - 32usize - work) } else { if mode == 1usize { scan_cr_lf(input, position, bound, work_limit - 32usize - work) } else { scan_nul_lf(input, position, bound, work_limit - 32usize - work) } } } } }; let consumed = match scanned { Scan::Done { count: found, work: used, exhausted: stopped } => { count = found; work = work + used; exhausted = stopped != 0usize; if exhausted { reason = 7usize; } 0 }, }; scanning = false; } } } } while count < bound && scanning && !exhausted { let cost = if kind == 2usize { 3usize } else { 2usize }; if work <= reserved_limit && cost <= reserved_limit - work { work = work + cost; let byte = input_byte(input, position + count); let matched = if kind == 0usize { byte == value } else { if kind == 1usize { true } else { let bitmap = funded_carrier_read_1(matcher, 1088usize + value * 32usize + byte / 8usize); bitmap / bit(byte % 8usize) % 2usize == 1usize } }; if matched { count = count + 1usize; } else { scanning = false; } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } if !exhausted { if work <= reserved_limit && 8usize <= reserved_limit - work { work = work + 8usize; matcher = frame(matcher, atom, position, count); if count < minimum { rewinding = true; } else { if length >= 64usize && atom + 1usize == atoms && count < remaining { rewinding = true; } else { position = position + count; atom = atom + 1usize; } } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } else { 0 } 0 } else { exhausted = true; reason = 7usize; 0 } 0 } 0 }
         0
     }
     let final_cost = 32usize + captures * 29usize;
     if accepted && !exhausted && final_cost > work_limit - work { exhausted = true; reason = 7usize; }
-    if accepted && !exhausted { let mut capture = 0usize; while capture < captures { work = work + 29usize; let begin_atom = load2(matcher, 1600usize + capture * 4usize); let end_atom = load2(matcher, 1602usize + capture * 4usize); let start = load4(matcher, 1664usize + begin_atom * 8usize); let end = load4(matcher, 1664usize + end_atom * 8usize); matcher = capture_result(matcher, capture, start, end); capture = capture + 1usize; 0 } packet(matcher, 1usize, captures, 0usize, length, work + 32usize, 0usize) } else { let code = if exhausted { 4usize } else { if invalid { 3usize } else { 2usize } }; let why = if invalid { 2usize } else { reason }; packet(matcher, code, 0usize, why, length, work + 32usize, detail) }
+    if accepted && !exhausted { let mut capture = 0usize; while capture < captures { work = work + 29usize; let begin_atom = funded_carrier_read_2(matcher, 1600usize + capture * 4usize); let end_atom = funded_carrier_read_2(matcher, 1602usize + capture * 4usize); let start = funded_carrier_read_4(matcher, 1664usize + begin_atom * 8usize); let end = funded_carrier_read_4(matcher, 1664usize + end_atom * 8usize); matcher = capture_result(matcher, capture, start, end); capture = capture + 1usize; 0 } packet(matcher, 1usize, captures, 0usize, length, work + 32usize, 0usize) } else { let code = if exhausted { 4usize } else { if invalid { 3usize } else { 2usize } }; let why = if invalid { 2usize } else { reason }; packet(matcher, code, 0usize, why, length, work + 32usize, detail) }
 }
 
 // A bounded packet field is exact below 2^24. Five charged high-byte zero
@@ -670,15 +725,15 @@ fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) ->
 @id("std.pattern.internal.packet-low")
 fn packet_low(word: borrow Slice<u8>) -> usize
 {
-    let bounded = match byte_get(word, 3usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 4usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 5usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 6usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 7usize) { Option::Some { value } => value == 0u8, Option::None {} => true, };
-    if bounded { match byte_get(word, 0usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } + match byte_get(word, 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(word, 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize } else { 16777216usize }
+    match byte_read_le(word, 0usize, 8usize) { Option::Some { value } => if value < 16777216usize { value } else { 16777216usize }, Option::None {} => { let bounded = match byte_get(word, 3usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 4usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 5usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 6usize) { Option::Some { value } => value == 0u8, Option::None {} => true, } && match byte_get(word, 7usize) { Option::Some { value } => value == 0u8, Option::None {} => true, }; if bounded { match byte_get(word, 0usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } + match byte_get(word, 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(word, 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize } else { 16777216usize } }, }
 }
 
 // Exact full 64-bit field for the unbounded input-length refusal only.
 @id("std.pattern.internal.packet-word")
 fn packet_word(word: borrow Slice<u8>) -> usize
 {
-    match byte_get(word, 0usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1usize + match byte_get(word, 1usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 256usize + match byte_get(word, 2usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 65536usize + match byte_get(word, 3usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 16777216usize + match byte_get(word, 4usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 4294967296usize + match byte_get(word, 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 1099511627776usize + match byte_get(word, 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 281474976710656usize + match byte_get(word, 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, } * 72057594037927936usize
+    let width = if byte_len(word) < 8usize { byte_len(word) } else { 8usize };
+    match byte_read_le(word, 0usize, width) { Option::Some { value } => value, Option::None {} => 0usize, }
 }
 
 // Result observers inspect only the logical packet, never program or scratch
@@ -689,9 +744,13 @@ fn result_valid(state: borrow Matcher) -> bool
 {
     // One exact carrier check authenticates the immutable view for this call.
     // Every logical packet byte and capture is still checked below. Each
-    // status selects the original predicate conjunction; only input-length
-    // refusal decodes full 64-bit length and detail words.
-    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); if byte_len(view) == 3072usize && position <= 3072usize { let head = byte_range(view, 2696usize, 2728usize); let tagged = match byte_get(head, 0usize) { Option::Some { value } => value == 83u8, Option::None {} => false, } && match byte_get(head, 1usize) { Option::Some { value } => value == 80u8, Option::None {} => false, } && match byte_get(head, 2usize) { Option::Some { value } => value == 65u8, Option::None {} => false, } && match byte_get(head, 3usize) { Option::Some { value } => value == 84u8, Option::None {} => false, } && match byte_get(head, 4usize) { Option::Some { value } => value == 1u8, Option::None {} => false, }; if tagged { let code = match byte_get(head, 5usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }; let count = match byte_get(head, 6usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }; let reason = match byte_get(head, 7usize) { Option::Some { value } => usize_from_u8(value), Option::None {} => 0usize, }; let work_word = byte_range(head, 16usize, 24usize); let work = packet_low(work_word); let mut valid = code <= 4usize && count <= 16usize && work >= 32usize && work <= 262144usize && (code == 1usize || count == 0usize); let mut length = 0usize; if valid { let length_word = byte_range(head, 8usize, 16usize); let detail_word = byte_range(head, 24usize, 32usize); if code == 4usize && reason == 2usize { length = packet_word(length_word); valid = length > 65536usize && packet_word(detail_word) == length; 0 } else { length = packet_low(length_word); let detail = packet_low(detail_word); valid = if code <= 2usize { reason == 0usize && detail == 0usize && length <= 65536usize && (code != 0usize || length == 0usize) } else { if code == 3usize { reason == 1usize && detail <= 1024usize && length == 0usize || reason == 2usize && detail < 1664usize && length <= 65536usize } else { reason == 1usize && length == 0usize && detail > 1024usize || reason >= 3usize && reason <= 5usize && length == 0usize && detail <= 1024usize || reason == 7usize && detail == 0usize && length <= 65536usize } }; 0 } } let mut capture = 0usize; while valid && capture < count { let base = 2728usize + capture * 16usize; let start_word = byte_range(view, base, base + 8usize); let end_word = byte_range(view, base + 8usize, base + 16usize); let start = packet_low(start_word); let end = packet_low(end_word); valid = start <= end && end <= length; capture = capture + 1usize; 0 } valid } else { false } } else { false } }, }
+    // status selects the original predicate conjunction. Every word is kept
+    // as a full unsigned value: the bounded branches compare only against
+    // thresholds below 2^24, so they agree with the old rejecting sentinel.
+    // The exact normal two-capture header proves its code/count/reason tests;
+    // its fast branch still reads and checks work, length, detail and all four
+    // capture endpoints from this same current carrier.
+    match borrow state { Matcher { storage, position } => { let view = bytes_as_slice(storage); if byte_len(view) == 3072usize && position <= 3072usize { let head = byte_range(view, 2696usize, 2728usize); let header = match byte_read_le(head, 0usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; if header == 564055173582931usize { let work = match byte_read_le(head, 16usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; let length = match byte_read_le(head, 8usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; let detail = match byte_read_le(head, 24usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; let start0 = match byte_read_le(view, 2728usize, 8usize) { Option::Some { value } => value, Option::None {} => 16777216usize, }; let end0 = match byte_read_le(view, 2736usize, 8usize) { Option::Some { value } => value, Option::None {} => 16777216usize, }; let start1 = match byte_read_le(view, 2744usize, 8usize) { Option::Some { value } => value, Option::None {} => 16777216usize, }; let end1 = match byte_read_le(view, 2752usize, 8usize) { Option::Some { value } => value, Option::None {} => 16777216usize, }; work >= 32usize && work <= 262144usize && length <= 65536usize && detail == 0usize && start0 <= end0 && end0 <= length && start1 <= end1 && end1 <= length } else { let tagged = header % 1099511627776usize == 5708533843usize; if tagged { let code = header / 1099511627776usize % 256usize; let count = header / 281474976710656usize % 256usize; let reason = header / 72057594037927936usize; let work = match byte_read_le(head, 16usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; let mut valid = code <= 4usize && count <= 16usize && work >= 32usize && work <= 262144usize && (code == 1usize || count == 0usize); let mut length = 0usize; if valid { let length_value = match byte_read_le(head, 8usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; let detail_value = match byte_read_le(head, 24usize, 8usize) { Option::Some { value } => value, Option::None {} => 0usize, }; if code == 4usize && reason == 2usize { length = length_value; valid = length > 65536usize && detail_value == length; 0 } else { length = length_value; let detail = detail_value; valid = if code <= 2usize { reason == 0usize && detail == 0usize && length <= 65536usize && (code != 0usize || length == 0usize) } else { if code == 3usize { reason == 1usize && detail <= 1024usize && length == 0usize || reason == 2usize && detail < 1664usize && length <= 65536usize } else { reason == 1usize && length == 0usize && detail > 1024usize || reason >= 3usize && reason <= 5usize && length == 0usize && detail <= 1024usize || reason == 7usize && detail == 0usize && length <= 65536usize } }; 0 } } valid = valid && capture_table_valid(view, count, length); valid } else { false } } } else { false } }, }
 }
 
 @id("std.pattern.status")
@@ -699,7 +758,7 @@ fn status(state: borrow Matcher) -> usize
     requires result_valid(state)
     ensures result <= 4usize
 {
-    read(state, 2701usize)
+    funded_carrier_read_1(state, 2701usize)
 }
 
 // Reason 0 means no refusal. Invalid reason 1 is a pattern offset and 2 is
@@ -709,15 +768,15 @@ fn reason(state: borrow Matcher) -> usize
     requires result_valid(state)
     ensures result <= 7usize && result != 6usize
 {
-    read(state, 2703usize)
+    funded_carrier_read_1(state, 2703usize)
 }
 
 @id("std.pattern.detail")
 fn detail(state: borrow Matcher) -> usize
     requires result_valid(state)
-    ensures read(state, 2701usize) >= 3usize || result == 0usize
+    ensures funded_carrier_read_1(state, 2701usize) >= 3usize || result == 0usize
 {
-    load8(state, 2720usize)
+    funded_carrier_read_8(state, 2720usize)
 }
 
 // Domain 0: none, 1: pattern-byte offset, 2: compiled-table-byte offset,
@@ -727,8 +786,8 @@ fn detail_domain(state: borrow Matcher) -> usize
     requires result_valid(state)
     ensures result <= 4usize
 {
-    let code = read(state, 2701usize);
-    let why = read(state, 2703usize);
+    let code = funded_carrier_read_1(state, 2701usize);
+    let why = funded_carrier_read_1(state, 2703usize);
     if code == 3usize { if why == 1usize { 1usize } else { 2usize } } else { if code == 4usize { if why == 1usize { 3usize } else { if why == 2usize { 4usize } else { if why >= 3usize && why <= 5usize { 1usize } else { 0usize } } } } else { 0usize } }
 }
 
@@ -737,7 +796,7 @@ fn capture_count(state: borrow Matcher) -> usize
     requires result_valid(state)
     ensures result <= 16usize
 {
-    read(state, 2702usize)
+    funded_carrier_read_1(state, 2702usize)
 }
 
 @id("std.pattern.work-used")
@@ -745,23 +804,23 @@ fn work_used(state: borrow Matcher) -> usize
     requires result_valid(state)
     ensures 32usize <= result && result <= 262144usize
 {
-    load8(state, 2712usize)
+    funded_carrier_read_8(state, 2712usize)
 }
 
 @id("std.pattern.capture-start")
 fn capture_start(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    requires result_valid(state) && funded_carrier_read_1(state, 2701usize) == 1usize && capture < funded_carrier_read_1(state, 2702usize)
     ensures result <= 65536usize
 {
-    load8(state, 2728usize + capture * 16usize)
+    funded_carrier_read_8(state, 2728usize + capture * 16usize)
 }
 
 @id("std.pattern.capture-end")
 fn capture_end(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    requires result_valid(state) && funded_carrier_read_1(state, 2701usize) == 1usize && capture < funded_carrier_read_1(state, 2702usize)
     ensures result <= 65536usize
 {
-    load8(state, 2736usize + capture * 16usize)
+    funded_carrier_read_8(state, 2736usize + capture * 16usize)
 }
 
 @id("std.pattern.internal.capture-bounds")

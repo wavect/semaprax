@@ -1,5 +1,8 @@
 # Public graph and analysis accounting expectations
 
+Status: Local qualification and captured CI evidence; current CI remains authoritative.
+Audience: Compiler maintainers and CI reviewers.
+
 The previous exact expectations are preserved in the complete 2026-10-26 wire records. This update keeps every semantic field unchanged. It accounts for earlier builder savings, the already-existing 128 MiB workspace builder limit (the old records contain 64 MiB), serialized decimal-length changes, and the independently authenticated digest cascade. This change raises no limit and removes no assertion.
 
 `verify.py` checks all 18 complete old/current wire pairs, their raw SHA-256 values, each exact changed field, all self-digests and nested graph bindings. It reconstructs every complete current byte stream from its complete predecessor using only those verified changes.

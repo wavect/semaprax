@@ -93,7 +93,7 @@ impl HirValidator<'_> {
                         // unpaid traversal admissions below; every other
                         // instance computes the same terms with the same result.
                         if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                            || ((arguments.as_slice() != [ResolvedType::U8]
+                            || ((!matches!(arguments.as_slice(), [ResolvedType::U8 | ResolvedType::Usize])
                                 || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
@@ -316,7 +316,7 @@ impl HirValidator<'_> {
                                 && !admitted_owned_variant
                                 && !super::super::declared_collection::vector(&self.program.declarations,ty)
                                 && !admitted_owned_generic
-                                && (arguments.as_slice() != [ResolvedType::U8]
+                                && (!matches!(arguments.as_slice(), [ResolvedType::U8 | ResolvedType::Usize])
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)

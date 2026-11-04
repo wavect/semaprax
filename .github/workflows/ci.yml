@@ -2607,8 +2607,15 @@ jobs:
           if ndk_ready; then
             exit 0
           fi
+          sdkmanager="$android_sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager" ]; then
+            sdkmanager="$(command -v sdkmanager)" || {
+              echo "::error::Android SDK manager is unavailable under $android_sdk_root or on PATH"
+              exit 1
+            }
+          fi
           for attempt in 1 2 3; do
-            if sdkmanager --install "ndk;$ndk_version" && ndk_ready; then
+            if "$sdkmanager" --install "ndk;$ndk_version" && ndk_ready; then
               exit 0
             fi
             # Only a failed/incomplete copy of this exact pinned package is removed.
@@ -2708,8 +2715,15 @@ jobs:
           if ndk_ready; then
             exit 0
           fi
+          sdkmanager="$android_sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager" ]; then
+            sdkmanager="$(command -v sdkmanager)" || {
+              echo "::error::Android SDK manager is unavailable under $android_sdk_root or on PATH"
+              exit 1
+            }
+          fi
           for attempt in 1 2 3; do
-            if sdkmanager --install "ndk;$ndk_version" && ndk_ready; then
+            if "$sdkmanager" --install "ndk;$ndk_version" && ndk_ready; then
               exit 0
             fi
             # Only a failed/incomplete copy of this exact pinned package is removed.

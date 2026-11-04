@@ -133,6 +133,11 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
     let fixture = Fixture::new("api");
     let before = fixture.inventory();
     let bundle = semantic_workspace_operations::derive(&fixture.root, &fixture.proposal).unwrap();
+    super::pin_capture::record("operations-derivation", bundle.derivation().as_bytes());
+    super::pin_capture::record(
+        "operations-change",
+        bundle.derived_change_proposal().as_bytes(),
+    );
     let document: serde_json::Value = serde_json::from_str(bundle.derivation().trim_end()).unwrap();
     assert_eq!(
         document["operations_proposal"]["bytes"],
@@ -286,6 +291,15 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     let before = fixture.inventory();
     let bundle =
         semantic_workspace_operations::generate_evidence(&fixture.root, &fixture.proposal).unwrap();
+    super::pin_capture::record("operations-derivation", bundle.derivation().as_bytes());
+    super::pin_capture::record(
+        "operations-child-evidence",
+        bundle.workspace_change_evidence().as_bytes(),
+    );
+    super::pin_capture::record(
+        "operations-evidence",
+        bundle.operations_evidence().as_bytes(),
+    );
     assert_eq!(
         bundle.operations_proposal_digest(),
         "sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5"

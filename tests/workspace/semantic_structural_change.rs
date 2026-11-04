@@ -308,11 +308,26 @@ fn public_api_getters_cli_and_whole_document_kats_are_exact() {
         [
             // Field-level artifact assertions below independently bind these
             // re-pinned whole-document digests.
-            "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
-            "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
-            "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
-            "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
-            "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+            super::pin_capture::native_wire_pin(
+                "sha256:b684001e6c8045b42fb69bfa7f4d62c0154eaadffae92fd0139340f461b2dca6",
+                "sha256:a421574b7eef8b4cb0b7595f37f73955f961e463c1d51762cccba7041362d50a"
+            ),
+            super::pin_capture::native_wire_pin(
+                "sha256:c707884d3b79beb4387362355f53aaf599ee01f5e13b06bd15b430ac8b1c226e",
+                "sha256:2a56ce5c8c145544d85066549bef6979df34cae79ee0cc74ea96c9261e5d3879"
+            ),
+            super::pin_capture::native_wire_pin(
+                "sha256:b21f1b4b39ae21e4ac9e87bbc98d50b7185629c387efb8f0d7628d86b0fe6821",
+                "sha256:346cface9d29e75e55078198d3b2b5518f0d6c332500fe759be2c6041733265b"
+            ),
+            super::pin_capture::native_wire_pin(
+                "sha256:9716979215b19e3614dc7f0dfb8689035b94f930e3ad99d78fa077cb7eda09db",
+                "sha256:fbeed970b79c58c7ad6b00cd676816345d3db75c1082d55adea219324226efcf"
+            ),
+            super::pin_capture::native_wire_pin(
+                "sha256:6c5a19ca476a7dc7d9ac46d024d7df594cadb579a7a78b83ea75d6acab932308",
+                "sha256:3c489fad55ec3f5904ba7f92a852617cd2c03a547206d191187b49d0be3df505"
+            ),
         ]
     );
     for value in [
@@ -396,7 +411,10 @@ fn public_verification_receipt_is_exact_shared_locked_and_read_only() {
     assert_eq!(
         raw_sha(&receipt),
         // Parsed receipt fields independently bind this re-pinned digest.
-        "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82"
+        super::pin_capture::native_wire_pin(
+            "sha256:31f2cd70570922e175ba571d9a5539e5c44ca0e5f3c1018639a63bc7ae79081f",
+            "sha256:7dad65891e88bd093c31ad86f53366eea8de09a5353845101293b49e18559e29"
+        )
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -621,7 +639,10 @@ fn public_application_receipt_api_cli_kat_and_candidate_inventory_are_exact() {
     assert_eq!(
         raw_sha(&receipt),
         // Parsed receipt fields independently bind this re-pinned digest.
-        "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961"
+        super::pin_capture::native_wire_pin(
+            "sha256:d9750ce45b783ff17902e2251acb5e3cbb9a2b8e6e6ef1ee12be39ad5b1ecec5",
+            "sha256:2711730b19a006542f8a914a93edb37a0f39259e58ddeca51eacd19fad7a0659"
+        )
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

@@ -1,0 +1,309 @@
+{
+  "source_head": "e85c1a4941d69dff460711fe1c2e45acbe68ca6d",
+  "linux_job": "https://github.com/wavect/semaprax/actions/runs/41688509371/job/126103071589",
+  "rows": [
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-context.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-context.v1.json",
+      "sha256": "sha256:0582592e9570c9e8198d5454516677e76429df20b4eb288130d9fc67070716b2",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-evidence-verification.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-evidence-verification.v1.json",
+      "sha256": "sha256:29cc4fdc7542cbbecae80432d6a75aca3ccf5bf838c21ff421b7ee208f65b548",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-review.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-review.v1.json",
+      "sha256": "sha256:ed8c85d677b9252832b6acb5ab9d54377cf4bdbd4c94f75a1a6c29104b60e074",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-evidence-application.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-evidence-application.v1.json",
+      "sha256": "sha256:701af5dc988316d5250661f382af3a50f984c1f87684f4842a5de83695cd3340",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-preview.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-preview.v1.json",
+      "sha256": "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-impact.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-impact.v1.json",
+      "sha256": "sha256:36ee151090b93a7e4e668120bd7d7c2126caa0c2ff10135e6c5011e65bc2f082",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-change-evidence.v1",
+      "path": "change/macos/semaprax.workspace-semantic-change-evidence.v1.json",
+      "sha256": "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-context.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-context.v1.json",
+      "sha256": "sha256:0770af42c96e78dd09883b2fca5c614bab1e14aad71d339b8a73cdc2eae9ae4c",
+      "capture": "derived full body bound by actual Linux receipt digest"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-evidence-verification.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-evidence-verification.v1.json",
+      "sha256": "sha256:d0c18e42c83027d031e4c92903ac27430b5aeb114814e21800b005e4982e616c",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-review.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-review.v1.json",
+      "sha256": "sha256:48b9bce5d570a7d8439d476ef6225c0eb17aabcc4d5e3463c92f78cecf609cb3",
+      "capture": "derived full body bound by actual Linux receipt digest"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-evidence-application.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-evidence-application.v1.json",
+      "sha256": "sha256:89fcd7d1c868cd3e5f07fb3e7486c9ee17247ef03ac7a2004a29bb4491d5e544",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-preview.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-preview.v1.json",
+      "sha256": "sha256:11649876fb92a9fbb67bdfe08818c5bb020af8f015efea4b86c1458878f255c0",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-impact.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-impact.v1.json",
+      "sha256": "sha256:e5591c29a3a805d7b90ee36193b41661f4924e4e74b5ff4beb6b3b266c41eae3",
+      "capture": "derived full body bound by actual Linux receipt digest"
+    },
+    {
+      "fixture": "change",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-change-evidence.v1",
+      "path": "change/portable/semaprax.workspace-semantic-change-evidence.v1.json",
+      "sha256": "sha256:0b26819baad36c2df5b437906fd5221c77bdcb902bdda434800d13e322574a7b",
+      "capture": "derived full body bound by actual Linux receipt digest"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-application.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-evidence-application.v1.json",
+      "sha256": "sha256:d9750ce45b783ff17902e2251acb5e3cbb9a2b8e6e6ef1ee12be39ad5b1ecec5",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-impact.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-impact.v1.json",
+      "sha256": "sha256:b21f1b4b39ae21e4ac9e87bbc98d50b7185629c387efb8f0d7628d86b0fe6821",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-verification.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-evidence-verification.v1.json",
+      "sha256": "sha256:31f2cd70570922e175ba571d9a5539e5c44ca0e5f3c1018639a63bc7ae79081f",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-review.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-review.v1.json",
+      "sha256": "sha256:9716979215b19e3614dc7f0dfb8689035b94f930e3ad99d78fa077cb7eda09db",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-preview.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-preview.v1.json",
+      "sha256": "sha256:b684001e6c8045b42fb69bfa7f4d62c0154eaadffae92fd0139340f461b2dca6",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-evidence.v1.json",
+      "sha256": "sha256:6c5a19ca476a7dc7d9ac46d024d7df594cadb579a7a78b83ea75d6acab932308",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "macos",
+      "schema": "semaprax.workspace-semantic-structural-change-context.v1",
+      "path": "structural/macos/semaprax.workspace-semantic-structural-change-context.v1.json",
+      "sha256": "sha256:c707884d3b79beb4387362355f53aaf599ee01f5e13b06bd15b430ac8b1c226e",
+      "capture": "actual macOS e85 original fixture"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-application.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-evidence-application.v1.json",
+      "sha256": "sha256:2711730b19a006542f8a914a93edb37a0f39259e58ddeca51eacd19fad7a0659",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-impact.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-impact.v1.json",
+      "sha256": "sha256:346cface9d29e75e55078198d3b2b5518f0d6c332500fe759be2c6041733265b",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-verification.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-evidence-verification.v1.json",
+      "sha256": "sha256:7dad65891e88bd093c31ad86f53366eea8de09a5353845101293b49e18559e29",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-review.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-review.v1.json",
+      "sha256": "sha256:fbeed970b79c58c7ad6b00cd676816345d3db75c1082d55adea219324226efcf",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-preview.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-preview.v1.json",
+      "sha256": "sha256:a421574b7eef8b4cb0b7595f37f73955f961e463c1d51762cccba7041362d50a",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-evidence.v1.json",
+      "sha256": "sha256:3c489fad55ec3f5904ba7f92a852617cd2c03a547206d191187b49d0be3df505",
+      "capture": "actual Linux e04 job126103071589"
+    },
+    {
+      "fixture": "structural",
+      "host": "portable",
+      "schema": "semaprax.workspace-semantic-structural-change-context.v1",
+      "path": "structural/portable/semaprax.workspace-semantic-structural-change-context.v1.json",
+      "sha256": "sha256:2a56ce5c8c145544d85066549bef6979df34cae79ee0cc74ea96c9261e5d3879",
+      "capture": "actual Linux e04 job126103071589"
+    }
+  ],
+  "predecessor_expectations": [
+    {
+      "module": "semantic_change",
+      "schema": "semaprax.workspace-semantic-change-preview.v1",
+      "old_expected": "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d",
+      "macos_expected": "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba",
+      "portable_expected": "sha256:11649876fb92a9fbb67bdfe08818c5bb020af8f015efea4b86c1458878f255c0"
+    },
+    {
+      "module": "semantic_change",
+      "schema": "semaprax.workspace-semantic-change-evidence.v1",
+      "old_expected": "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03",
+      "macos_expected": "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14",
+      "portable_expected": "sha256:0b26819baad36c2df5b437906fd5221c77bdcb902bdda434800d13e322574a7b"
+    },
+    {
+      "module": "semantic_change",
+      "schema": "semaprax.workspace-semantic-change-evidence-verification.v1",
+      "old_expected": "sha256:58afef656be82ede98080e316c879b9a99183c02f2d46e4f643b0d926385a016",
+      "macos_expected": "sha256:29cc4fdc7542cbbecae80432d6a75aca3ccf5bf838c21ff421b7ee208f65b548",
+      "portable_expected": "sha256:d0c18e42c83027d031e4c92903ac27430b5aeb114814e21800b005e4982e616c"
+    },
+    {
+      "module": "semantic_change",
+      "schema": "semaprax.workspace-semantic-change-evidence-application.v1",
+      "old_expected": "sha256:f09495db4b728e6d81a33b3973e50019286e8ee2e0c5190db8d1662664b19976",
+      "macos_expected": "sha256:701af5dc988316d5250661f382af3a50f984c1f87684f4842a5de83695cd3340",
+      "portable_expected": "sha256:89fcd7d1c868cd3e5f07fb3e7486c9ee17247ef03ac7a2004a29bb4491d5e544"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-preview.v1",
+      "old_expected": "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
+      "macos_expected": "sha256:b684001e6c8045b42fb69bfa7f4d62c0154eaadffae92fd0139340f461b2dca6",
+      "portable_expected": "sha256:a421574b7eef8b4cb0b7595f37f73955f961e463c1d51762cccba7041362d50a"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-context.v1",
+      "old_expected": "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
+      "macos_expected": "sha256:c707884d3b79beb4387362355f53aaf599ee01f5e13b06bd15b430ac8b1c226e",
+      "portable_expected": "sha256:2a56ce5c8c145544d85066549bef6979df34cae79ee0cc74ea96c9261e5d3879"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-impact.v1",
+      "old_expected": "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
+      "macos_expected": "sha256:b21f1b4b39ae21e4ac9e87bbc98d50b7185629c387efb8f0d7628d86b0fe6821",
+      "portable_expected": "sha256:346cface9d29e75e55078198d3b2b5518f0d6c332500fe759be2c6041733265b"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-review.v1",
+      "old_expected": "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
+      "macos_expected": "sha256:9716979215b19e3614dc7f0dfb8689035b94f930e3ad99d78fa077cb7eda09db",
+      "portable_expected": "sha256:fbeed970b79c58c7ad6b00cd676816345d3db75c1082d55adea219324226efcf"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence.v1",
+      "old_expected": "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+      "macos_expected": "sha256:6c5a19ca476a7dc7d9ac46d024d7df594cadb579a7a78b83ea75d6acab932308",
+      "portable_expected": "sha256:3c489fad55ec3f5904ba7f92a852617cd2c03a547206d191187b49d0be3df505"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-verification.v1",
+      "old_expected": "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82",
+      "macos_expected": "sha256:31f2cd70570922e175ba571d9a5539e5c44ca0e5f3c1018639a63bc7ae79081f",
+      "portable_expected": "sha256:7dad65891e88bd093c31ad86f53366eea8de09a5353845101293b49e18559e29"
+    },
+    {
+      "module": "semantic_structural_change",
+      "schema": "semaprax.workspace-semantic-structural-change-evidence-application.v1",
+      "old_expected": "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961",
+      "macos_expected": "sha256:d9750ce45b783ff17902e2251acb5e3cbb9a2b8e6e6ef1ee12be39ad5b1ecec5",
+      "portable_expected": "sha256:2711730b19a006542f8a914a93edb37a0f39259e58ddeca51eacd19fad7a0659"
+    }
+  ]
+}

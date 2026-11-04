@@ -223,13 +223,19 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
         raw_sha(&preview),
         // Parsed artifact fields and digest-reference parity below independently
         // bind this re-pinned whole-document digest.
-        "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d"
+        super::pin_capture::native_wire_pin(
+            "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba",
+            "sha256:11649876fb92a9fbb67bdfe08818c5bb020af8f015efea4b86c1458878f255c0"
+        )
     );
     assert_eq!(
         raw_sha(&evidence),
         // Parsed artifact fields and digest-reference parity below independently
         // bind this re-pinned whole-document digest.
-        "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03"
+        super::pin_capture::native_wire_pin(
+            "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14",
+            "sha256:0b26819baad36c2df5b437906fd5221c77bdcb902bdda434800d13e322574a7b"
+        )
     );
     for value in [
         artifacts.proposal_digest(),
@@ -460,7 +466,10 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
         raw_sha(&receipt),
         // Full a64/current captures reproduce every old byte after restoring only
         // measured graph builder charges and authenticated digest bindings.
-        "sha256:58afef656be82ede98080e316c879b9a99183c02f2d46e4f643b0d926385a016"
+        super::pin_capture::native_wire_pin(
+            "sha256:29cc4fdc7542cbbecae80432d6a75aca3ccf5bf838c21ff421b7ee208f65b548",
+            "sha256:d0c18e42c83027d031e4c92903ac27430b5aeb114814e21800b005e4982e616c"
+        )
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -673,7 +682,10 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
         raw_sha(&receipt),
         // Full a64/current captures reproduce every old byte after restoring only
         // measured graph builder charges and authenticated digest bindings.
-        "sha256:f09495db4b728e6d81a33b3973e50019286e8ee2e0c5190db8d1662664b19976"
+        super::pin_capture::native_wire_pin(
+            "sha256:701af5dc988316d5250661f382af3a50f984c1f87684f4842a5de83695cd3340",
+            "sha256:89fcd7d1c868cd3e5f07fb3e7486c9ee17247ef03ac7a2004a29bb4491d5e544"
+        )
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

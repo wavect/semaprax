@@ -57,6 +57,15 @@ pub(super) fn record(label: &str, bytes: &[u8]) {
     }
 }
 
+/// Literal whole-wire expectations for the two measured native builder layouts.
+pub(super) fn native_wire_pin(macos: &'static str, portable: &'static str) -> &'static str {
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        macos
+    } else {
+        portable
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

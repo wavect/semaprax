@@ -1,0 +1,989 @@
+{
+  "mac_source_commit": "e66858fe9b70ecf6432bdfaea7271012356d7a78",
+  "portable_capture_note": "Historical Linux capture, byte-identical to independent 879 capture; current Linux CI remains the authority for this head.",
+  "rows": [
+    {
+      "name": "public-graph",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/public-graph-current-macos.json",
+      "old_sha256": "sha256:5668e33966eb0be3206fcce50ba7906d07144e3d71c65e013d932b03f41a295a",
+      "current": "public-graph-macos.json",
+      "current_sha256": "sha256:2ec54e800d9e5f542855404a209238219786d92b62d1e518b303522877a2faba",
+      "changes": [
+        [
+          "/graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/limits/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/used_output_bytes",
+          6596,
+          6597
+        ]
+      ]
+    },
+    {
+      "name": "context",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/context-current-macos.json",
+      "old_sha256": "sha256:dfc1c18b829853e16ae7c745afcbcc202d747d6629e0cbca23137fd755b95237",
+      "current": "context-macos.json",
+      "current_sha256": "sha256:d68f77b6d1c2beaf031520b0bfe05493e9d32cb16954f1f9fbfe64aca61cf34e",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:ddfceb081e8ec9ce807dd306aaef3368ebcd7d557f784502d2f8eb17cda6624f",
+          "sha256:5e725383a12fd5fbfcc041ea9690e3919ea246c7643a26ba0c74d27ec37c850a"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4513,
+          4514
+        ]
+      ]
+    },
+    {
+      "name": "forward",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/forward-current-macos.json",
+      "old_sha256": "sha256:0ca011c9e9546641172dade95822b80e6e84772dbc4625e5b079cd4367562173",
+      "current": "forward-macos.json",
+      "current_sha256": "sha256:77566d318c5388f658949e2494a4ec9dc1da93e021923e1e36e451d6a5b8b64a",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:b16c13c65798a78db75114e49b5f278181cc43b9308b1bc51b263a06f28a00ef",
+          "sha256:b8a6eb78917b1f3c15ab337c660ce1c5c792b5832c520fe79ced6313ddcd929e"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4514,
+          4515
+        ]
+      ]
+    },
+    {
+      "name": "capability-context",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/capability-context-current-macos.json",
+      "old_sha256": "sha256:ed8d9b1610dec8aa5e6386e138e38c77138a90d4dbfc17dce6f7bbdedadfefcd",
+      "current": "capability-context-macos.json",
+      "current_sha256": "sha256:625ab0fba8b0fcf64eae0b8cfc921293377dff6d5c5cb81eec983a7007f37948",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:45c929d7dce944b1310d3d0c0a9cb8f8dc6976cd0d22f34df08347983709917b",
+          "sha256:734e917229faf11ab9f60f50f9f375743a99350d985ff2d1e187cf5256e1dd4a"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4337,
+          4338
+        ]
+      ]
+    },
+    {
+      "name": "type-context",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/type-context-current-macos.json",
+      "old_sha256": "sha256:9d6066fc32d6104a4699a95ba480eac9127ef75445ad8b472268c4428f9c0846",
+      "current": "type-context-macos.json",
+      "current_sha256": "sha256:47d87561eacc4cd786c423b339ae4740f77402b82f081b20d4df107a8077640a",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:52ec64d6d8cfd793d578468b42a44c3e52f46162f8f153836d3cdccfe9a8a11f",
+          "sha256:19d00aacf9dee866cc3c8ac9bb07de4c0034278c5134f39cceeda3d54c683a89"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4011,
+          4012
+        ]
+      ]
+    },
+    {
+      "name": "impact",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/impact-current-macos.json",
+      "old_sha256": "sha256:8c1b2c177d6d726ed24b7149eb436faeec6c51b69d6535c3408d7902976bace5",
+      "current": "impact-macos.json",
+      "current_sha256": "sha256:77caf7da96a8033699da60db74e6881ba5443101f1b0771e67a5753f11f4d518",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:0f29f2b733d31107bf591209a14fb1f555f7e2f9bd8be0e56cd429f2805b740f",
+          "sha256:c696f4ba4d8955e99e38153ce5aff42e340fd7f6bc44d4fcfb233c19b88b0461"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4159,
+          4160
+        ]
+      ]
+    },
+    {
+      "name": "custom-impact",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/custom-impact-current-macos.json",
+      "old_sha256": "sha256:41d5a091c994ded86dda5b7db3a679811b43ef2107c78665ac4ff88a36a1a21a",
+      "current": "custom-impact-macos.json",
+      "current_sha256": "sha256:a70091b7871a4cf52abaedd0a7d721e9957c8995ce5342c585c32fb2beead1a2",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:699b842f5f3ff558cc6b20953aea84931facb21d726365b4ba6745b7dc783af3",
+          "sha256:682426324e39154a278e638a76bdce51d9768a0b178ca39ef4dcf8b3c4613542"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4568,
+          4569
+        ]
+      ]
+    },
+    {
+      "name": "review",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/review-current-macos.json",
+      "old_sha256": "sha256:42b932f36d79379974c3cf1a03fdd5ceadf17aeceb324d6a9843e1053c9f2cec",
+      "current": "review-macos.json",
+      "current_sha256": "sha256:78eefbb8c3b8387945ebf0c4249b47e6de3194c0ad46ffa5a61828c3f1787258",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:0ab854867cb0cbaff4b6fbdfd637e1933688364c89fd12b110b894f58b463415",
+          "sha256:e5d5013fc2c85edf56a731cf1534b66a7eb1b07025ae56d5db7c727f69c47984"
+        ],
+        [
+          "/context/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/context/artifact_digest",
+          "sha256:0e0e80b6075cd429d03d54f93ff2fab4776cf53d8ac290ef4e54b949c7e974cd",
+          "sha256:029b4c7809453e11c0c8ed9feeacf17beae641a5f35b5a38f229a24936eb75c6"
+        ],
+        [
+          "/context/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/context/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/context/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/context/budget/analysis/used_output_bytes",
+          3990,
+          3991
+        ],
+        [
+          "/impact/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/impact/artifact_digest",
+          "sha256:20fa7f8901362157b5690e4a519412f7d685c46782c48f287c864b85b2ab5492",
+          "sha256:5726579394a21e0a0062d4bbe35e9095828f328585d72a64f90cc3fd439fabbb"
+        ],
+        [
+          "/impact/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/impact/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/impact/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/impact/budget/analysis/used_output_bytes",
+          4162,
+          4163
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_context_bytes",
+          3990,
+          3991
+        ],
+        [
+          "/budget/analysis/used_impact_bytes",
+          4162,
+          4163
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          12706,
+          12709
+        ]
+      ]
+    },
+    {
+      "name": "capability-review",
+      "host": "macos",
+      "old": "docs/evidence/public-wire-accounting-20261026/capability-review-current-macos.json",
+      "old_sha256": "sha256:95298906f37671fc02d4a9a2454b0426c3b70212283192fb687990cde53e923f",
+      "current": "capability-review-macos.json",
+      "current_sha256": "sha256:ecd75b0dd5f58625b6ca16aad524346982082003008ab085b0965463564af8bc",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:684060e47385b0e2dc9c9367d04dee1fb2e4c0923e2deeb192c1403580675b07",
+          "sha256:a8c1cf3e139e8635673af24428c31da90a36f4b7e0a07a0f2ee661d763ea4dc0"
+        ],
+        [
+          "/context/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/context/artifact_digest",
+          "sha256:a438b279b356a106762b63e07d31eb1787e4c2370b0e3fb0eb762b12ff612ee5",
+          "sha256:8941b44629c994819ea1ba5bf25cdf31d5df55e95b3c855cc37417b5b5d94c2b"
+        ],
+        [
+          "/context/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/context/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/context/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/context/budget/analysis/used_output_bytes",
+          4341,
+          4342
+        ],
+        [
+          "/impact/workspace_graph_digest",
+          "sha256:3adf6e6497ef90829559e26514bfa14676158de63dd7097a8f60289a0cada2ed",
+          "sha256:835eec15cd8ae9e5cc89586e958f35902602dcb1fc38728a51de53f189a270e0"
+        ],
+        [
+          "/impact/artifact_digest",
+          "sha256:1a03843e585e9ec8dbb8fd76bc999cdb2f52eb8acac42b98377a41395b882b44",
+          "sha256:1a2956821a38fd432d371051fe8f06f9d5beed157dfa24104268134bfd3b7d40"
+        ],
+        [
+          "/impact/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/impact/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/impact/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/impact/budget/analysis/used_output_bytes",
+          4574,
+          4575
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926453,
+          732686
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_context_bytes",
+          4341,
+          4342
+        ],
+        [
+          "/budget/analysis/used_impact_bytes",
+          4574,
+          4575
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          13623,
+          13626
+        ]
+      ]
+    },
+    {
+      "name": "public-graph",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/public-graph-current-portable.json",
+      "old_sha256": "sha256:cb3ce1d786f13e2f0e4bdfbaf5d21382bbd4833a64d3e7c0b247847ac7e85d05",
+      "current": "public-graph-portable.json",
+      "current_sha256": "sha256:c62465c3204379299c60e3b359b75db88a45b557b9a747ef8caae82d54b50f5c",
+      "changes": [
+        [
+          "/graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/limits/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/used_output_bytes",
+          6596,
+          6597
+        ]
+      ]
+    },
+    {
+      "name": "context",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/context-current-portable.json",
+      "old_sha256": "sha256:ae568b4796b3a47f405cae837fe6fc8f882127fdbf17c1edaa3411bbc3384e02",
+      "current": "context-portable.json",
+      "current_sha256": "sha256:29f5e937780fb1c30724814eb11d401a88f9012f21cd60c727f9ac83666e500e",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:be928bf8a2c04526d43f35dfc704201960fd5cb0ceb182133f92dcaf236e6daf",
+          "sha256:ee92333d0f992642f64cd248de91aa14fd89f7d27a936d7396ad257cd6e3db9a"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4513,
+          4514
+        ]
+      ]
+    },
+    {
+      "name": "forward",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/forward-current-portable.json",
+      "old_sha256": "sha256:11216688c1552313982a2fddc78a6efa9977198304474ca7c2eaade992297607",
+      "current": "forward-portable.json",
+      "current_sha256": "sha256:f71b6b31f8ed125063934df6c3b2bebcf03b1046bab379cef08c1832328dd013",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:1fed1428e1ed1833cd5609f6921fbc2ebeca37de04425092c244d387624d8775",
+          "sha256:128620f91933f027976cf918bc71a1766409861475b23f9d7387ac68a359f85b"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4514,
+          4515
+        ]
+      ]
+    },
+    {
+      "name": "capability-context",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/capability-context-current-portable.json",
+      "old_sha256": "sha256:8f7cdb8e0df9056a33d4763eeaac490bc89a509d375c4e57d11b4bc61133ff16",
+      "current": "capability-context-portable.json",
+      "current_sha256": "sha256:675b5e63d7d9717097995b999fa7176ff30a0e293130163c26822c5df409f668",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:f103564aa81aa83e6c5eab9162c8df9ec2ede7cbc543b6e234cb6399b7f8199f",
+          "sha256:d7fe84579778f17e1bdaedbab7bc1bf253a1a0d506b5b9a72ca84465292ccc89"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4337,
+          4338
+        ]
+      ]
+    },
+    {
+      "name": "type-context",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/type-context-current-portable.json",
+      "old_sha256": "sha256:77235bec8eec4536867a7cfa801df8e362a1817221142880a25e50b5d56eb68f",
+      "current": "type-context-portable.json",
+      "current_sha256": "sha256:5397125b162fcdeb0f3c764dcb35ed531e22fa14eab67cb2d7ee57532f389100",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:4bb952bd80bc7b2df565f7b0909faf9bdc5bcd7d6b3c562750ead5425ec67c1b",
+          "sha256:46371c524d20e2ee38c61339619ddc35c40e1c4d25355d1da27e7b2781f485d1"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4011,
+          4012
+        ]
+      ]
+    },
+    {
+      "name": "impact",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/impact-current-portable.json",
+      "old_sha256": "sha256:fc95f131ee41262de40f78a7ddf2998e6c09f3a1a55cab5a32c3487308a61ccd",
+      "current": "impact-portable.json",
+      "current_sha256": "sha256:9a5fec32e3ecdf65def8ab2f1ffc567e795ebc038b7f4464e47304383c3ffdd6",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:c8c9a7284af2d7701eb574afe6f120f43801fd4bb27a87839732db976d68d26c",
+          "sha256:209bdf5818ba4c25c3771813959696778caba76d45cc69c03c8bbf8992106d06"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4159,
+          4160
+        ]
+      ]
+    },
+    {
+      "name": "custom-impact",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/custom-impact-current-portable.json",
+      "old_sha256": "sha256:c581b22e0fd5d861495716dc7011a8beb4c2e6814b8184bfb7a8ae0364bb0830",
+      "current": "custom-impact-portable.json",
+      "current_sha256": "sha256:f5812560ea8409f8d45390a64e7ab2c6c1ca3109780aefa7e43ce90334579660",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:fd484ac740f2feff437348e84036c91b29057973ac297b413a789724edab127e",
+          "sha256:33c635116ebe8e7eee6d353a51c34bb7ac33aa2d98440e646d5be13925b42d4d"
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          4568,
+          4569
+        ]
+      ]
+    },
+    {
+      "name": "review",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/review-current-portable.json",
+      "old_sha256": "sha256:22af7fe3cc1da5d550b3bc20a6be978672494cf415d35216ccb07198f3ec49a8",
+      "current": "review-portable.json",
+      "current_sha256": "sha256:c136dcc900a5d5568a007b3dbe169d25f40ce8acbdec534ada7d6ba16441758f",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:5f0e28fbfedca505c08820996d00c50b51685bb97372cea35b24ccdc61aefc8b",
+          "sha256:be66c4ae8997f4c6d2dab219d31d5c6a3cffc664d8b4ef38b71a8e8ccb2f3bea"
+        ],
+        [
+          "/context/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/context/artifact_digest",
+          "sha256:cbd87de47f6279a1c3417f9a4cf56c9d763a70c7b8226b8e145f51c434a86eea",
+          "sha256:57f5c20f303b44208dda2f75945965847a7ddf3ed6dffa8a853befe3426f902b"
+        ],
+        [
+          "/context/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/context/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/context/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/context/budget/analysis/used_output_bytes",
+          3990,
+          3991
+        ],
+        [
+          "/impact/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/impact/artifact_digest",
+          "sha256:000934fef7d18821fcd552b101ab6becac9716048515cb21fec5d70d37789a04",
+          "sha256:9ef4dbf2247a671d1e61ad7f4ef31e8ddaf088c161c9b9fb5aaaaa33fbd3d410"
+        ],
+        [
+          "/impact/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/impact/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/impact/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/impact/budget/analysis/used_output_bytes",
+          4162,
+          4163
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_context_bytes",
+          3990,
+          3991
+        ],
+        [
+          "/budget/analysis/used_impact_bytes",
+          4162,
+          4163
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          12706,
+          12709
+        ]
+      ]
+    },
+    {
+      "name": "capability-review",
+      "host": "portable",
+      "old": "docs/evidence/public-wire-accounting-20261026/capability-review-current-portable.json",
+      "old_sha256": "sha256:3ec6214ba462ed2ee3cb4ac9208d72c30ad176ddfc5ce45888dc5d0596ca3030",
+      "current": "capability-review-portable.json",
+      "current_sha256": "sha256:84061bd00246d8f3fda2d606d1981faf25438627f9e5eda2da2dcce2c8b89112",
+      "changes": [
+        [
+          "/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/artifact_digest",
+          "sha256:4f696443b77ec6cb6fafc36eb1ee72b2725052e7be3f83926ed470fe07d9e018",
+          "sha256:021805f0e185828006bfa828c94daf819c59d3d641f191cab152426e3b0eb1ba"
+        ],
+        [
+          "/context/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/context/artifact_digest",
+          "sha256:99c68d42df1067ddd750aa25e2920347d4ee9a89b015f9215229f010c5f0ed82",
+          "sha256:ad1866f5bdf38c35c68cc59406b2bf11197ad077e34006abf745c419bd576c9c"
+        ],
+        [
+          "/context/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/context/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/context/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/context/budget/analysis/used_output_bytes",
+          4341,
+          4342
+        ],
+        [
+          "/impact/workspace_graph_digest",
+          "sha256:76dc9eac380a062c4885dade2b982ebc69dd0f0546648f0a0eaa89671da9b289",
+          "sha256:cc01a54fef4d45f87f5fc94362e811ae5d6af95fd3660edb251783d0b60812b1"
+        ],
+        [
+          "/impact/artifact_digest",
+          "sha256:9941d477a09ef230e32957007d43d9abad961941e78fa70ab77ecab55ea7ea13",
+          "sha256:0bdc875554ed2d38474f9102c048a55e7fb00be7d16a125785945356ad288f5d"
+        ],
+        [
+          "/impact/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/impact/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/impact/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/impact/budget/analysis/used_output_bytes",
+          4574,
+          4575
+        ],
+        [
+          "/limits/workspace/max_builder_bytes",
+          67108864,
+          134217728
+        ],
+        [
+          "/budget/workspace/used_builder_bytes",
+          926309,
+          732542
+        ],
+        [
+          "/budget/workspace/used_output_bytes",
+          6596,
+          6597
+        ],
+        [
+          "/budget/analysis/used_context_bytes",
+          4341,
+          4342
+        ],
+        [
+          "/budget/analysis/used_impact_bytes",
+          4574,
+          4575
+        ],
+        [
+          "/budget/analysis/used_output_bytes",
+          13623,
+          13626
+        ]
+      ]
+    }
+  ],
+  "portable_source_job_id": 126103071589,
+  "portable_source_job": "https://github.com/wavect/semaprax/actions/runs/41688509371/job/126103071589",
+  "portable_source_commit": "e04bd5d131b2f625b34806456e565718ebf8c11c"
+}

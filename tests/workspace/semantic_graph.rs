@@ -651,7 +651,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         wire_pin!(
             0,
-            "sha256:cb3ce1d786f13e2f0e4bdfbaf5d21382bbd4833a64d3e7c0b247847ac7e85d05"
+            "sha256:c62465c3204379299c60e3b359b75db88a45b557b9a747ef8caae82d54b50f5c"
         )
     );
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -1047,8 +1047,9 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
     ] {
         capture_pin_candidate(name, wire.as_bytes());
     }
-    // Full current reports reproduce all eight original hashes by restoring
-    // only the measured workspace debit and authenticated digest bindings.
+    // Full old/current reports retain identical semantic fields; the exact
+    // accounting and nested digest transition is verified in
+    // docs/evidence/public-wire-accounting-20261104/verify.py.
     assert_eq!(
         [
             document_digest(context.as_bytes()),
@@ -1061,14 +1062,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         wire_pins!([
-            "sha256:ae568b4796b3a47f405cae837fe6fc8f882127fdbf17c1edaa3411bbc3384e02",
-            "sha256:11216688c1552313982a2fddc78a6efa9977198304474ca7c2eaade992297607",
-            "sha256:8f7cdb8e0df9056a33d4763eeaac490bc89a509d375c4e57d11b4bc61133ff16",
-            "sha256:77235bec8eec4536867a7cfa801df8e362a1817221142880a25e50b5d56eb68f",
-            "sha256:fc95f131ee41262de40f78a7ddf2998e6c09f3a1a55cab5a32c3487308a61ccd",
-            "sha256:c581b22e0fd5d861495716dc7011a8beb4c2e6814b8184bfb7a8ae0364bb0830",
-            "sha256:22af7fe3cc1da5d550b3bc20a6be978672494cf415d35216ccb07198f3ec49a8",
-            "sha256:3ec6214ba462ed2ee3cb4ac9208d72c30ad176ddfc5ce45888dc5d0596ca3030",
+            "sha256:29f5e937780fb1c30724814eb11d401a88f9012f21cd60c727f9ac83666e500e",
+            "sha256:f71b6b31f8ed125063934df6c3b2bebcf03b1046bab379cef08c1832328dd013",
+            "sha256:675b5e63d7d9717097995b999fa7176ff30a0e293130163c26822c5df409f668",
+            "sha256:5397125b162fcdeb0f3c764dcb35ed531e22fa14eab67cb2d7ee57532f389100",
+            "sha256:9a5fec32e3ecdf65def8ab2f1ffc567e795ebc038b7f4464e47304383c3ffdd6",
+            "sha256:f5812560ea8409f8d45390a64e7ab2c6c1ca3109780aefa7e43ce90334579660",
+            "sha256:c136dcc900a5d5568a007b3dbe169d25f40ce8acbdec534ada7d6ba16441758f",
+            "sha256:84061bd00246d8f3fda2d606d1981faf25438627f9e5eda2da2dcce2c8b89112",
         ])
     );
     std::thread::scope(|scope| {

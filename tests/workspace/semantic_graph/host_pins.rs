@@ -1,15 +1,15 @@
 // Exact raw-wire known answers for the measured native builder layouts.
 // Semantic facts, full bytes, counters, CLI parity and locking remain checked.
 const MACOS_AARCH64_WIRES: [&str; 9] = [
-    "sha256:5668e33966eb0be3206fcce50ba7906d07144e3d71c65e013d932b03f41a295a",
-    "sha256:dfc1c18b829853e16ae7c745afcbcc202d747d6629e0cbca23137fd755b95237",
-    "sha256:0ca011c9e9546641172dade95822b80e6e84772dbc4625e5b079cd4367562173",
-    "sha256:ed8d9b1610dec8aa5e6386e138e38c77138a90d4dbfc17dce6f7bbdedadfefcd",
-    "sha256:9d6066fc32d6104a4699a95ba480eac9127ef75445ad8b472268c4428f9c0846",
-    "sha256:8c1b2c177d6d726ed24b7149eb436faeec6c51b69d6535c3408d7902976bace5",
-    "sha256:41d5a091c994ded86dda5b7db3a679811b43ef2107c78665ac4ff88a36a1a21a",
-    "sha256:42b932f36d79379974c3cf1a03fdd5ceadf17aeceb324d6a9843e1053c9f2cec",
-    "sha256:95298906f37671fc02d4a9a2454b0426c3b70212283192fb687990cde53e923f",
+    "sha256:2ec54e800d9e5f542855404a209238219786d92b62d1e518b303522877a2faba",
+    "sha256:d68f77b6d1c2beaf031520b0bfe05493e9d32cb16954f1f9fbfe64aca61cf34e",
+    "sha256:77566d318c5388f658949e2494a4ec9dc1da93e021923e1e36e451d6a5b8b64a",
+    "sha256:625ab0fba8b0fcf64eae0b8cfc921293377dff6d5c5cb81eec983a7007f37948",
+    "sha256:47d87561eacc4cd786c423b339ae4740f77402b82f081b20d4df107a8077640a",
+    "sha256:77caf7da96a8033699da60db74e6881ba5443101f1b0771e67a5753f11f4d518",
+    "sha256:a70091b7871a4cf52abaedd0a7d721e9957c8995ce5342c585c32fb2beead1a2",
+    "sha256:78eefbb8c3b8387945ebf0c4249b47e6de3194c0ad46ffa5a61828c3f1787258",
+    "sha256:ecd75b0dd5f58625b6ca16aad524346982082003008ab085b0965463564af8bc",
 ];
 macro_rules! wire_pin {
     ($slot:literal, $portable:literal) => {
@@ -23,9 +23,9 @@ macro_rules! wire_pin {
 macro_rules! graph_builder_bytes {
     () => {
         if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            926_453
+            732_686
         } else {
-            926_309
+            732_542
         }
     };
 }

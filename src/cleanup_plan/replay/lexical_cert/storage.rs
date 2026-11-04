@@ -356,3 +356,100 @@ mod tests {
 
 #[cfg(test)]
 mod ordinary_finalizers;
+
+/// Direct ordinals preserve the first complete certificate, including None.
+pub(super) fn latch_resumes(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Vec<Option<usize>>, Diagnostic> {
+    budget.reserve_array::<Option<usize>>(
+        function,
+        function.cleanup_plan.exits.len(),
+        "certificate latch index",
+    )?;
+    let mut entries = vec![None; function.cleanup_plan.exits.len()];
+    if let Some(control) = function.cleanup_plan.lexical_control.as_deref() {
+        for (ordinal, certificate) in control.exits.iter().enumerate() {
+            if let Some(slot) = entries.get_mut(certificate.exit.0 as usize) {
+                if slot.is_none() {
+                    *slot = Some(ordinal);
+                }
+            }
+        }
+    }
+    Ok(entries)
+}
+fn successors_indexed(
+    function: &ResolvedFunction,
+    block: BlockId,
+    latch_resumes: &[Option<usize>],
+    mut visit: impl FnMut(BlockId) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
+    let plan = &function.cleanup_plan;
+    match &plan.blocks[block.0 as usize].terminator {
+        CleanupTerminator::Goto(edge) => visit(plan.edges[edge.0 as usize].to)?,
+        CleanupTerminator::Branch(edges) => {
+            for edge in edges {
+                visit(plan.edges[edge.0 as usize].to)?;
+            }
+        }
+        CleanupTerminator::Exit(exit) => match &plan.exits[exit.0 as usize].continuation {
+            ExitContinuation::Continue(edge)
+            | ExitContinuation::LoopBreak { edge, .. }
+            | ExitContinuation::FunctionReturn { edge, .. } => {
+                visit(plan.edges[edge.0 as usize].to)?
+            }
+            ExitContinuation::LoopLatch { .. } => {
+                if let Some(next) = latch_resumes[exit.0 as usize]
+                    .and_then(|ordinal| plan.lexical_control.as_deref()?.exits[ordinal].resume)
+                {
+                    visit(next)?;
+                }
+            }
+            ExitContinuation::CommitResult { .. }
+            | ExitContinuation::ReturnFailure { .. }
+            | ExitContinuation::ReturnUnit => {}
+        },
+    }
+    Ok(())
+}
+pub(super) fn reach_indexed(
+    function: &ResolvedFunction,
+    start: BlockId,
+    avoid: Option<BlockId>,
+    stop: &BTreeSet<BlockId>,
+    excluded: Option<&[bool]>,
+    latch_resumes: &[Option<usize>],
+    budget: &mut ReplayBudget,
+) -> Result<Vec<bool>, Diagnostic> {
+    budget.reserve_array::<bool>(
+        function,
+        function.cleanup_plan.blocks.len(),
+        "certificate reach bitmap",
+    )?;
+    let mut seen = vec![false; function.cleanup_plan.blocks.len()];
+    if Some(start) == avoid {
+        return Ok(seen);
+    }
+    seen[start.0 as usize] = true;
+    let mut stack = Vec::new();
+    budget.reserve_vec(function, &mut stack, 1, "certificate reach stack")?;
+    stack.push(start);
+    while let Some(block) = stack.pop() {
+        successors_indexed(function, block, latch_resumes, |next| {
+            let index = next.0 as usize;
+            if seen[index]
+                || Some(next) == avoid
+                || stop.contains(&next)
+                || excluded.is_some_and(|excluded| excluded[index])
+            {
+                return Ok(());
+            }
+            budget.reserve_vec(function, &mut stack, 1, "certificate reach stack")?;
+            seen[index] = true;
+            stack.push(next);
+            Ok(())
+        })?;
+    }
+    Ok(seen)
+}

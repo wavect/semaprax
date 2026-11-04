@@ -12,6 +12,29 @@ pub(super) fn compare_keys(
     admission.units(bytes)?;
     Ok(left.cmp(right))
 }
+/// Bytewise Ord with a prefix proved by this search's current ordered bounds.
+/// Every byte inspection is paid before access; no allocation or identity hash.
+pub(super) fn compare_suffix(
+    left: &ExpressionId,
+    right: &ExpressionId,
+    prefix: usize,
+    admission: &mut Admission<'_>,
+) -> Result<(Ordering, usize), Refusal> {
+    let left = left.as_str().as_bytes();
+    let right = right.as_str().as_bytes();
+    let mut matched = prefix;
+    while matched < left.len().min(right.len()) {
+        admission.units(1)?;
+        let order = left[matched].cmp(&right[matched]);
+        if !order.is_eq() {
+            return Ok((order, matched));
+        }
+        matched += 1;
+    }
+    admission.units(1)?;
+    Ok((left.len().cmp(&right.len()), matched))
+}
+
 fn compare(
     left: Entry<'_>,
     right: Entry<'_>,

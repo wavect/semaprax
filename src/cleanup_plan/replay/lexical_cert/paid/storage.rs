@@ -66,18 +66,48 @@ pub(in crate::cleanup_plan::replay) fn insert_set<K: Ord>(
     );
     Ok(set.insert(key))
 }
+/// One paid direct index over the complete immutable certificate list. Store
+/// ordinals, so a first matching certificate with no resume still wins.
+pub(super) fn latch_resumes(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Vec<Option<usize>>, Error> {
+    let permit = Permit::profile::<Vec<Option<usize>>>(function, budget)?;
+    receive!(
+        function,
+        budget,
+        permit,
+        ArrayReceiving<'_>,
+        9,
+        budget.child_reserve_array::<Option<usize>>(
+            function,
+            function.cleanup_plan.exits.len(),
+            "certificate latch index"
+        )
+    );
+    let mut entries = vec![None; function.cleanup_plan.exits.len()];
+    if let Some(control) = function.cleanup_plan.lexical_control.as_deref() {
+        for (ordinal, certificate) in control.exits.iter().enumerate() {
+            if let Some(slot) = entries.get_mut(certificate.exit.0 as usize) {
+                if slot.is_none() {
+                    *slot = Some(ordinal);
+                }
+            }
+        }
+    }
+    Ok(entries)
+}
+
 pub(super) fn reach(
     function: &ResolvedFunction,
     start: BlockId,
     avoid: Option<BlockId>,
     stop: &BTreeSet<BlockId>,
     excluded: Option<&[bool]>,
+    latch_resumes: &[Option<usize>],
     budget: &mut ReplayBudget,
 ) -> Result<Vec<bool>, Error> {
     let permit = Permit::profile::<Vec<bool>>(function, budget)?;
-    if !budget.pays_allocations() {
-        return Ok(super::super::reach(function, start, avoid, stop, excluded));
-    }
     receive!(
         function,
         budget,
@@ -146,7 +176,9 @@ pub(super) fn reach(
                     visit!(plan.edges[edge.0 as usize].to)
                 }
                 ExitContinuation::LoopLatch { .. } => {
-                    if let Some(next) = super::super::latch_resume(plan, *exit) {
+                    if let Some(next) = latch_resumes[exit.0 as usize]
+                        .and_then(|ordinal| plan.lexical_control.as_deref()?.exits[ordinal].resume)
+                    {
                         visit!(next);
                     }
                 }
@@ -201,4 +233,95 @@ pub(in crate::cleanup_plan::replay) fn region_chain(
         current = function.cleanup_plan.regions[id.0 as usize].parent;
     }
     Ok(chain)
+}
+
+#[test]
+fn indexed_latch_certificates_preserve_original_first_match_and_reachability() {
+    let source = crate::check(
+        r#"module lexical.iterator;
+@id("app.main") fn main()->i64 ensures result==22 {
+ let one=vec_push<Bytes>(vec_with_capacity<Bytes>(3usize),bytes_zeroed(1usize));
+ let two=vec_push<Bytes>(one,bytes_zeroed(2usize));
+ let values=vec_push<Bytes>(two,bytes_zeroed(3usize));
+ let mut seen=0; let mut total=0;
+ for own item in vec_into_iter<Bytes>(values) {
+  seen=seen+1;
+  if seen==1 {continue;};
+  if byte_len(bytes_as_slice(item))==2usize {total=total+2;} else {total=total+100;};
+  if seen==2 {break;};
+  0
+ }
+ return total+seen*10;
+}
+"#,
+        "indexed-latch.spx",
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&source).unwrap();
+    let original = &program.functions[0];
+    assert!(original
+        .cleanup_plan
+        .lexical_control
+        .as_deref()
+        .unwrap()
+        .exits
+        .iter()
+        .any(|c| c.resume.is_some()));
+    for (duplicate, paid) in [(false, false), (true, false), (false, true), (true, true)] {
+        let mut function = original.clone();
+        if duplicate {
+            let control = function.cleanup_plan.lexical_control.as_mut().unwrap();
+            let mut first = control
+                .exits
+                .iter()
+                .find(|c| c.resume.is_some())
+                .unwrap()
+                .clone();
+            first.resume = None;
+            control.exits.insert(0, first);
+        }
+        let mut budget = if paid {
+            ReplayBudget::with_physical(&function, usize::MAX).unwrap()
+        } else {
+            ReplayBudget::unobserved()
+        };
+        let index = latch_resumes(&function, &mut budget).unwrap();
+        let ordinary_index = super::super::storage::latch_resumes(&function, &mut budget).unwrap();
+        assert_eq!(index, ordinary_index);
+        for exit in &function.cleanup_plan.exits {
+            let indexed = index[exit.id.0 as usize].and_then(|ordinal| {
+                function
+                    .cleanup_plan
+                    .lexical_control
+                    .as_deref()
+                    .unwrap()
+                    .exits[ordinal]
+                    .resume
+            });
+            assert_eq!(
+                indexed,
+                super::super::latch_resume(&function.cleanup_plan, exit.id)
+            );
+        }
+        let stop = BTreeSet::new();
+        for block in &function.cleanup_plan.blocks {
+            for avoid in [None, Some(block.id)] {
+                let expected = super::super::reach(&function, block.id, avoid, &stop, None);
+                let actual =
+                    reach(&function, block.id, avoid, &stop, None, &index, &mut budget).unwrap();
+                assert_eq!(actual, expected);
+                let ordinary = super::super::storage::reach_indexed(
+                    &function,
+                    block.id,
+                    avoid,
+                    &stop,
+                    None,
+                    &ordinary_index,
+                    &mut budget,
+                )
+                .unwrap();
+                assert_eq!(ordinary, expected);
+            }
+        }
+    }
 }

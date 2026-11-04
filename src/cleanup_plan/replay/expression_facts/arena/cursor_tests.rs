@@ -170,7 +170,22 @@ fn complete_original_capacity_entry_and_producer_are_byte_bound() {
         ),
         arena_old
     );
-    let producer_now = include_str!("producer.rs");
+    let producer_live = include_str!("producer.rs");
+    // Reconstruct the complete preceding producer before every unchanged
+    // digest and original cursor inverse below; already-old/drifted input fails.
+    let after = r#"            facts.prepare_insert_work_with_capacity::<P>(
+                function,
+                &current.id,
+                budget,
+                capacity,
+            )?;"#;
+    assert_eq!(producer_live.matches(after).count(), 1);
+    let producer_previous = producer_live.replacen(
+        after,
+        r#"            facts.prepare_insert_work(function, &current.id, budget)?;"#,
+        1,
+    );
+    let producer_now = producer_previous.as_str();
     assert_eq!(
         sha(producer_now),
         "98ff536df6532dc0d9f0b52c89533a9cdf21506789da8e4c9eb43adec339db48"

@@ -104,7 +104,12 @@ pub(super) fn collect_arena_facts<'a, P: errors::Policy>(
                 _ => None,
             };
             let capacity = capacity.as_deref_mut().expect("arena owns its payer");
-            facts.prepare_insert_work(function, &current.id, budget)?;
+            facts.prepare_insert_work_with_capacity::<P>(
+                function,
+                &current.id,
+                budget,
+                capacity,
+            )?;
             if !facts
                 .insert(current.id.clone(), fact, capacity)
                 .map_err(|failure| P::capacity(function, failure))?

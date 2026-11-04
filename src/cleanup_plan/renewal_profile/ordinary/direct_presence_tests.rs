@@ -181,14 +181,31 @@ pub(super) fn previous(path: &str, current: &str) -> String {
         "/docs/evidence/direct-presence-receiving-850-next-20261016/runtime-inputs.json"
     )))
     .unwrap();
-    let Some(row) = table.get(path) else {
-        return current.to_owned();
-    };
     let digest = |s: &str| {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(s.as_bytes()))
         )
+    };
+    let physical_previous;
+    let current = if let Some(row) = table
+        .get(path)
+        .filter(|row| row.get("physical_sha256").is_some())
+    {
+        assert_eq!(digest(current), row["physical_sha256"].as_str().unwrap());
+        let mut restored = current.to_owned();
+        for edit in row["physical_edits"].as_array().unwrap() {
+            let after = edit["after"].as_str().unwrap();
+            assert_eq!(restored.matches(after).count(), 1);
+            restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+        }
+        physical_previous = restored;
+        physical_previous.as_str()
+    } else {
+        current
+    };
+    let Some(row) = table.get(path) else {
+        return current.to_owned();
     };
     assert_eq!(digest(current), row["current_sha256"].as_str().unwrap());
     let mut before = current.to_owned();

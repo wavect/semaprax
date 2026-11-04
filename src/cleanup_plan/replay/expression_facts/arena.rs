@@ -282,6 +282,7 @@ impl<'hir> Arena<'hir> {
         }
         Ok(())
     }
+    #[cfg(test)]
     pub(super) fn prepare_insert_work(
         &self,
         function: &ResolvedFunction,
@@ -309,6 +310,144 @@ impl<'hir> Arena<'hir> {
                 + 2 * std::mem::size_of::<Ordering>(),
             "expression-fact prepared insertion frames",
         )?;
+        budget.charge(function, 8, "expression-fact insertion authority")?;
+        let prefix_work = if self.nodes.is_empty() {
+            7
+        } else {
+            self.shared_prefix
+                .0
+                .min(key.as_str().len())
+                .saturating_add(7)
+        };
+        budget.charge(
+            function,
+            prefix_work,
+            "expression-fact insertion prefix certificate",
+        )?;
+        let prefix = self.insertion_prefix(key);
+        let (mut at, mut parent, mut before, mut after) = (self.root, NIL, NIL, NIL);
+        let mut side = Ordering::Equal;
+        let mut search_work = prefix_work;
+        while at != NIL {
+            budget.charge(function, 3, "expression-fact prepared search")?;
+            search_work += 3;
+            let left = &key.as_str().as_bytes()[prefix..];
+            let right = &self.nodes[at].key.as_str().as_bytes()[prefix..];
+            let mut offset = 0;
+            side = loop {
+                budget.charge(function, 1, "expression-fact prepared comparison")?;
+                search_work += 1;
+                if offset == left.len().min(right.len()) {
+                    break left.len().cmp(&right.len());
+                }
+                let order = left[offset].cmp(&right[offset]);
+                if order != Ordering::Equal {
+                    break order;
+                }
+                offset += 1;
+            };
+            if side == Ordering::Equal {
+                break;
+            }
+            parent = at;
+            if side == Ordering::Less {
+                after = at;
+                at = self.nodes[at].left;
+            } else {
+                before = at;
+                at = self.nodes[at].right;
+            }
+        }
+        let found = at != NIL;
+        // Predict only how many existing heights can change. A repair or an
+        // unchanged subtree height ends propagation. All forty possible
+        // rotation visits remain paid before any tree link changes.
+        let mut ancestor = parent;
+        let mut direction = side;
+        let mut ancestors = 0usize;
+        if !found {
+            while ancestor != NIL {
+                budget.charge(function, 8, "expression-fact insertion height prediction")?;
+                search_work += 8;
+                let node = &self.nodes[ancestor];
+                let mut left = u16::from(self.height(node.left));
+                let mut right = u16::from(self.height(node.right));
+                if direction == Ordering::Less {
+                    left += 1;
+                } else {
+                    right += 1;
+                }
+                ancestors += 1;
+                if left.abs_diff(right) > 1 || left.max(right) + 1 == u16::from(node.height) {
+                    break;
+                }
+                let child = ancestor;
+                ancestor = node.parent;
+                if ancestor != NIL {
+                    direction = if self.nodes[ancestor].left == child {
+                        Ordering::Less
+                    } else {
+                        Ordering::Greater
+                    };
+                }
+            }
+        }
+        let work = ancestors
+            .checked_mul(19)
+            .and_then(|n| n.checked_add(53))
+            .ok_or_else(|| {
+                budget.budget_refusal(function, "expression-fact insertion work overflow", "")
+            })?;
+        budget.charge(function, work, "expression-fact prepared append and repair")?;
+        self.pending.replace(Some(PreparedInsertion {
+            key: key.clone(),
+            len: self.nodes.len(),
+            parent,
+            before,
+            after,
+            side,
+            found,
+            prefix,
+            work: search_work,
+        }));
+        self.insertion_failed.set(false);
+        Ok(())
+    }
+    pub(super) fn prepare_insert_work_with_capacity<P: errors::Policy>(
+        &self,
+        function: &ResolvedFunction,
+        key: &ExpressionId,
+        budget: &mut ReplayBudget,
+        capacity: &mut capacity::FactCapacity<'hir, '_>,
+    ) -> Result<(), P::Error> {
+        // Any new attempt destroys the previous one-use receipt, including a
+        // refused attempt. No failed preparation can leave insertion authority.
+        if self.insertion_failed.get() {
+            return Err(budget
+                .budget_refusal(function, "expression-fact insertion already failed", "")
+                .into());
+        }
+        self.insertion_failed.set(true);
+        self.pending.borrow_mut().take();
+        // FactCapacity holds the original selected reservation during this
+        // collection. Charge that exact live payer rather than re-entering the
+        // ReplayBudget whose physical loan is temporarily held by capacity.
+        // An explicitly unobserved ReplayBudget has never paid these local
+        // receiving carriers; its separate capacity loan still pays all heap.
+        if budget.pays_allocations() {
+            capacity
+                .arena_reserve_array::<u8>(
+                    4 * std::mem::size_of::<PreparedInsertion>()
+                        + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+                        + 2 * std::mem::size_of::<(&Arena<'_>, &ExpressionId)>()
+                        + 4 * std::mem::size_of::<&[u8]>()
+                        + 12 * std::mem::size_of::<usize>()
+                        + 2 * std::mem::size_of::<Ordering>()
+                        + 2 * std::mem::size_of::<&mut capacity::FactCapacity<'hir, '_>>()
+                        + 2 * std::mem::size_of::<Result<(), P::Error>>(),
+                )
+                .map_err(|failure| P::capacity(function, failure))?;
+        }
         budget.charge(function, 8, "expression-fact insertion authority")?;
         let prefix_work = if self.nodes.is_empty() {
             7

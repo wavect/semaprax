@@ -341,6 +341,51 @@ impl<'a> Directory<'a> {
             return admission.refuse(Refusal::Subject);
         }
         let (mut begin, mut end) = (0, self.entries.len());
+        // Each bound remembers its exact common prefix with this query. Every
+        // key between the bounds shares their shorter prefix, so subsequent
+        // probes compare only bytes not authenticated by the earlier probes.
+        let (mut lower_prefix, mut upper_prefix) = (0, 0);
+        while begin < end {
+            let middle = begin + (end - begin) / 2;
+            let (order, prefix) = sort::compare_suffix(
+                self.entries[middle].at,
+                at,
+                lower_prefix.min(upper_prefix),
+                admission,
+            )?;
+            match order {
+                std::cmp::Ordering::Less => {
+                    begin = middle + 1;
+                    lower_prefix = prefix;
+                }
+                std::cmp::Ordering::Greater => {
+                    end = middle;
+                    upper_prefix = prefix;
+                }
+                std::cmp::Ordering::Equal => {
+                    return Ok(Some((
+                        self.entries[middle].binding,
+                        self.entries[middle].families,
+                    )))
+                }
+            }
+        }
+        Ok(None)
+    }
+    #[cfg(test)]
+    fn receive_original(
+        &self,
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        at: &ExpressionId,
+        admission: &mut Admission<'_>,
+    ) -> Result<Option<(&'a ResolvedBinding, u8)>, Refusal> {
+        admission.reserve(0)?;
+        admission.units(1)?;
+        if !std::ptr::eq(self.program, program) || !std::ptr::eq(self.function, function) {
+            return admission.refuse(Refusal::Subject);
+        }
+        let (mut begin, mut end) = (0, self.entries.len());
         while begin < end {
             let middle = begin + (end - begin) / 2;
             match sort::compare_keys(self.entries[middle].at, at, admission)? {

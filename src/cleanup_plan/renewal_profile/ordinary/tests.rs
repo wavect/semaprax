@@ -435,3 +435,79 @@ fn hostile_collector_order_and_closure_universe() {
         "closure body cannot confer outer mutable declaration"
     );
 }
+
+#[test]
+fn suffix_search_matches_complete_original_with_exact_and_short_work() {
+    let source = crate::check(
+        r#"module directory; @id("main") fn main()->i64 {let x=0;x}"#,
+        "directory.spx",
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&source).unwrap();
+    let function = &program.functions[0];
+    let crate::hir::ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
+        panic!("block")
+    };
+    let crate::hir::ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("binding")
+    };
+    let keys: Vec<_> = (0..65)
+        .map(|i| ExpressionId::from_owned(format!("shared.🙂.{}.{i:03}", "prefix".repeat(16))))
+        .collect();
+    let mut work = |_| true;
+    let mut reserve = |_| true;
+    let mut admission = Admission::new(&mut work, &mut reserve);
+    let directory = Directory::build(&program, function, &mut admission, |entries, admission| {
+        for key in &keys {
+            Directory::emit(entries, Family::Vec, key, binding, admission)?;
+        }
+        Ok(())
+    })
+    .unwrap();
+    let mut queries = keys.clone();
+    for suffix in ["", "\0", "a", "shared.", "shared.🙂", "shared.🙂.z", "🙂"] {
+        queries.push(ExpressionId::from_owned(suffix.to_owned()));
+    }
+    for key in &keys {
+        queries.push(ExpressionId::from_owned(format!("{}\0", key.as_str())));
+        queries.push(ExpressionId::from_owned(format!("{}🙂", key.as_str())));
+    }
+    for query in &queries {
+        let mut original_work = |_| true;
+        let mut original_reserve = |_| true;
+        let mut original_admission = Admission::new(&mut original_work, &mut original_reserve);
+        let original = directory
+            .receive_original(&program, function, query, &mut original_admission)
+            .unwrap();
+        let spent = Cell::new(0usize);
+        let mut charge = |units| {
+            spent.set(spent.get() + units);
+            true
+        };
+        let mut receiving = Admission::new(&mut charge, &mut reserve);
+        let actual = directory
+            .receive(&program, function, query, &mut receiving)
+            .unwrap();
+        assert_eq!(
+            actual.map(|(b, f)| (b as *const _, f)),
+            original.map(|(b, f)| (b as *const _, f))
+        );
+        let exact = spent.get();
+        for allowance in [exact, exact - 1] {
+            let remaining = Cell::new(allowance);
+            let mut charge = |units| match remaining.get().checked_sub(units) {
+                Some(left) => {
+                    remaining.set(left);
+                    true
+                }
+                None => false,
+            };
+            let mut receiving = Admission::new(&mut charge, &mut reserve);
+            let result = directory.receive(&program, function, query, &mut receiving);
+            assert_eq!(result.is_ok(), allowance == exact);
+            if result.is_err() {
+                assert!(receiving.units(0).is_err());
+            }
+        }
+    }
+}

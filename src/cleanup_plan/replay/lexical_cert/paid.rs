@@ -93,8 +93,11 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
         .saturating_mul(2)
         .saturating_add(control.resumes.len().saturating_mul(2))
         .saturating_add(1);
+    // Paid traversals index latch certificates once, preserving the first
+    // matching certificate even when its resume is absent.
     let units = traversals
-        .saturating_mul(graph.saturating_mul(control.exits.len().saturating_add(1)))
+        .saturating_mul(graph)
+        .saturating_add(plan.exits.len().saturating_add(control.exits.len()))
         .saturating_add(
             control
                 .abrupt_only_regions
@@ -116,6 +119,7 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
                 .saturating_mul(control.execution_boundaries.len()),
         );
     budget.charge(function, units, "lexical certificate replay")?;
+    let latch_resumes = storage::latch_resumes(function, budget)?;
     let owned_result = crate::cleanup_plan::replay::selected_type_drop::type_needs_drop!(
         permit,
         program,
@@ -226,6 +230,7 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
             Some(certificate.condition_entry),
             &none,
             None,
+            &latch_resumes,
             budget,
         )?[branch.0 as usize]
             || !storage::reach(
@@ -234,6 +239,7 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
                 None,
                 &none,
                 None,
+                &latch_resumes,
                 budget,
             )?[branch.0 as usize]
         {
@@ -466,7 +472,15 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
     for entry in entries.keys() {
         storage::insert_set(function, budget, &mut stop, *entry)?;
     }
-    let ordinary = storage::reach(function, plan.entry, None, &stop, None, budget)?;
+    let ordinary = storage::reach(
+        function,
+        plan.entry,
+        None,
+        &stop,
+        None,
+        &latch_resumes,
+        budget,
+    )?;
     receive!(
         function,
         budget,
@@ -479,7 +493,15 @@ pub(in crate::cleanup_plan::replay) fn authenticate(
     let mut exact_joins = BTreeSet::new();
     for (index, resume) in control.resumes.iter().enumerate() {
         let none = BTreeSet::new();
-        let seen = storage::reach(function, resume.entry, None, &none, Some(&ordinary), budget)?;
+        let seen = storage::reach(
+            function,
+            resume.entry,
+            None,
+            &none,
+            Some(&ordinary),
+            &latch_resumes,
+            budget,
+        )?;
         let count = 1usize.saturating_add(
             seen.iter()
                 .enumerate()

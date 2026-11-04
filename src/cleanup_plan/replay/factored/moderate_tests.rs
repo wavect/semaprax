@@ -219,8 +219,8 @@ fn original_selector_and_whole_source_receivers_remain_bound() {
 
 // Only this incoming historical owner receives a finite view. Production and
 // complete raw source inventories continue to inspect the actual joined bytes.
-const JOINED_LENGTH: usize = 319918;
-const JOINED_SHA256: &str = "3c8e81fe794761cd061189a17ac6c003311920c299599c9b1cbb57b771fda258";
+const JOINED_LENGTH: usize = 345423;
+const JOINED_SHA256: &str = "9308017cb1053ca2eb293a92a3f98ae1b783fa2f401f324f8baa646fe008c0a3";
 const JOINED_PATH: &str =
     "docs/evidence/moderate-factored-joined-custody-20261017/joined-inputs.json";
 fn joined_digest(bytes: &[u8]) -> String {
@@ -257,6 +257,28 @@ fn joined_checked(data: &str, path: &str, current: &str) -> Option<String> {
         return None;
     }
     let row = rows.iter().find(|row| row["path"] == path)?;
+    // The physical source must reconstruct the complete pinned joined input
+    // before any unchanged byte-offset inverse or incoming-owner check runs.
+    let physical_previous;
+    let current = if let Some(edits) = row.get("physical_edits") {
+        if current.len() != row["physical_length"].as_u64()? as usize
+            || joined_digest(current.as_bytes()) != row["physical_sha256"].as_str()?
+        {
+            return None;
+        }
+        let mut restored = current.to_owned();
+        for edit in edits.as_array()? {
+            let after = edit["after"].as_str()?;
+            if restored.matches(after).count() != 1 {
+                return None;
+            }
+            restored = restored.replacen(after, edit["before"].as_str()?, 1);
+        }
+        physical_previous = restored;
+        physical_previous.as_str()
+    } else {
+        current
+    };
     if current.len() != row["current_length"].as_u64()? as usize
         || joined_digest(current.as_bytes()) != row["current_sha256"].as_str()?
     {

@@ -41,12 +41,24 @@
     },
     {
       "source": "src/cleanup_plan/replay.rs",
-      "length": 324801,
-      "sha256": "cec423fcc87891448fe56c5977f35f5d5d42ad43e914d46c84363ca4b3026a6d",
+      "length": 325361,
+      "sha256": "c8cdec44644781b3d423c4b2a2d6eae86ae0b87330e029cf8f55ed0699d3c0c5",
       "checkpoint_length": 326264,
       "checkpoint_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "inverse": [
+        [
+          "    if skeleton_work::enumerated_prefix::original_selected() || work.budget.oracle_lease().is_some()\n    {\n        // An explicitly opted oracle keeps its complete original sequence\n        // receiver and account. Compact ordinary carriers belong to the\n        // shipping receiver, rather than the retained independent oracle.\n",
+          "    if skeleton_work::enumerated_prefix::original_selected() {\n"
+        ],
+        [
+          "        && factored::validate_with_deferred_index_storage(\n",
+          "        && factored::validate_with_index_storage(\n"
+        ],
+        [
+          "        // A selected factored comparison borrows ordinary work, not an unused\n        // enumerating allowance. Its bounded fallback reserves before entry.\n        if function_upper != 0 && factored::defer_enumerating_reservation(function, budget)? {\n            continue;\n        }\n",
+          ""
+        ],
         [
           "                    if !budget.pays_allocations() {\n                        branch = branch_clone::production_capacity::unpaid_clone(\n                            budget,\n",
           "                    if !budget.pays_allocations() {\n                        branch = skeleton_clone(\n                            budget,\n"

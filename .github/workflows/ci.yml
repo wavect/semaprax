@@ -2579,6 +2579,19 @@ jobs:
         with:
           toolchain: stable
           targets: x86_64-linux-android,aarch64-linux-android
+      - name: Reclaim unused runner tools before installing Android images
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These jobs use Rust, Java and the pinned Android NDK; none needs
+          # the hosted image's .NET, Haskell or CodeQL toolchains.
+          sudo rm -rf -- /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
+          android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if [ -d "$android_sdk_root/ndk" ]; then
+            find "$android_sdk_root/ndk" -mindepth 1 -maxdepth 1 -type d ! -name 27.2.12479018 -print0 |
+              sudo xargs -0 -r rm -rf --
+          fi
+          df -h "$android_sdk_root" "$GITHUB_WORKSPACE"
       - name: Enable Android emulator hardware acceleration
         shell: bash
         run: |
@@ -2639,6 +2652,19 @@ jobs:
         with:
           toolchain: stable
           targets: x86_64-linux-android,aarch64-linux-android
+      - name: Reclaim unused runner tools before installing Android images
+        shell: bash
+        run: |
+          set -euo pipefail
+          # These jobs use Rust, Java and the pinned Android NDK; none needs
+          # the hosted image's .NET, Haskell or CodeQL toolchains.
+          sudo rm -rf -- /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
+          android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if [ -d "$android_sdk_root/ndk" ]; then
+            find "$android_sdk_root/ndk" -mindepth 1 -maxdepth 1 -type d ! -name 27.2.12479018 -print0 |
+              sudo xargs -0 -r rm -rf --
+          fi
+          df -h "$android_sdk_root" "$GITHUB_WORKSPACE"
       - name: Enable Android JNI emulator hardware acceleration
         shell: bash
         run: |

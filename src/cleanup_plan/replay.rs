@@ -606,6 +606,11 @@ fn reserve_program_skeleton_work<'a>(
             continue;
         }
         let function_upper = skeleton_work_upper(program, function)?;
+        // A selected factored comparison borrows ordinary work, not an unused
+        // enumerating allowance. Its bounded fallback reserves before entry.
+        if function_upper != 0 && factored::defer_enumerating_reservation(function, budget)? {
+            continue;
+        }
         total = total.checked_add(function_upper).ok_or_else(|| {
             replay_error(
                 function,
@@ -2729,7 +2734,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     if function.cleanup_plan.lexical_control.is_none()
-        && factored::validate_with_index_storage(
+        && factored::validate_with_deferred_index_storage(
             program,
             function,
             budget,
@@ -3059,7 +3064,11 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
-    if skeleton_work::enumerated_prefix::original_selected() {
+    if skeleton_work::enumerated_prefix::original_selected() || work.budget.oracle_lease().is_some()
+    {
+        // An explicitly opted oracle keeps its complete original sequence
+        // receiver and account. Compact ordinary carriers belong to the
+        // shipping receiver, rather than the retained independent oracle.
         return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);
     }
     #[cfg(test)]

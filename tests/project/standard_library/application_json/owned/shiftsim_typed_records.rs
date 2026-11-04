@@ -49,6 +49,17 @@ fn write_example(root: &Path) {
     ] {
         std::fs::write(root.join(path), source).unwrap();
     }
+    // Keep the example's exact retained success and malformed requests in the
+    // temporary project too; the original corpus and output assertions use them.
+    for path in ["fixtures/request.json", "fixtures/malformed.json"] {
+        std::fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(EXAMPLE)
+                .join(path),
+            root.join(path),
+        )
+        .unwrap();
+    }
 }
 
 fn assert_one_diagnostic_line(output: &std::process::Output) {

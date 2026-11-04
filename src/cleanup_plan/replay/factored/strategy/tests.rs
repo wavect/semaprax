@@ -196,3 +196,57 @@ fn failed_census_keeps_spent_global_work() {
         .charge(&function, 1, "attempted strategy retry")
         .is_err());
 }
+
+#[test]
+fn ordinary_resource_plan_preserves_other_functions_held_work_and_real_proof() {
+    let decisions: String = (0..9)
+        .map(|i| format!("let choice_{i}=if n==0 {{0}}else{{1}};\n"))
+        .collect();
+    let source = format!("module resource.plan; @id(\"probe\") fn probe(n:i64)->i64 {{{decisions} n}} @id(\"keeper\") fn main()->i64 {{0}}");
+    let program =
+        crate::hir::resolve(&crate::check(&source, "resource-plan.spx").unwrap()).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "probe")
+        .unwrap();
+    let keeper = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "keeper")
+        .unwrap();
+    assert!(function.cleanup_plan.lexical_control.is_none());
+    let old_function_upper = skeleton_work_upper(&program, function).unwrap();
+    let keeper_upper = skeleton_work_upper(&program, keeper).unwrap();
+    assert!(old_function_upper > keeper_upper && keeper_upper > 0);
+    let mut budget = ReplayBudget::unobserved();
+    let held =
+        reserve_program_skeleton_work(&program, program.functions.iter(), &mut budget).unwrap();
+    assert_eq!(held, keeper_upper);
+    assert_eq!(budget.skeleton_remaining, keeper_upper);
+    assert!(super::super::defer_enumerating_reservation(function, &mut budget).unwrap());
+    assert!(super::super::validate_with_deferred_index_storage(
+        &program,
+        function,
+        &mut budget,
+        None,
+        None
+    )
+    .unwrap());
+    assert_eq!(budget.skeleton_remaining, keeper_upper);
+    let old_remaining = budget.remaining;
+    reserve_enumerated(function, &mut budget, old_function_upper).unwrap();
+    assert_eq!(budget.remaining, old_remaining - old_function_upper);
+    assert_eq!(budget.skeleton_remaining, keeper_upper + old_function_upper);
+    let held = budget.skeleton_remaining;
+    budget.remaining = 0;
+    assert!(super::super::validate_with_deferred_index_storage(
+        &program,
+        function,
+        &mut budget,
+        None,
+        None
+    )
+    .is_err());
+    assert_eq!(budget.skeleton_remaining, held);
+}

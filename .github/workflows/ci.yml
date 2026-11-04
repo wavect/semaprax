@@ -2592,6 +2592,34 @@ jobs:
               sudo xargs -0 -r rm -rf --
           fi
           df -h "$android_sdk_root" "$GITHUB_WORKSPACE"
+      - name: Install and verify the pinned Android NDK with bounded retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          ndk_version=27.2.12479018
+          ndk_root="$android_sdk_root/ndk/$ndk_version"
+          ndk_ready() {
+            test -f "$ndk_root/source.properties" &&
+              grep -Eq '^Pkg.Revision[[:space:]]*=[[:space:]]*27[.]2[.]12479018[[:space:]]*$' "$ndk_root/source.properties" &&
+              test -x "$ndk_root/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          }
+          if ndk_ready; then
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            if sdkmanager --install "ndk;$ndk_version" && ndk_ready; then
+              exit 0
+            fi
+            # Only a failed/incomplete copy of this exact pinned package is removed.
+            rm -rf -- "$ndk_root"
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Pinned NDK installation failed verification; retrying ($attempt/3)"
+              sleep 10
+            fi
+          done
+          echo "::error::Pinned Android NDK failed installation or verification after three attempts"
+          exit 1
       - name: Enable Android emulator hardware acceleration
         shell: bash
         run: |
@@ -2665,6 +2693,34 @@ jobs:
               sudo xargs -0 -r rm -rf --
           fi
           df -h "$android_sdk_root" "$GITHUB_WORKSPACE"
+      - name: Install and verify the pinned Android NDK with bounded retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          ndk_version=27.2.12479018
+          ndk_root="$android_sdk_root/ndk/$ndk_version"
+          ndk_ready() {
+            test -f "$ndk_root/source.properties" &&
+              grep -Eq '^Pkg.Revision[[:space:]]*=[[:space:]]*27[.]2[.]12479018[[:space:]]*$' "$ndk_root/source.properties" &&
+              test -x "$ndk_root/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          }
+          if ndk_ready; then
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            if sdkmanager --install "ndk;$ndk_version" && ndk_ready; then
+              exit 0
+            fi
+            # Only a failed/incomplete copy of this exact pinned package is removed.
+            rm -rf -- "$ndk_root"
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Pinned NDK installation failed verification; retrying ($attempt/3)"
+              sleep 10
+            fi
+          done
+          echo "::error::Pinned Android NDK failed installation or verification after three attempts"
+          exit 1
       - name: Enable Android JNI emulator hardware acceleration
         shell: bash
         run: |

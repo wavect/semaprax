@@ -133,6 +133,17 @@ fn compiled(source: &str) -> Option<(usize, &'static str)> {
 // already-declared whole view; every original indexed inverse still runs.
 fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'a, str> {
     match (source, expected) {
+        // The current entry adds the coupled replay call introduced in 1be38beec.
+        // Authenticate the whole input and reconstruct the exact prior HIR module.
+        ("src/hir.rs", "c1c11229c9dc431aea3939653a7ff611ed0207584ee26520c8a06506389f7797") => {
+            assert_eq!(digest(current), "879eb4e63e48a03bda4f73bf1862a2ad98f0551779ca76f488838ae6998d0e4b");
+            let coupled = "    crate::cleanup_plan::with_coupled(|| validate_with_static_text(program)).map(|_| ())\n";
+            assert_eq!(current.matches(coupled).count(), 1);
+            let prior = current.replacen(coupled, "    validate_with_static_text(program).map(|_| ())\n", 1);
+            assert_eq!(digest(&prior), expected);
+            Cow::Owned(prior)
+        }
+
         (
             "src/cleanup_plan/replay.rs",
             "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",

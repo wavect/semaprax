@@ -591,6 +591,14 @@ mod tests {
         let v12_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        return compose_values_v2(before, policy, &expanded);\n    }\n";
         assert_eq!(root.matches(v12_dispatch).count(), 1);
         let root_before_v12 = root.replacen(v12_dispatch, "", 1);
+        let v12_test_branch = concat!(
+            "        let page = if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n",
+            "            fragments_v3::expand_v12(&before, &policy, &page).unwrap()\n",
+            "        } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n",
+        );
+        let v11_test_branch = "        let page = if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
+        assert_eq!(root_before_v12.matches(v12_test_branch).count(), 1);
+        let root_before_v12 = root_before_v12.replacen(v12_test_branch, v11_test_branch, 1);
         let root = root_before_v12.as_str();
         // CURRENT_SCOPE_NORMALIZATION_BEGIN
         // Undo only the complete new wire dispatch and its test view; all old inverses follow.
@@ -648,6 +656,10 @@ mod tests {
         // The selected/merge rows were re-admitted after the older scope cut;
         // their original registration is restored by that existing inverse.
         for source in [
+            "src/codegen/native_shared_bytes/closure.rs",
+            "src/cleanup_plan/replay/factored/strategy/tests.rs",
+            "tests/workspace/pin_capture.rs",
+            "src/cleanup_plan/replay/lexical_cert/paid.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
             "src/cleanup_plan/replay/merge_census.rs",
             "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",

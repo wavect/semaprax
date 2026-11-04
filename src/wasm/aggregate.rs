@@ -6837,6 +6837,7 @@ impl Emitter<'_> {
                 })
             }
             crate::byte_ops::ByteOp::ZeroPrefix => self.emit_zero_prefix(expr, &values),
+            crate::byte_ops::ByteOp::PrefixClass => self.emit_prefix_class(expr, &values),
             crate::byte_ops::ByteOp::ReadLe => self.emit_indexed_word_get(expr, &values),
             crate::byte_ops::ByteOp::Get => self.emit_indexed_byte_get(expr, &values),
             crate::byte_ops::ByteOp::Copy => {

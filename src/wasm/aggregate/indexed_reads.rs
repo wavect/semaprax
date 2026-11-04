@@ -56,6 +56,57 @@ impl Emitter<'_> {
             ty: expr.ty.clone(),
         })
     }
+    pub(super) fn emit_prefix_class(
+        &mut self,
+        expr: &ResolvedExpr,
+        values: &[Value],
+    ) -> Result<Value, Diagnostic> {
+        self.get_scalar(&values[0]);
+        self.output.push(0x10);
+        write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+        self.output.push(0x1a);
+        let local = self.plan.expr_scalar(expr)?;
+        self.output.extend([0x42, 0x00, 0x21]);
+        write_u32(self.output, local);
+        self.output.extend([0x02, 0x40, 0x03, 0x40, 0x20]);
+        write_u32(self.output, local);
+        self.get_scalar(&values[2]);
+        self.output.extend([0x5a, 0x0d, 0x01]);
+        self.get_scalar(&values[1]);
+        self.output.push(0x20);
+        write_u32(self.output, local);
+        self.output.push(0x7c);
+        self.get_scalar(&values[0]);
+        self.output.push(0x10);
+        write_u32(self.output, BYTE_AS_SLICE_IMPORT);
+        self.output.extend([0xa7, 0xad, 0x5a, 0x0d, 0x01]);
+        self.get_scalar(&values[0]);
+        self.get_scalar(&values[1]);
+        self.output.push(0x20);
+        write_u32(self.output, local);
+        self.output.extend([0x7c, 0x10]);
+        write_u32(self.output, self.byte_get_import);
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        for (argument, comparison) in [(3, 0x49), (4, 0x4b), (5, 0x46), (6, 0x46)] {
+            self.output.push(0x20);
+            write_u32(self.output, self.plan.status);
+            self.get_scalar(&values[argument]);
+            self.output.push(comparison);
+            self.output.extend([0x0d, 0x01]);
+        }
+        self.output.push(0x20);
+        write_u32(self.output, local);
+        self.output.extend([0x42, 0x01, 0x7c, 0x21]);
+        write_u32(self.output, local);
+        self.output
+            .extend([0x0c, 0x00, 0x0b, 0x0b, 0x41, 0x00, 0x21]);
+        write_u32(self.output, self.plan.status);
+        Ok(Value::Scalar {
+            local,
+            ty: ResolvedType::Usize,
+        })
+    }
     pub(super) fn emit_zero_prefix(
         &mut self,
         expr: &ResolvedExpr,

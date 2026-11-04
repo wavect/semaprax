@@ -2,6 +2,29 @@ module std.data.json.dec;
 use type @id("std.io.reader") from std.io as Reader;
 use type @id("std.io.writer") from std.io as Writer;
 
+@id("std.data.json.dec.string-scan")
+record StringScan {
+    @id("std.data.json.dec.string-scan.end")
+    end: usize,
+    @id("std.data.json.dec.string-scan.decoded-length")
+    decoded_length: usize,
+}
+
+// A bounded decoded-key fingerprint `length * 65536 + hash`. The hash folds
+// the token's canonical decoded bytes as `(hash * 257 + byte) % 65521`, and
+// `length` is its decoded byte count in 1..=limit. Zero means the token is
+// not a complete JSON string of that size; the walk stops at the first
+// decoded byte past `limit`. Equal fingerprints never prove equal keys.
+@id("std.data.json.dec.decoded-step")
+record DecodedStep {
+    @id("std.data.json.dec.decoded-step.value")
+    value: i64,
+    @id("std.data.json.dec.decoded-step.next")
+    next: usize,
+    @id("std.data.json.dec.decoded-step.part")
+    part: usize,
+}
+
 @id("std.data.json.dec.at_is")
 fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
 {
@@ -60,11 +83,7 @@ fn escape_kind(input: borrow Slice<u8>, start: usize) -> i64
 @id("std.data.json.dec.escape_end")
 fn escape_end(input: borrow Slice<u8>, start: usize) -> usize
 {
-    let kind = escape_kind(input, start);
-    let marked = at_is(input, start + 6usize, 92u8) && at_is(input, start + 7usize, 117u8);
-    let trailing = if kind == 3 && marked { code_unit(input, start + 8usize) } else { -1 };
-    let paired = trailing >= 56320 && trailing <= 57343;
-    if kind == 1 { start + 2usize } else { if kind == 2 { start + 6usize } else { if paired { start + 12usize } else { failure(input, start) } } }
+    if start > byte_len(input) { escape_end_prior(input, start) } else { let scalar = scalar_at(input, start); if scalar < 0 { failure(input, start) } else { if at_is(input, start + 1usize, 117u8) { if scalar > 65535 { start + 12usize } else { start + 6usize } } else { start + 2usize } } }
 }
 
 @id("std.data.json.dec.string_end")
@@ -100,8 +119,8 @@ fn code_byte(value: i64) -> u8
     u8_from_i64(if value < 0 { 0 } else { if value > 255 { 255 } else { value } })
 }
 
-@id("std.data.json.dec.scalar_at")
-fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+@id("std.data.json.dec.scalar-at-prior")
+fn scalar_at_prior(input: borrow Slice<u8>, start: usize) -> i64
     ensures result >= -1 && result <= 1114111
 {
     let kind = escape_kind(input, start);
@@ -111,6 +130,23 @@ fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
     let trailing = if kind == 3 && marked { code_unit(input, start + 8usize) } else { -1 };
     let paired = trailing >= 56320 && trailing <= 57343;
     if kind == 1 { mapped } else { if kind == 2 { lead } else { if paired { 65536 + (lead - 55296) * 1024 + trailing - 56320 } else { -1 } } }
+}
+
+@id("std.data.json.dec.escape-end-prior")
+fn escape_end_prior(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let kind = escape_kind(input, start);
+    let marked = at_is(input, start + 6usize, 92u8) && at_is(input, start + 7usize, 117u8);
+    let trailing = if kind == 3 && marked { code_unit(input, start + 8usize) } else { -1 };
+    let paired = trailing >= 56320 && trailing <= 57343;
+    if kind == 1 { start + 2usize } else { if kind == 2 { start + 6usize } else { if paired { start + 12usize } else { failure(input, start) } } }
+}
+
+@id("std.data.json.dec.scalar_at")
+fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+{
+    if start > byte_len(input) { scalar_at_prior(input, start) } else { if !at_is(input, start, 92u8) { -1 } else { let selector = match byte_get(input, start + 1usize) { Option::Some { value } => value, Option::None {} => 0u8, }; if selector != 117u8 { simple_scalar(selector) } else { let lead = code_unit(input, start + 2usize); if lead < 0 { -1 } else { if lead < 55296 || lead > 57343 { lead } else { if lead <= 56319 && at_is(input, start + 6usize, 92u8) && at_is(input, start + 7usize, 117u8) { let trailing = code_unit(input, start + 8usize); if trailing >= 56320 && trailing <= 57343 { 65536 + (lead - 55296) * 1024 + trailing - 56320 } else { -1 } } else { -1 } } } } } }
 }
 
 @id("std.data.json.dec.utf8_len")
@@ -146,8 +182,8 @@ fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     if at_is(input, index, 92u8) { utf8_at(scalar_at(input, index), offset) } else { let plain = match byte_get(input, index) { Option::Some { value: byte } => byte_code(byte), Option::None {} => -1, }; if offset == 0usize && plain >= 32 { plain } else { -1 } }
 }
 
-@id("std.data.json.dec.scan-string")
-fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
+@id("std.data.json.dec.scan-string-info")
+fn scan_string_info(input: borrow Slice<u8>, start: usize) -> StringScan
 {
     let mut index = start + 1usize;
     let mut total = 0usize;
@@ -155,17 +191,21 @@ fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
     let mut bad = !at_is(input, start, 34u8);
     let mut running = !bad;
     while running {
-        let closed = at_is(input, index, 34u8);
-        let step = if closed { index } else { token_end(input, index) };
-        let broken = !closed && is_failure(input, step);
-        total = if closed || broken || !measure { total } else { total + emit_len(input, index) };
-        fault = if broken { index } else { fault };
-        bad = broken;
-        index = if closed || broken { index } else { step };
-        running = !closed && !broken;
-        running
+        let plain = byte_prefix_class(input, index, byte_len(input), 32u8, 255u8, 34u8, 92u8);
+        index = index + plain;
+        total = total + plain;
+        let raw = match byte_get(input, index) { Option::Some { value } => usize_from_u8(value), Option::None {} => 256usize, };
+        if raw == 34usize { index = index + 1usize; running = false; } else { if raw >= 32usize && raw <= 255usize && raw != 92usize { index = index + 1usize; total = total + 1usize; } else { if raw == 92usize { let scalar = scalar_at(input, index); if scalar >= 0 { let width = if at_is(input, index + 1usize, 117u8) { if scalar > 65535 { 12usize } else { 6usize } } else { 2usize }; index = index + width; total = total + utf8_len(scalar); } else { bad = true; fault = index; running = false; } } else { bad = true; fault = index; running = false; } } }
+        0
     }
-    if bad { failure(input, fault) } else { if measure { total } else { index + 1usize } }
+    if bad { let marker = failure(input, fault); StringScan { end: marker, decoded_length: marker } } else { StringScan { end: index, decoded_length: total } }
+}
+
+@id("std.data.json.dec.scan-string")
+fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
+{
+    let parsed = scan_string_info(input, start);
+    if measure { parsed.decoded_length } else { parsed.end }
 }
 
 @id("std.data.json.dec.decoded_len")
@@ -257,16 +297,10 @@ fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
     let mut count = 0usize;
     let mut scanning = equal && count < total;
     while scanning {
-        let first = emit_at(input, left_index, left_part);
-        let second = emit_at(input, right_index, right_part);
-        equal = first >= 0 && first == second;
-        let left_last = left_part + 1usize >= emit_len(input, left_index);
-        left_index = if left_last { token_end(input, left_index) } else { left_index };
-        left_part = if left_last { 0usize } else { left_part + 1usize };
-        let right_last = right_part + 1usize >= emit_len(input, right_index);
-        right_index = if right_last { token_end(input, right_index) } else { right_index };
-        right_part = if right_last { 0usize } else { right_part + 1usize };
-        count = count + 1usize;
+        let room = if total - count < 8usize { total - count } else { 8usize };
+        let first_plain = if left_part == 0usize { byte_prefix_class(input, left_index, room, 32u8, 255u8, 34u8, 92u8) } else { 0usize };
+        let plain = if right_part == 0usize { byte_prefix_class(input, right_index, first_plain, 32u8, 255u8, 34u8, 92u8) } else { 0usize };
+        if plain > 0usize { let first = match byte_read_le(input, left_index, plain) { Option::Some { value } => value, Option::None {} => 0usize, }; let second = match byte_read_le(input, right_index, plain) { Option::Some { value } => value, Option::None {} => 0usize, }; equal = first == second; left_index = left_index + plain; right_index = right_index + plain; count = count + plain; } else { let first = pull_step(input, left_index, left_part); let second = pull_step(input, right_index, right_part); { equal = first.value >= 0 && first.value == second.value; left_index = first.next; left_part = first.part; right_index = second.next; right_part = second.part; 0 }; count = count + 1usize; }
         scanning = equal && count < total;
         scanning
     }
@@ -283,11 +317,13 @@ fn decoded_byte_at(input: borrow Slice<u8>, index: usize, part: usize) -> usize
     if at_is(input, index, 92u8) { let emitted = emit_at(input, index, part); if emitted >= 0 { usize_from_i64(emitted) } else { 256usize } } else { match byte_get(input, index) { Option::Some { value: byte } => if part == 0usize && byte >= 32u8 { usize_from_u8(byte) } else { 256usize }, Option::None {} => 256usize, } }
 }
 
-// A bounded decoded-key fingerprint `length * 65536 + hash`. The hash folds
-// the token's canonical decoded bytes as `(hash * 257 + byte) % 65521`, and
-// `length` is its decoded byte count in 1..=limit. Zero means the token is
-// not a complete JSON string of that size; the walk stops at the first
-// decoded byte past `limit`. Equal fingerprints never prove equal keys.
+@id("std.data.json.dec.pull-step")
+fn pull_step(input: borrow Slice<u8>, index: usize, part: usize) -> DecodedStep
+{
+    let raw = match byte_get(input, index) { Option::Some { value } => i64_from_u8(value), Option::None {} => -1, };
+    if raw >= 32 && raw != 92 { DecodedStep { value: raw, next: index + 1usize, part: 0usize } } else { let scalar = if raw == 92 { scalar_at(input, index) } else { -1 }; if scalar < 0 { DecodedStep { value: -1, next: index, part: 0usize } } else { let width = utf8_len(scalar); let last = part + 1usize >= width; let source_width = if at_is(input, index + 1usize, 117u8) { if scalar > 65535 { 12usize } else { 6usize } } else { 2usize }; DecodedStep { value: utf8_at(scalar, part), next: if last { index + source_width } else { index }, part: if last { 0usize } else { part + 1usize } } } }
+}
+
 @id("std.data.json.dec.decoded_fingerprint")
 fn decoded_fingerprint(input: borrow Slice<u8>, start: usize, limit: usize) -> usize
     requires limit >= 1usize && limit <= 256usize
@@ -300,12 +336,8 @@ fn decoded_fingerprint(input: borrow Slice<u8>, start: usize, limit: usize) -> u
     let mut hash = 0usize;
     let mut running = valid && !at_is(input, index, 34u8);
     while running {
-        // Every admitted raw byte emits itself once, including UTF-8 bytes.
-        // Classify it once rather than repeating emit-width, decoded-byte and
-        // token-end probes. Escapes, control bytes and exhaustion retain the
-        // original path; raw UTF-8 validity remains the caller's responsibility.
-        let raw = match byte_get(input, index) { Option::Some { value: byte } => usize_from_u8(byte), Option::None {} => 256usize, };
-        if part == 0usize && raw >= 32usize && raw <= 255usize && raw != 34usize && raw != 92usize { valid = count < limit; hash = if valid { (hash * 257usize + raw) % 65521usize } else { hash }; count = if valid { count + 1usize } else { count }; index = if valid { index + 1usize } else { index }; part = 0usize; 0 } else { let width = emit_len(input, index); let value = decoded_byte_at(input, index, part); let last = part + 1usize >= width; let next = if last { token_end(input, index) } else { index }; valid = width > 0usize && value < 256usize && count < limit && !is_failure(input, next); hash = if valid { (hash * 257usize + value) % 65521usize } else { hash }; count = if valid { count + 1usize } else { count }; index = if valid { next } else { index }; part = if valid && !last { part + 1usize } else { 0usize }; 0 }
+        let plain = if part == 0usize { byte_prefix_class(input, index, if limit - count < 8usize { limit - count } else { 8usize }, 32u8, 255u8, 34u8, 92u8) } else { 0usize };
+        if plain > 0usize { let mut word = match byte_read_le(input, index, plain) { Option::Some { value } => value, Option::None {} => 0usize, }; let mut offset = 0usize; while offset < plain { hash = (hash * 257usize + word % 256usize) % 65521usize; word = word / 256usize; offset = offset + 1usize; 0 } index = index + plain; count = count + plain; } else { let step = pull_step(input, index, part); { let value = step.value; let next = step.next; let next_part = step.part; valid = value >= 0 && value < 256 && count < limit; hash = if valid { (hash * 257usize + usize_from_i64(value)) % 65521usize } else { hash }; count = if valid { count + 1usize } else { count }; index = if valid { next } else { index }; part = if valid { next_part } else { 0usize }; 0 } }
         running = valid && !at_is(input, index, 34u8);
         running
     }

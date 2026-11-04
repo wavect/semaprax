@@ -1113,3 +1113,59 @@ mod ndjson;
 
 #[path = "catalog_normalizer_application/decoded_index.rs"]
 mod decoded_index;
+
+// The frozen validators keep their complete original bodies and execute first.
+// Only their return interface is adapted: total/count come from actual input.
+fn append_legacy_summary_adapter(root: &Path) {
+    let path = root.join("src/batch.spx");
+    let before = std::fs::read_to_string(&path).unwrap();
+    let adapter = r###"module catalog_normalizer.batch;
+
+@id("catalog_normalizer.batch.validation-summary")
+record ValidationSummary {
+    @id("catalog_normalizer.batch.validation-summary.failure")
+    failure: usize,
+    @id("catalog_normalizer.batch.validation-summary.total")
+    total: i64,
+    @id("catalog_normalizer.batch.validation-summary.count")
+    count: usize,
+}
+
+@id("catalog_normalizer.batch.scan-validation")
+fn scan_validation(body: borrow Slice<u8>, enriched: bool) -> ValidationSummary
+{
+    let failure = if enriched { first_enriched_failure(body) } else { first_failure(body) };
+    let count = record_count(body);
+    let mut total = 0;
+    let mut start = 0usize;
+    let mut record = 0usize;
+    while failure == 0usize && record < count {
+        let end = line_end(body, start);
+        total = total + valid_record_quantity(body, start, end);
+        record = record + 1usize;
+        start = end + 1usize;
+        0
+    }
+    ValidationSummary { failure: failure, total: total, count: count }
+}
+"###;
+    let header = "module catalog_normalizer.batch;\n\n";
+    let declarations = adapter.strip_prefix(header).unwrap();
+    let marker = "@id(\"catalog_normalizer.batch.scan-validation\")";
+    let split = declarations.find(marker).unwrap();
+    let record = &declarations[..split];
+    let function = &declarations[split..];
+    let combined = format!("{before}\n{declarations}");
+    let (program, comments) = semaprax::parse_with_comments(&combined, &path).unwrap();
+    let canonical = format::comments::canonical_with_comments(&program, &comments);
+    assert_eq!(canonical.matches(record).count(), 1);
+    assert_eq!(canonical.matches(function).count(), 1);
+    let restored = canonical
+        .replacen(record, "", 1)
+        .replacen(&format!("\n{function}"), "", 1);
+    assert_eq!(
+        restored, before,
+        "every frozen legacy module byte is retained"
+    );
+    std::fs::write(path, canonical).unwrap();
+}

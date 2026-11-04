@@ -143,6 +143,7 @@ pub(super) fn check_call(
         | ByteOp::Get
         | ByteOp::ReadLe
         | ByteOp::ZeroPrefix
+        | ByteOp::PrefixClass
         | ByteOp::Range
         | ByteOp::Copy
         | ByteOp::BytesAsSlice

@@ -4,12 +4,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
 const SUPPORT: &str = r#"
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
 #[serde(untagged)]
 pub enum ResponseInteger { Signed(i64), Unsigned(u64) }
 
 /// Missing differs from a present value, including a schema-admitted null.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub enum Presence<T> { Missing, Present(T) }
 impl<T> Default for Presence<T> { fn default() -> Self { Self::Missing } }
 impl<T> Presence<T> { pub fn is_missing(&self) -> bool { matches!(self, Self::Missing) } }
@@ -27,7 +27,7 @@ impl<T:Serialize> Serialize for Presence<T> {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TypedResultEnvelope<T> {
     pub schema:String, pub protocol:String, pub image_revision:String,
@@ -93,7 +93,7 @@ impl Drop for ResponseTypeDecodeGuard {
 const LITERAL_SUPPORT: &str = r#"
 macro_rules! response_literal {
     ($name:ident, $literal:literal) => {
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone,Debug,PartialEq)]
         pub struct $name;
         impl<'de> Deserialize<'de> for $name {
             fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {
@@ -140,23 +140,23 @@ pub(super) fn emit(model: &Model) -> Result<String> {
     for definition in &model.definitions {
         let name = &definition.name;
         match &definition.shape {
-            Shape::Any => writeln!(source, "pub type {name} = Value;").unwrap(),
-            Shape::Bool => writeln!(source, "pub type {name} = bool;").unwrap(),
-            Shape::Integer => writeln!(source, "pub type {name} = ResponseInteger;").unwrap(),
-            Shape::String => writeln!(source, "pub type {name} = String;").unwrap(),
-            Shape::Null => writeln!(source, "pub type {name} = ();").unwrap(),
+            Shape::Any => writeln!(source, "pub type {name}=Value;").unwrap(),
+            Shape::Bool => writeln!(source, "pub type {name}=bool;").unwrap(),
+            Shape::Integer => writeln!(source, "pub type {name}=ResponseInteger;").unwrap(),
+            Shape::String => writeln!(source, "pub type {name}=String;").unwrap(),
+            Shape::Null => writeln!(source, "pub type {name}=();").unwrap(),
             Shape::Alias(target) => {
                 if recursive.contains(name) {
                     transparent(&mut source, name, &format!("Box<{target}>"));
                 } else {
-                    writeln!(source, "pub type {name} = {target};").unwrap();
+                    writeln!(source, "pub type {name}={target};").unwrap();
                 }
             }
             Shape::Array(item) => {
                 if recursive.contains(name) {
                     transparent(&mut source, name, &format!("Vec<{item}>"));
                 } else {
-                    writeln!(source, "pub type {name} = Vec<{item}>;").unwrap();
+                    writeln!(source, "pub type {name}=Vec<{item}>;").unwrap();
                 }
             }
             Shape::Tuple(items) => {
@@ -171,9 +171,9 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         sequence(&mut source, name, &boxed);
                     }
                 } else if items.is_empty() {
-                    writeln!(source, "pub type {name} = [Value; 0];").unwrap();
+                    writeln!(source, "pub type {name}=[Value; 0];").unwrap();
                 } else if items.len() <= 12 {
-                    writeln!(source, "pub type {name} = ({},);", items.join(",")).unwrap();
+                    writeln!(source, "pub type {name}=({},);", items.join(",")).unwrap();
                 } else {
                     // Standard Debug tuples stop at twelve (serde at sixteen).
                     // Keep every position typed in a fixed sequence instead of
@@ -183,17 +183,17 @@ pub(super) fn emit(model: &Model) -> Result<String> {
             }
             Shape::Literal(value) => {
                 let literal = value.to_string();
-                writeln!(source, "response_literal!({name}, {literal:?});").unwrap();
+                writeln!(source, "response_literal!({name},{literal:?});").unwrap();
             }
             Shape::Union(alternatives) => {
                 let derives = if recursive.contains(name) {
-                    "Clone, Debug, Serialize"
+                    "Clone,Debug,Serialize"
                 } else {
-                    "Clone, Debug, Serialize, Deserialize"
+                    "Clone,Debug,Serialize,Deserialize"
                 };
                 writeln!(
                     source,
-                    "#[derive({derives})]\n#[serde(untagged)]\npub enum {name} {{"
+                    "#[derive({derives})]\n#[serde(untagged)]\npub enum {name}{{"
                 )
                 .unwrap();
                 for (index, ty) in alternatives.iter().enumerate() {
@@ -216,11 +216,11 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                 }
             }
             Shape::Object { fields, open } => {
-                writeln!(source, "#[derive(Clone, Debug, Serialize, Deserialize)]").unwrap();
+                writeln!(source, "#[derive(Clone,Debug,Serialize,Deserialize)]").unwrap();
                 if !open {
                     writeln!(source, "#[serde(deny_unknown_fields)]").unwrap();
                 }
-                writeln!(source, "pub struct {name} {{").unwrap();
+                writeln!(source, "pub struct {name}{{").unwrap();
                 let mut used = BTreeSet::new();
                 for (index, field) in fields.iter().enumerate() {
                     let original = &field.name;
@@ -237,7 +237,7 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         fallback
                     };
                     if identifier != *original {
-                        writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                        writeln!(source, "    #[serde(rename={original:?})]").unwrap();
                     }
                     let inner = if recursive.contains(name) && recursive.contains(&field.ty) {
                         format!("Box<{}>", field.ty)
@@ -249,12 +249,12 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                     } else {
                         writeln!(
                             source,
-                            "    #[serde(default, skip_serializing_if = \"Presence::is_missing\")]"
+                            "    #[serde(default,skip_serializing_if=\"Presence::is_missing\")]"
                         )
                         .unwrap();
                         format!("Presence<{inner}>")
                     };
-                    writeln!(source, "    pub r#{identifier}: {ty},").unwrap();
+                    writeln!(source, "    pub r#{identifier}:{ty},").unwrap();
                 }
                 if *open {
                     let mut extra = "__response_extra".to_owned();
@@ -276,7 +276,7 @@ pub(super) fn emit(model: &Model) -> Result<String> {
 }
 
 fn transparent(source: &mut String, name: &str, inner: &str) {
-    writeln!(source,"#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(transparent)]\npub struct {name}(pub {inner});").unwrap();
+    writeln!(source,"#[derive(Clone,Debug,Serialize,Deserialize)]\n#[serde(transparent)]\npub struct {name}(pub {inner});").unwrap();
 }
 
 fn recursive_union(
@@ -412,7 +412,7 @@ fn rust_field(name: &str) -> bool {
 }
 
 fn sequence(source: &mut String, name: &str, items: &[String]) {
-    writeln!(source, "#[derive(Clone, Debug)]\npub struct {name} {{").unwrap();
+    writeln!(source, "#[derive(Clone,Debug)]\npub struct {name}{{").unwrap();
     for (index, ty) in items.iter().enumerate() {
         writeln!(source, "    pub item_{index}: {ty},").unwrap();
     }

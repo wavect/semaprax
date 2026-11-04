@@ -39,7 +39,7 @@ fn literal_reference_keys_remain_typed_data_without_schema_lookup() {
     let request =
         methods(json!({"const":{"$ref":"urn:not-a-schema","required":null,"items":[true,"x"]}}));
     let generated = generate("rust", &request, &BTreeMap::new(), &[]).unwrap();
-    assert!(generated.source.contains("#[serde(rename = \"$ref\")]"));
+    assert!(generated.source.contains("#[serde(rename=\"$ref\")]"));
     assert!(generated.source.contains("urn:not-a-schema"));
     assert!(generated.source.contains("response literal mismatch"));
     assert!(generated.source.contains("#[serde(deny_unknown_fields)]"));
@@ -322,10 +322,10 @@ fn optional_nullable_fields_keep_presence_separate_from_required_null() {
     let generated = generate("rust", &methods(schema), &documents, &[]).unwrap();
     assert!(generated
         .source
-        .contains(&format!("pub r#must: {},", must.ty)));
+        .contains(&format!("pub r#must:{},", must.ty)));
     assert!(generated
         .source
-        .contains(&format!("pub r#maybe: Presence<{}>,", maybe.ty)));
+        .contains(&format!("pub r#maybe:Presence<{}>,", maybe.ty)));
     assert!(generated.source.contains("impl<T> Default for Presence<T>"));
     assert!(generated
         .source

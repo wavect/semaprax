@@ -13,6 +13,7 @@ fn old_framing_and_new_structured_receiver_preserve_the_complete_normalizer_orac
         .unwrap()
         .replace("std.data.ndjson = \"=0.1.0\"\n", "");
     std::fs::write(scratch.path().join("semaprax.toml"), manifest).unwrap();
+    super::append_legacy_summary_adapter(scratch.path());
     // The same frozen published36/source14/max160M and all backend/fault observers run unchanged.
     assert_batch_backend_matrix(scratch.path());
     assert_batch_backend_matrix(&fixture());

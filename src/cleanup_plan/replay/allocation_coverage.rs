@@ -253,6 +253,7 @@ fn call(
                 | B::Get
                 | B::ReadLe
                 | B::ZeroPrefix
+                | B::PrefixClass
                 | B::Range
                 | B::BytesAsSlice
                 | B::ArrayAsSlice

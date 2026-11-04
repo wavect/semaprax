@@ -170,6 +170,32 @@ impl Evaluator<'_> {
                             Ok(Value::Usize(count as u64))
                         }
                         (
+                            crate::byte_ops::ByteOp::PrefixClass,
+                            [Value::BorrowedSlice(value), Value::Usize(index), Value::Usize(limit), Value::Uint8(low), Value::Uint8(high), Value::Uint8(stop1), Value::Uint8(stop2)],
+                        ) => {
+                            let count = value.read(&mut self.fused, |bytes| {
+                                let Ok(index) = usize::try_from(*index) else {
+                                    return 0;
+                                };
+                                let Some(rest) = bytes.get(index..) else {
+                                    return 0;
+                                };
+                                let limit = usize::try_from(*limit)
+                                    .unwrap_or(usize::MAX)
+                                    .min(rest.len());
+                                rest[..limit]
+                                    .iter()
+                                    .take_while(|byte| {
+                                        **byte >= *low
+                                            && **byte <= *high
+                                            && **byte != *stop1
+                                            && **byte != *stop2
+                                    })
+                                    .count()
+                            })?;
+                            Ok(Value::Usize(count as u64))
+                        }
+                        (
                             crate::byte_ops::ByteOp::ReadLe,
                             [Value::BorrowedSlice(value), Value::Usize(index), Value::Usize(width)],
                         ) => {

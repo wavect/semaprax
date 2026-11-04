@@ -66,7 +66,11 @@ fn client(session: &mut VNextSession, language: &str) -> Value {
     // strings rather than escaped literals reclaimed 93 KiB; the widest client
     // now serializes to 954 KiB, still 94 KiB inside the 1 MiB transport frame.
     // This guard stays below that frame so runaway growth is still caught.
-    assert!(serde_json::to_vec(&result).unwrap().len() <= 960 * 1024);
+    let size = serde_json::to_vec(&result).unwrap().len();
+    assert!(
+        size <= 960 * 1024,
+        "{language} client payload: {size} bytes"
+    );
     result
 }
 

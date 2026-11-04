@@ -120,10 +120,14 @@ fn main() -> i64 {
     all(utf8) + all(owned_view) + all(byte_range(owned_view, 1usize, 9usize)) + all(array_as_slice(delayed)) + all(array_as_slice(zeros)) + all(view) + all(byte_range(view, 1usize, 9usize)) + all(array_as_slice(empty)) + all(array_as_slice(maximum))
 }
 "#;
-    let ast = parse(source, Path::new("little-endian-reads.spx")).unwrap();
+    check_byte_kernel(source, "word-reads", "word-reads");
+}
+
+fn check_byte_kernel(source: &str, label: &str, wasm_kind: &str) {
+    let ast = parse(source, Path::new(label)).unwrap();
     let program = hir::resolve(&ast).unwrap();
     hir::validate(&program).unwrap();
-    let root = std::env::temp_dir().join(format!("semaprax-byte-read-le-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("semaprax-byte-{label}-{}", std::process::id()));
     std::fs::create_dir(&root).unwrap();
     let source_path = root.join("read.spx");
     std::fs::write(&source_path, source).unwrap();
@@ -164,7 +168,7 @@ fn main() -> i64 {
     wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
         .validate_all(&wasm)
         .unwrap();
-    raw_wasm(&root, "word-reads", &wasm, 0);
+    raw_wasm(&root, wasm_kind, &wasm, 0);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -524,3 +528,96 @@ mod catalog_identifier;
 
 #[path = "byte_slice_for_runtime/nested.rs"]
 mod nested;
+
+#[test]
+fn byte_class_prefix_matches_all_byte_values_bounds_and_stops_on_every_engine() {
+    let bytes: Vec<u8> = (0..=255).collect();
+    let mut packed = Vec::new();
+    let starts = [0, 1, 7, 8, 31, 127, 128, 248, 255, 256, 257, u64::MAX];
+    let limits = [0, 1, 7, 8, 32, 256, u64::MAX];
+    let classes = [
+        (0, 255, 10, 13),
+        (0, 127, 255, 255),
+        (32, 255, 34, 92),
+        (0, 0, 255, 255),
+        (255, 255, 0, 1),
+        (128, 127, 0, 0),
+    ];
+    let mut cases = 0;
+    for start in starts {
+        for limit in limits {
+            for (low, high, stop1, stop2) in classes {
+                let mut expected = 0u64;
+                if start < bytes.len() as u64 {
+                    for &byte in &bytes[start as usize..] {
+                        if expected == limit
+                            || byte < low
+                            || byte > high
+                            || byte == stop1
+                            || byte == stop2
+                        {
+                            break;
+                        }
+                        expected += 1;
+                    }
+                }
+                packed.extend_from_slice(&start.to_le_bytes());
+                packed.extend_from_slice(&limit.to_le_bytes());
+                packed.extend_from_slice(&[low, high, stop1, stop2]);
+                packed.extend_from_slice(&expected.to_le_bytes());
+                cases += 1;
+            }
+        }
+    }
+    assert_eq!(cases, 504);
+    let array = |values: &[u8]| {
+        format!(
+            "[{}]",
+            values
+                .iter()
+                .map(|byte| format!("{byte}u8"))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    };
+    let mut source = String::from(
+        r#"module app.byte_class;
+@id("class.run")
+fn run(view: borrow Slice<u8>, table: borrow Slice<u8>, count: usize) -> i64 {
+    let mut index = 0usize;
+    let mut failed = 0;
+    while index < count {
+        let base = index * 28usize;
+        let start = match byte_read_le(table, base, 8usize) { Option::Some { value } => value, Option::None {} => 18446744073709551615usize, };
+        let limit = match byte_read_le(table, base + 8usize, 8usize) { Option::Some { value } => value, Option::None {} => 18446744073709551615usize, };
+        let low = match byte_get(table, base + 16usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let high = match byte_get(table, base + 17usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let stop1 = match byte_get(table, base + 18usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let stop2 = match byte_get(table, base + 19usize) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let expected = match byte_read_le(table, base + 20usize, 8usize) { Option::Some { value } => value, Option::None {} => 18446744073709551615usize, };
+        let actual = byte_prefix_class(view, start, limit, low, high, stop1, stop2);
+        failed = failed + if actual == expected { 0 } else { 1 };
+        index = index + 1usize;
+        0
+    }
+    failed
+}
+@id("app.main") fn main() -> i64 {
+let data = "#,
+    );
+    source.push_str(&array(&bytes));
+    source.push_str("; let cases = ");
+    source.push_str(&array(&packed));
+    source.push_str(
+        r#";
+let view = array_as_slice(data);
+let table = array_as_slice(cases);
+let derived = byte_range(view, 0usize, 256usize);
+let owned = bytes_copy(view);
+let owned_view = bytes_as_slice(owned);
+run(view, table, 504usize) + run(derived, table, 504usize) + run(owned_view, table, 504usize)
+}
+"#,
+    );
+    check_byte_kernel(&source, "prefix-class", "catalog-256");
+}

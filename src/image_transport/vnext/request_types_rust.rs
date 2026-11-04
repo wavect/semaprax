@@ -6,12 +6,12 @@ use std::collections::BTreeSet;
 use std::fmt::Write;
 
 const SUPPORT: &str = r#"
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
 #[serde(untagged)]
 pub enum RequestInteger { Signed(i64), Unsigned(u64) }
 
 /// An omitted optional field differs from a present schema-admitted null.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub enum RequestPresence<T> { Missing, Present(T) }
 impl<T> Default for RequestPresence<T> { fn default()->Self { Self::Missing } }
 impl<T> RequestPresence<T> { pub fn is_missing(&self)->bool { matches!(self,Self::Missing) } }
@@ -33,7 +33,7 @@ impl<T:Serialize> Serialize for RequestPresence<T> {
 const LITERAL_SUPPORT: &str = r#"
 macro_rules! request_literal {
     ($name:ident, $ty:ty, $expected:expr) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[derive(Clone, Copy, Debug,PartialEq,Eq)]
         pub struct $name;
         impl<'de> Deserialize<'de> for $name {
             fn deserialize<D:serde::Deserializer<'de>>(deserializer:D)->Result<Self,D::Error> {
@@ -64,11 +64,11 @@ pub(super) fn emit(model: &Model) -> Result<String> {
         match &definition.shape {
             // The shared builder emits Any only for an explicitly unconstrained
             // schema. Missing references and unrecognized constructors reject.
-            Shape::Any => writeln!(source, "pub type {name} = Value;").unwrap(),
-            Shape::Bool => writeln!(source, "pub type {name} = bool;").unwrap(),
-            Shape::Integer => writeln!(source, "pub type {name} = RequestInteger;").unwrap(),
-            Shape::String => writeln!(source, "pub type {name} = String;").unwrap(),
-            Shape::Null => writeln!(source, "pub type {name} = ();").unwrap(),
+            Shape::Any => writeln!(source, "pub type {name}=Value;").unwrap(),
+            Shape::Bool => writeln!(source, "pub type {name}=bool;").unwrap(),
+            Shape::Integer => writeln!(source, "pub type {name}=RequestInteger;").unwrap(),
+            Shape::String => writeln!(source, "pub type {name}=String;").unwrap(),
+            Shape::Null => writeln!(source, "pub type {name}=();").unwrap(),
             Shape::Alias(target) => transparent(&mut source, name, &format!("Box<{target}>")),
             Shape::Array(item) => transparent(&mut source, name, &format!("Vec<Box<{item}>>")),
             Shape::Tuple(items) => {
@@ -93,18 +93,18 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                 if alternatives.is_empty() {
                     return Err(super::invalid("typed Rust request union has no branches"));
                 }
-                writeln!(source,"#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(untagged)]\npub enum {name} {{").unwrap();
+                writeln!(source,"#[derive(Clone,Debug,Serialize,Deserialize)]\n#[serde(untagged)]\npub enum {name}{{").unwrap();
                 for (index, alternative) in alternatives.iter().enumerate() {
                     writeln!(source, "    Choice{index}(Box<{alternative}>),").unwrap();
                 }
                 writeln!(source, "}}").unwrap();
             }
             Shape::Object { fields, open } => {
-                writeln!(source, "#[derive(Clone, Debug, Serialize, Deserialize)]").unwrap();
+                writeln!(source, "#[derive(Clone,Debug,Serialize,Deserialize)]").unwrap();
                 if !open {
                     writeln!(source, "#[serde(deny_unknown_fields)]").unwrap();
                 }
-                writeln!(source, "pub struct {name} {{").unwrap();
+                writeln!(source, "pub struct {name}{{").unwrap();
                 let mut used = BTreeSet::new();
                 for (index, field) in fields.iter().enumerate() {
                     let original = &field.name;
@@ -121,15 +121,15 @@ pub(super) fn emit(model: &Model) -> Result<String> {
                         fallback
                     };
                     if identifier != *original {
-                        writeln!(source, "    #[serde(rename = {original:?})]").unwrap();
+                        writeln!(source, "    #[serde(rename={original:?})]").unwrap();
                     }
                     let ty = if field.required {
                         format!("Box<{}>", field.ty)
                     } else {
-                        writeln!(source,"    #[serde(default, skip_serializing_if = \"RequestPresence::is_missing\")]").unwrap();
+                        writeln!(source,"    #[serde(default,skip_serializing_if=\"RequestPresence::is_missing\")]").unwrap();
                         format!("RequestPresence<Box<{}>>", field.ty)
                     };
-                    writeln!(source, "    pub r#{identifier}: {ty},").unwrap();
+                    writeln!(source, "    pub r#{identifier}:{ty},").unwrap();
                 }
                 if *open {
                     // This map represents only the schema's explicitly open
@@ -151,7 +151,7 @@ pub(super) fn emit(model: &Model) -> Result<String> {
 }
 
 fn transparent(source: &mut String, name: &str, inner: &str) {
-    writeln!(source,"#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(transparent)]\npub struct {name}(pub {inner});").unwrap();
+    writeln!(source,"#[derive(Clone,Debug,Serialize,Deserialize)]\n#[serde(transparent)]\npub struct {name}(pub {inner});").unwrap();
 }
 
 fn literal(source: &mut String, name: &str, value: &serde_json::Value) -> Result<()> {
@@ -175,7 +175,7 @@ fn literal(source: &mut String, name: &str, value: &serde_json::Value) -> Result
     };
     // String's expected expression is a &str, which serializes identically
     // without an allocation. Other literal expressions have explicit widths.
-    writeln!(source, "request_literal!({name}, {ty}, {expected});").unwrap();
+    writeln!(source, "request_literal!({name},{ty},{expected});").unwrap();
     Ok(())
 }
 
@@ -189,7 +189,7 @@ fn rust_field(name: &str) -> bool {
 }
 
 fn sequence(source: &mut String, name: &str, items: &[String]) {
-    writeln!(source, "#[derive(Clone, Debug)]\npub struct {name} {{").unwrap();
+    writeln!(source, "#[derive(Clone,Debug)]\npub struct {name}{{").unwrap();
     for (index, ty) in items.iter().enumerate() {
         writeln!(source, "    pub item_{index}: Box<{ty}>,").unwrap();
     }
@@ -252,11 +252,11 @@ mod tests {
         };
         let source = emit(&model).unwrap();
         assert!(source.contains("Choice0(Box<RequestType0001>)"));
-        assert!(source.contains("pub r#body: Box<RequestType0000>"));
+        assert!(source.contains("pub r#body:Box<RequestType0000>"));
         assert!(source.contains("pub struct RequestType0002(pub Vec<Box<RequestType0003>>);"));
         assert!(source.contains("pub struct RequestType0003(pub Box<RequestType0000>);"));
         assert!(source.contains("#[serde(deny_unknown_fields)]"));
-        assert!(!source.contains("= Value"));
+        assert!(!source.contains("=Value"));
         assert!(!source.contains("pub type RequestType0003"));
     }
 
@@ -308,11 +308,11 @@ mod tests {
             params: BTreeMap::new(),
         };
         let source = emit(&model).unwrap();
-        assert!(source.contains("pub r#required_nullable: Box<RequestType0001>"));
-        assert!(source.contains("pub r#optional_nullable: RequestPresence<Box<RequestType0001>>"));
+        assert!(source.contains("pub r#required_nullable:Box<RequestType0001>"));
+        assert!(source.contains("pub r#optional_nullable:RequestPresence<Box<RequestType0001>>"));
         assert_eq!(source.matches("#[serde(default,").count(), 1);
-        assert!(source.contains("pub r#field_2_: Box<RequestType0001>"));
-        assert!(source.contains("#[serde(rename = \"self\")]"));
+        assert!(source.contains("pub r#field_2_:Box<RequestType0001>"));
+        assert!(source.contains("#[serde(rename=\"self\")]"));
         assert!(!source.contains("pub r#self:"));
     }
 

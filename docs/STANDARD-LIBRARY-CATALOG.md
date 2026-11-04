@@ -1439,6 +1439,31 @@ fn is_string(input: borrow Slice<u8>) -> bool
 
 Package `std/data-json-dec`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.data.json.dec = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
+### `std.data.json.dec.string-scan`
+
+```semaprax
+record StringScan {
+    end: usize,
+    decoded_length: usize,
+}
+```
+
+### `std.data.json.dec.decoded-step`
+
+A bounded decoded-key fingerprint `length * 65536 + hash`. The hash folds
+the token's canonical decoded bytes as `(hash * 257 + byte) % 65521`, and
+`length` is its decoded byte count in 1..=limit. Zero means the token is
+not a complete JSON string of that size; the walk stops at the first
+decoded byte past `limit`. Equal fingerprints never prove equal keys.
+
+```semaprax
+record DecodedStep {
+    value: i64,
+    next: usize,
+    part: usize,
+}
+```
+
 ### `std.data.json.dec.at_is`
 
 ```semaprax
@@ -1523,6 +1548,19 @@ fn byte_code(byte: u8) -> i64
 fn code_byte(value: i64) -> u8
 ```
 
+### `std.data.json.dec.scalar-at-prior`
+
+```semaprax
+fn scalar_at_prior(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+```
+
+### `std.data.json.dec.escape-end-prior`
+
+```semaprax
+fn escape_end_prior(input: borrow Slice<u8>, start: usize) -> usize
+```
+
 ### `std.data.json.dec.scalar_at`
 
 ```semaprax
@@ -1556,6 +1594,12 @@ fn emit_len(input: borrow Slice<u8>, index: usize) -> usize
 ```semaprax
 fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.dec.scan-string-info`
+
+```semaprax
+fn scan_string_info(input: borrow Slice<u8>, start: usize) -> StringScan
 ```
 
 ### `std.data.json.dec.scan-string`
@@ -1630,13 +1674,13 @@ fn decoded_byte_at(input: borrow Slice<u8>, index: usize, part: usize) -> usize
     ensures result <= 256usize
 ```
 
-### `std.data.json.dec.decoded_fingerprint`
+### `std.data.json.dec.pull-step`
 
-A bounded decoded-key fingerprint `length * 65536 + hash`. The hash folds
-the token's canonical decoded bytes as `(hash * 257 + byte) % 65521`, and
-`length` is its decoded byte count in 1..=limit. Zero means the token is
-not a complete JSON string of that size; the walk stops at the first
-decoded byte past `limit`. Equal fingerprints never prove equal keys.
+```semaprax
+fn pull_step(input: borrow Slice<u8>, index: usize, part: usize) -> DecodedStep
+```
+
+### `std.data.json.dec.decoded_fingerprint`
 
 ```semaprax
 fn decoded_fingerprint(input: borrow Slice<u8>, start: usize, limit: usize) -> usize
@@ -2188,6 +2232,8 @@ fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize
 ```
 
 ### `std.data.json.utf8.utf8_end`
+
+Eight checked bytes may advance together only when every high bit is zero.
 
 ```semaprax
 fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize
@@ -4594,6 +4640,7 @@ of the first line-feed at or after `start`, or the view length when the view
 carries no further terminator.  A line's content excludes that line feed and
 one immediately preceding carriage return, so canonical LF and CRLF inputs
 yield the same content bytes.
+A bounded lookahead returns the first LF offset in the complete block;
 
 ```semaprax
 fn line_end(view: borrow Slice<u8>, start: usize) -> usize
@@ -6643,11 +6690,6 @@ fn compile(state: own Matcher, pattern: borrow Slice<u8>, work_limit: usize) -> 
 
 ### `std.pattern.full-match`
 
-Provisional compiled header: SPAC, version 1, ready=1, atom/class/capture
-counts, then zeros through byte 63. Each used atom occupies eight bytes:
-kind (0 literal, 1 any, 2 class), value, u16 minimum, u32 maximum.
-0xffffffff denotes an unbounded maximum. No unused frame is ever loaded.
-
 ```semaprax
 fn full_match(state: own Matcher, input: borrow Slice<u8>, work_limit: usize) -> Matcher
     requires carrier_valid(state)
@@ -6689,7 +6731,7 @@ fn reason(state: borrow Matcher) -> usize
 ```semaprax
 fn detail(state: borrow Matcher) -> usize
     requires result_valid(state)
-    ensures read(state, 2701usize) >= 3usize || result == 0usize
+    ensures funded_carrier_read_1(state, 2701usize) >= 3usize || result == 0usize
 ```
 
 ### `std.pattern.detail-domain`
@@ -6723,7 +6765,7 @@ fn work_used(state: borrow Matcher) -> usize
 
 ```semaprax
 fn capture_start(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    requires result_valid(state) && funded_carrier_read_1(state, 2701usize) == 1usize && capture < funded_carrier_read_1(state, 2702usize)
     ensures result <= 65536usize
 ```
 
@@ -6731,7 +6773,7 @@ fn capture_start(state: borrow Matcher, capture: usize) -> usize
 
 ```semaprax
 fn capture_end(state: borrow Matcher, capture: usize) -> usize
-    requires result_valid(state) && read(state, 2701usize) == 1usize && capture < read(state, 2702usize)
+    requires result_valid(state) && funded_carrier_read_1(state, 2701usize) == 1usize && capture < funded_carrier_read_1(state, 2702usize)
     ensures result <= 65536usize
 ```
 

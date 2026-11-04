@@ -8,9 +8,22 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 /// Every compiler-owned byte operation, with the exact ownership its published
 /// parameters carry in left-to-right order. The arity is the list's length.
-const OPERATIONS: [(&str, &str, &[&str]); 14] = [
+const OPERATIONS: [(&str, &str, &[&str]); 17] = [
     ("core.bytes.len", "byte_len", &["borrow"]),
     ("core.bytes.get", "byte_get", &["borrow", "value"]),
+    (
+        "core.bytes.read-le",
+        "byte_read_le",
+        &["borrow", "value", "value"],
+    ),
+    ("core.bytes.zero-prefix", "byte_zero_prefix", &["borrow"]),
+    (
+        "core.bytes.prefix-class",
+        "byte_prefix_class",
+        &[
+            "borrow", "value", "value", "value", "value", "value", "value",
+        ],
+    ),
     (
         "core.bytes.range",
         "byte_range",
@@ -125,8 +138,8 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    // Fourteen byte operations and nine String operations.
-    assert_eq!(rows.len(), 23);
+    // Seventeen byte operations and nine String operations.
+    assert_eq!(rows.len(), 26);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")
@@ -178,8 +191,8 @@ fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operati
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    // All fourteen byte operations and nine String operations are exact.
-    assert_eq!(builtins.len(), 23);
+    // All seventeen byte operations and nine String operations are exact.
+    assert_eq!(builtins.len(), 26);
     assert_eq!(
         builtins
             .iter()
@@ -189,6 +202,20 @@ fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operati
             .count(),
         OPERATIONS.len()
     );
+    for (id, arity) in [
+        ("core.bytes.read-le", 3),
+        ("core.bytes.zero-prefix", 1),
+        ("core.bytes.prefix-class", 7),
+    ] {
+        let row = builtins
+            .iter()
+            .find(|row| row["properties"]["target"]["const"] == id)
+            .unwrap();
+        assert_eq!(row["additionalProperties"], false);
+        assert_eq!(row["required"], json!(["kind", "target", "arguments"]));
+        assert_eq!(row["properties"]["arguments"]["minItems"], arity);
+        assert_eq!(row["properties"]["arguments"]["maxItems"], arity);
+    }
     for (id, _, ownership) in OPERATIONS {
         let arity = ownership.len();
         let row = builtins

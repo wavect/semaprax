@@ -163,7 +163,7 @@ fn all_languages_emit_deterministic_typed_responses_for_only_selected_methods() 
                     .all(|line| !line.contains("Presence<") && !line.contains("Option<")));
                 assert!(source
                     .lines()
-                    .any(|line| line.contains("pub r#frontend_work: Presence<")));
+                    .any(|line| line.contains("pub r#frontend_work:Presence<")));
             }
             if policy.candidate_prepare && language == "typescript" {
                 assert!(source.contains("\"next_offset\":"));

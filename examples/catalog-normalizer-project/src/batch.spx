@@ -19,21 +19,27 @@ use function @id("catalog_normalizer.enrichment.outcome") from catalog_normalize
 use function @id("catalog_normalizer.enrichment.is-terminal") from catalog_normalizer.enrichment as enrichment_terminal;
 use function @id("catalog_normalizer.enrichment.failure-category") from catalog_normalizer.enrichment as enrichment_failure_category;
 
-// A terminal LF closes the last record; it never creates an additional one.
-// The one-byte LF body therefore contains zero records.
+@id("catalog_normalizer.batch.validation-summary")
+record ValidationSummary {
+    @id("catalog_normalizer.batch.validation-summary.failure")
+    failure: usize,
+    @id("catalog_normalizer.batch.validation-summary.total")
+    total: i64,
+    @id("catalog_normalizer.batch.validation-summary.count")
+    count: usize,
+}
+
 @id("catalog_normalizer.batch.record-count")
 fn record_count(body: borrow Slice<u8>) -> usize
 {
     let length = byte_len(body);
+    let stop = if length > 0usize { length - 1usize } else { 0usize };
     let mut index = 0usize;
-    let mut count = 0usize;
-    let mut at_start = true;
-    while index < length {
-        let byte = match byte_get(body, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
-        count = if at_start { count + 1usize } else { count };
-        at_start = byte == 10u8;
-        index = index + 1usize;
-        index < length
+    let mut count = if length > 0usize { 1usize } else { 0usize };
+    while index < stop {
+        index = index + byte_prefix_class(body, index, stop - index, 0u8, 255u8, 10u8, 10u8);
+        if index < stop { count = count + 1usize; index = index + 1usize; }
+        0
     }
     let only_line = length == 1usize && match byte_get(body, 0usize) { Option::Some { value } => value == 10u8, Option::None {} => false, };
     if only_line { 0usize } else { count }
@@ -291,8 +297,8 @@ fn provider_failure_if(line: borrow Slice<u8>, enriched: bool, regular: usize, r
     if regular != 0usize { regular } else { if enriched { let provider = enrichment_outcome(line, id); if enrichment_terminal(provider) { pack_failure(enrichment_failure_category(provider), record + 1usize, id) } else { 0usize } } else { 0usize } }
 }
 
-@id("catalog_normalizer.batch.scan-first-failure")
-fn scan_first_failure(body: borrow Slice<u8>, enriched: bool) -> usize
+@id("catalog_normalizer.batch.scan-validation")
+fn scan_validation(body: borrow Slice<u8>, enriched: bool) -> ValidationSummary
 {
     let count = record_count(body);
     let whole = body_too_long(body);
@@ -334,16 +340,26 @@ fn scan_first_failure(body: borrow Slice<u8>, enriched: bool) -> usize
             comparing = !duplicate && candidate > 0usize;
             comparing
         }
-        let regular = indexed_record_failure(body, record, start, end, total, basic, id, duplicate);
+        // The same accepted current record supplies overflow checking and the
+        // successful total update; no second quantity scan is needed.
+        let quantity = if basic == 0usize && !duplicate { valid_record_quantity(body, start, end) } else { 0 };
+        let regular = if basic != 0usize { basic } else { if duplicate { pack_failure(5usize, record + 1usize, id) } else { if total_would_overflow(total, quantity) { pack_failure(6usize, record + 1usize, id) } else { 0usize } } };
         failure = provider_failure_if(line, enriched, regular, record, id);
         let _ = if failure == 0usize { let previous = vec_get<usize>(heads, bucket); links = vec_push<usize>(links, previous); heads = vec_set<usize>(heads, bucket, record + 1usize); index = vec_push<usize>(index, fingerprint_entry(start + id, fingerprint)); 0usize } else { 0usize };
-        total = if failure == 0usize { total_after(total, valid_record_quantity(body, start, end)) } else { total };
+        total = if failure == 0usize { total_after(total, quantity) } else { total };
         record = if failure == 0usize { record + 1usize } else { count };
         start = end + 1usize;
         scanning = failure == 0usize && record < count;
         scanning
     }
-    failure
+    ValidationSummary { failure: failure, total: total, count: count }
+}
+
+@id("catalog_normalizer.batch.scan-first-failure")
+fn scan_first_failure(body: borrow Slice<u8>, enriched: bool) -> usize
+{
+    let summary = scan_validation(body, enriched);
+    summary.failure
 }
 
 @id("catalog_normalizer.batch.first-failure")

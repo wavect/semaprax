@@ -352,6 +352,7 @@ pub(super) fn require_admitted_while_operation(
             | crate::byte_ops::ByteOp::Get
             | crate::byte_ops::ByteOp::ReadLe
             | crate::byte_ops::ByteOp::ZeroPrefix
+            | crate::byte_ops::ByteOp::PrefixClass
     ) || args.len() != operation.arity()
         || args
             .iter()

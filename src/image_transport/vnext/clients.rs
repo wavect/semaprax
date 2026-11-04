@@ -123,8 +123,17 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\npub const CLIENT_CONTRACT_REVISION: &str = {contract_revision:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {rust_workflows};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {rust_metadata};\n{}\n",include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
-    source.push_str(&typed.source);
-    source.push_str(&typed_requests.source);
+    for definitions in [&typed.source, &typed_requests.source] {
+        if language == "rust" {
+            // These Rust templates emit data literals on one physical line.
+            // Leading indentation is presentation only; retain every token.
+            for line in definitions.lines() {
+                writeln!(source, "{}", line.trim_start()).unwrap();
+            }
+        } else {
+            source.push_str(definitions);
+        }
+    }
     let mut public_names = BTreeSet::new();
     for descriptor in methods {
         let method = descriptor["method"].as_str().unwrap();

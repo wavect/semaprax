@@ -1,4 +1,6 @@
 module catalog_normalizer.record;
+use type @id("std.data.json.dec.string-scan") from std.data.json.dec as StringScan;
+use function @id("std.data.json.dec.scan-string-info") from std.data.json.dec as scan_string_info;
 use function @id("std.data.json.dec.decoded_len") from std.data.json.dec as decoded_len;
 use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_failure;
 use function @id("std.data.json.dec.emit_at") from std.data.json.dec as emit_at;
@@ -8,6 +10,7 @@ use function @id("std.data.json.doc.at_in") from std.data.json.doc as at_in;
 use function @id("std.data.json.doc.skip_space") from std.data.json.doc as skip_space;
 use function @id("std.data.json.doc.string_end") from std.data.json.doc as doc_string_end;
 use function @id("std.data.json.doc.document_end") from std.data.json.doc as document_end;
+use function @id("std.data.json.doc.digits_end") from std.data.json.doc as digits_end;
 use function @id("std.data.json.doc.whole_end") from std.data.json.doc as whole_end;
 use function @id("catalog_normalizer.limits.max_id_bytes") from catalog_normalizer.limits as max_id_bytes;
 use function @id("catalog_normalizer.limits.max_label_bytes") from catalog_normalizer.limits as max_label_bytes;
@@ -208,6 +211,40 @@ fn quantity_or(line: borrow Slice<u8>, start: usize, fallback: i64) -> i64
     if bad || tail { fallback } else { 0 - value }
 }
 
+// Exact current-byte recognition of the compact key order. Other orders,
+// whitespace and unsupported value shapes retain the complete member walker.
+@id("catalog_normalizer.record.compact-id-prefix")
+fn compact_id_prefix(line: borrow Slice<u8>) -> bool
+{
+    match byte_read_le(line, 0usize, 6usize) { Option::Some { value } => value == 63919387910779usize, Option::None {} => false, }
+}
+
+@id("catalog_normalizer.record.compact-label-value")
+fn compact_label_value(line: borrow Slice<u8>) -> usize
+{
+    let missing = byte_len(line) + 1usize;
+    if compact_id_prefix(line) && at_in(line, 6usize, 34u8, 34u8) { let end = doc_string_end(line, 6usize); let marker = match byte_read_le(line, end, 8usize) { Option::Some { value } => value == 2480468967989977644usize, Option::None {} => false, }; if marker && at_in(line, end + 8usize, 58u8, 58u8) { skip_space(line, end + 9usize) } else { missing } } else { missing }
+}
+
+@id("catalog_normalizer.record.compact-quantity-value")
+fn compact_quantity_value(line: borrow Slice<u8>) -> usize
+{
+    let missing = byte_len(line) + 1usize;
+    let label = compact_label_value(line);
+    if label < byte_len(line) && at_in(line, label, 34u8, 34u8) { let end = doc_string_end(line, label); let first = match byte_read_le(line, end, 8usize) { Option::Some { value } => value == 7598819836142101036usize, Option::None {} => false, }; let last = match byte_read_le(line, end + 8usize, 4usize) { Option::Some { value } => value == 975337844usize, Option::None {} => false, }; if first && last { skip_space(line, end + 12usize) } else { missing } } else { missing }
+}
+
+// This fast path grants only success after proving the complete object grammar,
+// all three exact keys, both fully decoded string bounds, canonical integer
+// spelling/magnitude and exact EOF. Every other subject uses the original
+// structural -> key decode -> schema -> value pipeline, including its precedence.
+@id("catalog_normalizer.record.compact-record-valid")
+fn compact_record_valid(line: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(line);
+    if !compact_id_prefix(line) { false } else { let id = scan_string_info(line, 6usize); if id.end > length || id.decoded_length < 1usize || id.decoded_length > max_id_bytes() { false } else { let label_key = match byte_read_le(line, id.end, 8usize) { Option::Some { value } => value == 2480468967989977644usize, Option::None {} => false, }; if !label_key || !at_in(line, id.end + 8usize, 58u8, 58u8) { false } else { let label = scan_string_info(line, skip_space(line, id.end + 9usize)); if label.end > length || label.decoded_length > max_label_bytes() { false } else { let first = match byte_read_le(line, label.end, 8usize) { Option::Some { value } => value == 7598819836142101036usize, Option::None {} => false, }; let last = match byte_read_le(line, label.end + 8usize, 4usize) { Option::Some { value } => value == 975337844usize, Option::None {} => false, }; if !first || !last { false } else { let quantity = skip_space(line, label.end + 12usize); let end = digits_end(line, quantity); end <= length && (!at_in(line, quantity, 48u8, 48u8) || end == quantity + 1usize) && at_in(line, end, 125u8, 125u8) && end + 1usize == length && quantity_or(line, quantity, -1) >= 0 } } } } }
+}
+
 // CNORM-006..011 per-record classification.  The key set is checked before
 // values; once the set is exact, value checks run in the stable id, label,
 // quantity order.  The batch coordinator can therefore stop on its first
@@ -247,8 +284,7 @@ fn value_problem(line: borrow Slice<u8>) -> usize
 @id("catalog_normalizer.record.record-problem")
 fn record_problem(line: borrow Slice<u8>) -> usize
 {
-    let keys = structure_and_key_problem(line);
-    if keys != 0usize { keys } else { value_problem(line) }
+    if compact_record_valid(line) { 0usize } else { let keys = structure_and_key_problem(line); if keys != 0usize { keys } else { value_problem(line) } }
 }
 
 // Validated callers use this token position for duplicate-id and overflow
@@ -259,7 +295,7 @@ fn id_value(line: borrow Slice<u8>) -> usize
     // After record_problem accepts the line, an exact first id key needs
     // only the whitespace after its colon located. Other key orders and
     // whitespace before the key retain the general member walker.
-    let first_key = at_in(line, 0usize, 123u8, 123u8) && at_in(line, 1usize, 34u8, 34u8) && at_in(line, 2usize, 105u8, 105u8) && at_in(line, 3usize, 100u8, 100u8) && at_in(line, 4usize, 34u8, 34u8) && at_in(line, 5usize, 58u8, 58u8);
+    let first_key = compact_id_prefix(line);
     let compact = if first_key { skip_space(line, 6usize) } else { byte_len(line) + 1usize };
     if first_key && at_in(line, compact, 34u8, 34u8) { compact } else { field_value(line, 1usize) }
 }
@@ -267,13 +303,15 @@ fn id_value(line: borrow Slice<u8>) -> usize
 @id("catalog_normalizer.record.quantity-value")
 fn quantity_value(line: borrow Slice<u8>) -> usize
 {
-    field_value(line, 3usize)
+    let compact = compact_quantity_value(line);
+    if compact <= byte_len(line) { compact } else { field_value(line, 3usize) }
 }
 
 @id("catalog_normalizer.record.label-value")
 fn label_value(line: borrow Slice<u8>) -> usize
 {
-    field_value(line, 2usize)
+    let compact = compact_label_value(line);
+    if compact <= byte_len(line) { compact } else { field_value(line, 2usize) }
 }
 
 // One pair-step walks both decoded tokens once.  Its packed result carries

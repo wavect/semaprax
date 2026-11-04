@@ -67,6 +67,7 @@ fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize
     match width { 1 => start + 1usize, 2 => start + 2usize, 3 => start + 3usize, 4 => start + 4usize, _ => byte_len(input) + 1usize + start, }
 }
 
+// Eight checked bytes may advance together only when every high bit is zero.
 @id("std.data.json.utf8.utf8_end")
 fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize
 {
@@ -76,15 +77,12 @@ fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize
     let mut bad = false;
     let mut scanning = index < length;
     while scanning {
-        // ASCII advances once; absent/non-ASCII retains the original checked path.
-        let step = match byte_get(input, index) { Option::Some { value: byte } => if byte < 128u8 { index + 1usize } else { sequence_end(input, index) }, Option::None {} => sequence_end(input, index), };
-        bad = step > byte_len(input);
-        fault = if bad { index } else { fault };
-        index = if bad { index } else { step };
+        index = index + byte_prefix_class(input, index, length - index, 0u8, 127u8, 255u8, 255u8);
+        if index < length { let step = sequence_end(input, index); bad = step > length; fault = if bad { index } else { fault }; index = if bad { index } else { step }; }
         scanning = !bad && index < length;
         scanning
     }
-    if bad { byte_len(input) + 1usize + fault } else { index }
+    if bad { length + 1usize + fault } else { index }
 }
 
 @id("std.data.json.utf8.is_utf8")

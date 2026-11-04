@@ -19,6 +19,8 @@ pub(crate) const GET_NAME: &str = "byte_get";
 pub(crate) const READ_LE_NAME: &str = "byte_read_le";
 pub(crate) const ZERO_PREFIX_NAME: &str = "byte_zero_prefix";
 pub(crate) const ZERO_PREFIX_ID: &str = "core.bytes.zero-prefix";
+pub(crate) const PREFIX_CLASS_NAME: &str = "byte_prefix_class";
+pub(crate) const PREFIX_CLASS_ID: &str = "core.bytes.prefix-class";
 pub(crate) const READ_LE_ID: &str = "core.bytes.read-le";
 pub(crate) const LEN_ID: &str = "core.bytes.len";
 pub(crate) const GET_ID: &str = "core.bytes.get";
@@ -92,6 +94,8 @@ pub(crate) enum ByteOp {
     ReadLe,
     /// Number of leading zero bytes, stopping before the first nonzero byte.
     ZeroPrefix,
+    /// Count a bounded prefix in an inclusive byte class, excluding two stops.
+    PrefixClass,
     Range,
     Copy,
     BytesAsSlice,
@@ -118,11 +122,12 @@ pub(crate) enum ByteOp {
 }
 
 impl ByteOp {
-    pub(crate) const ALL: [Self; 16] = [
+    pub(crate) const ALL: [Self; 17] = [
         Self::Len,
         Self::Get,
         Self::ReadLe,
         Self::ZeroPrefix,
+        Self::PrefixClass,
         Self::Range,
         Self::Copy,
         Self::BytesAsSlice,
@@ -144,6 +149,7 @@ impl ByteOp {
             Self::Get => GET_NAME,
             Self::ReadLe => READ_LE_NAME,
             Self::ZeroPrefix => ZERO_PREFIX_NAME,
+            Self::PrefixClass => PREFIX_CLASS_NAME,
             Self::Range => RANGE_NAME,
             Self::Copy => COPY_NAME,
             Self::BytesAsSlice => BYTES_AS_SLICE_NAME,
@@ -165,6 +171,7 @@ impl ByteOp {
             Self::Get => GET_ID,
             Self::ReadLe => READ_LE_ID,
             Self::ZeroPrefix => ZERO_PREFIX_ID,
+            Self::PrefixClass => PREFIX_CLASS_ID,
             Self::Range => RANGE_ID,
             Self::Copy => COPY_ID,
             Self::BytesAsSlice => BYTES_AS_SLICE_ID,
@@ -184,7 +191,7 @@ impl ByteOp {
             Self::Len | Self::ZeroPrefix => 1,
             Self::Get | Self::ZeroedBounded => 2,
             Self::Range | Self::Set | Self::Partition | Self::ReadLe => 3,
-            Self::Set5 => 7,
+            Self::Set5 | Self::PrefixClass => 7,
             Self::Set1Or5 | Self::Set1Or6Or48 => 5,
             Self::Copy
             | Self::BytesAsSlice
@@ -203,6 +210,15 @@ impl ByteOp {
             ],
             Self::Len | Self::ZeroPrefix => &[ResolvedType::SliceU8],
             Self::Get => &[ResolvedType::SliceU8, ResolvedType::Usize],
+            Self::PrefixClass => &[
+                ResolvedType::SliceU8,
+                ResolvedType::Usize,
+                ResolvedType::Usize,
+                ResolvedType::U8,
+                ResolvedType::U8,
+                ResolvedType::U8,
+                ResolvedType::U8,
+            ],
             Self::ReadLe => &[
                 ResolvedType::SliceU8,
                 ResolvedType::Usize,
@@ -254,7 +270,7 @@ impl ByteOp {
                 declaration: DeclarationId::compiler(CompilerDeclaration::Vec),
                 arguments: vec![ResolvedType::Bytes],
             },
-            Self::Len | Self::ZeroPrefix => ResolvedType::Usize,
+            Self::Len | Self::ZeroPrefix | Self::PrefixClass => ResolvedType::Usize,
             Self::Get => ResolvedType::Nominal {
                 declaration: DeclarationId::compiler(CompilerDeclaration::Option),
                 arguments: vec![ResolvedType::U8],
@@ -281,7 +297,7 @@ impl ByteOp {
                 name: "Vec".to_owned(),
                 arguments: vec![Type::Bytes],
             },
-            Self::Len | Self::ZeroPrefix => Type::Usize,
+            Self::Len | Self::ZeroPrefix | Self::PrefixClass => Type::Usize,
             Self::Get => Type::Named {
                 name: "Option".to_owned(),
                 arguments: vec![Type::U8],
@@ -311,6 +327,9 @@ impl ByteOp {
             (Self::Get, 0) => *ty == ResolvedType::SliceU8,
             (Self::Get, 1) => *ty == ResolvedType::Usize,
             (Self::ReadLe, 0) => *ty == ResolvedType::SliceU8,
+            (Self::PrefixClass, 0) => *ty == ResolvedType::SliceU8,
+            (Self::PrefixClass, 1 | 2) => *ty == ResolvedType::Usize,
+            (Self::PrefixClass, 3..=6) => *ty == ResolvedType::U8,
             (Self::ReadLe, 1 | 2) => *ty == ResolvedType::Usize,
             (Self::Range, 0) => *ty == ResolvedType::SliceU8,
             (Self::Range, 1 | 2) => *ty == ResolvedType::Usize,
@@ -345,6 +364,9 @@ impl ByteOp {
             (Self::Get, 0) => *ty == Type::SliceU8,
             (Self::Get, 1) => *ty == Type::Usize,
             (Self::ReadLe, 0) => *ty == Type::SliceU8,
+            (Self::PrefixClass, 0) => *ty == Type::SliceU8,
+            (Self::PrefixClass, 1 | 2) => *ty == Type::Usize,
+            (Self::PrefixClass, 3..=6) => *ty == Type::U8,
             (Self::ReadLe, 1 | 2) => *ty == Type::Usize,
             (Self::Range, 0) => *ty == Type::SliceU8,
             (Self::Range, 1 | 2) => *ty == Type::Usize,
@@ -408,6 +430,7 @@ impl ByteOp {
                 | Self::Get
                 | Self::ReadLe
                 | Self::ZeroPrefix
+                | Self::PrefixClass
                 | Self::Range
                 | Self::Set
                 | Self::Set5
@@ -441,6 +464,7 @@ impl ByteOp {
             Self::Partition => &["value", "count", "width"],
             Self::Get => &["value", "index"],
             Self::ReadLe => &["value", "index", "width"],
+            Self::PrefixClass => &["value", "index", "limit", "low", "high", "stop1", "stop2"],
             Self::Range => &["value", "start", "end"],
             Self::Len
             | Self::ZeroPrefix
@@ -486,6 +510,7 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
         GET_NAME => Some(ByteOp::Get),
         READ_LE_NAME => Some(ByteOp::ReadLe),
         ZERO_PREFIX_NAME => Some(ByteOp::ZeroPrefix),
+        PREFIX_CLASS_NAME => Some(ByteOp::PrefixClass),
         RANGE_NAME => Some(ByteOp::Range),
         COPY_NAME => Some(ByteOp::Copy),
         BYTES_AS_SLICE_NAME => Some(ByteOp::BytesAsSlice),
@@ -508,6 +533,7 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
         GET_ID => Some(ByteOp::Get),
         READ_LE_ID => Some(ByteOp::ReadLe),
         ZERO_PREFIX_ID => Some(ByteOp::ZeroPrefix),
+        PREFIX_CLASS_ID => Some(ByteOp::PrefixClass),
         RANGE_ID => Some(ByteOp::Range),
         COPY_ID => Some(ByteOp::Copy),
         BYTES_AS_SLICE_ID => Some(ByteOp::BytesAsSlice),

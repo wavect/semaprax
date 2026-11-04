@@ -1,4 +1,8 @@
 module catalog_normalizer.app;
+use type @id("std.data.json.dec.decoded-step") from std.data.json.dec as DecodedStep;
+use type @id("catalog_normalizer.batch.validation-summary") from catalog_normalizer.batch as ValidationSummary;
+use function @id("catalog_normalizer.batch.scan-validation") from catalog_normalizer.batch as scan_validation;
+use function @id("std.data.json.dec.pull-step") from std.data.json.dec as pull_step;
 use function @id("std.data.json.dec.decoded_len") from std.data.json.dec as decoded_len;
 use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_failure;
 use function @id("std.data.json.dec.emit_at") from std.data.json.dec as emit_at;
@@ -44,10 +48,11 @@ fn bytes_equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
     let mut index = 0usize;
     let mut same = length == byte_len(right);
     while index < length && same {
-        let a = match byte_get(left, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
-        let b = match byte_get(right, index) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
+        let width = if length - index >= 8usize { 8usize } else { 1usize };
+        let a = match byte_read_le(left, index, width) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0usize, };
+        let b = match byte_read_le(right, index, width) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0usize, };
         same = a == b;
-        index = index + 1usize;
+        index = index + width;
         index < length && same
     }
     same
@@ -308,13 +313,13 @@ fn escaped_len(line: borrow Slice<u8>, token: usize, start: usize, end: usize) -
     let mut emitted = 0usize;
     let mut total = 0usize;
     while emitted < end {
-        let raw = match byte_get(line, source) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, };
-        let value = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw };
-        total = if emitted >= start { total + escape_len(value) } else { total };
-        let last = part + 1usize >= emit_len(line, source);
-        source = if last { token_end(line, source) } else { source };
-        part = if last { 0usize } else { part + 1usize };
-        emitted = emitted + 1usize;
+        let plain = if part == 0usize { byte_prefix_class(line, source, end - emitted, 32u8, 255u8, 34u8, 92u8) } else { 0usize };
+        let selected_start = if emitted > start { emitted } else { start };
+        let selected_end = emitted + plain;
+        total = total + if selected_end > selected_start { selected_end - selected_start } else { 0usize };
+        source = source + plain;
+        emitted = emitted + plain;
+        if emitted < end { let raw = match byte_get(line, source) { Option::Some { value: matched_value } => matched_value, Option::None {} => 0u8, }; let step = pull_step(line, source, part); let value = dec_code_byte(step.value); total = if emitted >= start { total + escape_len(value) } else { total }; source = step.next; part = step.part; emitted = emitted + 1usize; }
         emitted < end
     }
     total
@@ -376,18 +381,15 @@ fn escape_cursor_start(line: borrow Slice<u8>, token: usize, skip: usize) -> usi
 fn escape_cursor_control(line: borrow Slice<u8>, source: usize) -> bool
 {
     let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
-    let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, 0usize)) } else { raw };
-    let low = match byte_get(line, source + 5usize) { Option::Some { value } => value, Option::None {} => 65u8, };
-    raw == 92u8 && escape_len(decoded) == 6usize && (low < 65u8 || low > 70u8)
+    if raw != 92u8 { false } else { let decoded = dec_code_byte(emit_at(line, source, 0usize)); let low = match byte_get(line, source + 5usize) { Option::Some { value } => value, Option::None {} => 65u8, }; escape_len(decoded) == 6usize && (low < 65u8 || low > 70u8) }
 }
 
 @id("catalog_normalizer.app.escape-cursor-tag")
 fn escape_cursor_tag(line: borrow Slice<u8>, cursor: usize) -> usize
 {
     let source = cursor / 32usize;
-    let part = cursor % 32usize / 8usize;
-    let escaped = cursor % 8usize;
-    if part == 0usize && escaped == 0usize && escape_cursor_control(line, source) { let mut length = 6usize; let mut contiguous = true; while length < 48usize && contiguous { contiguous = escape_cursor_control(line, source + length); length = if contiguous { length + 6usize } else { length }; length < 48usize && contiguous } if length == 48usize { 13835058055282163712usize + source } else { 9223372036854775808usize + source } } else { cursor }
+    let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
+    if raw != 92u8 { cursor } else { let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if part == 0usize && escaped == 0usize && escape_cursor_control(line, source) { let mut length = 6usize; let mut contiguous = true; while length < 48usize && contiguous { contiguous = escape_cursor_control(line, source + length); length = if contiguous { length + 6usize } else { length }; length < 48usize && contiguous } if length == 48usize { 13835058055282163712usize + source } else { 9223372036854775808usize + source } } else { cursor } }
 }
 
 @id("catalog_normalizer.app.escape-cursor-byte")
@@ -397,7 +399,7 @@ fn escape_cursor_byte(line: borrow Slice<u8>, cursor: usize) -> u8
     // Ordinary packed cursors stay below it for the bounded 65,536-byte body.
     // Only an unnamed control renders six bytes. Output parts two and three
     // are always ASCII '0', regardless of the accepted source escape.
-    if cursor >= 9223372036854775808usize { let source = if cursor >= 13835058055282163712usize { cursor - 13835058055282163712usize } else { cursor - 9223372036854775808usize }; match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 3usize { 48u8 } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; escape_byte(decoded, escaped) } }
+    if cursor >= 9223372036854775808usize { let source = if cursor >= 13835058055282163712usize { cursor - 13835058055282163712usize } else { cursor - 9223372036854775808usize }; match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 3usize { 48u8 } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; if escaped == 0usize && decoded >= 32u8 && decoded != 34u8 && decoded != 92u8 { decoded } else { escape_byte(decoded, escaped) } } }
 }
 
 @id("catalog_normalizer.app.escape-cursor-next")
@@ -406,7 +408,7 @@ fn escape_cursor_next(line: borrow Slice<u8>, cursor: usize) -> usize
     // Validation precedes this writer. Only lowercase canonical \u00hh
     // unnamed controls may enter raw-copy mode; every other escape retains
     // the decoded cursor path, including uppercase, named, and surrogate forms.
-    if cursor >= 9223372036854775808usize { if cursor >= 13835058055282163712usize { escape_cursor_tag(line, (cursor - 13835058055282163712usize + 48usize) * 32usize) } else { escape_cursor_tag(line, (cursor - 9223372036854775808usize + 6usize) * 32usize) } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 4usize { cursor + 1usize } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; let more_escape = escaped + 1usize < escape_len(decoded); let last = part + 1usize >= emit_len(line, source); let next_source = if more_escape { source } else { if last { token_end(line, source) } else { source } }; let next_part = if more_escape { part } else { if last { 0usize } else { part + 1usize } }; let next_escape = if more_escape { escaped + 1usize } else { 0usize }; escape_cursor_tag(line, next_source * 32usize + next_part * 8usize + next_escape) } }
+    if cursor >= 9223372036854775808usize { if cursor >= 13835058055282163712usize { escape_cursor_tag(line, (cursor - 13835058055282163712usize + 48usize) * 32usize) } else { escape_cursor_tag(line, (cursor - 9223372036854775808usize + 6usize) * 32usize) } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 4usize { cursor + 1usize } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; if raw >= 32u8 && raw != 34u8 && raw != 92u8 && part == 0usize && escaped == 0usize { escape_cursor_tag(line, (source + 1usize) * 32usize) } else { let step = pull_step(line, source, part); match step { DecodedStep { value, next, part: next_part } => { let decoded = dec_code_byte(value); let more_escape = escaped + 1usize < escape_len(decoded); let following_source = if more_escape { source } else { next }; let following_part = if more_escape { part } else { next_part }; let next_escape = if more_escape { escaped + 1usize } else { 0usize }; escape_cursor_tag(line, following_source * 32usize + following_part * 8usize + next_escape) }, } } } }
 }
 
 @id("catalog_normalizer.app.success-total")
@@ -607,13 +609,15 @@ fn output_cursor_next(body: borrow Slice<u8>, active: bool, cursor: usize) -> us
     if active { escape_cursor_next(body, cursor) } else { cursor }
 }
 
-@id("catalog_normalizer.app.shared-success-response")
-fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
+@id("catalog_normalizer.app.shared-success-response-prior")
+fn shared_success_response_prior(body: borrow Slice<u8>, enriched: bool, output: own Bytes) -> Bytes
 {
+    let literals = "{\"status\":\"ok\",\"count\":,\"total_quantity\":,\"records\":[{\"id\":\"\",\"label\":\"\",\"quantity\":,\"category\":";
+    let literal_view = str_as_bytes(string_as_str(literals));
     let count = record_count(body);
     let total = success_total(body);
     let terminal_phase = if enriched { 48usize } else { 13usize };
-    let mut out = bytes_zeroed(69710usize);
+    let mut out = output;
     let mut index = 0usize;
     let mut phase = 0usize;
     let mut part = 0usize;
@@ -634,19 +638,167 @@ fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
     let mut segment = 0usize;
     while phase < terminal_phase {
         let _ = if part == 0usize { phase = output_phase_after_empty_label(phase, label_length); segment = output_phase_len(enriched, phase, count, total, record, id_length, label_length, quantity); true } else { false };
-        let cursor = output_cursor(phase, id_cursor, label_cursor);
-        let value = output_byte(body, cursor, phase, part, count, total, id_cursor, quantity);
-        out = bytes_set1_or6_or48_from_slice(out, index, value, body, cursor);
-        let width = output_width(cursor);
+        let literal_offset = match phase { 0usize => 0usize, 2usize => 23usize, 4usize => 41usize, 5usize => 53usize, 7usize => 60usize, 9usize => 71usize, 16usize => 84usize, _ => 18446744073709551615usize, };
+        let bulk_literal = literal_offset != 18446744073709551615usize && segment - part >= 6usize;
+        let cursor = if phase == 6usize { id_cursor } else { if phase == 8usize { label_cursor } else { 0usize } };
+        let width = if bulk_literal { 6usize } else { if cursor >= 13835058055282163712usize { 48usize } else { if cursor >= 9223372036854775808usize { 6usize } else { 1usize } } };
+        let value = if bulk_literal || cursor >= 9223372036854775808usize { 0u8 } else { if phase == 8usize { response_label_byte(body, cursor) } else { response_phase_byte(body, phase, part, count, total, id_cursor, quantity) } };
+        if bulk_literal { out = bytes_set1_or6_or48_from_slice(out, index, value, literal_view, 9223372036854775808usize + literal_offset + part); } else { out = bytes_set1_or6_or48_from_slice(out, index, value, body, cursor); }
         index = index + width;
         let advanced_part = part + width;
         let done = advanced_part >= segment;
-        id_cursor = output_cursor_next(body, phase == 6usize, id_cursor);
-        label_cursor = output_cursor_next(body, phase == 8usize, label_cursor);
+        if phase == 6usize { id_cursor = escape_cursor_next(body, id_cursor); }
+        if phase == 8usize { label_cursor = escape_cursor_next(body, label_cursor); }
         if done { let next_record_value = output_next_record(enriched, true, phase, record); let changed_record = next_record_value != record && next_record_value < count; phase = output_next_phase(enriched, true, phase, count, record, outcome); part = 0usize; record = next_record_value; if changed_record { record_start = record_end + 1usize; record_end = line_end(body, record_start); id = field_if(body, true, record_start, record_end, 1usize, id); label = field_if(body, true, record_start, record_end, 2usize, label); id_length = escaped_len(body, id, 0usize, decoded_len(body, id)); let next_layout = label_layout(body, label, true); label_start = next_layout / 2048usize; label_length = next_layout % 2048usize; id_cursor = escape_cursor_start(body, id, 0usize); label_cursor = escape_cursor_start(body, label, label_start); quantity = valid_record_quantity(body, record_start, record_end); outcome = outcome_if(body, enriched, id, outcome); phase < terminal_phase } else { phase < terminal_phase } } else { part = advanced_part; phase < terminal_phase }
     }
     let view = bytes_as_slice(out);
     bytes_copy(byte_range(view, 0usize, index))
+}
+
+@id("catalog_normalizer.app.plain-success-response")
+fn plain_success_response(body: borrow Slice<u8>, output: own Bytes, count: usize, total: i64) -> Bytes
+{
+    let mut out = output;
+    let mut index = 0usize;
+    out = bytes_set5(out, index, 123u8, 34u8, 115u8, 116u8, 97u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 116u8, 117u8, 115u8, 34u8, 58u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 34u8, 111u8, 107u8, 34u8, 44u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 34u8, 99u8, 111u8, 117u8, 110u8);
+    index = index + 5usize;
+    out = bytes_set(out, index, 116u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 34u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 58u8);
+    index = index + 1usize;
+    let mut part = 0usize;
+    while part < usize_len(count) {
+        out = bytes_set(out, index, usize_byte(count, part));
+        index = index + 1usize;
+        part = part + 1usize;
+        0
+    }
+    out = bytes_set5(out, index, 44u8, 34u8, 116u8, 111u8, 116u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 97u8, 108u8, 95u8, 113u8, 117u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 97u8, 110u8, 116u8, 105u8, 116u8);
+    index = index + 5usize;
+    out = bytes_set(out, index, 121u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 34u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 58u8);
+    index = index + 1usize;
+    part = 0usize;
+    while part < i64_len(total) {
+        out = bytes_set(out, index, i64_byte(total, part));
+        index = index + 1usize;
+        part = part + 1usize;
+        0
+    }
+    out = bytes_set5(out, index, 44u8, 34u8, 114u8, 101u8, 99u8);
+    index = index + 5usize;
+    out = bytes_set5(out, index, 111u8, 114u8, 100u8, 115u8, 34u8);
+    index = index + 5usize;
+    out = bytes_set(out, index, 58u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 91u8);
+    index = index + 1usize;
+    let mut record = 0usize;
+    let mut record_start = 0usize;
+    while record < count {
+        let record_end = line_end(body, record_start);
+        let id = field_if(body, true, record_start, record_end, 1usize, 0usize);
+        let label = field_if(body, true, record_start, record_end, 2usize, 0usize);
+        let quantity = valid_record_quantity(body, record_start, record_end);
+        let id_length = escaped_len(body, id, 0usize, decoded_len(body, id));
+        let layout = label_layout(body, label, true);
+        let label_start = layout / 2048usize;
+        let label_length = layout % 2048usize;
+        out = bytes_set5(out, index, 123u8, 34u8, 105u8, 100u8, 34u8);
+        index = index + 5usize;
+        out = bytes_set(out, index, 58u8);
+        index = index + 1usize;
+        out = bytes_set(out, index, 34u8);
+        index = index + 1usize;
+        let mut cursor = escape_cursor_start(body, id, 0usize);
+        let mut written = 0usize;
+        while written < id_length {
+            cursor = if cursor < 9223372036854775808usize && cursor % 32usize == 0usize && id_length - written >= 6usize && byte_prefix_class(body, cursor / 32usize, 6usize, 32u8, 255u8, 34u8, 92u8) == 6usize { 9223372036854775808usize + cursor / 32usize } else { cursor };
+            let width = output_width(cursor);
+            let value = if cursor >= 9223372036854775808usize { 0u8 } else { escape_cursor_byte(body, cursor) };
+            out = bytes_set1_or6_or48_from_slice(out, index, value, body, cursor);
+            index = index + width;
+            written = written + width;
+            cursor = escape_cursor_next(body, cursor);
+            0
+        }
+        out = bytes_set5(out, index, 34u8, 44u8, 34u8, 108u8, 97u8);
+        index = index + 5usize;
+        out = bytes_set5(out, index, 98u8, 101u8, 108u8, 34u8, 58u8);
+        index = index + 5usize;
+        out = bytes_set(out, index, 34u8);
+        index = index + 1usize;
+        cursor = escape_cursor_start(body, label, label_start);
+        written = 0usize;
+        while written < label_length {
+            let width = output_width(cursor);
+            let value = if cursor >= 9223372036854775808usize { 0u8 } else { response_label_byte(body, cursor) };
+            out = bytes_set1_or6_or48_from_slice(out, index, value, body, cursor);
+            index = index + width;
+            written = written + width;
+            cursor = escape_cursor_next(body, cursor);
+            0
+        }
+        out = bytes_set5(out, index, 34u8, 44u8, 34u8, 113u8, 117u8);
+        index = index + 5usize;
+        out = bytes_set5(out, index, 97u8, 110u8, 116u8, 105u8, 116u8);
+        index = index + 5usize;
+        out = bytes_set(out, index, 121u8);
+        index = index + 1usize;
+        out = bytes_set(out, index, 34u8);
+        index = index + 1usize;
+        out = bytes_set(out, index, 58u8);
+        index = index + 1usize;
+        part = 0usize;
+        while part < i64_len(quantity) {
+            out = bytes_set(out, index, i64_byte(quantity, part));
+            index = index + 1usize;
+            part = part + 1usize;
+            0
+        }
+        out = bytes_set(out, index, 125u8);
+        index = index + 1usize;
+        record = record + 1usize;
+        if record < count { out = bytes_set(out, index, 44u8); index = index + 1usize; }
+        record_start = record_end + 1usize;
+        0
+    }
+    out = bytes_set(out, index, 93u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 125u8);
+    index = index + 1usize;
+    out = bytes_set(out, index, 10u8);
+    index = index + 1usize;
+    let view = bytes_as_slice(out);
+    bytes_copy(byte_range(view, 0usize, index))
+}
+
+@id("catalog_normalizer.app.validated-success-response")
+fn validated_success_response(body: borrow Slice<u8>, enriched: bool, count: usize, total: i64) -> Bytes
+{
+    let out = bytes_zeroed(69710usize);
+    if enriched { shared_success_response_prior(body, true, out) } else { plain_success_response(body, out, count, total) }
+}
+
+@id("catalog_normalizer.app.shared-success-response")
+fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
+{
+    validated_success_response(body, enriched, record_count(body), success_total(body))
 }
 
 @id("catalog_normalizer.app.success-response")
@@ -664,8 +816,8 @@ fn enriched_success_response(body: borrow Slice<u8>) -> Bytes
 @id("catalog_normalizer.app.normalize")
 fn normalize(body: borrow Slice<u8>) -> Bytes
 {
-    let failure = first_failure(body);
-    if failure == 0usize { success_response(body) } else { error_response(failure) }
+    let summary = scan_validation(body, false);
+    if summary.failure == 0usize { validated_success_response(body, false, summary.count, summary.total) } else { error_response(summary.failure) }
 }
 
 @id("catalog_normalizer.app.normalizes-to")

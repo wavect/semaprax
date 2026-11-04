@@ -7,21 +7,13 @@ use type @id("std.io.writer") from std.io as Writer;
 // carries no further terminator.  A line's content excludes that line feed and
 // one immediately preceding carriage return, so canonical LF and CRLF inputs
 // yield the same content bytes.
+// A bounded lookahead returns the first LF offset in the complete block;
 @id("std.io.lines.line-end")
 fn line_end(view: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(view)
     ensures result >= start && result <= byte_len(view)
 {
-    let length = byte_len(view);
-    let mut index = start;
-    let mut scanning = index < length;
-    while scanning {
-        let terminator = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == 10u8, Option::None {} => true, };
-        index = if terminator { index } else { index + 1usize };
-        scanning = !terminator && index < length;
-        scanning
-    }
-    index
+    start + byte_prefix_class(view, start, byte_len(view) - start, 0u8, 255u8, 10u8, 10u8)
 }
 
 @id("std.io.lines.line-terminated")

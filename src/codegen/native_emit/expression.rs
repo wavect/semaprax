@@ -241,6 +241,33 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let helper = self.resource_text_len_helper(&args[0]);
                 self.line(&format!("{temporary} = {helper}({});", arguments[0].code));
             }
+            crate::byte_ops::ByteOp::PrefixClass => {
+                let slice = &arguments[0].code;
+                let validator = self.resource_text_read_validator(&args[0]);
+                self.line(&format!("{validator}({slice});"));
+                let index = &arguments[1].code;
+                let limit = &arguments[2].code;
+                let low = &arguments[3].code;
+                let high = &arguments[4].code;
+                let stop1 = &arguments[5].code;
+                let stop2 = &arguments[6].code;
+                self.line(&format!("{temporary} = UINT64_C(0);"));
+                self.line(&format!("if ({index} <= ({slice}).len) {{"));
+                self.indent += 1;
+                self.line(&format!(
+                    "while ({temporary} < {limit} && {temporary} < ({slice}).len - {index}) {{"
+                ));
+                self.indent += 1;
+                self.line(&format!(
+                    "uint8_t spx_prefix_byte = ({slice}).ptr[{index} + {temporary}];"
+                ));
+                self.line(&format!("if (spx_prefix_byte < {low} || spx_prefix_byte > {high} || spx_prefix_byte == {stop1} || spx_prefix_byte == {stop2}) {{ break; }}"));
+                self.line(&format!("++{temporary};"));
+                self.indent -= 1;
+                self.line("}");
+                self.indent -= 1;
+                self.line("}");
+            }
             crate::byte_ops::ByteOp::ZeroPrefix => {
                 let slice = &arguments[0].code;
                 let validator = self.resource_text_read_validator(&args[0]);
@@ -624,6 +651,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | crate::byte_ops::ByteOp::Get
                     | crate::byte_ops::ByteOp::ReadLe
                     | crate::byte_ops::ByteOp::ZeroPrefix
+                    | crate::byte_ops::ByteOp::PrefixClass
                     | crate::byte_ops::ByteOp::Range
                     | crate::byte_ops::ByteOp::Copy
                     | crate::byte_ops::ByteOp::Zeroed

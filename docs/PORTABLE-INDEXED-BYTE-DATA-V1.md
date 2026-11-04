@@ -140,12 +140,24 @@ existing byte host operations in Core-Wasm. The standard-library pattern
 validator passes only its already funded header window to this operation and
 retains its original per-byte work charges and first-invalid-byte diagnostic.
 
+`byte_prefix_class(value: borrow Slice<u8>, index: usize, limit: usize,
+low: u8, high: u8, stop1: u8, stop2: u8) -> usize`, with stable identity
+`core.bytes.prefix-class`, counts contiguous bytes in the inclusive `low..=high`
+class, excluding either stop byte. It stops at the first mismatch, the limit,
+or the view end. An index at or beyond the end, zero limit or reversed class
+returns zero. Bounds never form an overflowing end index. Every backend
+validates the current borrowed view, including empty scans; no byte buffer,
+ownership transfer or host ABI is added. An independent scalar oracle covers
+all 256 byte values, MAX indices/limits, reversed classes, arrays, derived views
+and owned buffers on the interpreter, native O0/O2 and Core-Wasm.
+
 Indexed Byte Loop v2 permits this exact compiler-owned `Option<u8>` result to
 be matched inside bounded `while` conditions and bodies. The match must be
 exhaustive and guard-free with exact `Some { value: u8 }` and `None {}` cases,
 and every arm result remains a Copy scalar. This is an immutable read-only
-widening: `byte_len` and `byte_get` are the only byte operations admitted in a
-loop, and a slice view used as loop-carried state must already exist. The
+widening: `byte_len`, `byte_get` and the additive bounded read-only kernels
+`byte_read_le`, `byte_zero_prefix` and `byte_prefix_class` are admitted in a
+loop. A slice view used as loop-carried state must already exist. The
 general indexed-byte profile still rejects `bytes_copy`, arbitrary view
 construction, owned values, general variants, effects, imports, and
 cleanup-bearing work. [Owned String Loops v2](OWNED-STRING-LOOPS-V2.md#immutable-input-and-borrowed-views-590)

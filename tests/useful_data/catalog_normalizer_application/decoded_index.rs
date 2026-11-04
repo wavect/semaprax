@@ -353,6 +353,7 @@ fn frozen_pairwise_reference_preserves_the_complete_normalizer_oracle() {
         include_str!("../catalog_normalizer_record_pairwise.txt"),
     )
     .unwrap();
+    super::append_legacy_summary_adapter(scratch.path());
     // The same published36/source14/max160M, decoded-index, backend and fault
     // observers run unchanged against the pre-index pairwise reference.
     assert_batch_backend_matrix(scratch.path());

@@ -14,7 +14,7 @@ fn skip_space(input: borrow Slice<u8>, start: usize) -> usize
     let mut index = if start > length { length } else { start };
     let mut scanning = index < length;
     while scanning {
-        let space = at_in(input, index, 32u8, 32u8) || at_in(input, index, 9u8, 10u8) || at_in(input, index, 13u8, 13u8);
+        let space = match byte_get(input, index) { Option::Some { value: byte } => match byte { 32u8 => true, 9u8 => true, 10u8 => true, 13u8 => true, _ => false, }, Option::None {} => false, };
         index = if space { index + 1usize } else { index };
         scanning = space && index < length;
         scanning
@@ -25,23 +25,18 @@ fn skip_space(input: borrow Slice<u8>, start: usize) -> usize
 @id("std.data.json.doc.string_end")
 fn string_end(input: borrow Slice<u8>, start: usize) -> usize
 {
+    let length = byte_len(input);
     let mut index = start + 1usize;
     let mut fault = start;
     let mut bad = !at_in(input, start, 34u8, 34u8);
     let mut running = !bad;
     while running {
-        let current_byte = match byte_get(input, index) { Option::Some { value } => i64_from_u8(value), Option::None {} => -1, };
-        let closed = current_byte == 34;
-        let escape = current_byte == 92;
-        let plain = current_byte >= 32;
-        let step = if closed { index } else { if escape { index + 2usize } else { if plain { index + 1usize } else { byte_len(input) + 1usize + index } } };
-        bad = step > byte_len(input);
-        fault = if bad { index } else { fault };
-        index = if closed || bad { index } else { step };
-        running = !closed && !bad;
-        running
+        index = index + byte_prefix_class(input, index, length, 32u8, 255u8, 34u8, 92u8);
+        let current = match byte_get(input, index) { Option::Some { value } => i64_from_u8(value), Option::None {} => -1, };
+        if current == 34 { index = index + 1usize; running = false; } else { if current == 92 { let next = index + 2usize; if next > length { bad = true; fault = index; } else { index = next; } } else { if current >= 32 { index = index + 1usize; } else { bad = true; fault = index; } } running = !bad; }
+        0
     }
-    if bad { byte_len(input) + 1usize + fault } else { index + 1usize }
+    if bad { length + 1usize + fault } else { index }
 }
 
 @id("std.data.json.doc.digits_end")

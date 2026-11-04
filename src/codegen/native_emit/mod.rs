@@ -1,6 +1,7 @@
 pub(crate) mod checked_allocation;
 mod emission;
 use emission::emit_hir_c_with_options;
+pub(crate) use emission::CandidateNative;
 pub(in crate::codegen) use emission::{
     emit_partition_source, emit_selected_fused_row_prelude, emit_validated_fused_row_prelude,
     emit_validated_owned_provider,

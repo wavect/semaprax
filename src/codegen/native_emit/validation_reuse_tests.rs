@@ -224,3 +224,30 @@ fn inherited_ordinary_provider_receipt_refuses_foreign_programs_and_selected_pro
         );
     }
 }
+
+#[test]
+fn candidate_staged_receipt_preserves_native_bytes_and_output_refusal() {
+    let program = resolve("@id(\"app.main\") fn main() -> i64 { 42 }");
+    let expected = emit(&program, false, NativeOutputProfile::Legacy).unwrap();
+    let scratch_before = crate::bounded_output::detached::detached_debits();
+    let (prepared, validation_refused) = crate::bounded_output::with_limit(1_000_000, || {
+        emission::CandidateNative::prepare(&program)
+    });
+    assert!(!validation_refused);
+    assert!(crate::bounded_output::detached::detached_debits() > scratch_before);
+    let prepared = prepared.unwrap();
+    let (actual, refused) = crate::bounded_output::with_limit(1_000_000, || prepared.emit());
+    assert!(!refused);
+    assert_eq!(actual.unwrap(), expected);
+    let prepared = emission::CandidateNative::prepare(&program).unwrap();
+    let (result, refused) = crate::bounded_output::with_limit(0, || prepared.emit());
+    assert!(refused);
+    assert!(result.is_err());
+}
+
+#[test]
+fn candidate_staged_receipt_refuses_mutated_hir_before_emission() {
+    let mut program = resolve("@id(\"app.main\") fn main() -> i64 { 42 }");
+    program.functions[0].return_type = ResolvedType::Bool;
+    assert!(emission::CandidateNative::prepare(&program).is_err());
+}

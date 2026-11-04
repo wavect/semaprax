@@ -194,6 +194,12 @@ impl<'a> OrdinaryValidatedProgram<'a> {
         &self.validation
     }
 
+    pub(super) fn validate_staged(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
+        Ok(Self {
+            validation: crate::call_index::OrdinaryValidatedProgram::validate_staged(program)?,
+        })
+    }
+
     pub(super) fn validate(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         #[cfg(test)]
         record_ordinary_validation();

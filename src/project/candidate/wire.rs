@@ -113,8 +113,19 @@ pub(super) fn target_facts(revision: &ProjectRevision) -> Result<Value, Vec<Diag
         ("entry", revision.entry_program()),
         ("test", revision.test_program()),
     ] {
+        // Validate the complete immutable HIR on the existing stage-owned
+        // scratch ledger before opening the target's emission allowance.
+        let (prepared, validation_overflow) =
+            crate::bounded_output::with_limit(16 * 1024 * 1024, || {
+                crate::codegen::CandidateNative::prepare(program)
+            });
+        if validation_overflow {
+            return Err(capacity(
+                "native target validation exceeds candidate admission budget",
+            ));
+        }
         let (native, overflow) = crate::bounded_output::with_limit(16 * 1024 * 1024, || {
-            crate::codegen::emit_hir_c(program)
+            prepared.and_then(crate::codegen::CandidateNative::emit)
         });
         if overflow {
             return Err(capacity(

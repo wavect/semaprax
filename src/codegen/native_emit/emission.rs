@@ -123,6 +123,38 @@ fn emit_hir_c_with_receiving(
     )
 }
 
+/// A complete staged validation tied to the immutable program used for emission.
+pub(crate) struct CandidateNative<'a> {
+    validated: native_resource::OrdinaryValidatedProgram<'a>,
+}
+impl<'a> CandidateNative<'a> {
+    pub(crate) fn prepare(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
+        super::super::reject_native_rust_for_native(program)?;
+        Ok(Self {
+            validated: native_resource::OrdinaryValidatedProgram::validate_staged(program)?,
+        })
+    }
+    pub(crate) fn emit(self) -> Result<String, Diagnostic> {
+        let result = emit_hir_c_with_validated_kind(
+            self.validated.program(),
+            &HashMap::new(),
+            NativeOutputProfile::Legacy,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(InheritedValidation::Candidate(self.validated)),
+        );
+        if crate::bounded_output::active_refused() {
+            return Err(backend_error(
+                "candidate native output exceeds its emission budget",
+            ));
+        }
+        result
+    }
+}
+
 pub(in crate::codegen) fn emit_validated_owned_provider(
     validated: native_resource::OrdinaryValidatedProgram<'_>,
     owned_utf8: bool,
@@ -160,12 +192,53 @@ fn emit_hir_c_with_validation(
     allocation: Option<&checked_allocation::Projection<'_, '_>>,
     inherited: Option<native_resource::OrdinaryValidatedProgram<'_>>,
 ) -> Result<String, Diagnostic> {
+    emit_hir_c_with_validated_kind(
+        program,
+        contract_labels,
+        output_profile,
+        selected_command,
+        semantic,
+        selected,
+        partition,
+        allocation,
+        inherited.map(InheritedValidation::Provider),
+    )
+}
+
+enum InheritedValidation<'a> {
+    Provider(native_resource::OrdinaryValidatedProgram<'a>),
+    Candidate(native_resource::OrdinaryValidatedProgram<'a>),
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_hir_c_with_validated_kind(
+    program: &ResolvedProgram,
+    contract_labels: &HashMap<ExpressionId, String>,
+    output_profile: NativeOutputProfile,
+    selected_command: Option<&DeclarationId>,
+    semantic: Option<&NativeSemanticMetering>,
+    selected: Option<&super::super::selected_final_utf8::Selection>,
+    partition: Option<
+        &super::super::native_byte_data::native_shared_bytes::source::Projection<'_, '_>,
+    >,
+    allocation: Option<&checked_allocation::Projection<'_, '_>>,
+    inherited: Option<InheritedValidation<'_>>,
+) -> Result<String, Diagnostic> {
+    let (inherited, candidate) = match inherited {
+        Some(InheritedValidation::Provider(owner)) => (Some(owner), false),
+        Some(InheritedValidation::Candidate(owner)) => (Some(owner), true),
+        None => (None, false),
+    };
     if inherited.as_ref().is_some_and(|owner| {
         !std::ptr::eq(program, owner.program())
-            || !matches!(
-                output_profile,
-                NativeOutputProfile::OwnedDataProvider | NativeOutputProfile::OwnedUtf8Provider
-            )
+            || if candidate {
+                output_profile != NativeOutputProfile::Legacy
+            } else {
+                !matches!(
+                    output_profile,
+                    NativeOutputProfile::OwnedDataProvider | NativeOutputProfile::OwnedUtf8Provider
+                )
+            }
             || selected_command.is_some()
             || semantic.is_some()
             || selected.is_some()

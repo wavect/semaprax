@@ -291,6 +291,8 @@ pub(crate) fn emit_resolved_c_with_source(
     emit_hir_c_with_labels(resolved, &labels, NativeOutputProfile::Legacy, None)
 }
 
+pub(crate) use native_emit::CandidateNative;
+
 /// Emit C11 from resolved HIR.
 ///
 /// This entry point exists so backend tests and future compiler stages can prove

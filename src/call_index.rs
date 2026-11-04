@@ -76,6 +76,12 @@ impl<'a> OrdinaryValidatedProgram<'a> {
         hir::validate(program)?;
         Ok(Self { program })
     }
+    /// Complete validation for an explicit compiler stage. Replay scratch has
+    /// its existing bounded owner; the returned borrow grants no output bytes.
+    pub(crate) fn validate_staged(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
+        hir::validate_with_static_text(program)?;
+        Ok(Self { program })
+    }
     pub(crate) fn program(&self) -> &'a ResolvedProgram {
         self.program
     }

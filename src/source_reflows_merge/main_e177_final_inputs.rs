@@ -805,6 +805,9 @@ fn actual_before_current_context(row: &serde_json::Value) -> String {
     value
 }
 pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
+    if let Some(value) = packet_lookup::declared_registered_file(source, expected, cap) {
+        return value;
+    }
     packet_lookup::registered_file(source, expected, cap)
 }
 

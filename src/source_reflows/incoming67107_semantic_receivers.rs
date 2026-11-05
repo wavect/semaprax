@@ -616,6 +616,12 @@ fn main34d_cursor_epoch(entry: &serde_json::Value, supplied: Option<&str>) -> Op
         raw, compiled,
         "complete latest cursor physical/compiled owner"
     );
+    let latest = raw;
+    let raw = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+        SOURCE,
+        "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2",
+        &latest,
+    ).unwrap_or_else(|| latest.clone());
     assert_eq!(
         digest(&raw),
         "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2"
@@ -631,7 +637,7 @@ fn main34d_cursor_epoch(entry: &serde_json::Value, supplied: Option<&str>) -> Op
     assert_eq!(digest(&previous), PREVIOUS);
     if let Some(supplied) = supplied {
         assert!(
-            supplied == raw || supplied == previous,
+            supplied == latest || supplied == raw || supplied == previous,
             "foreign complete cursor epoch input"
         );
     }

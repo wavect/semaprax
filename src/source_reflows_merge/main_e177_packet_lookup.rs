@@ -554,6 +554,20 @@ fn root_before_nested_context(current: &str) -> String {
         .unwrap();
         assert_eq!(physical, current, "whole fresh current reader");
         let mut restored = current.to_owned();
+        const DECLARED_REGISTERED: &str = r###"pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
+    if let Some(value) = packet_lookup::declared_registered_file(source, expected, cap) {
+        return value;
+    }
+    packet_lookup::registered_file(source, expected, cap)
+}
+
+"###;
+        assert_eq!(restored.matches(DECLARED_REGISTERED).count(), 1);
+        restored = restored.replacen(DECLARED_REGISTERED, r###"pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
+    packet_lookup::registered_file(source, expected, cap)
+}
+
+"###, 1);
         for hook in [
             "#[path = \"../source_reflows/declared_history_inputs.rs\"]\npub(crate) mod declared_history_inputs;\n",
             "    if let Some(before) = declared_history_inputs::expected_file(path, length, expected) {\n        return Some(before);\n    }\n",
@@ -685,6 +699,9 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
         // Preserve the original nondelegating domain before any Clippy stage.
         if !self.metadata()["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
             return supplied.to_owned();
+        }
+        if let Some(value) = cursor_epoch_value(source, expected, supplied) {
+            return value;
         }
         // A whole logical-table view is selected only after its actual current
         // physical, compiled and archive channels have authenticated. Preserve the
@@ -1046,4 +1063,63 @@ mod current_reader_tests {
             super::super::actual_before_current_context(old)
         );
     }
+}
+
+// Preserve the original caller cap on both the full current read and its
+// explicitly declared historical output before entering a source-only view.
+pub(super) fn declared_registered_file(
+    source: &str,
+    expected: &str,
+    cap: usize,
+) -> Option<Option<String>> {
+    let (part, index) = super::declared_history_inputs::slot(source, expected)?;
+    let packet = super::packet();
+    let actual = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    let fits = |row: &Value| row["current"]["length"].as_u64().unwrap() <= cap as u64;
+    if !fits(actual)
+        || actual.get("fragments").is_some_and(|children| {
+            children
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|child| !fits(child))
+        })
+    {
+        return Some(None);
+    }
+    actual_with_packet(&packet, actual);
+    let row = &super::declared_history_inputs::records(part)[index];
+    let length = row["before_bytes"].as_u64().unwrap() as usize;
+    Some(
+        if length <= cap && super::declared_history_inputs::compiled(source).len() <= cap {
+            super::declared_history_inputs::expected_file(
+                &Path::new(env!("CARGO_MANIFEST_DIR")).join(source),
+                length,
+                expected,
+            )
+        } else {
+            None
+        },
+    )
+}
+
+// This named source epoch remains a complete authenticated historical input.
+pub(super) fn cursor_epoch_value(source: &str, expected: &str, supplied: &str) -> Option<String> {
+    const SOURCE: &str = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
+    const EPOCH: &str = "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2";
+    const BEFORE: &str = "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34";
+    if source != SOURCE || expected != BEFORE || digest(supplied.as_bytes()) != EPOCH {
+        return None;
+    }
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(SOURCE);
+    let epoch = super::declared_history_inputs::expected_file(&path, 8182, EPOCH)?;
+    assert_eq!(
+        supplied, epoch,
+        "entire named cursor epoch on current channels"
+    );
+    super::declared_history_inputs::expected_file(&path, 8127, BEFORE)
 }

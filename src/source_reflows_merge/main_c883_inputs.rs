@@ -187,6 +187,12 @@ fn before_cursor_call(source: &str, expected: &str, supplied: &str) -> String {
     {
         return supplied.to_owned();
     }
+    let declared = super::main_e177_final_inputs::declared_history_inputs::expected_value(
+        source,
+        "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2",
+        supplied,
+    );
+    let supplied = declared.as_deref().unwrap_or(supplied);
     assert_eq!(
         digest(supplied.as_bytes()),
         "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2"

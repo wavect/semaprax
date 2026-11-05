@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 20] = [
+const PARTS: [(&str, &str, usize, &str); 22] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -36,8 +36,8 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-2.json"
         )),
-        839171,
-        "57dce268d3bbc5cc7d778e7ae79f4800d9b15815135de442de84855ca3c3a779",
+        840101,
+        "627bc1eaedd16b5260001c3401c13ced03c453ab835906208c7732f4305d125a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-3.json",
@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        585197,
-        "4e2ca30bd0f8e82f1ca9fffebf127a2acc51b0eeca46cc0109ad2d9a13d3770d",
+        585628,
+        "348401025663c6466447896ca6ea803c06c74d2b99a0b7e94558e575b9ea0a0b",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         28380,
-        "b137beeb3ee1117197a06ec5258e0d734c7708eb2472517a8b3696bd40d7a159",
+        "bce2d977d577ee5619219bc17bee037e022ba38b9d8743974ba8d7b6d30f3abd",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -162,8 +162,8 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-16.json"
         )),
-        849670,
-        "6f45f5193f9d83af93e0811b67bc0503c624f2ad4b5e8739e4b298db6d30a606",
+        849694,
+        "33d0e47c27287980818914757edf8d1d08aacafec1df7e380f57389fc052a9b3",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-17.json",
@@ -171,8 +171,8 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-17.json"
         )),
-        527212,
-        "4491d850fa67e25534c7885775f1062fca1d36fa2513d380d1bb3e03c259cc9a",
+        527236,
+        "d47a225a4909561558b802726ce7c74681434268ef8c146720579845081fc8f8",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-18.json",
@@ -192,8 +192,26 @@ const PARTS: [(&str, &str, usize, &str); 20] = [
         29249,
         "bf6d56c900805a3891db1c53ec780d02c81cc6399053204d4de68586978e6325",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-20.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-20.json"
+        )),
+        714,
+        "5bdc19e8bd7eab07179a945e43f5f47814398d6d9b523c003837b1ab6039c5f2",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-21.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-21.json"
+        )),
+        6025,
+        "80271d17ea55ca3f2af745d6f0b4fc67f02cf1ec3a45f78cdaec33228929e0ee",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 20] = [const { OnceLock::new() }; 20];
+static CACHE: [OnceLock<serde_json::Value>; 22] = [const { OnceLock::new() }; 22];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -613,6 +631,8 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("tests/workspace/semantic_graph/source_inventory.rs", "aead2c85ae1356c83db5f81531b9bd6dd56934af64d59147e1b341905e761e3c" ) => Some((18,4)),
 ("src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs", "26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693" ) => Some((19,0)),
 ("src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs", "20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242" ) => Some((19,1)),
+("src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs", "b10eef27cabb5cc84531e6f6f9f6178a76b0e304119d9da25d71503e82d67321" ) => Some((20,0)),
+("src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs", "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2" ) => Some((21,0)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -770,6 +790,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/sequence_vector/observation_parity.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/sequence_vector/observation_parity.rs")),
 "src/cleanup_plan/replay/skeleton_work.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")),
 "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs")),
+"src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs")),
 "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control/calls/custody_tests.rs")),
 "src/format.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/format.rs")),
 "src/hir.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir.rs")),

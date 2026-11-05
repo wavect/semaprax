@@ -310,19 +310,17 @@ fn main927_records() -> &'static [serde_json::Value] {
 }
 fn restore_main927(record: &serde_json::Value, current: &str) -> String {
     let path = record["path"].as_str().unwrap();
-    let acquired = if path == "src/cleanup_plan/replay/expression_facts/ordinary_before.rs" {
-        declared_history_inputs::expected_value(
-            path,
-            record["after_sha256"].as_str().unwrap(),
-            current,
-        )
-    } else {
-        None
+    let mut restored = match declared_history_inputs::expected_value(
+        path,
+        record["after_sha256"].as_str().unwrap(),
+        current,
+    ) {
+        Some(acquired) => acquired,
+        None => {
+            let prior = ci_inputs::for_ci(path, current);
+            crate::source_reflows_merge::main927_input(path, prior.as_ref())
+        }
     };
-    let current = acquired.as_deref().unwrap_or(current);
-    let prior = ci_inputs::for_ci(path, current);
-    let current = prior.as_ref();
-    let mut restored = crate::source_reflows_merge::main927_input(path, current);
     assert_eq!(
         format!(
             "{:x}",

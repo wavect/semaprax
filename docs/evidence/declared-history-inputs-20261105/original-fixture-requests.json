@@ -2187,6 +2187,32 @@
       "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
       "historical_commit": "7e4c8c155a734bef5293223cedd13c176cc1ea69",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs",
+      "view_len": 4412,
+      "view_sha256": "b10eef27cabb5cc84531e6f6f9f6178a76b0e304119d9da25d71503e82d67321",
+      "archive": "e/b10eef27cabb5cc84531e6f6f9f6178a76b0e304119d9da25d71503e82d67321",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "d4fd00dec302b099d760c58aa8c2a87753b1a0fe",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "view_len": 8182,
+      "view_sha256": "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2",
+      "archive": "e/2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2",
+      "owner": "src/source_reflows_merge/constructor_stage.rs",
+      "owner_archive": "e/25236bbce338b557b54e308077b76599593af823ee2874d65f74e671c7f9671c",
+      "owner_bytes": 31603,
+      "owner_sha256": "25236bbce338b557b54e308077b76599593af823ee2874d65f74e671c7f9671c",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "c90764eebdf0d1db8a35742c39b8831530de1966",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
     }
   ]
 }

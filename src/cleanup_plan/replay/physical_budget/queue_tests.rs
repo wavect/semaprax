@@ -8,13 +8,16 @@ fn first_refusal_names_the_requesting_receiver_through_reservation_wrappers() {
     for operation in 0..6 {
         let mut budget = ReplayBudget::new();
         budget.payer = AllocationPayer::ActiveBuilder;
-        budget.prepare_builder(&function).unwrap();
-        budget.prepare_clone_cursor(&function).unwrap();
+        let setup = function.id.as_str().len()
+            + 512
+            + 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>();
         let payload = vec![7u64];
         let mut vector = Vec::<u64>::new();
         let mut queue = VecDeque::<u64>::new();
         let ((begin, end), refused, used, receipt, site) =
-            crate::bounded_output::with_limit_usage_refusal_site(0, || {
+            crate::bounded_output::with_limit_usage_refusal_site(setup, || {
+                budget.prepare_builder(&function).unwrap();
+                budget.prepare_clone_cursor(&function).unwrap();
                 let begin = line!();
                 let result = match operation {
                     0 => budget.reserve_bytes(&function, 8, "direct caller"),
@@ -31,6 +34,9 @@ fn first_refusal_names_the_requesting_receiver_through_reservation_wrappers() {
                 (begin, end)
             });
         assert!(refused);
+        let used = used
+            .checked_sub(setup)
+            .expect("complete setup paid on this ledger");
         assert_eq!(used, 0);
         assert!(receipt.unwrap().requested > 0);
         assert_eq!(receipt.unwrap().remaining, 0);

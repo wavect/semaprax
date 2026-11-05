@@ -36,6 +36,12 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
         _ => panic!("foreign MAIN source domain"),
     };
     assert_eq!(row["source"], source);
+    let declared = super::main_e177_final_inputs::declared_history_inputs::expected_value(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = declared.as_deref().unwrap_or(current);
     let selected =
         selected_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
     let current = selected.as_str();

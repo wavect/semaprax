@@ -270,7 +270,7 @@ mod tests {
     }
     fn presence_function(exit: bool) -> ResolvedFunction {
         let source = if exit {
-            "module presence; @id(\"main\") fn main()->i64 {return 0;}"
+            "module presence; @id(\"main\") fn main()->i64 { let mut index=0; while index<4 { index=index+1; if index==2 { return index; }; 0 } return 8; }"
         } else {
             "module presence; @id(\"main\") fn main()->i64 {0}"
         };

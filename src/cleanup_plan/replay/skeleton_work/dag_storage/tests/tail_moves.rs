@@ -255,12 +255,10 @@ fn union_probe(
 fn owned_union_literal_clone_request_delta_and_exact_one_short_drop_receivers() {
     let program = fixture();
     let function = &program.functions[0];
-    let admission = ReplayBudget::with_physical(function, 1 << 22)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 22).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
     let removed = 7 * std::mem::size_of::<Observation>();
     for selected in [false, true] {
         let (old, old_metrics) = union_probe(&program, selected, true, 1 << 22);
@@ -936,12 +934,10 @@ fn selected_4096_nonempty_event_tails_keep_literal_old_current_removed_through_r
         assert!(!metrics.invalid && metrics.live == 0);
         assert_eq!(metrics.allocated, metrics.freed);
     }
-    let admission = ReplayBudget::with_physical(function, 1 << 25)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 25).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
     let (exact, metrics) = observe(false, admission + charged);
     assert_eq!(exact.unwrap(), (charged, spent));
     assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated <= charged);

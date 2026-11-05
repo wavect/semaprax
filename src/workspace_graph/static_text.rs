@@ -360,9 +360,19 @@ mod tests {
         assert_eq!(first_refusal.stage, None);
         // Refusal reporting is charged too. An independent diagnostic-only
         // control proves that no cursor backing was debited after refusal.
-        let (report, report_refused, report_used) =
+        let (fresh_report, report_refused, fresh_used) =
             crate::bounded_output::with_limit_usage(bytes - 1, capacity);
         assert!(!report_refused);
+        assert!(fresh_used > 0 && fresh_report[0].help.is_some());
+        // A refused constructor reports on a sticky ledger. Reproduce that
+        // state independently without constructing or charging any cursor.
+        let (report, report_refused, report_used, first) =
+            crate::bounded_output::with_limit_usage_refusal(bytes - 1, || {
+                assert!(!crate::bounded_output::reserve_active(bytes));
+                capacity()
+            });
+        assert!(report_refused);
+        assert_eq!(first, Some(first_refusal));
         assert_eq!(error, report);
         assert_eq!(used, report_used);
         let ((result, selected), refused, used) =
@@ -390,9 +400,17 @@ mod tests {
         let first_refusal = first_refusal.expect("selected vector precharge records refusal");
         assert_eq!(first_refusal.requested, required);
         assert_eq!(first_refusal.remaining, required - 1);
-        let (report, report_refused, report_used) =
+        let (fresh_report, report_refused, fresh_used) =
             crate::bounded_output::with_limit_usage(required - 1, capacity);
         assert!(!report_refused);
+        assert!(fresh_used > 0 && fresh_report[0].help.is_some());
+        let (report, report_refused, report_used, first) =
+            crate::bounded_output::with_limit_usage_refusal(required - 1, || {
+                assert!(!crate::bounded_output::reserve_active(required));
+                capacity()
+            });
+        assert!(report_refused);
+        assert_eq!(first, Some(first_refusal));
         assert_eq!(error, report);
         assert_eq!(used, report_used);
     }

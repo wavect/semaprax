@@ -19,8 +19,8 @@ fn ordinary_empty_union_preserves_saved_multiset_and_literal_node_storage_throug
         + 4 * std::mem::size_of::<Rc<ObservationDag>>();
     let mut budget = ReplayBudget::with_physical(function, 1 << 20).unwrap();
     budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
-    let setup = budget.physical.as_ref().unwrap().charged();
     let mut work = SkeletonWork::new(&program, function, &mut budget);
+    let setup = work.budget.physical.as_ref().unwrap().charged();
     let members = || (0..4).map(|_| Observations::default()).collect::<Vec<_>>();
     let old_members = members();
     let new_members = members();

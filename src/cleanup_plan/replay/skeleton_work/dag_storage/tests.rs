@@ -102,8 +102,10 @@ fn deep_shared_dag_creation_and_drop_fit_the_precharged_frontier() {
     // Obtain the existing budget's exact held header independently rather than
     // guessing the Box carrier layout used by the enclosing admission owner.
     let function = program.functions().get(0).expect("current replay ordinal");
-    let baseline = ReplayBudget::with_physical(function, 1 << 24).unwrap();
-    let admission = baseline.physical.as_ref().unwrap().charged();
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 24).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
     let (exact, observed) = storage_probe(&program, admission + charged);
     assert_eq!(exact.unwrap(), charged);
     assert!(observed.allocated <= charged && observed.highwater <= charged && observed.live == 0);
@@ -253,11 +255,11 @@ fn shared_prefix_probe(
 ) {
     let function = program.functions().get(0).expect("current replay ordinal");
     let mut budget = ReplayBudget::with_physical(function, physical).unwrap();
-    budget.remaining = 0;
-    budget.skeleton_remaining = work_limit;
     budget.lent_skeleton = true;
     budget.merge_paths = true;
     let mut work = SkeletonWork::new(program, function, &mut budget);
+    work.budget.remaining = 0;
+    work.budget.skeleton_remaining = work_limit;
     let before = work.budget.physical.as_ref().unwrap().charged();
     crate::test_allocation_observer::measure(|| {
         let result = (|| {
@@ -314,12 +316,11 @@ fn shared_prefix_creation_through_drop_has_exact_work_and_backing_limits() {
             && observed.allocated <= charged
             && observed.highwater <= charged
     );
-    let baseline = ReplayBudget::with_physical(
-        program.functions().get(0).expect("current replay ordinal"),
-        1 << 20,
-    )
-    .unwrap();
-    let admission = baseline.physical.as_ref().unwrap().charged();
+    let function = program.functions().get(0).expect("current replay ordinal");
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 20).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
     let (result, observed) = shared_prefix_probe(&program, admission + charged, spent);
     assert_eq!(result.unwrap(), (charged, spent));
     assert!(

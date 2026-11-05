@@ -282,10 +282,9 @@ fn selected_policy_controls<T>() -> usize {
     )>()
 }
 fn selected_budget(function: &ResolvedFunction, extra: usize) -> ReplayBudget {
-    let setup = size_of::<PhysicalReservation>()
-        + 514 * size_of::<Option<(&ResolvedType, usize)>>()
-        + function.id.as_str().len()
-        + 512;
+    let baseline = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+    let setup = baseline.physical.as_ref().unwrap().charged();
+    drop(baseline);
     let mut budget = ReplayBudget::with_physical(function, setup.saturating_add(extra)).unwrap();
     budget.remaining = usize::MAX;
     budget

@@ -27,6 +27,12 @@ fn restore(current: &str, before: &str, length: usize, edits: &[(usize, &str, &s
     result
 }
 pub(super) fn previous_owner(current: &str) -> String {
+    let acquired = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+        current,
+    );
+    let current = acquired.as_str();
     restore(
         current,
         include_str!(concat!(
@@ -43,6 +49,12 @@ const OWNER: &[(usize, &str, &str)] = &[
     (243, "#[cfg(test)]\npub(super) mod paired_segments_before;\n", ""),
 ];
 pub(super) fn previous_macro(current: &str) -> String {
+    let acquired = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+        "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+        current,
+    );
+    let current = acquired.as_str();
     restore(
         current,
         include_str!(concat!(
@@ -61,7 +73,11 @@ const MACRO: &[(usize, &str, &str)] = &[
     (890, "pub(super) const PRIMITIVE_FRAMES: usize = 59 * PAYMENT_HEADER;\n", "pub(super) const PRIMITIVE_FRAMES: usize = 51 * PAYMENT_HEADER;\n"),
 ];
 pub(super) fn previous_census(current: &str) -> String {
-    let mut current = current.to_owned();
+    let mut current = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570",
+        current,
+    );
     assert_eq!(current.matches("rows: Vec<Row>").count(), 1);
     current = current.replacen("rows: Vec<Row>", "rows: [Row; 128]", 1);
     assert_eq!(current.matches("rows: Vec::new()").count(), 1);
@@ -98,6 +114,12 @@ const CENSUS: &[(usize, &str, &str)] = &[
     (976, "    pub independent_checks: usize,\n    pub independent_runs: usize,\n    pub independent_turns: usize,\n", ""),
 ];
 pub(super) fn previous_pair_tests(current: &str) -> String {
+    let acquired = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+        current,
+    );
+    let current = acquired.as_str();
     restore(
         current,
         include_str!(concat!(
@@ -114,6 +136,12 @@ const PAIR_TESTS: &[(usize, &str, &str)] = &[
     (86, "#[path = \"pair_scope_tests/paired_segments.rs\"]\nmod paired_segments;\n", ""),
 ];
 pub(super) fn previous_route(current: &str) -> String {
+    let acquired = crate::source_reflows::original_fixture_source(
+        "src/bounded_output/stage_debits/route_debits.rs",
+        "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+        current,
+    );
+    let current = acquired.as_str();
     restore(
         current,
         include_str!(concat!(

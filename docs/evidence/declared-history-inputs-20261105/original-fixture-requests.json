@@ -2655,6 +2655,71 @@
       "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
       "historical_commit": "7d42ad08b^",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "view_len": 22498,
+      "view_sha256": "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+      "archive": "e/c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+      "owner": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+      "owner_archive": "e/a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "owner_bytes": 15428,
+      "owner_sha256": "a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "599d98fee9c6c56513cb1a9f21b938d912e73738",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+      "view_len": 33725,
+      "view_sha256": "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+      "archive": "e/768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+      "owner": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+      "owner_archive": "e/a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "owner_bytes": 15428,
+      "owner_sha256": "a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "599d98fee9c6c56513cb1a9f21b938d912e73738",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+      "view_len": 55874,
+      "view_sha256": "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+      "archive": "e/2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+      "owner": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+      "owner_archive": "e/a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "owner_bytes": 15428,
+      "owner_sha256": "a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "599d98fee9c6c56513cb1a9f21b938d912e73738",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/bounded_output/stage_debits/route_debits.rs",
+      "view_len": 36241,
+      "view_sha256": "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+      "archive": "e/9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+      "owner": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+      "owner_archive": "e/a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "owner_bytes": 15428,
+      "owner_sha256": "a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "599d98fee9c6c56513cb1a9f21b938d912e73738",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+      "view_len": 22294,
+      "view_sha256": "38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570",
+      "archive": "e/38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "3b97e74ed58dc81fa65fd00cc77452cc58d38d84",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
     }
   ]
 }

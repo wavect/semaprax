@@ -87,10 +87,33 @@ pub(super) fn explicit_owner_siblings_match_legacy_selective_routes_and_body_reu
     assert!(matches!(legacy_refused,
         crate::hir::identity_resolution::Failure::Identity(Refused::Budget(first))
         if first == legacy_receipt));
-    // The current receiver first funds its actual enlarged nominal map node,
-    // before constructing identities. Refusal still returns the same exact
-    // caller-owned Budget receipt and moves no HIR; it invents no allowance.
-    let (refused, failed, _, receipt) = with_limit_usage_refusal(report, || {
+    // The optional frozen-inventory operand and parameter precede the
+    // nominal map. Observe their own refusal before funding this exact frame
+    // for the independent original map-node boundary below.
+    let operand_frames =
+        2 * std::mem::size_of::<Option<&[crate::ast::program_source::FunctionCell<'_>]>>();
+    let (first_refused, first_failed, first_used, first_receipt) =
+        with_limit_usage_refusal(report, || {
+            let mut owner = IdentityReservation::acquire().unwrap();
+            pass.resolve_functions_paid(&program.path, &program, None, &mut owner)
+                .unwrap()
+                .err()
+                .unwrap()
+        });
+    assert!(first_failed);
+    assert_eq!(first_used, report);
+    let first_receipt = first_receipt.unwrap();
+    assert_eq!(first_receipt.requested, operand_frames);
+    assert_eq!(first_receipt.remaining, 0);
+    assert_eq!(first_receipt.floor, 0);
+    assert_eq!(first_receipt.stage, None);
+    assert!(matches!(first_refused,
+        paid_resolution::SelectiveFailure::Resolve(
+            crate::hir::identity_resolution::Failure::Identity(Refused::Budget(first)))
+        if first == first_receipt));
+    // Preserve the complete original next map-node receipt. The additional
+    // allowance pays only the actual preceding operand/parameter frame.
+    let (refused, failed, _, receipt) = with_limit_usage_refusal(report + operand_frames, || {
         let mut owner = IdentityReservation::acquire().unwrap();
         pass.resolve_functions_paid(&program.path, &program, None, &mut owner)
             .unwrap()

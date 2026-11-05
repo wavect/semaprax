@@ -1,4 +1,31 @@
 use super::*;
+mod borrowed_reads {
+    use super::*;
+
+    #[test]
+    fn borrowed_reads_replay_same_owner_helper_without_admitting_allocating_bodies() {
+        let source = r#"module app.main;
+    @id("fill") fn fill(output:own Bytes,input:borrow Slice<u8>)->Bytes {
+     let word=byte_read_le(input,0usize,1usize);
+     let zero=byte_zero_prefix(input);
+     let plain=byte_prefix_class(input,0usize,byte_len(input),0u8,255u8,10u8,13u8);
+     let mut next=output; next=bytes_set(next,0usize,65u8); next
+    }
+    @id("main") fn main()->i64 {
+     let raw=[1u8,2u8]; let input=array_as_slice(raw);
+     let mut output=bytes_zeroed(1usize); output=fill(output,input); 7
+    }
+    "#;
+        let checked = build(&[("app.spx", source)]);
+        assert_eq!(selected(&checked).unwrap(), Some("semaprax.graph.v76"));
+        let allocating = source.replace(
+            "let word=byte_read_le",
+            "let extra=bytes_zeroed(1usize); let word=byte_read_le",
+        );
+        let errors = crate::check(&allocating, "allocating-borrowed-reads.spx").unwrap_err();
+        assert!(errors.iter().any(|error| error.code == "SPX-U105"));
+    }
+}
 
 const LOCAL: &str = r#"module app.main;
 @id("fill") fn fill(output:own Bytes)->Bytes {
@@ -300,14 +327,34 @@ fn complete_absence_census_has_zero_budget_and_zero_scratch_debit() {
 @id("main") fn main()->i64 { let n=plain(6); if n==7 {7}else{0} }
 "#,
     )]);
-    let (selected, overflowed, used) =
-        crate::bounded_output::with_limit_usage(0, || selected(&build));
-    assert_eq!(selected.unwrap(), None);
+    // The source-site census now pays its fixed stack and member frames even
+    // when no helper exists. It must still allocate no proof backing.
+    let module = build
+        .hir
+        .modules
+        .iter()
+        .find(|m| m.module == "app.main")
+        .unwrap();
+    let required = STATIC_LEXICAL_CENSUS_CONTROLS
+        + module.functions.len() * STATIC_LEXICAL_MEMBER
+        + STATIC_LEXICAL_TEMPLATE_GATE;
+    let ((result, allocations), overflowed, used) =
+        crate::bounded_output::with_limit_usage(required, || {
+            crate::test_allocation_observer::measure(|| selected(&build))
+        });
+    assert_eq!(result.unwrap(), None);
     assert!(!overflowed);
+    assert_eq!(used, required);
     assert_eq!(
-        used, 0,
-        "an absent helper profile materializes no proof scratch"
+        allocations.allocated, 0,
+        "absence materializes no proof scratch"
     );
+    for limit in [0, required - 1] {
+        let (result, refused, _) =
+            crate::bounded_output::with_limit_usage(limit, || selected(&build));
+        assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+        assert!(refused);
+    }
 }
 
 #[test]
@@ -559,12 +606,29 @@ fn retained_schema_walk_reuses_only_physical_backing_and_rechecks_claims() {
         schema_with_proofs(module, modules, facts, &mut proofs).unwrap(),
         Some("semaprax.graph.v76")
     );
-    let (result, refused, bytes) = crate::bounded_output::with_limit_usage(0, || {
-        schema_with_proofs(module, modules, facts, &mut proofs)
-    });
+    let required = STATIC_LEXICAL_CENSUS_CONTROLS
+        + module.functions.len() * STATIC_LEXICAL_MEMBER
+        + STATIC_LEXICAL_TEMPLATE_GATE;
+    let ((result, allocations), refused, bytes) =
+        crate::bounded_output::with_limit_usage(required, || {
+            crate::test_allocation_observer::measure(|| {
+                schema_with_proofs(module, modules, facts, &mut proofs)
+            })
+        });
     assert_eq!(result.unwrap(), Some("semaprax.graph.v76"));
     assert!(!refused);
-    assert_eq!(bytes, 0);
+    assert_eq!(bytes, required);
+    assert_eq!(
+        allocations.allocated, 0,
+        "retained proof walk reuses physical backing"
+    );
+    for limit in [0, required - 1] {
+        let (result, refused, _) = crate::bounded_output::with_limit_usage(limit, || {
+            schema_with_proofs(module, modules, facts, &mut proofs)
+        });
+        assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+        assert!(refused);
+    }
     assert_eq!(proofs.proof_count, 1);
 }
 

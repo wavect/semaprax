@@ -21,11 +21,13 @@ use function @id("std.data.json.dec.fingerprint_match") from std.data.json.dec a
 use function @id("std.data.json.dec.emit_at") from std.data.json.dec as emit_at;
 use function @id("std.data.json.dec.emit_len") from std.data.json.dec as emit_len;
 use function @id("std.data.json.dec.escape_end") from std.data.json.dec as escape_end;
+use function @id("std.data.json.dec.escape-end-prior") from std.data.json.dec as escape_end_prior;
 use function @id("std.data.json.dec.escape_kind") from std.data.json.dec as escape_kind;
 use function @id("std.data.json.dec.failure") from std.data.json.dec as failure;
 use function @id("std.data.json.dec.hex_at") from std.data.json.dec as hex_at;
 use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_failure;
 use function @id("std.data.json.dec.scalar_at") from std.data.json.dec as scalar_at;
+use function @id("std.data.json.dec.scalar-at-prior") from std.data.json.dec as scalar_at_prior;
 use function @id("std.data.json.dec.scan-string") from std.data.json.dec as scan_string;
 use function @id("std.data.json.dec.simple_scalar") from std.data.json.dec as simple_scalar;
 use function @id("std.data.json.dec.prefix_eq") from std.data.json.dec as prefix_eq;
@@ -56,7 +58,7 @@ fn escapes() -> bool
 {
     let raw = [92u8, 110u8, 92u8, 117u8, 48u8, 48u8, 101u8, 57u8];
     let source = array_as_slice(raw);
-    escape_kind(source, 0usize) == 1 && escape_end(source, 0usize) == 2usize && escape_kind(source, 2usize) == 2 && escape_end(source, 2usize) == 8usize && simple_scalar(110u8) == 10 && simple_scalar(98u8) == 8 && simple_scalar(120u8) == -1 && scalar_at(source, 0usize) == 10 && scalar_at(source, 2usize) == 233
+    escape_kind(source, 0usize) == 1 && escape_end(source, 0usize) == 2usize && escape_kind(source, 2usize) == 2 && escape_end(source, 2usize) == 8usize && simple_scalar(110u8) == 10 && simple_scalar(98u8) == 8 && simple_scalar(120u8) == -1 && scalar_at(source, 0usize) == 10 && scalar_at(source, 2usize) == 233 && scalar_at_prior(source, 0usize) == 10 && scalar_at_prior(source, 2usize) == 233 && escape_end_prior(source, 0usize) == 2usize && escape_end_prior(source, 2usize) == 8usize
 }
 
 @id("std.data.json.dec.tests.surrogates")

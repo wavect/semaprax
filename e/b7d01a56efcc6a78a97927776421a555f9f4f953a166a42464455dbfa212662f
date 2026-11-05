@@ -1,0 +1,36 @@
+#[test]
+fn lexical_child_scratch_preserves_complete_state_signature_and_every_original_work_failure() {
+    let function = fixture();
+    for shape in 0..3 {
+        let (graph, sink, roots) = corpus(&function, shape);
+        for remaining in [
+            0,
+            1,
+            2,
+            16,
+            128,
+            1024,
+            crate::cleanup_plan::replay::MAX_REPLAY_WORK_UNITS,
+        ] {
+            let mut old = Canonicalizer::new(&graph, sink);
+            let mut current = Canonicalizer::new(&graph, sink);
+            let mut a = ReplayBudget::unobserved();
+            let mut b = ReplayBudget::unobserved();
+            a.remaining = remaining;
+            b.remaining = remaining;
+            for root in &roots {
+                assert_eq!(
+                    current.id(&function, vec![(*root, 1)], &mut b),
+                    old.before_id(&function, vec![(*root, 1)], &mut a),
+                    "complete original six fields and first work failure"
+                );
+                assert_eq!(
+                    (b.remaining, b.skeleton_remaining, b.skeleton_spent),
+                    (a.remaining, a.skeleton_remaining, a.skeleton_spent)
+                );
+                assert!(current.ids.iter().eq(old.ids.iter()));
+                assert!(current.states.iter().eq(old.states.iter()));
+            }
+        }
+    }
+}

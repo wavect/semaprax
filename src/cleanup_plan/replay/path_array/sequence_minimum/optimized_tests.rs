@@ -443,7 +443,9 @@ fn original_first_work_still_wins_before_paid_header_at_real_floor() {
             .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)
             .unwrap();
         let mut work = SkeletonWork::new(&program, function, &mut budget);
-        let inputs = seed(64, 0, &mut work).unwrap();
+        // The newer in-place route owns up to 256 prefixes. Exercise the
+        // original multi-suffix frontier above that closed selection range.
+        let inputs = seed(257, 0, &mut work).unwrap();
         let suffixes = seed(2, 0, &mut work).unwrap();
         let observed = with_limit_usage_refusal_site(usize::MAX, || {
             measure(|| {

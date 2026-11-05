@@ -1906,3 +1906,8 @@ Audience: all documentation readers.
 
 - [Public graph and analysis accounting expectations](evidence/public-wire-accounting-20261104/README.md)
 - [Complete Change and Structural Change wire bindings](evidence/change-wire-bindings-20261104/README.md)
+- [Complete formatting preservation in historical source controls](evidence/ci-formatting-preservation-20261105/README.md)
+- [Complete Operations wire bindings](evidence/operations-wire-bindings-20261105/README.md)
+- [Complete historical ingress for eight unregistered sources](evidence/ci-unregistered-inputs-20261105/README.md)
+
+- [Complete unit report bindings](evidence/unit-wire-bindings-20261105/README.md)

@@ -58,73 +58,81 @@ fn one_mib_ledger_preserves_first_cursor_refusal_and_sticky_retries() {
 
 #[test]
 fn complete_owned_and_borrowed_actual_payment_exact_short_and_sticky_receivers() {
-    let program = crate::check(SOURCE, "identity-workspace.spx").unwrap();
-    let owned = Input::Owned(program.clone());
-    let borrowed = Input::Borrowed(SyntheticProgramView::new(&program, Vec::new()).unwrap());
-    let (oracle, legacy_refused, _) =
+    // Workspace validation now owns a separate replay scratch ledger by default.
+    // This receiver test deliberately observes one caller-owned physical invoice,
+    // so select the existing coupled payer for its full call, retry and Drop.
+    crate::cleanup_plan::with_coupled(|| {
+        let program = crate::check(SOURCE, "identity-workspace.spx").unwrap();
+        let owned = Input::Owned(program.clone());
+        let borrowed = Input::Borrowed(SyntheticProgramView::new(&program, Vec::new()).unwrap());
+        let (oracle, legacy_refused, _) =
+            with_limit_usage(crate::workspace_graph::MAX_BUILDER_BYTES, || {
+                legacy_receiver::resolve_module(None, &program.path, &owned, None).unwrap()
+            });
+        assert!(!legacy_refused);
+        let expected_reused = oracle.2;
+        let expected_static = oracle.3;
+        let expected_costs = &oracle.1;
         with_limit_usage(crate::workspace_graph::MAX_BUILDER_BYTES, || {
-            legacy_receiver::resolve_module(None, &program.path, &owned, None).unwrap()
+            resolve_module(None, &program.path, &owned, None).unwrap()
         });
-    assert!(!legacy_refused);
-    let expected_reused = oracle.2;
-    let expected_static = oracle.3;
-    let expected_costs = &oracle.1;
-    with_limit_usage(crate::workspace_graph::MAX_BUILDER_BYTES, || {
-        resolve_module(None, &program.path, &owned, None).unwrap()
-    });
-    for input in [&owned, &borrowed] {
-        let observe = |limit, expect_refused| {
-            with_limit_usage_refusal(limit, || {
-                measure(|| {
-                    let result = resolve_module(None, &program.path, input, None);
-                    if expect_refused {
-                        assert!(result.is_err() && crate::bounded_output::active_refused());
-                        let remaining = crate::bounded_output::active_remaining();
-                        assert!(!crate::bounded_output::reserve_active_required(0));
-                        assert!(!crate::bounded_output::reserve_active_required(1));
-                        let live = current_metrics();
-                        let retry = resolve_module(None, &program.path, input, None);
-                        let after = current_metrics();
-                        assert_eq!(
-                            (after.allocations, after.live),
-                            (live.allocations, live.live)
-                        );
-                        assert!(matches!(
-                            retry,
-                            Err(ModuleFailure::Setup(Refused::Budget(_)))
-                        ));
-                        assert_eq!(remaining, crate::bounded_output::active_remaining());
-                        drop(retry);
-                    } else {
-                        let parts = result.as_ref().unwrap();
-                        assert_eq!(parts.0, oracle.0);
-                        assert_eq!(&parts.1, expected_costs);
-                        assert_eq!(parts.2, expected_reused);
-                        assert_eq!(parts.3, expected_static);
-                        assert!(!crate::bounded_output::active_refused());
-                    }
-                    drop(result);
+        for input in [&owned, &borrowed] {
+            let observe = |limit, expect_refused| {
+                with_limit_usage_refusal(limit, || {
+                    measure(|| {
+                        let result = resolve_module(None, &program.path, input, None);
+                        if expect_refused {
+                            assert!(result.is_err() && crate::bounded_output::active_refused());
+                            let remaining = crate::bounded_output::active_remaining();
+                            assert!(!crate::bounded_output::reserve_active_required(0));
+                            assert!(!crate::bounded_output::reserve_active_required(1));
+                            let live = current_metrics();
+                            let retry = resolve_module(None, &program.path, input, None);
+                            let after = current_metrics();
+                            assert_eq!(
+                                (after.allocations, after.live),
+                                (live.allocations, live.live)
+                            );
+                            assert!(matches!(
+                                retry,
+                                Err(ModuleFailure::Setup(Refused::Budget(_)))
+                            ));
+                            assert_eq!(remaining, crate::bounded_output::active_remaining());
+                            drop(retry);
+                        } else {
+                            let parts = result.as_ref().unwrap();
+                            assert_eq!(parts.0, oracle.0);
+                            assert_eq!(&parts.1, expected_costs);
+                            assert_eq!(parts.2, expected_reused);
+                            assert_eq!(parts.3, expected_static);
+                            assert!(!crate::bounded_output::active_refused());
+                        }
+                        drop(result);
+                    })
                 })
-            })
-        };
-        let (((), allocation), failed, required, first) =
-            observe(crate::workspace_graph::MAX_BUILDER_BYTES, false);
-        assert!(!failed && first.is_none() && required > report_bytes());
-        assert!(!allocation.invalid && allocation.live == 0);
-        assert_eq!(allocation.allocated, allocation.freed);
-        assert!(allocation.allocated <= required && allocation.highwater <= required);
-        let (((), exact), failed, used, first) = observe(required, false);
-        assert!(!failed && first.is_none() && used == required);
-        assert!(!exact.invalid && exact.live == 0);
-        assert_eq!(exact.allocated, exact.freed);
-        assert!(exact.allocated <= used && exact.highwater <= used);
-        let (((), short), failed, used, first) = observe(required - 1, true);
-        let first = first.expect("one-short selects a real original request");
-        assert!(failed && first.requested > first.remaining && used < required);
-        assert!(!short.invalid && short.live == 0);
-        assert_eq!(short.allocated, short.freed);
-        assert!(short.allocated <= used && short.highwater <= used);
-    }
+            };
+            let (((), allocation), failed, required, first) =
+                observe(crate::workspace_graph::MAX_BUILDER_BYTES, false);
+            assert!(!failed && first.is_none() && required > report_bytes());
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            assert!(
+                allocation.allocated <= required && allocation.highwater <= required,
+                "physical allocation {allocation:?} exceeds the actual paid invoice {required}"
+            );
+            let (((), exact), failed, used, first) = observe(required, false);
+            assert!(!failed && first.is_none() && used == required);
+            assert!(!exact.invalid && exact.live == 0);
+            assert_eq!(exact.allocated, exact.freed);
+            assert!(exact.allocated <= used && exact.highwater <= used);
+            let (((), short), failed, used, first) = observe(required - 1, true);
+            let first = first.expect("one-short selects a real original request");
+            assert!(failed && first.requested > first.remaining && used < required);
+            assert!(!short.invalid && short.live == 0);
+            assert_eq!(short.allocated, short.freed);
+            assert!(short.allocated <= used && short.highwater <= used);
+        }
+    });
 }
 
 #[test]

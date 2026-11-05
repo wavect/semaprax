@@ -381,7 +381,7 @@ fn main() -> i64
     assert_ne!(forged, json);
     assert!(graph::verify_json(&program, &forged).is_err());
     let drifted = parse(
-        &canonical.replace("value == 10u8", "value == 13u8"),
+        &canonical.replace("0u8, 255u8, 10u8, 10u8", "0u8, 255u8, 13u8, 13u8"),
         "drifted-lines.spx",
     )
     .unwrap();

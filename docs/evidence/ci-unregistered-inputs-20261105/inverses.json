@@ -1,0 +1,382 @@
+[
+  {
+    "source": "src/byte_ops.rs",
+    "before_bytes": 30430,
+    "before_sha256": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
+    "before_provenance": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade.txt",
+    "current_bytes": 33656,
+    "current_sha256": "46c64dd5ae6dcd669301c4339c2cdf38d1a5a138cce373dc44933ca876096b21",
+    "inverse": [
+      [
+        925,
+        "pub(crate) const READ_LE_NAME: &str = \"byte_read_le\";\npub(crate) const ZERO_PREFIX_NAME: &str = \"byte_zero_prefix\";\npub(crate) const ZERO_PREFIX_ID: &str = \"core.bytes.zero-prefix\";\npub(crate) const PREFIX_CLASS_NAME: &str = \"byte_prefix_class\";\npub(crate) const PREFIX_CLASS_ID: &str = \"core.bytes.prefix-class\";\npub(crate) const READ_LE_ID: &str = \"core.bytes.read-le\";\n",
+        ""
+      ],
+      [
+        5396,
+        "    /// Total, bounds-checked little-endian read of one through eight bytes.\n    ReadLe,\n    /// Number of leading zero bytes, stopping before the first nonzero byte.\n    ZeroPrefix,\n    /// Count a bounded prefix in an inclusive byte class, excluding two stops.\n    PrefixClass,\n",
+        ""
+      ],
+      [
+        6691,
+        "    pub(crate) const ALL: [Self; 17] = [\n",
+        "    pub(crate) const ALL: [Self; 14] = [\n"
+      ],
+      [
+        6770,
+        "        Self::ReadLe,\n        Self::ZeroPrefix,\n        Self::PrefixClass,\n",
+        ""
+      ],
+      [
+        7363,
+        "            Self::ReadLe => READ_LE_NAME,\n            Self::ZeroPrefix => ZERO_PREFIX_NAME,\n            Self::PrefixClass => PREFIX_CLASS_NAME,\n",
+        ""
+      ],
+      [
+        8291,
+        "            Self::ReadLe => READ_LE_ID,\n            Self::ZeroPrefix => ZERO_PREFIX_ID,\n            Self::PrefixClass => PREFIX_CLASS_ID,\n",
+        ""
+      ],
+      [
+        9045,
+        "            Self::Len | Self::ZeroPrefix => 1,\n",
+        "            Self::Len => 1,\n"
+      ],
+      [
+        9142,
+        "            Self::Range | Self::Set | Self::Partition | Self::ReadLe => 3,\n            Self::Set5 | Self::PrefixClass => 7,\n",
+        "            Self::Range | Self::Set | Self::Partition => 3,\n            Self::Set5 => 7,\n"
+      ],
+      [
+        9765,
+        "            Self::Len | Self::ZeroPrefix => &[ResolvedType::SliceU8],\n",
+        "            Self::Len => &[ResolvedType::SliceU8],\n"
+      ],
+      [
+        9907,
+        "            Self::PrefixClass => &[\n                ResolvedType::SliceU8,\n                ResolvedType::Usize,\n                ResolvedType::Usize,\n                ResolvedType::U8,\n                ResolvedType::U8,\n                ResolvedType::U8,\n                ResolvedType::U8,\n            ],\n            Self::ReadLe => &[\n                ResolvedType::SliceU8,\n                ResolvedType::Usize,\n                ResolvedType::Usize,\n            ],\n",
+        ""
+      ],
+      [
+        12232,
+        "            Self::Len | Self::ZeroPrefix | Self::PrefixClass => ResolvedType::Usize,\n",
+        "            Self::Len => ResolvedType::Usize,\n"
+      ],
+      [
+        12500,
+        "            },\n            Self::ReadLe => ResolvedType::Nominal {\n                declaration: DeclarationId::compiler(CompilerDeclaration::Option),\n                arguments: vec![ResolvedType::Usize],\n",
+        ""
+      ],
+      [
+        13368,
+        "            Self::Len | Self::ZeroPrefix | Self::PrefixClass => Type::Usize,\n",
+        "            Self::Len => Type::Usize,\n"
+      ],
+      [
+        13570,
+        "            },\n            Self::ReadLe => Type::Named {\n                name: \"Option\".to_owned(),\n                arguments: vec![Type::Usize],\n",
+        ""
+      ],
+      [
+        14378,
+        "            (Self::Len | Self::Copy | Self::ZeroPrefix, 0) => *ty == ResolvedType::SliceU8,\n",
+        "            (Self::Len | Self::Copy, 0) => *ty == ResolvedType::SliceU8,\n"
+      ],
+      [
+        14588,
+        "            (Self::ReadLe, 0) => *ty == ResolvedType::SliceU8,\n            (Self::PrefixClass, 0) => *ty == ResolvedType::SliceU8,\n            (Self::PrefixClass, 1 | 2) => *ty == ResolvedType::Usize,\n            (Self::PrefixClass, 3..=6) => *ty == ResolvedType::U8,\n            (Self::ReadLe, 1 | 2) => *ty == ResolvedType::Usize,\n",
+        ""
+      ],
+      [
+        16540,
+        "            (Self::Len | Self::Copy | Self::ZeroPrefix, 0) => *ty == Type::SliceU8,\n",
+        "            (Self::Len | Self::Copy, 0) => *ty == Type::SliceU8,\n"
+      ],
+      [
+        16726,
+        "            (Self::ReadLe, 0) => *ty == Type::SliceU8,\n            (Self::PrefixClass, 0) => *ty == Type::SliceU8,\n            (Self::PrefixClass, 1 | 2) => *ty == Type::Usize,\n            (Self::PrefixClass, 3..=6) => *ty == Type::U8,\n            (Self::ReadLe, 1 | 2) => *ty == Type::Usize,\n",
+        ""
+      ],
+      [
+        19553,
+        "                | Self::ReadLe\n                | Self::ZeroPrefix\n                | Self::PrefixClass\n",
+        ""
+      ],
+      [
+        20863,
+        "            Self::ReadLe => &[\"value\", \"index\", \"width\"],\n            Self::PrefixClass => &[\"value\", \"index\", \"limit\", \"low\", \"high\", \"stop1\", \"stop2\"],\n",
+        ""
+      ],
+      [
+        21094,
+        "            | Self::ZeroPrefix\n",
+        ""
+      ],
+      [
+        22809,
+        "        READ_LE_NAME => Some(ByteOp::ReadLe),\n        ZERO_PREFIX_NAME => Some(ByteOp::ZeroPrefix),\n        PREFIX_CLASS_NAME => Some(ByteOp::PrefixClass),\n",
+        ""
+      ],
+      [
+        23813,
+        "        READ_LE_ID => Some(ByteOp::ReadLe),\n        ZERO_PREFIX_ID => Some(ByteOp::ZeroPrefix),\n        PREFIX_CLASS_ID => Some(ByteOp::PrefixClass),\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/hir/declaration_index.rs",
+    "before_bytes": 59978,
+    "before_sha256": "adc41f5edf1a8bf7a598e6020ff0f014489bb753a462a7150b4938dd47deb55a",
+    "before_provenance": "400f9240c02dd56bde4057be9041a2c93da56aeb",
+    "current_bytes": 60090,
+    "current_sha256": "b791970b98c5003bf4283ef7c86acdd1a1e68e23035ec29fae3991eea412fe9e",
+    "inverse": [
+      [
+        23999,
+        "                        && matches!(\n                            arguments.as_slice(),\n                            [ResolvedType::U8 | ResolvedType::Usize]\n                        );\n",
+        "                        && arguments.as_slice() == [ResolvedType::U8];\n"
+      ]
+    ]
+  },
+  {
+    "source": "tests/useful_data/byte_slice_for_runtime/host.mjs",
+    "before_bytes": 5253,
+    "before_sha256": "fcd2b6d4bc7364d7d25f69fdd8e3c9598bbd2cb066f6f7c7fcfeb482452b09eb",
+    "before_provenance": "e0d2ac1ecb0b5920f8b4521398d1942d511f2983",
+    "current_bytes": 5358,
+    "current_sha256": "09f5bade4a528e2d86ee393796e0891bb98fe5da0b82a0081df0a09f83c6c7f8",
+    "inverse": [
+      [
+        496,
+        "const wordReads=kind==='word-reads';\nconst expectedCopies=kind==='success'||wordReads?2:kind==='failure'||catalog?1:0;\nconst expectedAllocated=wordReads?10+new TextEncoder().encode('SEMAPRAX').length:kind==='success'?256+new TextEncoder().encode('SEMAPRAX').length:kind==='failure'?3:catalog?Number(catalog[2]):0;\n",
+        "const expectedCopies=kind==='success'?2:kind==='failure'||catalog?1:0;\nconst expectedAllocated=kind==='success'?256+new TextEncoder().encode('SEMAPRAX').length:kind==='failure'?3:catalog?Number(catalog[2]):0;\n"
+      ]
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_change.rs",
+    "before_bytes": 31504,
+    "before_sha256": "ae187171ec6d88a357fdf76b3193dd1b0ebe1f7fd62f87cb130038d2e3ebbbde",
+    "before_provenance": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/ae187171ec6d88a357fdf76b3193dd1b0ebe1f7fd62f87cb130038d2e3ebbbde.txt",
+    "current_bytes": 32088,
+    "current_sha256": "9aa8d3f413bed41f6cbd924478229adf551ccf49b46c7deac30d31e9e81efec2",
+    "inverse": [
+      [
+        7885,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba\",\n            \"sha256:11649876fb92a9fbb67bdfe08818c5bb020af8f015efea4b86c1458878f255c0\"\n        )\n",
+        "        \"sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d\"\n"
+      ],
+      [
+        8300,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14\",\n            \"sha256:0b26819baad36c2df5b437906fd5221c77bdcb902bdda434800d13e322574a7b\"\n        )\n",
+        "        \"sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03\"\n"
+      ],
+      [
+        17439,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:29cc4fdc7542cbbecae80432d6a75aca3ccf5bf838c21ff421b7ee208f65b548\",\n            \"sha256:d0c18e42c83027d031e4c92903ac27430b5aeb114814e21800b005e4982e616c\"\n        )\n",
+        "        \"sha256:58afef656be82ede98080e316c879b9a99183c02f2d46e4f643b0d926385a016\"\n"
+      ],
+      [
+        26125,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:701af5dc988316d5250661f382af3a50f984c1f87684f4842a5de83695cd3340\",\n            \"sha256:89fcd7d1c868cd3e5f07fb3e7486c9ee17247ef03ac7a2004a29bb4491d5e544\"\n        )\n",
+        "        \"sha256:f09495db4b728e6d81a33b3973e50019286e8ee2e0c5190db8d1662664b19976\"\n"
+      ]
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_operations.rs",
+    "before_bytes": 20548,
+    "before_sha256": "8506b3b498ba8dc6926b1a603248a7f714b33d457137e17dc51fc1e133dfb275",
+    "before_provenance": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/8506b3b498ba8dc6926b1a603248a7f714b33d457137e17dc51fc1e133dfb275.txt",
+    "current_bytes": 21979,
+    "current_sha256": "34fb84a034112b89d82a7f502911cc7d53241f868a85268f49a6d93411eaf4ab",
+    "inverse": [
+      [
+        4942,
+        "    super::pin_capture::record(\"operations-derivation\", bundle.derivation().as_bytes());\n    super::pin_capture::record(\n        \"operations-change\",\n        bundle.derived_change_proposal().as_bytes(),\n    );\n",
+        ""
+      ],
+      [
+        5892,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7\",\n            \"sha256:cb4cfb4b54025e199da0aab41389e2c698ab80bff9e56489940e12e214b2190e\",\n        )\n",
+        "        \"sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768\"\n"
+      ],
+      [
+        11397,
+        "    super::pin_capture::record(\"operations-derivation\", bundle.derivation().as_bytes());\n    super::pin_capture::record(\n        \"operations-child-evidence\",\n        bundle.workspace_change_evidence().as_bytes(),\n    );\n    super::pin_capture::record(\n        \"operations-evidence\",\n        bundle.operations_evidence().as_bytes(),\n    );\n",
+        ""
+      ],
+      [
+        12065,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7\",\n            \"sha256:cb4cfb4b54025e199da0aab41389e2c698ab80bff9e56489940e12e214b2190e\",\n        )\n",
+        "        \"sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768\"\n"
+      ],
+      [
+        12658,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:b6ef2b450daa6c9a09e730e28a3079976f00fa9b37b2a6abe26e17fa91f81138\",\n            \"sha256:14c2cfca49446f591a3fa98fedd33a4e5ed10eb8f71a99645a06a59822bd566a\",\n        )\n",
+        "        \"sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9\"\n"
+      ],
+      [
+        13091,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:d675be31765bba093f04c3b0a89216a4ad9e1472bfffa63574b003d2e94f78bb\",\n            \"sha256:b5d1f25cef9e0a2b2d315c254c732f6847a9578b10b30e8697cb4d6792e94b68\",\n        )\n",
+        "        \"sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1\"\n"
+      ],
+      [
+        14510,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:6d2fa7c230113135205b36e9fa1bf873e0020ff061b22795d21dad70060d65c7\",\n            \"sha256:fa792d1b1297a76d886b1d6d145d6608c7234ff189d36d959563be3f6c4de67a\",\n        )\n",
+        "        \"sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034\"\n"
+      ],
+      [
+        15819,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049\",\n            \"sha256:cce730f3d5fdecc08f6d62c519c981590269a317e257593c53cb3179a03dd017\",\n        )\n",
+        "        \"sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f\"\n"
+      ]
+    ]
+  },
+  {
+    "source": "tests/workspace/semantic_structural_change.rs",
+    "before_bytes": 28854,
+    "before_sha256": "19072f9362ad1805477e2885628211a4f117e03756f2884115f14329bfc22da1",
+    "before_provenance": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/19072f9362ad1805477e2885628211a4f117e03756f2884115f14329bfc22da1.txt",
+    "current_bytes": 29936,
+    "current_sha256": "c99b7481f4cf290000abb51613db73554a607bd2a4e1281cc5516848148236fb",
+    "inverse": [
+      [
+        10519,
+        "            super::pin_capture::native_wire_pin(\n                \"sha256:b684001e6c8045b42fb69bfa7f4d62c0154eaadffae92fd0139340f461b2dca6\",\n                \"sha256:a421574b7eef8b4cb0b7595f37f73955f961e463c1d51762cccba7041362d50a\"\n            ),\n            super::pin_capture::native_wire_pin(\n                \"sha256:c707884d3b79beb4387362355f53aaf599ee01f5e13b06bd15b430ac8b1c226e\",\n                \"sha256:2a56ce5c8c145544d85066549bef6979df34cae79ee0cc74ea96c9261e5d3879\"\n            ),\n            super::pin_capture::native_wire_pin(\n                \"sha256:b21f1b4b39ae21e4ac9e87bbc98d50b7185629c387efb8f0d7628d86b0fe6821\",\n                \"sha256:346cface9d29e75e55078198d3b2b5518f0d6c332500fe759be2c6041733265b\"\n            ),\n            super::pin_capture::native_wire_pin(\n                \"sha256:9716979215b19e3614dc7f0dfb8689035b94f930e3ad99d78fa077cb7eda09db\",\n                \"sha256:fbeed970b79c58c7ad6b00cd676816345d3db75c1082d55adea219324226efcf\"\n            ),\n            super::pin_capture::native_wire_pin(\n                \"sha256:6c5a19ca476a7dc7d9ac46d024d7df594cadb579a7a78b83ea75d6acab932308\",\n                \"sha256:3c489fad55ec3f5904ba7f92a852617cd2c03a547206d191187b49d0be3df505\"\n            ),\n",
+        "            \"sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953\",\n            \"sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd\",\n            \"sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a\",\n            \"sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8\",\n            \"sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966\",\n"
+      ],
+      [
+        14413,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:31f2cd70570922e175ba571d9a5539e5c44ca0e5f3c1018639a63bc7ae79081f\",\n            \"sha256:7dad65891e88bd093c31ad86f53366eea8de09a5353845101293b49e18559e29\"\n        )\n",
+        "        \"sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82\"\n"
+      ],
+      [
+        23304,
+        "        super::pin_capture::native_wire_pin(\n            \"sha256:d9750ce45b783ff17902e2251acb5e3cbb9a2b8e6e6ef1ee12be39ad5b1ecec5\",\n            \"sha256:2711730b19a006542f8a914a93edb37a0f39259e58ddeca51eacd19fad7a0659\"\n        )\n",
+        "        \"sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961\"\n"
+      ]
+    ]
+  },
+  {
+    "source": "std/io-lines/src/lines.spx",
+    "before_bytes": 4129,
+    "before_sha256": "12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44",
+    "before_provenance": "1bf9084fbdaeeb7e42c4a4539477b7503d42beab",
+    "current_bytes": 3879,
+    "current_sha256": "4e78d6b17737caa6503b361e37ab82604104ea613cc76adcc64045cc02da69b5",
+    "inverse": [
+      [
+        480,
+        "// A bounded lookahead returns the first LF offset in the complete block;\n",
+        ""
+      ],
+      [
+        737,
+        "    start + byte_prefix_class(view, start, byte_len(view) - start, 0u8, 255u8, 10u8, 10u8)\n",
+        "    let length = byte_len(view);\n    let mut index = start;\n    let mut scanning = index < length;\n    while scanning {\n        let terminator = match byte_get(view, index) { Option::Some { value: matched_value } => matched_value == 10u8, Option::None {} => true, };\n        index = if terminator { index } else { index + 1usize };\n        scanning = !terminator && index < length;\n        scanning\n    }\n    index\n"
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
+    "before_bytes": 26734,
+    "before_sha256": "41c245758f90f7b53dc863b8670669c2583f3f249a1eb0242e2c26514c0ded8d",
+    "before_provenance": "Independent complete held-auth-839 predecessor, before field accessors and namespace adaptation",
+    "current_bytes": 26951,
+    "current_sha256": "1d7d039e01aaaecec948390abef67e6d9b9b4ceb592989367355c8f626a0e759",
+    "inverse": [
+      [
+        472,
+        "before_held::memo;\nuse super::",
+        ""
+      ],
+      [
+        528,
+        "",
+        ", memo"
+      ],
+      [
+        5863,
+        "",
+        "&"
+      ],
+      [
+        5876,
+        "()",
+        ""
+      ],
+      [
+        6609,
+        "()",
+        ""
+      ],
+      [
+        6639,
+        "()",
+        ""
+      ],
+      [
+        6790,
+        "()",
+        ""
+      ],
+      [
+        7656,
+        "()",
+        ""
+      ],
+      [
+        7871,
+        "",
+        "&"
+      ],
+      [
+        7884,
+        "()",
+        ""
+      ],
+      [
+        11057,
+        "",
+        "&"
+      ],
+      [
+        11090,
+        "()",
+        ""
+      ],
+      [
+        26558,
+        "",
+        "\n"
+      ],
+      [
+        26582,
+        "\n    #[allow(\n        clippy::type_complexity,\n        reason = \"The independently compiled control retains its exact tuple layout and receiving types.\"\n    )]",
+        ""
+      ],
+      [
+        26827,
+        "\n       ",
+        ""
+      ],
+      [
+        26845,
+        "\n   ",
+        ""
+      ],
+      [
+        26921,
+        "\n       ",
+        ""
+      ],
+      [
+        26942,
+        "\n   ",
+        ""
+      ]
+    ]
+  }
+]

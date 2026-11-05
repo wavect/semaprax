@@ -1,5 +1,5 @@
 use super::*;
-
+mod current_wire_capture;
 #[test]
 fn public_declaration_subject_grammar_excludes_private_members() {
     for (text, subject) in [
@@ -21,6 +21,7 @@ fn public_declaration_subject_grammar_excludes_private_members() {
         assert_eq!(DeclarationSubject::parse(subject.text()), None);
     }
 }
+use crate::source_reflows::unit_wire_pin as wire_pin;
 use fs2::FileExt;
 use std::fs::OpenOptions;
 use std::io::Write as _;
@@ -28,7 +29,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-
 static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
 
 struct ManagedOperationsFixture {
@@ -385,7 +385,7 @@ fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts() {
     );
     assert_eq!(
         output.derivation_digest(),
-        "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768"
+        wire_pin("sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768")
     );
 }
 
@@ -1436,6 +1436,7 @@ fn dense_late_edits_stream_once_and_fail_before_tiny_capacity() {
 }
 
 fn raw_sha256(bytes: &[u8]) -> String {
+    crate::source_reflows::record_wire_fixture("operations", bytes);
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!(
@@ -1443,7 +1444,6 @@ fn raw_sha256(bytes: &[u8]) -> String {
         crate::digest_hex::LowerHex(hasher.finalize())
     )
 }
-
 fn directory_names(path: &Path) -> Vec<String> {
     let mut names = std::fs::read_dir(path)
         .unwrap()
@@ -1513,11 +1513,11 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
         .starts_with("sha256:"));
     assert_eq!(
         raw_sha256(artifacts.workspace_change_evidence().as_bytes()),
-        "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9"
+        wire_pin("sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9")
     );
     assert_eq!(
         raw_sha256(artifacts.operations_evidence().as_bytes()),
-        "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1"
+        wire_pin("sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1")
     );
     assert_eq!(
         artifacts.operations_proposal_digest(),
@@ -1546,7 +1546,7 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
     });
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034"
+        wire_pin("sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034")
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(
@@ -2236,7 +2236,7 @@ fn operations_apply_is_exact_stale_and_zero_write_before_replay() {
     let receipt = apply(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f"
+        wire_pin("sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f")
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(

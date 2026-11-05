@@ -987,7 +987,12 @@ fn main090_checked(path: &Path, length: usize, sha: &str) -> String {
     {
         return value;
     }
-    main090_file(path, length, sha).unwrap()
+    main090_file(path, length, sha).unwrap_or_else(|error| {
+        panic!(
+            "MAIN090 complete input path={} length={length} sha={sha}: {error}",
+            path.display()
+        )
+    })
 }
 fn main090_row<'a>(
     manifest: &'a serde_json::Value,

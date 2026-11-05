@@ -505,7 +505,15 @@ fn load_with<T>(
     expected_digest: &str,
     decode: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
-    let mut compiler = Compiler::capture()?;
+    load_with_compiler(root_path, expected_digest, decode, Compiler::capture()?)
+}
+
+fn load_with_compiler<T>(
+    root_path: &Path,
+    expected_digest: &str,
+    decode: impl FnOnce(&[u8]) -> Result<T>,
+    mut compiler: Compiler,
+) -> Result<T> {
     let root = Root::open(root_path)?;
     let lock = root.lock(false)?;
     let initial = inventory(&root, true)?;
@@ -641,6 +649,9 @@ impl Compiler {
             .map_err(|_| io("cannot locate current compiler executable"))?
             .canonicalize()
             .map_err(|_| binding("cannot resolve trusted immutable compiler installation"))?;
+        Self::open_at(path)
+    }
+    fn open_at(path: PathBuf) -> Result<Self> {
         if path.as_os_str().as_bytes().len() > MAX_SEMANTIC_CACHE_STORE_PATH_BYTES {
             return Err(capacity(
                 "current compiler executable path exceeds4096bytes",
@@ -799,7 +810,30 @@ mod tests {
         let root = Root::open(&fixture.0).unwrap();
         let inventory_before = inventory(&root, true).unwrap();
         let key = Key::open(&root, &inventory_before).unwrap();
-        let compiler = Compiler::capture().unwrap();
+        // The complete unit harness can exceed the installed compiler's
+        // unchanged 256 MiB admission bound. Exercise the same held-file
+        // reader on a separate, bounded executable for this refusal control.
+        let installation = Fixture::new();
+        let compiler_path = installation.0.join("compiler");
+        file(&compiler_path, b"bounded immutable executable fixture");
+        disk::set_permissions(&compiler_path, disk::Permissions::from_mode(0o500)).unwrap();
+        let alias = installation.0.join("hard-link");
+        disk::hard_link(&compiler_path, &alias).unwrap();
+        code(Compiler::open_at(compiler_path.clone()), "SPX-G308");
+        disk::remove_file(alias).unwrap();
+        disk::set_permissions(&compiler_path, disk::Permissions::from_mode(0o520)).unwrap();
+        code(Compiler::open_at(compiler_path.clone()), "SPX-G308");
+        disk::set_permissions(&compiler_path, disk::Permissions::from_mode(0o500)).unwrap();
+        let overbound = installation.0.join("overbound");
+        disk::File::create(&overbound)
+            .unwrap()
+            .set_len(MAX_SEMANTIC_CACHE_COMPILER_BYTES as u64 + 1)
+            .unwrap();
+        disk::set_permissions(&overbound, disk::Permissions::from_mode(0o500)).unwrap();
+        code(Compiler::open_at(overbound), "SPX-G308");
+        let mut compiler = Compiler::open_at(compiler_path.clone()).unwrap();
+        // A fixture never becomes the running compiler installation.
+        code(compiler.recheck(), "SPX-G308");
         let (mut bytes, _) = super::super::seal(
             b"deliberately not a valid snapshot",
             &key.secret.0,
@@ -816,7 +850,20 @@ mod tests {
             &bytes,
         );
         // G309, rather than a snapshot grammar error, demonstrates ordering.
-        code(load(&fixture.0, &expected), "SPX-G309");
+        let decoded = std::cell::Cell::new(false);
+        code(
+            load_with_compiler(
+                &fixture.0,
+                &expected,
+                |_| {
+                    decoded.set(true);
+                    Ok(())
+                },
+                Compiler::open_at(compiler_path.clone()).unwrap(),
+            ),
+            "SPX-G309",
+        );
+        assert!(!decoded.get());
         drop(key);
         drop(root);
         let outside = Fixture::new();
@@ -824,7 +871,19 @@ mod tests {
         file(&outside.0.join("key"), &saved);
         disk::remove_file(fixture.0.join(KEY)).unwrap();
         symlink(outside.0.join("key"), fixture.0.join(KEY)).unwrap();
-        code(load(&fixture.0, &expected), "SPX-G308");
+        code(
+            load_with_compiler(
+                &fixture.0,
+                &expected,
+                |_| {
+                    decoded.set(true);
+                    Ok(())
+                },
+                Compiler::open_at(compiler_path).unwrap(),
+            ),
+            "SPX-G308",
+        );
+        assert!(!decoded.get());
         assert_eq!(disk::read(outside.0.join("key")).unwrap(), saved);
     }
     #[test]

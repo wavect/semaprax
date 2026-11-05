@@ -123,9 +123,14 @@ fn held_complete_old_receivers_and_original_fee_body_are_exact_independent_sourc
         .replace("pub(super) use retained::RetainedMemo;","pub(in crate::cleanup_plan::replay::factored::canonical_shared) use retained::RetainedMemo;");
     assert_eq!(
         adapted,
-        include_str!("../../factored/canonical_shared/before_held_memo.rs")
+        crate::source_reflows::formatting_view(
+            "held_complete_old_receivers_and_original_fee_body_are_exact_independent_sources",
+            include_str!("../../factored/canonical_shared/before_held_memo.rs")
+        )
     );
-    assert_eq!(include_str!("../../factored/canonical_shared/before_ordered.rs")
+    assert_eq!(crate::source_reflows::legacy_ci_expected_input(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs", "41c245758f90f7b53dc863b8670669c2583f3f249a1eb0242e2c26514c0ded8d",
+        include_str!("../../factored/canonical_shared/before_ordered.rs"))
         .replace("use super::{app_census, epsilon_alias, successor_targets, tests};\nuse super::before_held::memo;","use super::{app_census, epsilon_alias, memo, successor_targets, tests};"),
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/held-auth-839/src__cleanup_plan__replay__factored__canonical_shared__before_ordered.rs.before.txt")));
     let old_tests=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/held-auth-839/src__cleanup_plan__replay__factored__canonical_shared__scratch_tests.rs.before.txt"));

@@ -41,6 +41,9 @@ fn byte_operation(op: crate::byte_ops::ByteOp) -> bool {
         op,
         crate::byte_ops::ByteOp::Len
             | crate::byte_ops::ByteOp::Get
+            | crate::byte_ops::ByteOp::ReadLe
+            | crate::byte_ops::ByteOp::ZeroPrefix
+            | crate::byte_ops::ByteOp::PrefixClass
             | crate::byte_ops::ByteOp::Range
             | crate::byte_ops::ByteOp::BytesAsSlice
             | crate::byte_ops::ByteOp::ArrayAsSlice

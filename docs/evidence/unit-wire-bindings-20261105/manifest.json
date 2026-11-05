@@ -1,0 +1,276 @@
+{
+  "schema": "semaprax.unit-wire-bindings.v1",
+  "qualification": "Complete local original-fixture wires; portable expected bodies from complete public fixture captures, with current CI anchors for change arrays and Operations derivation, child evidence and application; full portable execution remains pending",
+  "wires": [
+    {
+      "family": "change",
+      "host": "macos",
+      "kind": "preview",
+      "file": "change/macos/preview.json",
+      "bytes": 11526,
+      "raw_sha256": "sha256:0667599bf492ae9859b1e916be0ca6b921f33501814a9dc07ca3909ceb86ed6d",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "portable",
+      "kind": "preview",
+      "file": "change/portable/preview.json",
+      "bytes": 11526,
+      "raw_sha256": "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "macos",
+      "kind": "context",
+      "file": "change/macos/context.json",
+      "bytes": 6230,
+      "raw_sha256": "sha256:7aab5e8bf468c79c4f5c5ba98b44a93903b2216d23664f99f621258b5ed111bc",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "portable",
+      "kind": "context",
+      "file": "change/portable/context.json",
+      "bytes": 6230,
+      "raw_sha256": "sha256:0582592e9570c9e8198d5454516677e76429df20b4eb288130d9fc67070716b2",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "macos",
+      "kind": "impact",
+      "file": "change/macos/impact.json",
+      "bytes": 12301,
+      "raw_sha256": "sha256:44422011d00c82de9fa8f406d62d9de2bfdff4266faf5de6853d94c945763150",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "portable",
+      "kind": "impact",
+      "file": "change/portable/impact.json",
+      "bytes": 12301,
+      "raw_sha256": "sha256:36ee151090b93a7e4e668120bd7d7c2126caa0c2ff10135e6c5011e65bc2f082",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "macos",
+      "kind": "review",
+      "file": "change/macos/review.json",
+      "bytes": 10629,
+      "raw_sha256": "sha256:1ae7e640893213ee381bab90712952c2540ca00da5c8832038060e3bbb746734",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "portable",
+      "kind": "review",
+      "file": "change/portable/review.json",
+      "bytes": 10629,
+      "raw_sha256": "sha256:ed8c85d677b9252832b6acb5ab9d54377cf4bdbd4c94f75a1a6c29104b60e074",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "macos",
+      "kind": "evidence",
+      "file": "change/macos/evidence.json",
+      "bytes": 5181,
+      "raw_sha256": "sha256:afd5f20ed9e0712b9c8c05821a62afb4cd7d816771ba3502a56a4be50ce6c4f3",
+      "domain_digest": null
+    },
+    {
+      "family": "change",
+      "host": "portable",
+      "kind": "evidence",
+      "file": "change/portable/evidence.json",
+      "bytes": 5181,
+      "raw_sha256": "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "derivation",
+      "file": "operations/macos/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:516c86e7c7a32b4cf04ab89139a96d32eabc8568f4f1cb7978af480d13ba5227",
+      "domain_digest": "sha256:72eafff3bfb7ac949f10a98a69271cb08d0d1405666c4561eed0326b6f85b75a"
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "derivation",
+      "file": "operations/portable/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:fe42de54ab0ef92005621b1a6a353819c3f162b1cb90d332f60e14343a9fd7d6",
+      "domain_digest": "sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7"
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "change",
+      "file": "operations/macos/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "change",
+      "file": "operations/portable/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "child-evidence",
+      "file": "operations/macos/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:ac52431535b9e798f8cd4ba3ebb5321de879b954ba17083659a4688704b42b7c",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "child-evidence",
+      "file": "operations/portable/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:b6ef2b450daa6c9a09e730e28a3079976f00fa9b37b2a6abe26e17fa91f81138",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "evidence",
+      "file": "operations/macos/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:86838335db234630c96956470914827d9c5288506bf26c5542b66a1dcbc2e448",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "evidence",
+      "file": "operations/portable/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:d675be31765bba093f04c3b0a89216a4ad9e1472bfffa63574b003d2e94f78bb",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "verification",
+      "file": "operations/macos/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:c88b7b4dc4aa997c075bbca02afe27e8c2be7c0063188654957639609e68e78f",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "verification",
+      "file": "operations/portable/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:6d2fa7c230113135205b36e9fa1bf873e0020ff061b22795d21dad70060d65c7",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "macos",
+      "kind": "application",
+      "file": "operations/macos/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:533dff2b0494adf066bc4b4db55bd5356544d35e3ebdd8e3276a443f51dcefd4",
+      "domain_digest": null
+    },
+    {
+      "family": "operations",
+      "host": "portable",
+      "kind": "application",
+      "file": "operations/portable/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049",
+      "domain_digest": null
+    }
+  ],
+  "pins": [
+    {
+      "family": "change",
+      "kind": "preview",
+      "previous_literal": "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d",
+      "macos": "sha256:0667599bf492ae9859b1e916be0ca6b921f33501814a9dc07ca3909ceb86ed6d",
+      "portable": "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba"
+    },
+    {
+      "family": "change",
+      "kind": "context",
+      "previous_literal": "sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822",
+      "macos": "sha256:7aab5e8bf468c79c4f5c5ba98b44a93903b2216d23664f99f621258b5ed111bc",
+      "portable": "sha256:0582592e9570c9e8198d5454516677e76429df20b4eb288130d9fc67070716b2"
+    },
+    {
+      "family": "change",
+      "kind": "impact",
+      "previous_literal": "sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b",
+      "macos": "sha256:44422011d00c82de9fa8f406d62d9de2bfdff4266faf5de6853d94c945763150",
+      "portable": "sha256:36ee151090b93a7e4e668120bd7d7c2126caa0c2ff10135e6c5011e65bc2f082"
+    },
+    {
+      "family": "change",
+      "kind": "review",
+      "previous_literal": "sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b",
+      "macos": "sha256:1ae7e640893213ee381bab90712952c2540ca00da5c8832038060e3bbb746734",
+      "portable": "sha256:ed8c85d677b9252832b6acb5ab9d54377cf4bdbd4c94f75a1a6c29104b60e074"
+    },
+    {
+      "family": "change",
+      "kind": "evidence",
+      "previous_literal": "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03",
+      "macos": "sha256:afd5f20ed9e0712b9c8c05821a62afb4cd7d816771ba3502a56a4be50ce6c4f3",
+      "portable": "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14"
+    },
+    {
+      "family": "operations",
+      "kind": "derivation",
+      "previous_literal": "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768",
+      "macos": "sha256:72eafff3bfb7ac949f10a98a69271cb08d0d1405666c4561eed0326b6f85b75a",
+      "portable": "sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7"
+    },
+    {
+      "family": "operations",
+      "kind": "child-evidence",
+      "previous_literal": "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9",
+      "macos": "sha256:ac52431535b9e798f8cd4ba3ebb5321de879b954ba17083659a4688704b42b7c",
+      "portable": "sha256:b6ef2b450daa6c9a09e730e28a3079976f00fa9b37b2a6abe26e17fa91f81138"
+    },
+    {
+      "family": "operations",
+      "kind": "evidence",
+      "previous_literal": "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1",
+      "macos": "sha256:86838335db234630c96956470914827d9c5288506bf26c5542b66a1dcbc2e448",
+      "portable": "sha256:d675be31765bba093f04c3b0a89216a4ad9e1472bfffa63574b003d2e94f78bb"
+    },
+    {
+      "family": "operations",
+      "kind": "verification",
+      "previous_literal": "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034",
+      "macos": "sha256:c88b7b4dc4aa997c075bbca02afe27e8c2be7c0063188654957639609e68e78f",
+      "portable": "sha256:6d2fa7c230113135205b36e9fa1bf873e0020ff061b22795d21dad70060d65c7"
+    },
+    {
+      "family": "operations",
+      "kind": "application",
+      "previous_literal": "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f",
+      "macos": "sha256:533dff2b0494adf066bc4b4db55bd5356544d35e3ebdd8e3276a443f51dcefd4",
+      "portable": "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049"
+    }
+  ]
+}

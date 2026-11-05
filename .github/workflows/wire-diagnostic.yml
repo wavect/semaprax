@@ -1,0 +1,61 @@
+name: Complete wire diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Native host for complete fixture receipts
+        type: choice
+        options: [ubuntu-latest, windows-latest, macos-latest]
+        default: ubuntu-latest
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: wire-diagnostic-${{ github.ref }}-${{ inputs.runner }}
+  cancel-in-progress: false
+jobs:
+  capture:
+    name: Complete fixture capture (diagnostic only)
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      RUST_TEST_THREADS: "1"
+      SEMAPRAX_CAPTURE_PUBLIC_WIRES: "1"
+    steps:
+      - name: Enable long evidence paths on Windows
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Prepare separate data-capture fixtures while preserving original tests
+        run: python scripts/prepare-wire-diagnostic.py
+      - name: Build the original complete library harness
+        shell: bash
+        run: cargo test --locked --offline -p semaprax --lib --all-features --no-run --jobs 1 --config profile.test.package.semaprax.opt-level=0 --message-format=json > wire-build.jsonl
+      - name: Capture complete fixtures and original verdicts
+        run: python scripts/diagnostic-public-wires.py
+      - name: Retain full wires and exact build provenance
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: complete-wire-diagnostic-${{ runner.os }}-${{ github.sha }}
+          path: target/wire-diagnostic/
+          if-no-files-found: error
+          retention-days: 2

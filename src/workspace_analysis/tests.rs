@@ -482,6 +482,7 @@ fn target_depth_node_and_discovery_boundaries_are_exact() {
 }
 
 fn document_sha(document: &str) -> String {
+    crate::source_reflows::record_wire_fixture("analysis", document.as_bytes());
     let mut hasher = Sha256::new();
     hasher.update(document.as_bytes());
     format!(
@@ -489,7 +490,6 @@ fn document_sha(document: &str) -> String {
         crate::digest_hex::LowerHex(hasher.finalize())
     )
 }
-
 fn assert_fragments_in_order(document: &str, fragments: &[&str]) {
     let mut remainder = document;
     for fragment in fragments {

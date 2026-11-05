@@ -1,18 +1,18 @@
+use crate::source_reflows::unit_wire_pin as wire_pin;
+use serde_json::Value;
 use std::fs::OpenOptions;
 use std::io::Write as _;
-
-use serde_json::Value;
 
 use super::*;
 use crate::semantic_workspace_change::tests::Fixture;
 
 fn raw_sha(bytes: &str) -> String {
+    crate::source_reflows::record_wire_fixture("change", bytes.as_bytes());
     format!(
         "sha256:{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
     )
 }
-
 fn top_keys(source: &str) -> Vec<String> {
     let bytes = source.as_bytes();
     let mut keys = Vec::new();
@@ -116,11 +116,11 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             // The expanded Project graph and limits change the bound documents;
             // the domain, reference, wire-order, and tamper checks above and
             // below still bind these literal whole-document digests.
-            "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d",
-            "sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822",
-            "sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b",
-            "sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b",
-            "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03"
+            wire_pin("sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d"),
+            wire_pin("sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822"),
+            wire_pin("sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b"),
+            wire_pin("sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b"),
+            wire_pin("sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03")
         ]
     );
 

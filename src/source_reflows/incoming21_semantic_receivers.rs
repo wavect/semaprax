@@ -914,7 +914,15 @@ fn main21_entry(entry: &serde_json::Value, current: &str) -> String {
         entry["view_len"].as_u64().unwrap() as usize,
         entry["view_sha256"].as_str().unwrap(),
     );
-    assert!(current == raw || current == before, "foreign MAIN21 stage");
+    assert!(
+        current == raw || current == before,
+        "foreign MAIN21 stage: path={} expected={} selected={} raw={} before={}",
+        entry["path"],
+        entry["current_sha256"],
+        digest(current),
+        digest(&raw),
+        digest(&before)
+    );
     before
 }
 fn main21_project(path: &str, current: &str) -> String {

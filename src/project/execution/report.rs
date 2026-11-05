@@ -783,7 +783,7 @@ mod tests {
             "semaprax.project.v27 ",
             "semaprax.project.v26",
             "semaprax.project.v28",
-            "semaprax.project.v29",
+            "semaprax.project.v33", // v29 is covered by the admitted-schema gate above.
         ] {
             for role in [ProjectExecutionRole::Entry, ProjectExecutionRole::Test] {
                 // Render each mutation independently, with its own valid digest.

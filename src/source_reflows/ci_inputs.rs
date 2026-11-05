@@ -309,7 +309,15 @@ pub(super) fn file_expected(
     {
         return None;
     }
-    let source = source.to_str()?;
+    let source = source
+        .iter()
+        .map(|part| part.to_str())
+        .collect::<Option<Vec<_>>>()?
+        .join("/");
+    let source = source.as_str();
+    if let Some(before) = unregistered_sources::file(source, length, expected) {
+        return Some(before);
+    }
     let (index, current) = compiled(source)?;
     let rows = rows();
     let row = &rows[index];
@@ -321,6 +329,9 @@ pub(super) fn file_expected(
 // Adapt an exact raw current input only when its consumer names this epoch.
 // Already-projected inputs keep the original consumer's unchanged guards.
 pub(super) fn for_expected<'a>(source: &str, expected: &str, supplied: &'a str) -> Cow<'a, str> {
+    if let Some(before) = unregistered_sources::value(source, expected, supplied) {
+        return Cow::Owned(before);
+    }
     let Some((index, current)) = compiled(source) else {
         return Cow::Borrowed(supplied);
     };
@@ -623,4 +634,290 @@ fn paid_constructor_entries_refuse_foreign_controllers_and_changed_whole_sources
         }
     }
     assert!(intrinsic_profile_entry(caller, "src/hir.rs", "foreign").is_none());
+}
+
+pub(super) mod formatting_preservation {
+    //! Exact formatting-only inverses for ten independently retained source bodies.
+    //! Both whole versions remain checked; no compiler or budget authority changes.
+    use super::reader;
+    use sha2::{Digest, Sha256};
+
+    fn digest(text: &str) -> String {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+        )
+    }
+    fn records() -> serde_json::Value {
+        let text =
+            include_str!("../../docs/evidence/ci-formatting-preservation-20261105/inverses.json");
+        assert_eq!(text.len(), 24655);
+        assert_eq!(
+            digest(text),
+            "eb3e544be99a0019102d48f3ce5790646c89fb3dcb56247d70a95979aa61dc96"
+        );
+        let rows: serde_json::Value = serde_json::from_str(text).unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 10);
+        rows
+    }
+    fn archive(row: &serde_json::Value, version: &str) -> String {
+        let sha = row[format!("{version}_sha256")].as_str().unwrap();
+        let length = row[format!("{version}_bytes")].as_u64().unwrap() as usize;
+        reader::read(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("e/{sha}")),
+            length,
+            sha,
+            2_097_152,
+        )
+        .expect("complete independent source body")
+    }
+
+    pub(crate) fn formatting_view(name: &str, supplied: &str) -> String {
+        let rows = records();
+        let matching: Vec<_> = rows
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|row| row["name"] == name)
+            .collect();
+        assert_eq!(matching.len(), 1, "closed formatting source domain");
+        let row = matching[0];
+        assert_eq!(supplied.len() as u64, row["current_bytes"]);
+        assert_eq!(digest(supplied), row["current_sha256"]);
+        assert_eq!(supplied, archive(row, "current"));
+        let mut restored = supplied.to_owned();
+        for edit in row["inverse"].as_array().unwrap().iter().rev() {
+            let offset = edit[0].as_u64().unwrap() as usize;
+            let current = edit[1].as_str().unwrap();
+            assert_eq!(&restored[offset..offset + current.len()], current);
+            restored.replace_range(offset..offset + current.len(), edit[2].as_str().unwrap());
+        }
+        assert_eq!(restored.len() as u64, row["before_bytes"]);
+        assert_eq!(digest(&restored), row["before_sha256"]);
+        assert_eq!(restored, archive(row, "before"));
+        restored
+    }
+
+    #[test]
+    fn complete_formatting_pairs_preserve_every_byte_and_refuse_foreign_inputs() {
+        for row in records().as_array().unwrap() {
+            let name = row["name"].as_str().unwrap();
+            let current = archive(row, "current");
+            assert_eq!(formatting_view(name, &current), archive(row, "before"));
+            let mut changed = current.clone().into_bytes();
+            changed[0] ^= 1;
+            for wrong in [
+                String::new(),
+                current[..current.len() - 1].to_owned(),
+                format!("{current}{current}"),
+                String::from_utf8(changed).unwrap(),
+            ] {
+                assert!(std::panic::catch_unwind(|| formatting_view(name, &wrong)).is_err());
+            }
+        }
+        assert!(std::panic::catch_unwind(|| formatting_view("foreign", "")).is_err());
+    }
+}
+
+// Seven raw inputs outside the immutable canonical source membership.
+// These exact requested epochs do not alter the original fourteen-entry table.
+mod unregistered_sources {
+    use super::*;
+    const PATH: &str = "docs/evidence/ci-unregistered-inputs-20261105/inverses.json";
+    const LENGTH: usize = 18810;
+    const SHA: &str = "12e4d04ace3cb951ffafb24662b855bbaf204e03b08ee011ec5d2d7638801416";
+    fn slot(source: &str, expected: &str) -> Option<(usize, &'static str)> {
+        match (source, expected) {
+            (
+                "src/byte_ops.rs",
+                "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
+            ) => Some((
+                0,
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")),
+            )),
+            (
+                "src/hir/declaration_index.rs",
+                "adc41f5edf1a8bf7a598e6020ff0f014489bb753a462a7150b4938dd47deb55a",
+            ) => Some((
+                1,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/src/hir/declaration_index.rs"
+                )),
+            )),
+            (
+                "tests/useful_data/byte_slice_for_runtime/host.mjs",
+                "fcd2b6d4bc7364d7d25f69fdd8e3c9598bbd2cb066f6f7c7fcfeb482452b09eb",
+            ) => Some((
+                2,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/useful_data/byte_slice_for_runtime/host.mjs"
+                )),
+            )),
+            (
+                "tests/workspace/semantic_change.rs",
+                "ae187171ec6d88a357fdf76b3193dd1b0ebe1f7fd62f87cb130038d2e3ebbbde",
+            ) => Some((
+                3,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/workspace/semantic_change.rs"
+                )),
+            )),
+            (
+                "tests/workspace/semantic_operations.rs",
+                "8506b3b498ba8dc6926b1a603248a7f714b33d457137e17dc51fc1e133dfb275",
+            ) => Some((
+                4,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/workspace/semantic_operations.rs"
+                )),
+            )),
+            (
+                "tests/workspace/semantic_structural_change.rs",
+                "19072f9362ad1805477e2885628211a4f117e03756f2884115f14329bfc22da1",
+            ) => Some((
+                5,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/tests/workspace/semantic_structural_change.rs"
+                )),
+            )),
+            (
+                "std/io-lines/src/lines.spx",
+                "12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44",
+            ) => Some((
+                6,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/std/io-lines/src/lines.spx"
+                )),
+            )),
+            (
+                "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
+                "41c245758f90f7b53dc863b8670669c2583f3f249a1eb0242e2c26514c0ded8d",
+            ) => Some((
+                7,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs"
+                )),
+            )),
+            _ => None,
+        }
+    }
+    fn records() -> serde_json::Value {
+        let text =
+            include_str!("../../docs/evidence/ci-unregistered-inputs-20261105/inverses.json");
+        assert_eq!(text.len(), LENGTH);
+        assert_eq!(digest(text), SHA);
+        let fresh = reader::read(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(PATH),
+            LENGTH,
+            SHA,
+            2_097_152,
+        )
+        .unwrap();
+        assert_eq!(fresh, text);
+        let rows: serde_json::Value = serde_json::from_str(text).unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 8);
+        rows
+    }
+    fn restore(source: &str, compiled: &str, row: &serde_json::Value) -> String {
+        assert_eq!(row["source"], source);
+        assert_eq!(compiled.len() as u64, row["current_bytes"]);
+        assert_eq!(digest(compiled), row["current_sha256"]);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let read = |path: &std::path::Path, version: &str| {
+            reader::read(
+                path,
+                row[format!("{version}_bytes")].as_u64().unwrap() as usize,
+                row[format!("{version}_sha256")].as_str().unwrap(),
+                2_097_152,
+            )
+            .unwrap()
+        };
+        assert_eq!(
+            read(&root.join(source), "current"),
+            compiled,
+            "whole current physical/compiled input"
+        );
+        assert_eq!(
+            read(
+                &root.join(format!("e/{}", row["current_sha256"].as_str().unwrap())),
+                "current"
+            ),
+            compiled
+        );
+        let mut restored = compiled.to_owned();
+        for edit in row["inverse"].as_array().unwrap().iter().rev() {
+            let at = edit[0].as_u64().unwrap() as usize;
+            let after = edit[1].as_str().unwrap();
+            assert_eq!(&restored[at..at + after.len()], after);
+            restored.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+        }
+        assert_eq!(restored.len() as u64, row["before_bytes"]);
+        assert_eq!(digest(&restored), row["before_sha256"]);
+        assert_eq!(
+            restored,
+            read(
+                &root.join(format!("e/{}", row["before_sha256"].as_str().unwrap())),
+                "before"
+            )
+        );
+        restored
+    }
+    pub(super) fn file(source: &str, length: usize, expected: &str) -> Option<String> {
+        let (index, compiled) = slot(source, expected)?;
+        let rows = records();
+        let row = &rows[index];
+        if row["before_bytes"].as_u64() != Some(length as u64) {
+            return None;
+        }
+        Some(restore(source, compiled, row))
+    }
+    pub(super) fn value(source: &str, expected: &str, supplied: &str) -> Option<String> {
+        let (index, compiled) = slot(source, expected)?;
+        if supplied != compiled {
+            return None;
+        }
+        Some(restore(source, compiled, &records()[index]))
+    }
+    #[test]
+    fn eight_complete_raw_inputs_keep_both_versions_and_reject_foreign_tuples() {
+        for row in records().as_array().unwrap() {
+            let source = row["source"].as_str().unwrap();
+            let expected = row["before_sha256"].as_str().unwrap();
+            let length = row["before_bytes"].as_u64().unwrap() as usize;
+            let (_, compiled) = slot(source, expected).unwrap();
+            let before = restore(source, compiled, row);
+            assert_eq!(
+                file(source, length, expected).as_deref(),
+                Some(before.as_str())
+            );
+            assert_eq!(
+                value(source, expected, compiled).as_deref(),
+                Some(before.as_str())
+            );
+            assert!(file(source, length + 1, expected).is_none());
+            assert!(file(source, length, &"0".repeat(64)).is_none());
+            for supplied in [
+                String::new(),
+                compiled[..compiled.len() - 1].to_owned(),
+                format!("{compiled}{compiled}"),
+                format!("X{}", &compiled[1..]),
+            ] {
+                assert!(value(source, expected, &supplied).is_none());
+                assert!(std::panic::catch_unwind(|| restore(source, &supplied, row)).is_err());
+            }
+            assert!(
+                value(source, expected, &before).is_none(),
+                "historical inner stages retain their existing route"
+            );
+        }
+        assert!(file("foreign.rs", 0, &"0".repeat(64)).is_none());
+        reader::controls();
+    }
 }

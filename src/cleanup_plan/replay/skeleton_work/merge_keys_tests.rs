@@ -706,7 +706,7 @@ fn retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without
         complete = complete.replace(&before, &after);
     }
     assert_eq!(
-        complete, original,
+        crate::source_reflows::formatting_view("retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback", &(complete)), original,
         "complete immediate bodies and prices, no dispatch into new search"
     );
     assert_eq!(include_str!("merge_keys_before.rs"), include_str!("../../../../docs/evidence/opt881-retained-merge-owner-20261017/before/src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs"));
@@ -742,7 +742,7 @@ fn retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without
         owned = owned.replace(before, after);
     }
     assert_eq!(
-        owned, original_owned,
+        crate::source_reflows::formatting_view("retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback.744", &(owned)), original_owned,
         "complete whole immediate owned producer/dispatch/prices"
     );
     assert_eq!(

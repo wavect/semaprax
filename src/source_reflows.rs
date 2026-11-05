@@ -10,6 +10,31 @@ use sha2::{Digest, Sha256};
 
 #[path = "source_reflows/ci_inputs.rs"]
 mod ci_inputs;
+pub(crate) use ci_inputs::formatting_preservation::formatting_view;
+
+// Opt-in complete fixture receipts. Diagnostic IO cannot select a test verdict.
+pub(crate) fn record_wire_fixture(label: &'static str, bytes: &[u8]) {
+    if std::env::var_os("SEMAPRAX_CAPTURE_PUBLIC_WIRES").as_deref()
+        != Some(std::ffi::OsStr::new("1"))
+        || bytes.len() > 65_536
+        || !matches!(bytes.first(), Some(b'{' | b'['))
+    {
+        return;
+    }
+    use std::fmt::Write as _;
+    use std::io::Write as _;
+    let mut frame = String::with_capacity(bytes.len() * 2 + 160);
+    let _ = write!(
+        frame,
+        "COMPLETE_UNIT_WIRE_V1 label={label} bytes={} hex=",
+        bytes.len()
+    );
+    for byte in bytes {
+        let _ = write!(frame, "{byte:02x}");
+    }
+    frame.push('\n');
+    let _ = std::io::stderr().lock().write_all(frame.as_bytes());
+}
 
 macro_rules! ci_str {
     ($path:expr) => {
@@ -338,3 +363,6 @@ mod main99f_controllers;
 mod main_e177_controllers;
 #[path = "source_reflows/main_e177_support.rs"]
 mod main_e177_support;
+
+mod unit_wire_pins;
+pub(crate) use unit_wire_pins::unit_wire_pin;

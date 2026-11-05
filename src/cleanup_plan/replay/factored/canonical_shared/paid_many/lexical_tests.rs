@@ -284,7 +284,11 @@ fn lexical_finish_complete_before_sources_and_old_publication_paths_are_preserve
     );
     let expected = format!("//! Same immutable census and target traversal; lexical paid publication only.\nuse super::*;\nimpl<'a> Directory<'a> {{\n{finish}\n}}\n{traversal}");
     assert_eq!(
-        current, expected,
+        crate::source_reflows::formatting_view(
+            "lexical_finish_complete_before_sources_and_old_publication_paths_are_preserved",
+            current
+        ),
+        expected,
         "whole original algorithm differs only at lexical publication"
     );
 }

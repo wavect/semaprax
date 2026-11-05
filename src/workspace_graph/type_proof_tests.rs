@@ -832,6 +832,7 @@ module graph.v14;
         // after borrowing retained identities; all other wire bytes are exact.
         let graph = rendered_entry();
         let json = graph.to_json();
+        crate::source_reflows::record_wire_fixture("workspace-graph", json.as_bytes());
         let document_sha = format!(
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))

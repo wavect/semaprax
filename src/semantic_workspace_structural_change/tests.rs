@@ -133,12 +133,12 @@ impl Drop for ManagedFixture {
 }
 
 fn raw_sha(source: &str) -> String {
+    crate::source_reflows::record_wire_fixture("structural", source.as_bytes());
     format!(
         "sha256:{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
     )
 }
-
 fn diagnostic(result: Result<impl Sized, Vec<Diagnostic>>) -> Diagnostic {
     let diagnostics = match result {
         Ok(_) => panic!("expected failure"),

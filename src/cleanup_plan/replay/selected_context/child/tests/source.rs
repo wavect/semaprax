@@ -7,7 +7,7 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
     let decoded = compressed_fixture::load();
     let rows: serde_json::Value = serde_json::from_str(&decoded).unwrap();
     assert_eq!(
-        include_str!("../../paid_before_children.rs")
+        crate::source_reflows::formatting_view("finite_child_cut_sources_and_complete_old_receivers_stay_exact", &(include_str!("../../paid_before_children.rs")
             .replacen(
                 "selected_profile::paid_before_children::validate",
                 "selected_profile::paid::validate",
@@ -18,13 +18,13 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
                 "selected_owner::paid::owner",
                 1
             )
-            .replacen("fn new_paid_before_children(", "fn new_paid(", 1),
+            .replacen("fn new_paid_before_children(", "fn new_paid(", 1))),
         include_str!(
             "../../../../../../docs/evidence/selected-child-refusal-781/original/src__cleanup_plan__replay__selected_context__paid.rs.before.txt"
         )
     );
     assert_eq!(
-        include_str!("../../../selected_profile/paid_before_children.rs"),
+        crate::source_reflows::formatting_view("finite_child_cut_sources_and_complete_old_receivers_stay_exact.26", include_str!("../../../selected_profile/paid_before_children.rs")),
         include_str!(
             "../../../../../../docs/evidence/selected-child-refusal-781/original/a920__selected_profile__paid.rs.before.txt"
         )

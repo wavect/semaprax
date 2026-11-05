@@ -35,7 +35,14 @@ fn pure(source: &str) -> hir::ResolvedProgram {
 #[test]
 fn actual_lines_reader_body_preserves_ordinary_while_and_exact_option_elimination() {
     let source = include_str!("../../../../../../../std/io-lines/src/lines.spx");
-    let selected = provider(source, "std.io.lines", "std.io.lines.line-end");
+    // Retain the complete original while/Option receiving control. The new
+    // bounded kernel is exercised independently below without widening purity.
+    let before = crate::source_reflows::legacy_ci_expected_input(
+        "std/io-lines/src/lines.spx",
+        "12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44",
+        source,
+    );
+    let selected = provider(&before, "std.io.lines", "std.io.lines.line-end");
     let program = pure(&selected);
     let function = &program.functions[0];
     assert!(!hir::lexical_exit::requires(function).unwrap());
@@ -168,4 +175,29 @@ fn supported_length_provider_does_not_retain_unrelated_option_or_scalar_match_fa
         ["leaf.length"]
     );
     assert_eq!(schema(&build).unwrap(), "semaprax.graph.v77");
+}
+
+#[test]
+fn current_lines_kernel_keeps_ordinary_execution_and_closed_selected_purity() {
+    let source = include_str!("../../../../../../../std/io-lines/src/lines.spx");
+    let selected = provider(source, "std.io.lines", "std.io.lines.line-end");
+    let local = format!(
+        "{selected}\n@id(\"app.main\") fn main()->i64{{let text=str\"a\\n\\u{{0}}é\";let end=line_end(str_as_bytes(text),0usize);if end==1usize{{42}}else{{0}}}}"
+    );
+    let program = hir::resolve(&crate::check(&local, "current-lines-kernel.spx").unwrap()).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "std.io.lines.line-end")
+        .unwrap();
+    let mut remaining = 1_048_576;
+    assert!(
+        !scalar_helpers::pure_shape_metered(function, &mut remaining, &mut |_| Ok(())).unwrap()
+    );
+    assert_eq!(
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&program, "app.main", 100_000)
+            .unwrap()
+            .outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(42)
+    );
 }

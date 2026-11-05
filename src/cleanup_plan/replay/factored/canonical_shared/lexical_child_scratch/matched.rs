@@ -413,7 +413,10 @@ fn matched_876_complete_three_methods_are_the_immutable_immediate_producer() {
     let actual_start = actual.find("    pub(super) fn matched_876_id(").unwrap();
     let actual_end = actual.find("\n}\n\n#[test]").unwrap();
     assert_eq!(
-        &actual[actual_start..actual_end],
+        crate::source_reflows::formatting_view(
+            "matched_876_complete_three_methods_are_the_immutable_immediate_producer",
+            &actual[actual_start..actual_end]
+        ),
         body,
         "whole independently compiled immediate producer, identifier-only glue"
     );
@@ -426,6 +429,6 @@ fn matched_876_complete_three_methods_are_the_immutable_immediate_producer() {
         let marker = format!("#[test]\nfn {name}(");
         let before = original[original.find(&marker).unwrap()..].split("\n#[test]").next().unwrap().trim_end();
         let after = current[current.find(&marker).unwrap()..].split("\n#[test]").next().unwrap().split("\n#[path =").next().unwrap().trim_end();
-        assert_eq!(after, before, "entire original test body and all exact assertions remain immutable");
+        assert_eq!(crate::source_reflows::formatting_view(&format!("matched-tests:{name}"), after), before, "entire original test body and all exact assertions remain immutable");
     }
 }

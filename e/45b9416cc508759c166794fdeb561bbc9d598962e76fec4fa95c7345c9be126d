@@ -1,0 +1,53 @@
+#[test]
+fn lexical_child_scratch_preserves_complete_deec_owner_work_backing_and_only_removes_outer_receipts(
+) {
+    let function = fixture();
+    for shape in 0..3 {
+        let (graph, sink, roots) = corpus(&function, shape);
+        let (old, old_heap) = observe(&function, &graph, sink, &roots, true, 1 << 26);
+        let (current, heap) = observe(&function, &graph, sink, &roots, false, 1 << 26);
+        let old = old.result.unwrap();
+        let current = current.result.unwrap();
+        assert_eq!(
+            (current.work, current.checksum, current.counts),
+            (old.work, old.checksum, old.counts)
+        );
+        assert_eq!(
+            heap, old_heap,
+            "same actual backing, allocation and Drop; only a forwarding stack carrier disappears"
+        );
+        assert!(!heap.invalid && heap.live == 0);
+        assert_eq!(heap.allocated, heap.freed);
+        let nonempty = roots
+            .iter()
+            .filter(|root| !graph.nodes[**root].moves().is_empty())
+            .count();
+        assert_eq!(
+            old.paid - current.paid,
+            nonempty * std::mem::size_of::<Result<(), Diagnostic>>()
+        );
+        assert_eq!(
+            intern_arena::SignatureQuery::EXIT_CONTROLS,
+            intern_arena::SignatureQuery::LEXICAL_EXIT_CONTROLS
+                + std::mem::size_of::<Result<(), Diagnostic>>()
+        );
+        for limit in [0, current.paid / 2, current.paid - 1, current.paid] {
+            let first = observe(&function, &graph, sink, &roots, false, limit);
+            let again = observe(&function, &graph, sink, &roots, false, limit);
+            assert_eq!(
+                first, again,
+                "all six Diagnostic fields, sticky work, allocation, peak and whole Drop"
+            );
+            assert_eq!(first.0.result.is_ok(), limit == current.paid);
+            assert!(!first.1.invalid && first.1.live == 0);
+            assert_eq!(first.1.allocated, first.1.freed);
+            if let Err(error) = first.0.result {
+                assert_eq!(error.code, "SPX-H006");
+            }
+        }
+        eprintln!(
+            "OPT876 lexical child scratch shape={shape} old/current reserved={}/{} actual={heap:?}",
+            old.paid, current.paid
+        );
+    }
+}

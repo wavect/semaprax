@@ -1,0 +1,126 @@
+{
+  "schema": "semaprax.operations-wire-bindings.v1",
+  "head": "221101989d25c5f367b2b04753ce0532f5f7b5ce",
+  "capture_jobs": {
+    "macos": 126463334890,
+    "linux": 126463334910,
+    "windows": 126463334719
+  },
+  "legacy_pins": {
+    "derivation": "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768",
+    "child-evidence": "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9",
+    "evidence": "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1",
+    "verification": "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034",
+    "application": "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f"
+  },
+  "rows": [
+    {
+      "host": "macos",
+      "kind": "derivation",
+      "file": "macos/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:fe42de54ab0ef92005621b1a6a353819c3f162b1cb90d332f60e14343a9fd7d6",
+      "artifact_digest": "sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "macos",
+      "kind": "change",
+      "file": "macos/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "artifact_digest": "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "macos",
+      "kind": "child-evidence",
+      "file": "macos/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:b6ef2b450daa6c9a09e730e28a3079976f00fa9b37b2a6abe26e17fa91f81138",
+      "artifact_digest": "sha256:a5b361ac59d4644b0339210b891442e2ca0e4f06b2357a8c5a8e270fba3c1924",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "macos",
+      "kind": "evidence",
+      "file": "macos/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:d675be31765bba093f04c3b0a89216a4ad9e1472bfffa63574b003d2e94f78bb",
+      "artifact_digest": "sha256:6ebfc9dd28b217da7cbcf85410fa8ab73e588af0f368f0e54deecc20e3d9ad03",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "macos",
+      "kind": "verification",
+      "file": "macos/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:6d2fa7c230113135205b36e9fa1bf873e0020ff061b22795d21dad70060d65c7",
+      "artifact_digest": null,
+      "provenance": "local public API capture"
+    },
+    {
+      "host": "macos",
+      "kind": "application",
+      "file": "macos/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049",
+      "artifact_digest": null,
+      "provenance": "local public API capture"
+    },
+    {
+      "host": "portable",
+      "kind": "derivation",
+      "file": "portable/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:4675c71dd4eb15657c5725a26d28e7b297a014c2aec8559f28c2d6d26e17cdfc",
+      "artifact_digest": "sha256:cb4cfb4b54025e199da0aab41389e2c698ab80bff9e56489940e12e214b2190e",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "portable",
+      "kind": "change",
+      "file": "portable/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "artifact_digest": "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "portable",
+      "kind": "child-evidence",
+      "file": "portable/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:14c2cfca49446f591a3fa98fedd33a4e5ed10eb8f71a99645a06a59822bd566a",
+      "artifact_digest": "sha256:f77ab33112c3a09395aacec7abc7a7148b6e95e947df1bdcc1f414cbc9b045be",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "portable",
+      "kind": "evidence",
+      "file": "portable/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:b5d1f25cef9e0a2b2d315c254c732f6847a9578b10b30e8697cb4d6792e94b68",
+      "artifact_digest": "sha256:788b30bd2979deccdee3de3367a26c841117b5d67192c0906ef1306af84b82da",
+      "provenance": "captured CI body"
+    },
+    {
+      "host": "portable",
+      "kind": "verification",
+      "file": "portable/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:fa792d1b1297a76d886b1d6d145d6608c7234ff189d36d959563be3f6c4de67a",
+      "artifact_digest": null,
+      "provenance": "exact three-reference reconstruction from captured CI bodies and local receipt template"
+    },
+    {
+      "host": "portable",
+      "kind": "application",
+      "file": "portable/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:cce730f3d5fdecc08f6d62c519c981590269a317e257593c53cb3179a03dd017",
+      "artifact_digest": null,
+      "provenance": "exact three-reference reconstruction from captured CI bodies and local receipt template"
+    }
+  ]
+}

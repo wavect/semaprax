@@ -1829,12 +1829,12 @@ mod tests {
     }
 
     fn raw_sha(source: &str) -> String {
+        crate::source_reflows::record_wire_fixture("structural-artifact", source.as_bytes());
         format!(
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
         )
     }
-
     fn artifact_error(
         result: Result<SemanticWorkspaceStructuralChangeArtifacts, Vec<Diagnostic>>,
     ) -> Vec<Diagnostic> {

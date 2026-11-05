@@ -83,7 +83,13 @@ fn immediate_memo_is_complete_and_shared_identity_entries_are_unchanged() {
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/opt831-owned-scope-gateway-20261017/empty_memo.whole-before.txt"
     ));
-    assert_eq!(before, archived);
+    assert_eq!(
+        crate::source_reflows::formatting_view(
+            "immediate_memo_is_complete_and_shared_identity_entries_are_unchanged",
+            before
+        ),
+        archived
+    );
     let current = include_str!("../empty_memo.rs");
     let start = "    pub(super) fn authenticate(";
     let end = "    // Canonical owned validation";

@@ -26,6 +26,16 @@ fn directory_receivers() -> usize {
     2 * std::mem::size_of::<usize>()
 }
 
+// The height-stable directory insertion owns these additional initialized
+// controls even for the first node, whose parent is NIL. Duplicates and empty
+// directories do not enter that receiver. Preserve the exact, short and zero
+// frontiers against its complete physical invoice.
+fn insertion_receivers() -> usize {
+    2 * std::mem::size_of::<(u8, bool)>()
+        + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+}
+
 fn controls() -> usize {
     std::mem::size_of::<(
         ReturnOperands<'static, 'static>,
@@ -60,6 +70,7 @@ fn exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_throug
     let bytes = setup
         + controls()
         + directory_receivers()
+        + insertion_receivers()
         + Directory::<&ExpressionId>::node_layout_bytes();
     // 14 control initializers, one directory setup, one fact visit, one relocation slot, one node
     // initialization (the existing directory's VISIT_UNITS = 3).
@@ -246,7 +257,7 @@ fn empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_compari
             + if count == 0 {
                 0
             } else {
-                Directory::<&ExpressionId>::node_layout_bytes()
+                insertion_receivers() + Directory::<&ExpressionId>::node_layout_bytes()
             };
         let expected_work = 14
             + 1

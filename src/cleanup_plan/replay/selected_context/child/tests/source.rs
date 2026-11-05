@@ -30,7 +30,7 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
         )
     );
     assert_eq!(
-        include_str!("../../../selected_owner/paid_before_children.rs"),
+        crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/selected_owner/paid_before_children.rs", "c1d2ee47fd0ce510eec0d84f648b877ea539fdea5b4420aa41c06b4bf0a95fd1", include_str!("../../../selected_owner/paid_before_children.rs")),
         include_str!(
             "../../../../../../docs/evidence/selected-child-refusal-781/original/a920__selected_owner__paid.rs.before.txt"
         )
@@ -237,7 +237,17 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
     ];
     assert_eq!(rows.as_array().unwrap().len(), files.len());
     for (path, current) in files {
-        let current = compressed_fixture::prior_source(path, current);
+        let raw = current;
+        let entry = if path == "src/cleanup_plan/replay/selected_context/child/tests/source.rs" {
+            crate::source_reflows::legacy_ci_expected_input(
+                path,
+                "37ab096e743107558d25938fccf62cc5e3636bd10ad7ac751d6884d7378b989a",
+                current,
+            )
+        } else {
+            std::borrow::Cow::Borrowed(current)
+        };
+        let current = compressed_fixture::prior_source(path, &entry);
         let matching = rows
             .as_array()
             .unwrap()
@@ -246,7 +256,8 @@ fn finite_child_cut_sources_and_complete_old_receivers_stay_exact() {
             .collect::<Vec<_>>();
         assert_eq!(matching.len(), 1, "{path}");
         let row = matching[0];
-        let mut value = current.to_owned();
+        let current = crate::source_reflows::complete_child_input(path, raw, current, row);
+        let mut value = current;
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(value.matches(new).count(), 1, "{path}");

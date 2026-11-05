@@ -344,7 +344,11 @@ fn complete_old_commented_formatter_preflight_sources_and_all_current_children_r
         "src/workspace_graph/cold_canonical/before.rs", include_str!("before.rs")
     ),format!("//! Complete immutable940 cold preflight; no comparison-sink delegation.\nuse super::super::*;\n{body}\n{wrapper}"));
     assert_eq!(
-        include_str!("../../format.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/format.rs",
+            "a0afc1d0c8a137742ae524f57e1e2fc585c2cbff808c932e1bd1e0081b358a6e",
+            include_str!("../../format.rs")
+        ),
         include_str!("../../../docs/evidence/canonical-comment-comparison-835/original/format.rs")
     );
     let children = [

@@ -346,6 +346,9 @@ pub(super) fn for_expected<'a>(source: &str, expected: &str, supplied: &'a str) 
         ) | (
             "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs",
             "e9ca6ec97a1e1497e50ef352d3e78f81abf1f71c5d81eec72c975b18d8888894"
+        ) | (
+            "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs",
+            "d4994ab83b40c8cb37eea27b5505ee37b2256fa1484ae4a9dec15c1ab4259a2d"
         )
     ) {
         return Cow::Owned(
@@ -373,6 +376,13 @@ pub(super) fn for_expected<'a>(source: &str, expected: &str, supplied: &'a str) 
 )]
 pub(super) fn for_ci<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     match source {
+        "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs" => Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                "d4994ab83b40c8cb37eea27b5505ee37b2256fa1484ae4a9dec15c1ab4259a2d",
+                supplied,
+            ),
+        ),
         "src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs" => Cow::Owned(
             crate::source_reflows_merge::main_e177_final_inputs::value_direct(
                 source,

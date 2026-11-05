@@ -165,7 +165,7 @@ pub(in crate::cleanup_plan::replay) fn tree_facts_for_test<'hir>(
         )
     );
     let facts = ci_str!("../../../../../docs/evidence/funded-planner-fact-owner/original-expression-facts-module.txt");
-    assert_eq!(ci_str!("../../expression_facts.rs"), format!("{facts}\n#[cfg(test)]\nuse crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V20;\n#[cfg(test)]\npub(super) mod ordinary_before;\n"));
+    assert_eq!(crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/expression_facts.rs", "82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1", include_str!("../../expression_facts.rs")), format!("{facts}\n#[cfg(test)]\nuse crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V20;\n#[cfg(test)]\npub(super) mod ordinary_before;\n"));
     assert_eq!(
         format!(
             "{:x}",

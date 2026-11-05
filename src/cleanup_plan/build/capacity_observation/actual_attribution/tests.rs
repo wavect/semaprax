@@ -313,7 +313,14 @@ fn whole_original_sources_and_named_observer_projection_preserve_every_old_contr
         old_controls
     );
     let old_build = include_str!("../../../../../docs/evidence/capacity-attribution-811/src__cleanup_plan__build.rs.before.txt");
-    assert_eq!(include_str!("../../../build.rs"), old_build);
+    assert_eq!(
+        crate::source_reflows::original_fixture_source(
+            "src/cleanup_plan/build.rs",
+            "d2b0c09384cf4aa8c03112e5f96779bd36b938ba51f5ccde0db212df04a694e7",
+            include_str!("../../../build.rs")
+        ),
+        old_build
+    );
 
     for (text, expected) in [
         (

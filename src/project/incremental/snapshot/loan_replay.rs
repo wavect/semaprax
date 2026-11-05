@@ -258,7 +258,13 @@ module loan_snapshot;
         };
         statements[0] = crate::hir::ResolvedStatement::Assign {
             binding,
-            field: Some(crate::hir::DeclarationId::new("field".repeat(209_716))),
+            // The current bound shares a distinct projection prefix instead of
+            // multiplying it by every binding. Make the field itself exceed
+            // one eighth of the unchanged construction limit so the retained
+            // place/map terms still reach the pre-cloning capacity frontier.
+            field: Some(crate::hir::DeclarationId::new("field".repeat(
+                MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND / (8 * "field".len()) + 1,
+            ))),
             value,
             span,
         };

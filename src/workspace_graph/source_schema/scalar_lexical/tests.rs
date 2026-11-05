@@ -461,13 +461,20 @@ fn certificate_and_plan_mutations_refuse_without_repair() {
         assert_public(refusal.report().unwrap());
         let cause = refusal.refused().unwrap().cause();
         if attack < 2 {
-            // The independently replayed cause is the Session's own refusal,
-            // retained as the first receipt (an owned Diagnostic or a fact).
+            // The independently replayed cause is the Session's typed refusal,
+            // retained with its exact selected-child stage and failed owner.
             assert_eq!(cause, SelectedReplayCause::Session, "attack {attack}");
-            assert!(
-                refusal.receipt().is_some() || refusal.fact_receipt().is_some(),
-                "attack {attack}: Session receipt"
-            );
+            let receipt = refusal.structural_receipt().expect("typed Session receipt");
+            let (saved_source, _) = receipt
+                .borrowed_child_receipt()
+                .expect("complete typed selected-child receipt");
+            let anchor = module(&build, PATH)
+                .functions
+                .iter()
+                .find(|f| f.name == "main")
+                .unwrap();
+            assert_eq!(saved_source, &anchor.body.id, "attack {attack}");
+            assert_eq!(refusal.refused().unwrap().stage(), Some("selected child"));
         } else {
             assert_eq!(cause, SelectedReplayCause::Mismatch);
         }

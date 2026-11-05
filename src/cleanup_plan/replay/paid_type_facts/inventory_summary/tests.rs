@@ -167,7 +167,11 @@ fn authenticated_summary_ignores_attached_inventory_and_plan_but_keeps_full_expr
 #[test]
 fn complete_old_inventory_and_generic_shape_sources_remain_independent_byte_exact() {
     assert_eq!(
-        include_str!("../../../../cleanup/inventory_builder.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/cleanup/inventory_builder.rs",
+            "a00caa48b822a64862c176eb74acf2be1387b59b5af2298577167099c75ec356",
+            include_str!("../../../../cleanup/inventory_builder.rs")
+        ),
         include_str!("../../../../../docs/evidence/schema-summary/inventory_builder.rs.before")
     );
     assert_eq!(

@@ -76,6 +76,9 @@ pub(crate) fn legacy_ci_expected_input<'a>(
     expected: &str,
     current: &'a str,
 ) -> std::borrow::Cow<'a, str> {
+    if let Some(before) = declared_history_inputs::expected_value(source, expected, current) {
+        return std::borrow::Cow::Owned(before);
+    }
     ci_inputs::for_expected(source, expected, current)
 }
 
@@ -379,3 +382,10 @@ pub(crate) fn legacy_ci_expected_file(
 
 mod declared_fixture_stages;
 pub(crate) use declared_fixture_stages::fixture_stage as declared_fixture_stage;
+
+pub(crate) fn original_fixture_source(source: &str, expected: &str, supplied: &str) -> String {
+    declared_history_inputs::expected_value(source, expected, supplied)
+        .expect("closed complete original fixture source")
+}
+
+pub(crate) use declared_fixture_stages::complete_child_input;

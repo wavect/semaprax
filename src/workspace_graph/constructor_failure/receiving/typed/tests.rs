@@ -640,6 +640,14 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
     ));
     let validate_live = |actual: &str| {
         assert_eq!(actual, live_caller, "complete current workspace caller");
+        // The sole later caller edit raises the ordinary builder ceiling.
+        // Authenticate that complete current body before replaying the full
+        // original 64 MiB caller contract and every existing hostile control.
+        let current_bound = "pub(crate) const MAX_BUILDER_BYTES: usize = 128 * 1024 * 1024;";
+        let original_bound = "pub(crate) const MAX_BUILDER_BYTES: usize = 64 * 1024 * 1024;";
+        assert_eq!(actual.matches(current_bound).count(), 1);
+        let checkpoint = actual.replacen(current_bound, original_bound, 1);
+        let actual = checkpoint.as_str();
         assert_eq!(actual.len(), 217358);
         assert_eq!(
             format!(
@@ -656,6 +664,11 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
         env!("CARGO_MANIFEST_DIR"),
         "/src/workspace_graph/constructor_failure/typed.rs"
     ));
+    let dispatcher = crate::source_reflows::original_fixture_source(
+        "src/workspace_graph/constructor_failure/typed.rs",
+        "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7",
+        dispatcher,
+    );
     assert_eq!(dispatcher.len(), 11670);
     assert_eq!(
         format!(

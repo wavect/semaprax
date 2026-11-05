@@ -154,3 +154,39 @@ fn canonical_source(caller: &'static str, source: &str) -> &'static str {
         _ => panic!("unknown complete source profile"),
     }
 }
+
+// Preserve the complete original prior-source guard before acquiring the
+// separate checkpoint declared by the immutable selected-child inverse table.
+pub(crate) fn complete_child_input(
+    source: &str,
+    raw: &str,
+    received: &str,
+    row: &serde_json::Value,
+) -> String {
+    let mut checkpoint = row["original_bytes"].as_str().unwrap().to_owned();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let before = edit["before"].as_str().unwrap();
+        let after = edit["new"].as_str().unwrap();
+        if before.is_empty() {
+            assert!(checkpoint.is_empty());
+            checkpoint = after.to_owned();
+        } else {
+            assert_eq!(checkpoint.matches(before).count(), 1);
+            checkpoint = checkpoint.replacen(before, after, 1);
+        }
+    }
+    if let Some(acquired) =
+        super::declared_history_inputs::expected_value(source, &digest(&checkpoint), raw)
+    {
+        assert_eq!(acquired, checkpoint);
+        if received != raw {
+            assert_eq!(
+                received, acquired,
+                "unchanged original child checkpoint: {source}"
+            );
+        }
+        acquired
+    } else {
+        received.to_owned()
+    }
+}

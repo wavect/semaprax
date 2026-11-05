@@ -374,7 +374,11 @@ fn complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte
         original_records
     );
     assert_eq!(
-        ci_str!("../../../scalar_replay/records.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/cleanup_plan/replay/scalar_replay/records.rs",
+            "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b",
+            include_str!("../../../scalar_replay/records.rs")
+        ),
         original_records
     );
     // The later paid receiving route retains both complete original methods

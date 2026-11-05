@@ -60,7 +60,7 @@ fn funded_flat_receiver_keeps_complete_saved_plan_and_current_member_boundary() 
     assert!(!observed.invalid);
     let (_, old_queries) = measure(|| {
         for _ in 0..32 {
-            assert!(crate::vec_ops::string_slot::place(value).is_some());
+            assert!(crate::loan_plan::funded_flat::string_slot_before::place(value).is_some());
         }
     });
     assert_eq!(old_queries.allocations, 32);

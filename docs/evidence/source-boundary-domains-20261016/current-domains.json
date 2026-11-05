@@ -2122,6 +2122,8 @@
         "src/loan_plan/funded_flat/fixture_before.rs",
         "src/loan_plan/funded_flat/fixture_receiving.rs",
         "src/loan_plan/funded_flat/inventory_before.rs",
+        "src/loan_plan/funded_flat/string_slot_before.rs",
+        "src/loan_plan/funded_flat/string_slot_before/tests.rs",
         "src/loan_plan/funded_flat/tests.rs",
         "src/loan_plan/funded_flat/tests_before.rs",
         "src/loan_plan/funded_flat/work_boundary.rs",
@@ -2246,6 +2248,7 @@
         "src/test_allocation_observer.rs",
         "src/test_allocation_observer/backing.rs",
         "src/test_allocation_observer/free_order.rs",
+        "src/vec_ops/string_slot/tests.rs",
         "src/workspace_graph/diagnostics/initial.rs",
         "src/workspace_graph/diagnostics/initial/context.rs",
         "src/workspace_graph/diagnostics/initial/tests.rs",
@@ -3030,9 +3033,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "f3c8bc1f34c7e2541602af20f8dce9fbe0de945425b71f6f07be7643a03cc95d",
-      "full_raw_sha256": "a344749e51d92204e7bf39afb333e97dfb8977e0ae2ddd4978c4612423fe6466",
-      "full_authenticated_production_sha256": "fb96d2a166a68cbfb68baf8c0d30847ce1a740291e03446d62690affd13e323b"
+      "full_manifest_sha256": "a8e858f03a29172c9507d8f252ad7a97a414a6f254b1ad27ef59d140f7aa424f",
+      "full_raw_sha256": "0734a696ecfe0fda39957c325b9b498c607f645156a3d84399c8b83211293b1d",
+      "full_authenticated_production_sha256": "e9ba3f0c5a9a46dc353740b74ea1bb4880c27b309cecfc24280605435fdbc54a"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4183,8 +4186,8 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "f671e97567b2b48b6a4edb36c7fb4873636dc411b40968234d10dd1c4cc38ab2",
-      "full_raw_sha256": "05a80ccd66f4f7e9f6004dad04358f3d7d9e27c9f4388911ad3b9a95f6fce6a2",
+      "full_manifest_sha256": "88c56908bd1e152dfe6eed4244ad0b546cb968d5aa9b195eaa747582e6af4cfa",
+      "full_raw_sha256": "d79958c2502360773ef8bbcc1a66a4316af6b0b28e702d21bc782c82b9bad93d",
       "full_authenticated_production_sha256": "1d1715b5912bcf21f262341cb0aa39bef2e62420d4a09e3e172e1bdc159adafb"
     }
   }

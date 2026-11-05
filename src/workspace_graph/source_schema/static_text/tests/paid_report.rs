@@ -532,7 +532,11 @@ fn complete_original_owned_static_caller_and_report_assertions_keep_exact_source
         "/docs/evidence/static-typed-session-receipt-20261018/genuine-owned-pointer-test.rs.txt"
     ));
     assert_eq!(
-        include_str!("../../../../cleanup_plan/replay/selected_entry/tests/paid.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/cleanup_plan/replay/selected_entry/tests/paid.rs",
+            "8b29defc8cd06d9ed215ad1c615821b24d1e01b843dc640ed45a152b64940dc6",
+            include_str!("../../../../cleanup_plan/replay/selected_entry/tests/paid.rs")
+        ),
         genuine,
         "genuine Owned pointer/move path is unchanged in full"
     );

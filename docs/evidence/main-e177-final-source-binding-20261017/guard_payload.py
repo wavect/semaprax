@@ -72,7 +72,7 @@ _OVERLAY_RAW = None
 def _overlay():
  global _OVERLAY_NS, _OVERLAY_RAW
  _configuration_current()
- program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py', 65018, '165e4a04b26e20bd06127e031b7e371a5100ce57ae3aa114c9fe8e1d71bd80d8')
+ program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py', 65197, '48177a6a37f9fc7056306301f2b9bfd729167264aba75354461553aa3e83ac25')
  assert len(program)<=65536
  if _OVERLAY_NS is None:
   _OVERLAY_NS={'__file__':str(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py')}

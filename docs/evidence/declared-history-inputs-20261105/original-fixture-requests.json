@@ -1,0 +1,139 @@
+{
+  "schema": "semaprax.complete-original-fixture-inputs.v1",
+  "qualification": "Historical fixture acquisition only; no passing-CI or production claim",
+  "requests": [
+    {
+      "source": "src/cleanup_plan/build.rs",
+      "view_len": 274775,
+      "view_sha256": "d2b0c09384cf4aa8c03112e5f96779bd36b938ba51f5ccde0db212df04a694e7",
+      "archive": "docs/evidence/capacity-attribution-811/src__cleanup_plan__build.rs.before.txt",
+      "owner": "src/cleanup_plan/build/capacity_observation/actual_attribution/tests.rs",
+      "owner_archive": "e/20b6b9b6c7609dd19260e42e42c6caf16efef60ae2bae63c06461e29e4a207cf",
+      "owner_bytes": 14687,
+      "owner_sha256": "20b6b9b6c7609dd19260e42e42c6caf16efef60ae2bae63c06461e29e4a207cf",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::build::capacity_observation::actual_attribution::tests::whole_original_sources_and_named_observer_projection_preserve_every_old_control"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts.rs",
+      "view_len": 23681,
+      "view_sha256": "82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1",
+      "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1.txt",
+      "owner": "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs",
+      "owner_archive": "e/d4994ab83b40c8cb37eea27b5505ee37b2256fa1484ae4a9dec15c1ab4259a2d",
+      "owner_bytes": 8299,
+      "owner_sha256": "d4994ab83b40c8cb37eea27b5505ee37b2256fa1484ae4a9dec15c1ab4259a2d",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::replay::allocation::tests::accounting_scope::complete_ordinary_tree_receiver_original_owner_and_current_accounting_scope_stay_source_bound"
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_clone.rs",
+      "view_len": 18783,
+      "view_sha256": "f730ed63dbd193546319a8aa9bdadf15c7cd44c984bbafd96bb9756628695ac3",
+      "archive": "docs/evidence/source-custody-452-inputs-20261017/0.current.txt",
+      "owner": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs",
+      "owner_archive": "e/55cc8bae1bb41a0b39cdc74924bc009570f6e685b8e686b12ab6b84b4e68ecc3",
+      "owner_bytes": 18993,
+      "owner_sha256": "55cc8bae1bb41a0b39cdc74924bc009570f6e685b8e686b12ab6b84b4e68ecc3",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::replay::factored::canonical_shared::paid_many::lexical_tests::lexical_finish_rc_layout_const_qualification_is_exact_and_not_a_second_layout"
+    },
+    {
+      "source": "src/cleanup/inventory_builder.rs",
+      "view_len": 48395,
+      "view_sha256": "a00caa48b822a64862c176eb74acf2be1387b59b5af2298577167099c75ec356",
+      "archive": "docs/evidence/main-f4a448-integration-20261015/before/main/src/cleanup/inventory_builder.rs",
+      "owner": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/tests.rs",
+      "owner_archive": "e/e12b10a618a188ab50e94eb2861801a8846e4b3d92ac923dd051116620b97761",
+      "owner_bytes": 10511,
+      "owner_sha256": "e12b10a618a188ab50e94eb2861801a8846e4b3d92ac923dd051116620b97761",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::replay::paid_type_facts::inventory_summary::tests::complete_old_inventory_and_generic_shape_sources_remain_independent_byte_exact"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_owner/paid_before_children.rs",
+      "view_len": 2214,
+      "view_sha256": "c1d2ee47fd0ce510eec0d84f648b877ea539fdea5b4420aa41c06b4bf0a95fd1",
+      "archive": "docs/evidence/fmt-a110/wdLuR_0M5RDuwNhPZIuHfqU5_epbRCCqQcBrS_CpX9E.txt",
+      "owner": "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+      "owner_archive": "e/b8b373045cb06b16d0b3606146c4654184fdb6b3212ba7564a57a20dd08e7e6f",
+      "owner_bytes": 10829,
+      "owner_sha256": "b8b373045cb06b16d0b3606146c4654184fdb6b3212ba7564a57a20dd08e7e6f",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::replay::selected_context::child::tests::source::finite_child_cut_sources_and_complete_old_receivers_stay_exact"
+    },
+    {
+      "source": "src/cleanup_plan/replay/scalar_replay/records.rs",
+      "view_len": 7709,
+      "view_sha256": "d0a7ecff13b07ac0c5197fb5d590de2a734c45c4ebd02ab66eb8bcb1479ad09b",
+      "archive": "docs/evidence/owned-session-arena-bulk-joined-20261016/before/arena426/src/cleanup_plan/replay/scalar_replay/records.rs",
+      "owner": "src/cleanup_plan/replay/selected_entry/tests/fact_errors/tree_policy.rs",
+      "owner_archive": "e/080b7f9a80f01613cd00a2783a47bd46b7efe05aecbf07adde4c77e7eaebb32f",
+      "owner_bytes": 20436,
+      "owner_sha256": "080b7f9a80f01613cd00a2783a47bd46b7efe05aecbf07adde4c77e7eaebb32f",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "cleanup_plan::replay::selected_entry::tests::fact_errors::tree_policy::complete_original_tree_receiver_child_and_existing_usage_assertions_stay_byte_exact"
+    },
+    {
+      "source": "src/loan_plan/funded_flat/tests_before.rs",
+      "view_len": 16819,
+      "view_sha256": "3df0efd03e2a08467722689870682ed3fe33de13289d5ceee1a407187ebc5366",
+      "archive": "docs/evidence/cfgtest-import-path-correction-d765/5.before.txt",
+      "owner": "src/loan_plan/funded_flat/fixture_receiving.rs",
+      "owner_archive": "e/6d1ac31f034d88e5fa1c0c526829e719bd421b4746711d2ab7bf1dab31b05fcf",
+      "owner_bytes": 5158,
+      "owner_sha256": "6d1ac31f034d88e5fa1c0c526829e719bd421b4746711d2ab7bf1dab31b05fcf",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "loan_plan::funded_flat::tests::fixture_receiving::complete_original_allocation_driver_and_receiver_stay_byte_exact"
+    },
+    {
+      "source": "src/format.rs",
+      "view_len": 63949,
+      "view_sha256": "a0afc1d0c8a137742ae524f57e1e2fc585c2cbff808c932e1bd1e0081b358a6e",
+      "archive": "docs/evidence/canonical-comment-comparison-835/original/format.rs",
+      "owner": "src/workspace_graph/cold_canonical/tests.rs",
+      "owner_archive": "e/9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6",
+      "owner_bytes": 16089,
+      "owner_sha256": "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "workspace_graph::cold_canonical::tests::complete_old_commented_formatter_preflight_sources_and_all_current_children_remain_exact"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_entry/tests/paid.rs",
+      "view_len": 20105,
+      "view_sha256": "8b29defc8cd06d9ed215ad1c615821b24d1e01b843dc640ed45a152b64940dc6",
+      "archive": "docs/evidence/static-typed-session-receipt-20261018/genuine-owned-pointer-test.rs.txt",
+      "owner": "src/workspace_graph/source_schema/static_text/tests/paid_report.rs",
+      "owner_archive": "e/53273805dee9fbdcfa6459456f055adb16893135375964343f18957b92be224b",
+      "owner_bytes": 20749,
+      "owner_sha256": "53273805dee9fbdcfa6459456f055adb16893135375964343f18957b92be224b",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "workspace_graph::source_schema::static_text::tests::paid_report::complete_original_owned_static_caller_and_report_assertions_keep_exact_source"
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/typed.rs",
+      "view_len": 11670,
+      "view_sha256": "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7",
+      "archive": "docs/evidence/runtime-history-20261021/typed-before.rs.txt",
+      "owner": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "owner_archive": "e/b88d459a6e9cdaf23470409d9cc2c4c7be64c36be8faa73d7cea2381c9d72532",
+      "owner_bytes": 27951,
+      "owner_sha256": "b88d459a6e9cdaf23470409d9cc2c4c7be64c36be8faa73d7cea2381c9d72532",
+      "committed_head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+      "owning_test": "typed_constructor_complete_sources_original_helpers_and_live_caller_are_exactly_bound"
+    },
+    {
+      "source": "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+      "view_len": 10611,
+      "view_sha256": "37ab096e743107558d25938fccf62cc5e3636bd10ad7ac751d6884d7378b989a",
+      "archive": "e/37ab096e743107558d25938fccf62cc5e3636bd10ad7ac751d6884d7378b989a",
+      "owner": "src/cleanup_plan/replay/selected_context/child/tests/source/compressed_fixture.rs",
+      "owner_archive": "e/281bab440524dcecda9d7edf5aabccfebd81f67c18bd74ee9bb215cf0a9ab3ce",
+      "owner_bytes": 14255,
+      "owner_sha256": "281bab440524dcecda9d7edf5aabccfebd81f67c18bd74ee9bb215cf0a9ab3ce",
+      "committed_head": "502c54a3ea6a20fc127b2fe51be2ac7ae01a96fc",
+      "committed_source": "src/cleanup_plan/replay/selected_context/child/tests/source.rs",
+      "owning_test": "complete_current_selected_child_source_checkpoint"
+    }
+  ]
+}

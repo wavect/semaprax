@@ -164,3 +164,12 @@ pub(super) fn before_inventory_for_test(
 mod before_dense;
 #[cfg(test)]
 pub(super) use before_dense::build as build_before_dense;
+
+#[cfg(test)]
+use crate::vec_ops::resolved_vec;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Complete independent allocation-bearing String-slot oracle"
+)]
+pub(super) mod string_slot_before;

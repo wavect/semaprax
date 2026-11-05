@@ -7,6 +7,8 @@ HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
 sha=lambda b:hashlib.sha256(b).hexdigest()
 origins={
+ 'docs/evidence/selected-child-refusal-781/exact-source-inverses.json':'2ff3e371c8bfde876ede4f5e7445a26067858e4a0d84610cca94d5b3ccc1240e',
+ 'docs/evidence/declared-history-inputs-20261105/original-fixture-requests.json':'cb55c589b13f59afe45bf363b6c379c4fa995db71642f8ec4c3841a19dfb37d5',
  'docs/evidence/main09013-source-namespaces-v1/input-domains.json':'5df894bf662953e70d1014af93aae17ee401ca6f7c771ae614ca30446345516d',
  'docs/evidence/main21-exit-region-integration-20261017/input-domains.json':'44687cd637b9ea867c84f6afccea40259a24b48231da21a2e76ed5ac4e9e740b',
  'docs/evidence/referenced-edge-ownership-proof/exact-source-inverses.json':'37ad317fbf75310b1f4faa58b63ec081da84a3d361e3731fd6c3a53d8de9672a',
@@ -16,6 +18,13 @@ origins={
 declared=set();derived={}
 for name,digest in origins.items():
  raw=(ROOT/name).read_bytes();assert sha(raw)==digest
+
+ if name.endswith('/original-fixture-requests.json'):
+  for request in json.loads(raw)['requests']:
+   owner=(ROOT/request['owner_archive']).read_bytes()
+   assert len(owner)==request['owner_bytes'] and sha(owner)==request['owner_sha256']
+   before=(ROOT/request['archive']).read_bytes()
+   assert len(before)==request['view_len'] and sha(before)==request['view_sha256']
  pending=[json.loads(raw)]
  while pending:
   row=pending.pop()
@@ -33,6 +42,13 @@ for name,digest in origins.items():
      after=after.replace(edit['before'],edit['after'],1)
     body=after.encode();declared.add((source,len(body),sha(body)))
     derived.setdefault((source,sha(body)),set()).add((row['sha256'],digest,name))
+   if isinstance(source,str) and 'original_bytes' in row and isinstance(row.get('edits'),list):
+    after=row['original_bytes']
+    for edit in reversed(row['edits']):
+     before,new=edit['before'],edit['new']
+     if not before:assert not after;after=new
+     else:assert after.count(before)==1;after=after.replace(before,new,1)
+    body=after.encode();declared.add((source,len(body),sha(body)))
    pending.extend(row.values())
 seen=set();expected_slots={};hashes=[];count=0
 parts=sorted(HERE.glob('part-*.json'))
@@ -62,5 +78,5 @@ code=(ROOT/'src/source_reflows/declared_history_inputs.rs').read_text()
 assert Counter(re.findall(r'"([a-f0-9]{64})"',code))==Counter(hashes)
 actual={(source,digest):(int(part),int(index)) for source,digest,part,index in re.findall(r'\(\s*"([^"]+)",\s*"([a-f0-9]{64})",?\s*\)\s*=>\s*Some\(\(\s*(\d+),\s*(\d+)\s*\)\)',code)}
 assert actual==expected_slots
-assert count==109 and len(parts)==5
+assert count==148 and len(parts)==7
 print('PASS:',count,'closed declared tuples, complete physical/current archives, exact full inverses and independent predecessor archives')

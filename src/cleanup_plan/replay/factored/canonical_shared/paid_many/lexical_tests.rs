@@ -296,7 +296,11 @@ fn lexical_finish_complete_before_sources_and_old_publication_paths_are_preserve
 #[test]
 fn lexical_finish_rc_layout_const_qualification_is_exact_and_not_a_second_layout() {
     let before = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-many-lexical-finish-20261017/before/src/cleanup_plan/replay/physical_clone.rs"));
-    let current = include_str!("../../../physical_clone.rs");
+    let current = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/physical_clone.rs",
+        "f730ed63dbd193546319a8aa9bdadf15c7cd44c984bbafd96bb9756628695ac3",
+        include_str!("../../../physical_clone.rs"),
+    );
     let from = "pub(super) fn rc_backing_bytes<T>() -> usize {";
     let to = "pub(super) const fn rc_backing_bytes<T>() -> usize {";
     assert_eq!(before.matches(from).count(), 1);

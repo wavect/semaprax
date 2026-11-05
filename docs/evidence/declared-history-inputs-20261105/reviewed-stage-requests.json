@@ -1,0 +1,198 @@
+{
+  "requests": [
+    {
+      "source": "src/cleanup_plan/replay/allocation/oracle.rs",
+      "view_len": 13534,
+      "view_sha256": "fac362691f9d979a58f9274596f07027ee5ce5d14550695e6db47c481a1532ee",
+      "origin": {
+        "sha256": "fac362691f9d979a58f9274596f07027ee5ce5d14550695e6db47c481a1532ee",
+        "source": "src/cleanup_plan/replay/allocation/oracle.rs",
+        "origin": "docs/evidence/held-auth-839/source-inverses.json",
+        "field": "after_sha256",
+        "object_keys": [
+          "path",
+          "before_sha256",
+          "after_sha256",
+          "before",
+          "after"
+        ],
+        "trail": "/2"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+      "view_len": 2751,
+      "view_sha256": "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce",
+      "origin": {
+        "sha256": "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce",
+        "source": "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+        "origin": "docs/evidence/fmt-a110/literal-preservation.json",
+        "field": "before_sha256",
+        "object_keys": [
+          "path",
+          "before_sha256",
+          "audited_sha256",
+          "original_literal_occurrences"
+        ],
+        "trail": "/files/44"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+      "view_len": 14787,
+      "view_sha256": "cf18f3dc7ba92967b31d46f8040368c9654f27072a541c01c551e9226ea9b60b",
+      "origin": {
+        "sha256": "cf18f3dc7ba92967b31d46f8040368c9654f27072a541c01c551e9226ea9b60b",
+        "source": "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+        "origin": "docs/evidence/fmt-a110/literal-preservation.json",
+        "field": "before_sha256",
+        "object_keys": [
+          "path",
+          "before_sha256",
+          "audited_sha256",
+          "original_literal_occurrences"
+        ],
+        "trail": "/files/46"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+      "view_len": 19122,
+      "view_sha256": "71b6f03b83115e6c048e46630179c0a17562c9b1f974fac5af3ff132ea86bcb6",
+      "origin": {
+        "sha256": "71b6f03b83115e6c048e46630179c0a17562c9b1f974fac5af3ff132ea86bcb6",
+        "source": "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+        "origin": "docs/evidence/fmt-a110/literal-preservation.json",
+        "field": "before_sha256",
+        "object_keys": [
+          "path",
+          "before_sha256",
+          "audited_sha256",
+          "original_literal_occurrences"
+        ],
+        "trail": "/files/92"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+      "view_len": 6323,
+      "view_sha256": "16d5dca335dfc1378296a65c63d0765f790f6db81f85b47c57eaf43af1b8bb77",
+      "origin": {
+        "sha256": "16d5dca335dfc1378296a65c63d0765f790f6db81f85b47c57eaf43af1b8bb77",
+        "source": "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+        "origin": "docs/evidence/clippy-4a6eb/inputs.json",
+        "field": "sha256",
+        "object_keys": [
+          "length",
+          "sha256",
+          "archive"
+        ],
+        "trail": "/rows/93/before"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+      "view_len": 4504,
+      "view_sha256": "08a7690413f287030f0574828ba25e97581960b654c50fc22c1013112b62b024",
+      "origin": {
+        "sha256": "08a7690413f287030f0574828ba25e97581960b654c50fc22c1013112b62b024",
+        "source": "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+        "origin": "docs/evidence/fmt-a110/literal-preservation.json",
+        "field": "before_sha256",
+        "object_keys": [
+          "path",
+          "before_sha256",
+          "audited_sha256",
+          "original_literal_occurrences"
+        ],
+        "trail": "/files/104"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
+      "view_len": 20238,
+      "view_sha256": "77d0bf38a2cb58814fb3a64224fbda6fdf918677e162465ee38857dd83102f87",
+      "origin": {
+        "sha256": "77d0bf38a2cb58814fb3a64224fbda6fdf918677e162465ee38857dd83102f87",
+        "source": "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
+        "origin": "docs/evidence/main7f8-source-fronts-20261017/inputs.json",
+        "field": "incoming_sha256",
+        "object_keys": [
+          "domain",
+          "path",
+          "current_sha256",
+          "current",
+          "incoming_sha256",
+          "incoming"
+        ],
+        "trail": "/14"
+      }
+    },
+    {
+      "source": "src/hir/lexical_exit/walk.rs",
+      "view_len": 13151,
+      "view_sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+      "origin": {
+        "sha256": "c2a9b9390407c685a73aaa610e41fa4f64b27221bec9f4830636b5f407c5aa50",
+        "source": "src/hir/lexical_exit/walk.rs",
+        "origin": "docs/evidence/main7f8-source-fronts-20261017/inputs.json",
+        "field": "incoming_sha256",
+        "object_keys": [
+          "domain",
+          "path",
+          "current_sha256",
+          "current",
+          "incoming_sha256",
+          "incoming"
+        ],
+        "trail": "/12"
+      }
+    },
+    {
+      "source": "src/loan_plan.rs",
+      "view_len": 54096,
+      "view_sha256": "152ef6605d31e0a114058a741e868b1ca64695ae78c09792058fda14537cf4f1",
+      "origin": {
+        "sha256": "152ef6605d31e0a114058a741e868b1ca64695ae78c09792058fda14537cf4f1",
+        "source": "src/loan_plan.rs",
+        "origin": "docs/evidence/main7f8-source-fronts-20261017/inputs.json",
+        "field": "current_sha256",
+        "object_keys": [
+          "domain",
+          "path",
+          "current_sha256",
+          "current",
+          "incoming_sha256",
+          "incoming"
+        ],
+        "trail": "/7"
+      }
+    },
+    {
+      "source": "src/workspace_graph/identity_resolution.rs",
+      "view_len": 6729,
+      "view_sha256": "413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4",
+      "origin": {
+        "sha256": "413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4",
+        "source": "src/workspace_graph/identity_resolution.rs",
+        "origin": "docs/evidence/main7f8-source-fronts-20261017/inputs.json",
+        "field": "current_sha256",
+        "object_keys": [
+          "domain",
+          "path",
+          "current_sha256",
+          "current",
+          "incoming_sha256",
+          "incoming"
+        ],
+        "trail": "/5"
+      }
+    }
+  ],
+  "origins": {
+    "docs/evidence/held-auth-839/source-inverses.json": "96ecd68d1a6367d8f3fe871d9fc5e14ebca69a02a9d3d263977936a65d844936",
+    "docs/evidence/fmt-a110/literal-preservation.json": "266c2f40f3f2a7c1b40c2cd166f50e20fd4faffc6e7b0e2205a137c604323418",
+    "docs/evidence/clippy-4a6eb/inputs.json": "5d8f589d5cfb817ebda43548e89b6d3cfacecee20659896ffd57f49e7499baeb",
+    "docs/evidence/main7f8-source-fronts-20261017/inputs.json": "a2ca1d35b681f1a9d8f1e53c7b8b01fffbb8a33126b278d0342ee5aedf40dc2c"
+  }
+}

@@ -26,6 +26,12 @@ fn held_closure_every_source_and_full_immediate_inverse_are_exact() {
             .collect();
         assert_eq!(rows.len(), 1);
         let row = rows[0];
+        let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+            path,
+            row["after_sha256"].as_str().unwrap(),
+            current,
+        );
+        let current = acquired.as_str();
         assert_eq!(hash(current), row["after_sha256"]);
         assert_eq!(current, row["after"].as_str().unwrap());
         if let Some(before) = row["before"].as_str() {

@@ -1,5 +1,7 @@
 //! Complete original ordinary receiver with a lexical old-producer adapter.
 use super::*;
+mod legacy_dependencies;
+use legacy_dependencies::{ordinary_inventory, validate_typed_control_skeleton_with_index};
 mod expression_facts {
     pub(super) use super::super::receiving;
     use super::*;

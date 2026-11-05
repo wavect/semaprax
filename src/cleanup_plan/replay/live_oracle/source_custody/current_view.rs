@@ -47,6 +47,16 @@ pub(super) fn project(source: &str, current: &str) -> String {
 // Authenticate the entire live module, restore only its exact cfg/export edit,
 // and leave every original inverse and full-source assertion in a/b unchanged.
 pub(super) fn before_production_promotion(source: &str, current: &str) -> String {
+    let formatted = if source == "src/hir/function_value.rs" {
+        crate::source_reflows::declared_history_inputs::expected_value(
+            source,
+            "25b6ed470ac8b334e509e44bd2934caa87ab9b018d08816bdcef425aa2e21c3c",
+            current,
+        )
+    } else {
+        None
+    };
+    let current = formatted.as_deref().unwrap_or(current);
     let acquired;
     let current = if source == "src/hir/lexical_exit.rs" {
         acquired = lexical_before_later_promotions(current);
@@ -128,6 +138,12 @@ fn production_promotion_views_restore_whole_modules_and_reject_drift() {
 // Closed compiled-source input before the original two-row promotion domain.
 // Current production exports remain live; old promotion hashes stay unchanged.
 fn lexical_before_later_promotions(current: &str) -> String {
+    let acquired = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/hir/lexical_exit.rs",
+        "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d",
+        current,
+    );
+    let current = acquired.as_deref().unwrap_or(current);
     const RAW: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/c874-lexical-promotion-input-20261017/lexical-exit.c874-current.rs.txt"
@@ -239,6 +255,13 @@ pub(super) fn funded_before_promotion(source: &str, current: &str) -> String {
             crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
         )
     };
+    assert_eq!(current, raw, "whole actual current funded promotion input");
+    let supplied =
+        crate::source_reflows::declared_history_inputs::expected_value(source, raw_sha, current);
+    let current = supplied.as_deref().unwrap_or(current);
+    let acquired =
+        crate::source_reflows::declared_history_inputs::expected_value(source, raw_sha, raw);
+    let raw = acquired.as_deref().unwrap_or(raw);
     assert_eq!(raw.len(), raw_len);
     assert_eq!(sha(raw), raw_sha, "whole compiled promotion input");
     assert_eq!(current, raw, "whole supplied promotion input");

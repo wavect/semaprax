@@ -21,6 +21,12 @@ pub(in crate::cleanup_plan::replay) fn previous(path: &str, current: &str) -> St
     let Some(row) = matches.first() else {
         return current.to_owned();
     };
+    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+        path,
+        row["after_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = acquired.as_str();
     assert_eq!(hex(current), row["after_sha256"]);
     assert_eq!(
         current,

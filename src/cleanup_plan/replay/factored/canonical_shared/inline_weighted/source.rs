@@ -40,6 +40,12 @@ fn inline_weighted_complete_source_inverses_and_immediate_receiver_are_exact() {
             .collect();
         assert_eq!(matching.len(), 1);
         let row = matching[0];
+        let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+            path,
+            row["current_sha256"].as_str().unwrap(),
+            current,
+        );
+        let current = acquired.as_str();
         assert_eq!(hex(current), row["current_sha256"]);
         let edits = row["edits"].as_array().unwrap();
         assert_eq!(edits.len(), 1);

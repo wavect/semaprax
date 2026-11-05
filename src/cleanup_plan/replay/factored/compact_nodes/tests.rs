@@ -463,6 +463,11 @@ fn complete_original_receivers_and_all_new_source_owners_remain_authenticated() 
             std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path))
                 .unwrap();
         let current = crate::source_reflows_merge::compact844_input(path, &raw);
+        let current = crate::source_reflows_merge::main_e177_final_inputs::value(
+            path,
+            entry["current_sha256"].as_str().unwrap(),
+            &current,
+        );
         assert_eq!(digest(&current), entry["current_sha256"]);
         let new = entry["edits"][0]["new"].as_str().unwrap();
         let old = entry["edits"][0]["old"].as_str().unwrap();

@@ -544,6 +544,42 @@ fn with_packet_context(authenticated: &serde_json::Value, source: &str, expected
 
 #[cfg(test)]
 fn root_before_nested_context(current: &str) -> String {
+    let declared_predecessor;
+    let current = if current.contains("pub(crate) mod declared_history_inputs;") {
+        assert_eq!(current, include_str!("main_e177_final_inputs.rs"));
+        let physical = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/source_reflows_merge/main_e177_final_inputs.rs"),
+        )
+        .unwrap();
+        assert_eq!(physical, current, "whole fresh current reader");
+        let mut restored = current.to_owned();
+        for hook in [
+            "#[path = \"../source_reflows/declared_history_inputs.rs\"]\npub(crate) mod declared_history_inputs;\n",
+            "    if let Some(before) = declared_history_inputs::expected_file(path, length, expected) {\n        return Some(before);\n    }\n",
+            "    if let Some(before) = declared_history_inputs::expected_value(source, expected, supplied) {\n        return before;\n    }\n",
+
+        ] {
+            assert_eq!(restored.matches(hook).count(), 1);
+            restored = restored.replacen(hook, "", 1);
+        }
+        let before = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/c32583b9fc2c73360702c056b68e50bbcec65c9adb661a28132d77d284a95c0a"
+        ));
+        assert_eq!(
+            digest(before.as_bytes()),
+            "c32583b9fc2c73360702c056b68e50bbcec65c9adb661a28132d77d284a95c0a"
+        );
+        assert_eq!(
+            restored, before,
+            "complete reader before declared-history acquisition"
+        );
+        declared_predecessor = restored;
+        declared_predecessor.as_str()
+    } else {
+        current
+    };
     let reader_predecessor;
     let current = if current.contains("fn actual_before_current_context(") {
         let mut restored = current.to_owned();

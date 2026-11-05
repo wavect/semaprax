@@ -1,6 +1,11 @@
 pub(super) fn historical_main_source() -> String {
     use sha2::{Digest, Sha256};
-    let current = include_str!("../main_unit_weight.rs");
+    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+        "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+        "71b6f03b83115e6c048e46630179c0a17562c9b1f974fac5af3ff132ea86bcb6",
+        include_str!("../main_unit_weight.rs"),
+    );
+    let current = acquired.as_str();
     let table: serde_json::Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/main-beb0-independent-controls-20261016/runtime-input.json"

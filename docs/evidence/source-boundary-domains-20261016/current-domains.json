@@ -3033,8 +3033,8 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "a8e858f03a29172c9507d8f252ad7a97a414a6f254b1ad27ef59d140f7aa424f",
-      "full_raw_sha256": "0734a696ecfe0fda39957c325b9b498c607f645156a3d84399c8b83211293b1d",
+      "full_manifest_sha256": "ea83154521d8b9e79b3d6fcd3b1a6cfe93fc196bb32931b4a3c7ddfbf501acb6",
+      "full_raw_sha256": "76773b39969a813e5121832761f1e4431d04ce4affa72c0374d9546dc7190ba8",
       "full_authenticated_production_sha256": "e9ba3f0c5a9a46dc353740b74ea1bb4880c27b309cecfc24280605435fdbc54a"
     },
     "projection": {

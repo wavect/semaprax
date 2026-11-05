@@ -123,7 +123,11 @@ fn complete_original_allocation_driver_and_receiver_stay_byte_exact() {
     );
     let import = "use crate::hir::DeclarationId;\n";
     assert_eq!(projected.matches(import).count(), 1);
-    let projected = projected.replacen(import, "use crate::hir::DeclarationId;\nuse crate::loan_plan::{adjacency, paid_predicates};\n", 1);
+    let projected = projected.replacen(
+        import,
+        "use crate::hir::DeclarationId;\nuse crate::loan_plan::{adjacency, paid_predicates};\n",
+        1,
+    );
     let old_queries = r#"    assert_eq!(old_queries.allocations, 32);
     assert_eq!(
         old_queries.allocated,

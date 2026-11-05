@@ -28,6 +28,12 @@ fn prepared(function: &ResolvedFunction) -> ReplayBudget {
     budget
 }
 
+fn setup_bytes(function: &ResolvedFunction) -> usize {
+    let ((), refused, used) = with_limit_usage(usize::MAX, || drop(prepared(function)));
+    assert!(!refused && used > 0);
+    used
+}
+
 #[test]
 fn complete_original_and_growing_walks_receive_the_same_owned_argument_slots() {
     let program = program();
@@ -117,11 +123,12 @@ fn preserved(cursor: &Scratch<'_>, function: &ResolvedFunction) {
 }
 
 fn check_growth(function: &ResolvedFunction) {
-    let mut budget = prepared(function);
-    let initial_work = budget.remaining;
+    let setup = setup_bytes(function);
     let expected = size_of::<Scratch<'_>>() + TARGETS.into_iter().map(price).sum::<usize>();
-    let (((), observed), refused, used) = with_limit_usage(expected, || {
-        measure(|| {
+    let (((), observed), refused, used) = with_limit_usage(setup + expected, || {
+        let mut budget = prepared(function);
+        let initial_work = budget.remaining;
+        let measured = measure(|| {
             let mut cursor = Scratch::new(function, &mut budget).unwrap();
             for target in TARGETS {
                 if target != 2 {
@@ -132,11 +139,12 @@ fn check_growth(function: &ResolvedFunction) {
                 assert_eq!(cursor.frames.capacity(), target);
             }
             drop(cursor);
-        })
+        });
+        assert_eq!(budget.remaining, initial_work - 2046);
+        measured
     });
     assert!(!refused && !observed.invalid);
-    assert_eq!(used, expected);
-    assert_eq!(budget.remaining, initial_work - 2046);
+    assert_eq!(used, setup + expected);
     assert_eq!(observed.allocated, 3074 * size_of::<Frame<'_>>());
     assert_eq!(observed.highwater, 2052 * size_of::<Frame<'_>>());
     assert_eq!(observed.allocated, observed.freed);
@@ -144,6 +152,7 @@ fn check_growth(function: &ResolvedFunction) {
 }
 
 fn check_short(function: &ResolvedFunction) {
+    let setup = setup_bytes(function);
     for denied in TARGETS {
         let prior = size_of::<Scratch<'_>>()
             + TARGETS
@@ -151,9 +160,9 @@ fn check_short(function: &ResolvedFunction) {
                 .take_while(|n| *n < denied)
                 .map(price)
                 .sum::<usize>();
-        let mut budget = prepared(function);
         let (_, refused, used, receipt) =
-            with_limit_usage_refusal(prior + price(denied) - 1, || {
+            with_limit_usage_refusal(setup + prior + price(denied) - 1, || {
+                let mut budget = prepared(function);
                 if denied == 2 {
                     assert!(Scratch::new(function, &mut budget).is_err());
                     return;
@@ -173,7 +182,7 @@ fn check_short(function: &ResolvedFunction) {
                 assert!(reserve_frames(&mut cursor.frames, 0, function, &mut budget).is_err());
             });
         assert!(refused);
-        assert_eq!(used, prior + controls());
+        assert_eq!(used, setup + prior + controls());
         let receipt = receipt.unwrap();
         assert_eq!(receipt.requested, denied * size_of::<Frame<'_>>());
         assert_eq!(receipt.remaining + 1, receipt.requested);
@@ -181,30 +190,37 @@ fn check_short(function: &ResolvedFunction) {
 }
 
 fn check_shallow(function: &ResolvedFunction) {
-    let mut budget = prepared(function);
-    let (_, refused, used) = with_limit_usage(size_of::<Scratch<'_>>() + price(2), || {
+    let setup = setup_bytes(function);
+    let (_, refused, used) = with_limit_usage(setup + size_of::<Scratch<'_>>() + price(2), || {
+        let mut budget = prepared(function);
         let cursor = Scratch::new(function, &mut budget).unwrap();
         assert_eq!(cursor.frames.capacity(), 2);
     });
     assert!(!refused);
-    assert_eq!(used, size_of::<Scratch<'_>>() + price(2));
+    assert_eq!(used, setup + size_of::<Scratch<'_>>() + price(2));
     assert!(used < 1028 * size_of::<Frame<'_>>());
 }
 
 fn check_bound_and_work(function: &ResolvedFunction) {
-    let mut budget = prepared(function);
-    let mut cursor = Scratch::new(function, &mut budget).unwrap();
-    fill(&mut cursor, function);
-    budget.remaining = 0;
-    let capacity = cursor.frames.capacity();
-    let ((result, observed), refused, used) = with_limit_usage(usize::MAX, || {
-        measure(|| reserve_frames(&mut cursor.frames, 1, function, &mut budget))
-    });
+    let setup = setup_bytes(function);
+    let (((result, observed), operation_used), refused, used) =
+        with_limit_usage(usize::MAX, || {
+            let mut budget = prepared(function);
+            let mut cursor = Scratch::new(function, &mut budget).unwrap();
+            fill(&mut cursor, function);
+            budget.remaining = 0;
+            let capacity = cursor.frames.capacity();
+            let before = crate::bounded_output::active_remaining().unwrap();
+            let measured = measure(|| reserve_frames(&mut cursor.frames, 1, function, &mut budget));
+            let operation_used = before - crate::bounded_output::active_remaining().unwrap();
+            assert_eq!(cursor.frames.capacity(), capacity);
+            preserved(&cursor, function);
+            (measured, operation_used)
+        });
     assert!(result.is_err() && !refused && !observed.invalid);
-    assert_eq!(used, 0);
+    assert_eq!(used, setup + size_of::<Scratch<'_>>() + price(2));
+    assert_eq!(operation_used, 0);
     assert_eq!(observed.allocated, 0);
-    assert_eq!(cursor.frames.capacity(), capacity);
-    preserved(&cursor, function);
 
     let mut budget = ReplayBudget::unobserved();
     let mut frames = Vec::new();

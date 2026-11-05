@@ -207,17 +207,25 @@ fn rootmap_identity_membership_removes_one_actual_box_per_expression_and_funds_d
         let ((ok, current), refused, exact, first) = observe(function, false, usize::MAX);
         assert!(old_ok && ok && !old_refused && !refused);
         assert_eq!(first, None);
-        // d70e4af22 keeps one shared discovery/phase-pair AVL node per
-        // expression where the old builder held four (seen set, root map and
-        // two point nodes), moves each expression's root into a Vec, and
-        // collects edges in a Vec instead of one AVL node per unique edge plus
-        // the exact drained edge Vec. Every Vec grows one value at a time from
-        // capacity 0, one observed (re)allocation per growth step. These
-        // straight-line fixtures push no duplicate edge, so the pushed edge
-        // count equals the published unique count.
+        // This complete fixture is independently compiled against three
+        // successive builders. The common old builder has four AVL nodes per
+        // expression: seen, root, and two points. The first snapshot removes
+        // seen; the second also merges the point pair; the live builder also
+        // reuses discovery and moves the root into a growing Vec. Each uses
+        // the new edge Vec instead of the old edge AVL plus one drained Vec.
+        // Count each actual owner's exact removals and Vec growth separately.
+        // These straight-line fixtures push no duplicate edges.
         assert_eq!(
             old.allocations - current.allocations,
-            3 * count + edges + 1 - growths(count) - growths(edges),
+            match ROOTMAP_ALLOCATION_STAGE {
+                // The saved builder still has two separate point-map nodes.
+                0 => count + edges + 1 - growths(edges),
+                // The next saved builder combines each Before/After pair.
+                1 => 2 * count + edges + 1 - growths(edges),
+                // The live builder also reuses discovery and moves roots to Vec.
+                2 => 3 * count + edges + 1 - growths(count) - growths(edges),
+                _ => panic!("unknown complete CFG receiver snapshot"),
+            },
             "removed AVL Boxes per expression and edge net of the new Vec growth"
         );
         assert!(old.allocated > current.allocated && old_paid > exact);

@@ -472,5 +472,7 @@ pub(super) fn build_original<'a>(
 #[path = "paid_cfg/rootmap_tests.rs"]
 mod rootmap_tests;
 #[cfg(test)]
+const ROOTMAP_ALLOCATION_STAGE: u8 = 1;
+#[cfg(test)]
 #[path = "paid_cfg/seen_before.rs"]
 mod seen_before;

@@ -68,7 +68,11 @@ const PAIR_TESTS: &[(usize, &str, &str)] = &[
     (2321, "}\n// Independent source-type invoice for the reachable primitive-site bank.\n// No measured debit difference is used as a coefficient.\nfn reachable_primitive_prices(paths: usize) -> (usize, usize) {\n    let header = 2 * size_of::<&ResolvedFunction>()\n        + 2 * size_of::<&mut ReplayBudget>()\n        + 2 * size_of::<&str>()\n        + 2 * size_of::<usize>()\n        + 2 * size_of::<Result<(), Diagnostic>>();\n    let selector = header + 3 * size_of::<usize>() + 2 * size_of::<bool>();\n    let reachable = match paths {\n        0 => 0,\n        1 => 5 * header,\n        _ => 20 * header,\n    };\n    (20 * header, selector + reachable)\n", ""),
 ];
 pub(super) fn previous_prepared_controls(current: &str) -> String {
-    restore(current, 9965, PREPARED_CONTROLS)
+    let current = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs",
+        "0a5daec1673b21f90820a2d65c2932cc9019707359e596325749f2151fd6543d", current,
+    );
+    restore(&current, 9965, PREPARED_CONTROLS)
 }
 #[rustfmt::skip]
 const PREPARED_CONTROLS: &[(usize, &str, &str)] = &[

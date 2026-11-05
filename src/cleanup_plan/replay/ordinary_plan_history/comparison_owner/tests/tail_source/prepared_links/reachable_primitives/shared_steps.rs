@@ -15,11 +15,38 @@ fn restore(current: &str, length: usize, edits: &[(usize, &str, &str)]) -> Strin
     result
 }
 pub(super) fn previous_macro(current: &str) -> String {
-    let stage = super::super::super::super::super::reachable_stage(
+    let mut stage = super::super::super::super::super::reachable_stage(
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
         "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded",
         current,
     );
+    // The retained caller already holds this complete published later epoch.
+    // Authenticate that exact view against the live complete source before
+    // requesting the unchanged earlier shared-step inverse below.
+    use sha2::{Digest, Sha256};
+    let hash = |value: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+        )
+    };
+    if hash(&stage) != "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded"
+        && hash(current) == "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e"
+    {
+        let source =
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs";
+        let held = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            source,
+            "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+            current,
+        );
+        assert_eq!(held, current, "whole retained macro ingress");
+        stage = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            source,
+            "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded",
+            include_str!("../../../../lexical_cursor.rs"),
+        );
+    }
     let current = stage.as_str();
     restore(current, 10841, MACRO)
 }

@@ -65,7 +65,17 @@ fn legacy_cursor_complete_sources_preserve_original_walk_and_paid_growth() {
             ),
             record["sha256"].as_str().unwrap()
         );
-        let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+        let path = record["path"].as_str().unwrap();
+        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = if path == "src/cleanup_plan/replay/supplemental/receiving/tests.rs" {
+            crate::source_reflows::original_fixture_source(
+                path,
+                "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+                &current,
+            )
+        } else {
+            current
+        };
         let restore = |text: &str| -> Option<String> {
             let mut text = text.to_owned();
             for edit in record["edits"].as_array().unwrap().iter().rev() {

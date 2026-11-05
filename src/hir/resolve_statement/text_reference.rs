@@ -220,7 +220,12 @@ pub(in crate::hir) fn assert_canonical_iterator_reference_source() {
         "baae64178a8d976efc9b4878012de2ddb3b21156d85cfcb481bab4188e5c03c6"
     );
     let source = include_str!("text_reference.rs");
-    let prefix = source
+    let original_source = crate::source_reflows::original_fixture_source(
+        "src/hir/resolve_statement/text_reference.rs",
+        "9eef6265718e00c99a7f879513752d1a492b860f619645d511b229957efb9702",
+        source,
+    );
+    let prefix = original_source
         .split("\n// This separately named reference corrects only the frozen iterator argument\n")
         .next()
         .unwrap();

@@ -20,6 +20,11 @@ mod reader {
         if length > cap {
             return Err(Failure::Bound);
         }
+        if let Some(before) =
+            crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_file(path, length, sha)
+        {
+            return Ok(before);
+        }
         if let Some(before) = super::invoice_previous_file(path, length, sha) {
             return Ok(before);
         }
@@ -885,7 +890,14 @@ fn projection344_live_sources_with(
             assert!(length <= 2_097_152);
             let sha = part["sha256"].as_str().unwrap();
             let source = part["source"].as_str().unwrap();
-            let text = if source == "src/workspace_graph/expected_projection/call_carriers_tests.rs"
+            let text = if let Some(before) =
+                crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_file(
+                    &root.join(source),
+                    length,
+                    sha,
+                ) {
+                before
+            } else if source == "src/workspace_graph/expected_projection/call_carriers_tests.rs"
                 && length == 23577
                 && sha == "bf17711b9ee9801531b16d3a505163c32df52e2ef13a46d1426eeee2cc8c3934"
             {
@@ -909,6 +921,16 @@ fn projection344_live_sources_with(
                     "src/workspace_graph/expected_projection/call_carriers_historical_tests.rs" => include_str!("../../src/workspace_graph/expected_projection/call_carriers_historical_tests.rs"),
                     _ => panic!("foreign additional projection part"),
                 };
+                let declared = if source
+                    == "src/workspace_graph/expected_projection/call_carriers_tests.rs"
+                {
+                    None
+                } else {
+                    crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+                            source, sha, compiled,
+                        )
+                };
+                let compiled = declared.as_deref().unwrap_or(compiled);
                 let retained;
                 let compiled = if updated_projection_part(source, length, sha).is_some()
                     || (source == "src/workspace_graph/expected_projection/call_carriers.rs"
@@ -1354,6 +1376,12 @@ fn invoice_previous_file(path: &std::path::Path, length: usize, sha: &str) -> Op
 }
 fn invoice_compiled_stage(source: &str, length: usize, sha: &str, compiled: &str) -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
+    if let Some(previous) =
+        crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(source, sha, compiled)
+            .filter(|value| value.len() == length)
+    {
+        return previous;
+    }
     if let Some(previous) = invoice_previous_file(&path, length, sha) {
         let mut invocation =
             crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();

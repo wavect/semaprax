@@ -682,7 +682,7 @@ fn unwind_during_a_live_completed_owner_releases_all_rc_and_frame_backing() {
                         b.reserve_array::<(usize, u64)>(&f, 1, "889 old unwind root")
                             .unwrap();
                         assert!(c.id(&f, vec![(root, 1)], &mut b).unwrap().is_some());
-                        panic!("889 deliberate old live-owner unwind");
+                        std::panic::resume_unwind(Box::new("889 deliberate old live-owner unwind"));
                     } else {
                         b.reserve_bytes(
                             &f,
@@ -694,7 +694,9 @@ fn unwind_during_a_live_completed_owner_releases_all_rc_and_frame_backing() {
                         b.reserve_array::<(usize, u64)>(&f, 1, "889 current unwind root")
                             .unwrap();
                         assert!(c.id(&f, vec![(root, 1)], &mut b).unwrap().is_some());
-                        panic!("889 deliberate current live-owner unwind");
+                        std::panic::resume_unwind(Box::new(
+                            "889 deliberate current live-owner unwind",
+                        ));
                     }
                 }));
                 let unwound = caught.is_err();

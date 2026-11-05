@@ -208,11 +208,18 @@ fn actual(row: &serde_json::Value) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
-    let value = crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
+    let value = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_file(
         &root.join(source),
         current["length"].as_u64().unwrap() as usize,
         current["sha256"].as_str().unwrap(),
     )
+    .or_else(|| {
+        crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
+            &root.join(source),
+            current["length"].as_u64().unwrap() as usize,
+            current["sha256"].as_str().unwrap(),
+        )
+    })
     .or_else(|| {
         crate::source_reflows_merge::main_e177_final_inputs::file(
             &root.join(source),
@@ -229,23 +236,90 @@ fn actual(row: &serde_json::Value) -> String {
         .unwrap()
     });
     if row["compiled"].as_bool().unwrap() {
-        let compiled =
-            crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
-                source,
-                current["sha256"].as_str().unwrap(),
-                compiled(source).unwrap(),
-            );
-        let compiled = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        let compiled = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
             source,
             current["sha256"].as_str().unwrap(),
-            &compiled,
-        );
+            compiled(source).unwrap(),
+        )
+        .unwrap_or_else(|| {
+            let prior =
+                crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
+                    source,
+                    current["sha256"].as_str().unwrap(),
+                    compiled(source).unwrap(),
+                );
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                current["sha256"].as_str().unwrap(),
+                &prior,
+            )
+        });
         assert_eq!(value, compiled, "complete actual compiled source");
     }
     assert_eq!(value, read_view(current), "complete actual archive");
     value
 }
+// This immutable 54-row owner resolves only its exact prior tuples. Each
+// invocation still authenticates the full fresh current source, compiled source,
+// current archive and whole frozen view. Other namespaces retain the original
+// global reader below; no unqualified input gains authority here.
+fn declared_file(path: &Path, length: usize, expected: &str) -> Option<Option<String>> {
+    let relative = path.strip_prefix(env!("CARGO_MANIFEST_DIR")).ok()?;
+    let mut parts = Vec::new();
+    for component in relative.components() {
+        let std::path::Component::Normal(part) = component else {
+            return None;
+        };
+        parts.push(part.to_str()?);
+    }
+    let source = parts.join("/");
+    let packet = packet();
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    let prior = row["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|view| view["sha256"] == expected)?;
+    if prior["length"].as_u64() != Some(length as u64) {
+        return Some(None);
+    }
+    actual(row);
+    Some(Some(read_view(prior)))
+}
+fn declared_value(source: &str, expected: &str, supplied: &str) -> Option<String> {
+    let packet = packet();
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    let prior = row["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|view| view["sha256"] == expected)?;
+    let current = actual(row);
+    let previous = read_view(prior);
+    let latest = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+        source,
+        row["current"]["sha256"].as_str().unwrap(),
+        supplied,
+    );
+    let supplied = latest.as_deref().unwrap_or(supplied);
+    Some(if supplied == current || supplied == previous {
+        previous
+    } else {
+        supplied.to_owned()
+    })
+}
 pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {
+    if let Some(value) = declared_file(path, length, expected) {
+        return value;
+    }
     if let Some(value) = crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
         path, length, expected,
     ) {
@@ -280,6 +354,9 @@ pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String>
     Some(read_view(prior))
 }
 pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
+    if let Some(value) = declared_value(source, expected, supplied) {
+        return value;
+    }
     let side = crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
         source, expected, supplied,
     );
@@ -316,6 +393,9 @@ pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
     }
 }
 pub(crate) fn value_local(source: &str, expected: &str, supplied: &str) -> String {
+    if let Some(value) = declared_value(source, expected, supplied) {
+        return value;
+    }
     let side = crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
         source, expected, supplied,
     );

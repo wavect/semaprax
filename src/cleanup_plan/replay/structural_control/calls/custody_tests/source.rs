@@ -120,12 +120,15 @@ fn every_call_receiver_source_and_complete_before_body_remains_bound() {
             "full old {name}"
         );
     }
-    let before = include_str!("../../calls_before_receipt.rs")
-        .replacen("pub(super) enum Signature<", "enum Signature<", 1)
-        .replacen("pub(super) fn signature<", "fn signature<", 1)
-        .replacen("    pub(super) fn parameter(", "    fn parameter(", 1)
-        .replacen("    pub(super) fn accepts_type(", "    fn accepts_type(", 1)
-        .replacen("    pub(super) fn len(", "    fn len(", 1);
+    let before = crate::source_reflows_merge::receiver_fixture_source_before(
+        "src/cleanup_plan/replay/structural_control/calls_before_receipt.rs",
+        include_str!("../../calls_before_receipt.rs"),
+    )
+    .replacen("pub(super) enum Signature<", "enum Signature<", 1)
+    .replacen("pub(super) fn signature<", "fn signature<", 1)
+    .replacen("    pub(super) fn parameter(", "    fn parameter(", 1)
+    .replacen("    pub(super) fn accepts_type(", "    fn accepts_type(", 1)
+    .replacen("    pub(super) fn len(", "    fn len(", 1);
     assert_eq!(
         before,
         include_str!(

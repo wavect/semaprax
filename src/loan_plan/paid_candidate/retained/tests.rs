@@ -297,3 +297,34 @@ fn complete_original_receivers_and_all_source_joins_are_byte_exact() {
     assert_eq!(include_str!("../../funded_flat/inventory_before.rs"),
         format!("//! Complete pre-reuse funded facade; original helpers remain in its parent.\nuse super::*;\n\n{}", &prior[start..end]));
 }
+
+pub(in crate::loan_plan) fn before_inventory_source_for_caller(
+    caller: &'static str,
+    path: &str,
+    source: &str,
+) -> String {
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/loan-candidate-inventory-reuse/exact-source-inverses.json"
+    )))
+    .unwrap();
+    let row = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == path)
+        .unwrap();
+    let original = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("docs/evidence/loan-candidate-inventory-reuse")
+            .join(row["archive"].as_str().unwrap()),
+    )
+    .unwrap();
+    let mut restored = crate::source_reflows::declared_guard_stage(caller, source, &original, row);
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let after = edit["after"].as_str().unwrap();
+        assert_eq!(restored.matches(after).count(), 1);
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    restored
+}

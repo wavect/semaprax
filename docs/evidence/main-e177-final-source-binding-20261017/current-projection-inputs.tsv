@@ -291,6 +291,7 @@ src/cleanup_plan/replay/expression_facts/capacity/before_types.rs
 src/cleanup_plan/replay/expression_facts/saved.rs
 src/cleanup_plan/replay/expression_facts/receiving_before.rs
 src/cleanup_plan/replay/expression_facts/ordinary_before.rs
+src/cleanup_plan/replay/expression_facts/ordinary_before/legacy_dependencies.rs
 src/cleanup_plan/replay/flat_records.rs
 src/cleanup_plan/replay/inventory_coverage.rs
 src/cleanup_plan/replay/inventory_coverage/paid_before.rs
@@ -972,6 +973,8 @@ src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup_before_receiving.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs
+src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_generation.rs
+src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_transport_generation.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs
 src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_before.rs

@@ -372,6 +372,9 @@ fn main043_before_successors(
     outer: &mut Vec<serde_json::Value>,
 ) -> String {
     let checkpoint = match source {
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => {
+            Some("dfda5c8a4e70539ccedc8dfbee0adabcf2ec7e5696d97db0c6b3c583f47ba25f")
+        }
         "src/cleanup_plan/replay/selected_entry/paid.rs" => {
             Some("807dc71528f353dc7ff49ec568c78cac7f9c9d8a5abd0dd5ff658b3fe77ca669")
         }
@@ -1250,10 +1253,11 @@ pub(crate) fn receiver_fixture(fixture: ReceiverFixture) -> String {
 // The original selected-call assertion audits its own complete source. Restore
 // exactly the two transport edits before applying its unchanged original inverse.
 pub(crate) fn receiver_fixture_source_before(source: &str, current: &str) -> String {
-    // These fourteen exact entry images belong to the unchanged SelectedCalls
+    // These fifteen exact entry images belong to the unchanged SelectedCalls
     // inverse packet. Acquire them only after current physical/compiled/archive
     // authentication; the original self-transport inverse below stays intact.
     let expected = match source {
+        "src/cleanup_plan/replay/structural_control/calls_before_receipt.rs" => Some("b0b9d329a52bb758e6e778a2673e675bc7128214c4acb5cc9f0139c43abc7db5"),
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => Some("d764e8d6fbd373a2dbb40953baabf688fb4459562760fd5e1545cb9b73b9e6b0"),
         "src/cleanup_plan/replay/lexical_replay.rs" => Some("d0f2b7fcfc3815f0c1207c064d8bcb14d4323dff614d953988b962138ff975d0"),
         "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => Some("4d534b5433078d8d65ec9f09c7f763614a177cd743aa02465de64c023e509173"),
@@ -1271,7 +1275,12 @@ pub(crate) fn receiver_fixture_source_before(source: &str, current: &str) -> Str
         _ => None,
     };
     if let Some(expected) = expected {
-        let entry = super::main_e177_final_inputs::value_direct(source, expected, current);
+        let entry =
+            if source == "src/cleanup_plan/replay/structural_control/calls_before_receipt.rs" {
+                crate::source_reflows::original_fixture_source(source, expected, current)
+            } else {
+                super::main_e177_final_inputs::value_direct(source, expected, current)
+            };
         assert_eq!(
             format!(
                 "{:x}",
@@ -1285,6 +1294,12 @@ pub(crate) fn receiver_fixture_source_before(source: &str, current: &str) -> Str
     if source != "src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs" {
         return current.to_owned();
     }
+    let prior_self = crate::source_reflows::original_fixture_source(
+        source,
+        "1619f6a3065d3a57de343b2bcbd7724e63f4c8a846defc8d0044751cf8255a05",
+        current,
+    );
+    let current = prior_self.as_str();
     assert_eq!(current.len(), 7873);
     assert_eq!(
         digest(current.as_bytes()),

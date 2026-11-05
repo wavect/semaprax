@@ -346,15 +346,13 @@ fn complete_old_candidate_and_funded_receivers_are_exact_and_current_hooks_are_s
     let current_hook = "        let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n        work.allocation = Some(payer);\n        if paid_candidate::inspect(program, function, payer, &mut work)? {\n";
     let original_hook = "        if paid_candidate::inspect(program, function, payer)? {\n            let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n            work.allocation = Some(payer);\n";
     // ae2f6006c and bc52cc9c1 later added this exact Clippy attribute to the
-    // three test-module declarations; it has no runtime meaning. Invert only
-    // those three copies before replaying the recorded inventory edits.
+    // three test-module declarations; it has no runtime meaning. Authenticate
+    // the whole current source before acquiring the recorded inventory stage.
     let lint = "#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\n";
     let funded_source = include_str!("../funded_flat.rs");
     assert_eq!(funded_source.matches(lint).count(), 3);
-    let mut current = paid_candidate::before_inventory_source(
-        "src/loan_plan/funded_flat.rs",
-        &funded_source.replace(lint, ""),
-    );
+    let mut current =
+        paid_candidate::before_inventory_source("src/loan_plan/funded_flat.rs", funded_source);
     for test_hook in [
         "        #[cfg(test)]\n        work_boundary::apply(&mut work);\n",
         "\n#[cfg(test)]\nmod work_boundary;\n",

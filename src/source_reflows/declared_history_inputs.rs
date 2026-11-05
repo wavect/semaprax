@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 38] = [
+const PARTS: [(&str, &str, usize, &str); 42] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 38] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        588518,
-        "1fd8965e888834e6c2d8bd30e71e8fc64016fe5ed48dec324760c026622f1fe5",
+        589325,
+        "58676740fbd3618e25b8a5eb0aef07f270a35a584abbac1066220cd4fe3ddd1c",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 38] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        28780,
-        "484bd063c36d124f140c087f2410dc474f547ca710ee75254cba5cfc1b598a3d",
+        29011,
+        "f8ec014e1656b5efd251d239a1203999671e5dd4973dc368accaa16dbf0d60ca",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -117,8 +117,8 @@ const PARTS: [(&str, &str, usize, &str); 38] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-11.json"
         )),
-        167820,
-        "25317157416f512a1b97ab474afab50bc9bbd9d8c943b243de54401e570b663b",
+        168005,
+        "7fc96c5c0e29f56a28666fffa2d94732cb54ec4d6f74fc07ccf81a65f67d2750",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-12.json",
@@ -180,8 +180,8 @@ const PARTS: [(&str, &str, usize, &str); 38] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-18.json"
         )),
-        37220,
-        "d0da0704f4d4d66ece69cf9dfcb11fb915f1569d3a6320e5b1e986f36e67b44d",
+        37594,
+        "f0d2816a2be1372b14aea60c3810503d09fcf1bfd6dd921f24b2bf0dbd56679f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-19.json",
@@ -354,8 +354,47 @@ const PARTS: [(&str, &str, usize, &str); 38] = [
         3328,
         "3d758fec9159abffd325af6299b339de22d3b9ef2f2fdc3e8a879d5866ca857c",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-38.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-38.json"
+        )),
+        131849,
+        "9f8d43c2fce623f0b039509aa3907270b518391e461c8a7c6521e5338b0c1c50",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-39.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-39.json"
+        )),
+        899123,
+        "0d1433060c419ce36c8d68defbc4a0a12fd25f9c1efef90e26b6071910a2da6a",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-40.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-40.json"
+        )),
+        391568,
+        "2d218fb315150e7ec70b3ccc1de939629e0f60b78cef4ab987a680ec8ced0943",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-41.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-41.json"
+        )),
+        24327,
+        "cd05f4a841e77c05bb3ea7126910b273bb98a6d60fdfbb59c77ea37a95766b3b",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 38] = [const { OnceLock::new() }; 38];
+static CACHE: [OnceLock<serde_json::Value>; 42] = [const { OnceLock::new() }; 42];
+pub(crate) fn part_count() -> usize {
+    PARTS.len()
+}
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -845,6 +884,75 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/hir/declaration_index/legacy_drop/before.rs", "8eda7927bd2adda6cdb5db62a9742750f1a40e328584dadf4ca9e3a56250f02c" ) => Some((36,4)),
 ("src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs", "8b9456839d1d18c39550e5d286fc142f2c4a21ef94b7fdf74757c084ba2af5df" ) => Some((37,0)),
 ("src/project/incremental/cold_source_tests/oracle_owner_before.rs", "d01121cc328a636f5561d32e295cdeea232c53ec43d9cd42e3100ff96391d287" ) => Some((37,1)),
+("src/cleanup_plan/replay/structural_control/calls_before_receipt.rs", "b0b9d329a52bb758e6e778a2673e675bc7128214c4acb5cc9f0139c43abc7db5" ) => Some((38,0)),
+("src/cleanup_plan/replay/supplemental/receiving/tests.rs", "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd" ) => Some((38,1)),
+("src/hir/resolve_statement/text_reference.rs", "9eef6265718e00c99a7f879513752d1a492b860f619645d511b229957efb9702" ) => Some((38,2)),
+("src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs", "53245914c76ef70c27608d1ec64452049e4044e9bb9b5e291542af03b97a49d4" ) => Some((38,3)),
+("src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs", "4356919c34b81ce14fbe235c27b4f74389eef1f9b938761ab16cc988f3689029" ) => Some((38,4)),
+("src/source_reflows/semantic_receivers.rs", "fa6aa5b2d53932b4a013ab50168783003af766a41c651fb036cdf95f5f7c860e" ) => Some((38,5)),
+("src/hir/ids/fixed_operation_tests.rs", "442cc7c2ac89c309b8d1742ef59b2d3b25ef0a08c2f20f668502983cf361e74b" ) => Some((38,6)),
+("src/source_reflows/semantic_receivers.rs", "a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9" ) => Some((38,7)),
+("src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs", "1619f6a3065d3a57de343b2bcbd7724e63f4c8a846defc8d0044751cf8255a05" ) => Some((38,8)),
+("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66" ) => Some((39,0)),
+("src/bounded_output/stage_debits/route_debits.rs", "27b655cac5b48a48efc2b58a276759c33d15e83fac6af5a0575c6d911ec6ba22" ) => Some((39,1)),
+("src/cleanup_plan/replay.rs", "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7" ) => Some((39,2)),
+("src/cleanup_plan/replay/branch_clone.rs", "4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5" ) => Some((39,3)),
+("src/cleanup_plan/replay/branch_clone/direct.rs", "5f43434478af597206ee62ea0ca626c60b5c37d3fa5df1904676eb919a60c975" ) => Some((39,4)),
+("src/cleanup_plan/replay/branch_clone/direct/before.rs", "b617d274c09b64c42a749953e2ed0d6a608d08a8ffbcfda0ce4eb9a74fcd2036" ) => Some((39,5)),
+("src/cleanup_plan/replay/branch_clone/direct/tests.rs", "7db9c82810929bcb0ac09eb1eabef4e1aa2292c783ff393178b92731e48aaff3" ) => Some((39,6)),
+("src/cleanup_plan/replay/branch_clone/production_capacity.rs", "a14f212a96712252f56eb79b665b353d008d63b1c0ee57b49ff7eab9459b5012" ) => Some((39,7)),
+("src/cleanup_plan/replay/compact_stage.rs", "71578a27c76a5849ea663ff2c66b0587f96d1d9977607ecc94d152abb8fbff5e" ) => Some((39,8)),
+("src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs", "825671ce87b04e06fdf31464bb474120016b52ae02100c4fd14345831928cb21" ) => Some((39,9)),
+("src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs", "a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b" ) => Some((39,10)),
+("src/cleanup_plan/replay/factored.rs", "aefc6b83feccaab7f919718135f285bba22243c4e726adccef37ca72cfd7a73b" ) => Some((39,11)),
+("src/cleanup_plan/replay/factored/canonical_shared.rs", "92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783" ) => Some((39,12)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs", "553179e57cccd27eae0d228ad54b4717ec743007d9ae354d31ed6174266732be" ) => Some((39,13)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs", "d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e" ) => Some((39,14)),
+("src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs", "f38734199734c035d4b6c0ffba0ee2de66820c4c5713526c6394e2a5340ae666" ) => Some((39,15)),
+("src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs", "50e4d6dc7bfd923acba894af0d8bb004c97ea56bb6c23164f80e33f2c78f8ea1" ) => Some((39,16)),
+("src/cleanup_plan/replay/ordinary_plan_history.rs", "8404df1d42d0df22546e6cc55865ee440d2a2cf0c39afecec58aa6d3b385f510" ) => Some((39,17)),
+("src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs", "e00b63474866f90d3bb537cd7587c2cb8751b384c9224782bf873860476534b7" ) => Some((39,18)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "35b9565f8dbe7dc67164bc87540f4f49e9bf46e3dae7bb791dd3ba1b31c0ef78" ) => Some((39,19)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs", "8bab706f06ddf65a9f439c4dfaa5e1c1d2d828c5af8e9df446686f15e6d58ab5" ) => Some((39,20)),
+("src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs", "7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e" ) => Some((39,21)),
+("src/cleanup_plan/replay/skeleton_work.rs", "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423" ) => Some((39,22)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs", "1d5f944822d4b1c425fb818015530b06230e1d1e38d1a298bcfd607d2ae3c36d" ) => Some((39,23)),
+("src/cleanup_plan/replay/skeleton_work/isolated_paths.rs", "5cc0e767a4e5e61ae5135d4193b831d941b90b6f676f6620d64fb9ac016c0d72" ) => Some((39,24)),
+("src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs", "021a0dd84f3275b7cbd69936cb8def96e5172fb39ceaa1b4b385d3962f6792f2" ) => Some((39,25)),
+("src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs", "7e3eb4e7868f45d04e6f1abd69ee35a56f32c0c355154d2e44386e2be1bc96c4" ) => Some((39,26)),
+("src/source_reflows.rs", "d85901c7f05cf539337d6ccb97206337b0bf7439889f9ea00909cfbfbe8cfe50" ) => Some((39,27)),
+("src/source_reflows/main99f_controllers.rs", "b29e9e1619e914c241bfbb1d0641da61b4422b56fea574ddd8135f4717c739d7" ) => Some((39,28)),
+("src/source_reflows/main_f247_controllers.rs", "df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a" ) => Some((39,29)),
+("src/source_reflows/semantic_receivers.rs", "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4" ) => Some((39,30)),
+("src/source_reflows_merge.rs", "747662b4765bb176e4f02ed80fc66ee13580e5946ea4ea927b7208cf26536293" ) => Some((39,31)),
+("src/source_reflows_merge/main67107_inputs.rs", "ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74" ) => Some((39,32)),
+("src/source_reflows_merge/main99f_inputs.rs", "f51b7d60ffff5b9403650cd0dfbe42f4dc1994dc8ae05738973ce3a2456a1c7b" ) => Some((39,33)),
+("src/source_reflows_merge/main_c883_inputs.rs", "21d58810c57d7e6a4535f8910b4c1c4e83da194b3ba4ff4120c925f1926119b8" ) => Some((39,34)),
+("src/workspace_graph/initial_report/build.rs", "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda" ) => Some((39,35)),
+("src/workspace_graph/static_text/scalar_helpers.rs", "045c8979f0daa4eaa7f7758aed94c47b0c039186c88515d83b0940509545a548" ) => Some((39,36)),
+("src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs", "b912238b74ededd9143f1a2d039c8d3a41a9af9723f3aee877a85f4f5f8d2685" ) => Some((39,37)),
+("src/workspace_graph/tests.rs", "8421df3f60328a6afe238f9be7abf69e6cb187b2b81075e3cbfe57c594db772f" ) => Some((39,38)),
+("src/workspace_graph/tests/builder_limits.rs", "940bf1ec02a53cf5628b5a8a5d2958709a81b76df1f94317bd8aff5692ee236e" ) => Some((39,39)),
+("src/workspace_graph/tests/core_attempt_trace.rs", "7a67363c8fcb741714c5456fdbe3a10eb27c121d5951eca374adb33b4628e1e0" ) => Some((39,40)),
+("src/workspace_graph/type_proof_tests.rs", "53dff12c17b2f8733dbe19b3404585b7f4d6d58ff5a17d55a27ff64ce76b8d4b" ) => Some((39,41)),
+("tests/hir_module_boundaries.rs", "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b" ) => Some((40,0)),
+("tests/wasm/scalar_browser_ci_contract.rs", "5eb8a2ee0db0c592bae84255d86a3019c89822c2d9d49ebca762fa14821bc285" ) => Some((40,1)),
+("tests/wasm/scalar_browser_ci_contract/before_3e66.rs", "b052603b549318e45f3cae0e1f3afd1c385366dac535eb9cd1e9084d4a06cec2" ) => Some((40,2)),
+("tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs", "35655ef91e476af9fa6903d00cbe9aee4da48ebcdb90b4dbcee2742fabbbb1fa" ) => Some((40,3)),
+("tests/workspace/semantic_graph.rs", "b4d8c484c115ff71427e873d8b97470048b85106f7d54043299cb00b0e987f6d" ) => Some((40,4)),
+("tests/workspace/semantic_graph/source_inventory.rs", "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c" ) => Some((40,5)),
+("tests/workspace/semantic_graph/source_inventory_controls.rs", "041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d" ) => Some((40,6)),
+("src/workspace_graph/expected_projection.rs", "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4" ) => Some((41,0)),
+("src/workspace_graph/expected_projection/held_projection.rs", "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942" ) => Some((41,1)),
+("src/workspace_graph/expected_projection/call_carriers_inverse.rs", "5a0c22d81a09e58528af9e394df7313cb79198961b6de14a9159af360666f62f" ) => Some((41,2)),
+("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", "1118299b35a0009ce7476507741ea9f1495b0d12191af673a852a6da7cb771af" ) => Some((41,3)),
+("src/workspace_graph/expected_projection/borrowed_imports/tests.rs", "94aa760de11d6317cebdc638946b4d2a76d822b7b9249ea8a8789d6c681777e9" ) => Some((41,4)),
+("src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs", "f7ada2db950526d26e0c8e91ef90548c3a5154216b42d61e8c30a89beb978ef2" ) => Some((41,5)),
+("src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs", "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149" ) => Some((41,6)),
+("src/workspace_graph/expected_projection/call_carriers.rs", "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa" ) => Some((41,7)),
+("src/workspace_graph/expected_projection/call_carriers_tests.rs", "bf17711b9ee9801531b16d3a505163c32df52e2ef13a46d1426eeee2cc8c3934" ) => Some((41,8)),
+("src/workspace_graph/expected_projection/borrowed_imports/typed.rs", "78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1" ) => Some((41,9)),
+("src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs", "569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f" ) => Some((41,10)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -878,11 +986,17 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/allocation/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation/tests.rs")),
 "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation/tests/clone_cursor.rs")),
 "src/cleanup_plan/replay/branch_clone.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone.rs")),
+"src/cleanup_plan/replay/branch_clone/direct.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/direct.rs")),
+"src/cleanup_plan/replay/branch_clone/direct/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/direct/before.rs")),
+"src/cleanup_plan/replay/branch_clone/direct/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/direct/tests.rs")),
 "src/cleanup_plan/replay/branch_clone/funded_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/funded_tests.rs")),
+"src/cleanup_plan/replay/branch_clone/production_capacity.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/production_capacity.rs")),
 "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs")),
 "src/cleanup_plan/replay/branch_clone/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/branch_clone/tests.rs")),
+"src/cleanup_plan/replay/compact_stage.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/compact_stage.rs")),
 "src/cleanup_plan/replay/compact_stage/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/compact_stage/before.rs")),
 "src/cleanup_plan/replay/compact_stage/lexical_before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/compact_stage/lexical_before.rs")),
+"src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs")),
 "src/cleanup_plan/replay/continuation_storage.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage.rs")),
 "src/cleanup_plan/replay/continuation_storage/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")),
 "src/cleanup_plan/replay/expression_facts.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts.rs")),
@@ -929,6 +1043,8 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs")),
@@ -949,6 +1065,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/tests.rs")),
@@ -974,6 +1091,8 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs")),
 "src/cleanup_plan/replay/live_oracle/source_custody/presence.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/presence.json")),
 "src/cleanup_plan/replay/nested_shape.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/nested_shape.rs")),
+"src/cleanup_plan/replay/ordinary_plan_history.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history.rs")),
+"src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs")),
@@ -983,6 +1102,8 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs")),
+"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs")),
+"src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs")),
 "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs")),
 "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_array/sequence_minimum/before.rs")),
@@ -1029,9 +1150,17 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/skeleton_work.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")),
 "src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs")),
 "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs")),
+"src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs")),
+"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs")),
+"src/cleanup_plan/replay/skeleton_work/isolated_paths.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/isolated_paths.rs")),
+"src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs")),
+"src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs")),
 "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs")),
 "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs")),
 "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control/calls/custody_tests.rs")),
+"src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control/calls/custody_tests/source.rs")),
+"src/cleanup_plan/replay/structural_control/calls_before_receipt.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control/calls_before_receipt.rs")),
+"src/cleanup_plan/replay/supplemental/receiving/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/supplemental/receiving/tests.rs")),
 "src/format.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/format.rs")),
 "src/hir.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir.rs")),
 "src/hir/declaration_index.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index.rs")),
@@ -1049,6 +1178,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/hir/identity_resolution/nominal_original.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/identity_resolution/nominal_original.rs")),
 "src/hir/identity_resolution/nominal_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/identity_resolution/nominal_tests.rs")),
 "src/hir/identity_resolution/nominal_tests/legacy.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/identity_resolution/nominal_tests/legacy.rs")),
+"src/hir/ids/fixed_operation_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids/fixed_operation_tests.rs")),
 "src/hir/inspection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection.rs")),
 "src/hir/inspection/paid_nul.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul.rs")),
 "src/hir/iterator_loop.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/iterator_loop.rs")),
@@ -1068,6 +1198,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/hir/nominal_payload/map.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/nominal_payload/map.rs")),
 "src/hir/resolve_program_methods.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/resolve_program_methods.rs")),
 "src/hir/resolve_statement.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/resolve_statement.rs")),
+"src/hir/resolve_statement/text_reference.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/resolve_statement/text_reference.rs")),
 "src/hir/resolve_yield.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/resolve_yield.rs")),
 "src/hir/static_text.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/static_text.rs")),
 "src/hir/validation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation.rs")),
@@ -1105,6 +1236,8 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/source_reflows.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows.rs")),
 "src/source_reflows/incoming090_semantic_receivers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/incoming090_semantic_receivers.rs")),
 "src/source_reflows/incoming67107_semantic_receivers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/incoming67107_semantic_receivers.rs")),
+"src/source_reflows/main99f_controllers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/main99f_controllers.rs")),
+"src/source_reflows/main_f247_controllers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/main_f247_controllers.rs")),
 "src/source_reflows/semantic_receivers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/semantic_receivers.rs")),
 "src/source_reflows/semantic_receivers_main44.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/semantic_receivers_main44.rs")),
 "src/source_reflows/semantic_receivers_main7c6.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/semantic_receivers_main7c6.rs")),
@@ -1114,7 +1247,10 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/source_reflows/semantic_receivers_maina3.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/semantic_receivers_maina3.rs")),
 "src/source_reflows/semantic_receivers_mainb80.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/semantic_receivers_mainb80.rs")),
 "src/source_reflows_merge.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge.rs")),
+"src/source_reflows_merge/main67107_inputs.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main67107_inputs.rs")),
 "src/source_reflows_merge/main67107_inputs_tail.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main67107_inputs_tail.rs")),
+"src/source_reflows_merge/main99f_inputs.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main99f_inputs.rs")),
+"src/source_reflows_merge/main_c883_inputs.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_c883_inputs.rs")),
 "src/source_reflows_merge/main_e177_final_inputs.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_final_inputs.rs")),
 "src/source_reflows_merge/main_e177_overlay_v2.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_v2.rs")),
 "src/source_reflows_merge/runtime_json.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/runtime_json.rs")),
@@ -1143,12 +1279,20 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/workspace_graph/constructor_failure/typed.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/constructor_failure/typed.rs")),
 "src/workspace_graph/diagnostics.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/diagnostics.rs")),
 "src/workspace_graph/expected_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")),
+"src/workspace_graph/expected_projection/borrowed_imports/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests.rs")),
+"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")),
+"src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs")),
+"src/workspace_graph/expected_projection/borrowed_imports/typed.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed.rs")),
 "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs")),
 "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs")),
 "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs")),
 "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs")),
+"src/workspace_graph/expected_projection/call_carriers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")),
+"src/workspace_graph/expected_projection/call_carriers_inverse.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")),
+"src/workspace_graph/expected_projection/call_carriers_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")),
 "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")),
 "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs")),
+"src/workspace_graph/expected_projection/prelude_forecast_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_tests.rs")),
 "src/workspace_graph/identity_resolution.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution.rs")),
 "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs")),
 "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs")),
@@ -1161,13 +1305,23 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/workspace_graph/source_schema/byte_helper/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/byte_helper/tests.rs")),
 "src/workspace_graph/source_schema/nominal_context/main8a.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/nominal_context/main8a.rs")),
 "src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs")),
+"src/workspace_graph/static_text/scalar_helpers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/static_text/scalar_helpers.rs")),
+"src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs")),
+"src/workspace_graph/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests.rs")),
+"src/workspace_graph/tests/builder_limits.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests/builder_limits.rs")),
+"src/workspace_graph/tests/core_attempt_trace.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests/core_attempt_trace.rs")),
+"src/workspace_graph/type_proof_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/type_proof_tests.rs")),
 "src/workspace_graph/validation/before_roots.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/validation/before_roots.rs")),
 "tests/hir_module_boundaries.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")),
 "tests/wasm/scalar_browser_ci_contract.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract.rs")),
+"tests/wasm/scalar_browser_ci_contract/before_3e66.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/before_3e66.rs")),
 "tests/wasm/scalar_browser_ci_contract/historical_builder.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/historical_builder.rs")),
+"tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs")),
 "tests/workspace/semantic_change.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_change.rs")),
 "tests/workspace/semantic_change/reporting.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_change/reporting.rs")),
+"tests/workspace/semantic_graph.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph.rs")),
 "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+"tests/workspace/semantic_graph/source_inventory_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory_controls.rs")),
 "tests/workspace/semantic_structural_change.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change.rs")),
 "tests/workspace/semantic_structural_change/reporting.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change/reporting.rs")),
 _ => panic!("unknown declared current source"), }
@@ -1243,7 +1397,7 @@ fn every_declared_tuple_keeps_complete_current_and_old_inputs_and_refuses_foreig
     reader::controls();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut names = std::collections::BTreeSet::new();
-    for part in 0..PARTS.len() {
+    for part in 0..part_count() {
         for row in records(part).as_array().unwrap() {
             let source = row["source"].as_str().unwrap();
             let expected = row["before_sha256"].as_str().unwrap();

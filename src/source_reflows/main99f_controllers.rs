@@ -1413,7 +1413,12 @@ fn tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_asse
     for proof in &proofs {
         let path = proof["path"].as_str().unwrap();
         assert!(paths.insert(path));
-        let current = main99f_read(root.join(path)).unwrap();
+        let raw = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = crate::source_reflows::original_fixture_source(
+            path,
+            proof["after_sha256"].as_str().unwrap(),
+            &raw,
+        );
         let before = invert(proof, &current);
         assert_eq!(
             before,

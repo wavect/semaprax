@@ -27,7 +27,17 @@ fn selected_session_complete_source_inverses_and_old_layout_definitions_stay_bou
     assert_eq!(rows.as_array().unwrap().len(), files.len());
     for ((path, current, old), row) in files.into_iter().zip(rows.as_array().unwrap()) {
         assert_eq!(row["source"].as_str().unwrap(), path);
-        let mut restored = current.to_owned();
+        let stage =
+            if path == "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs" {
+                Some(crate::source_reflows::original_fixture_source(
+                    path,
+                    "2507012ec4955b6d6ad7de9147346da37bcb1f57b5ef859cdd0cf61fad010e0b",
+                    current,
+                ))
+            } else {
+                None
+            };
+        let mut restored = stage.as_deref().unwrap_or(current).to_owned();
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(restored.matches(new).count(), 1, "{path}");

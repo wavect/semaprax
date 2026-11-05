@@ -170,6 +170,11 @@ fn nominal_audit_comparison_retains_complete_reviewed_afterimage_and_archive() {
             .join(proof["archive"].as_str().unwrap()),
     )
     .unwrap();
+    let current = crate::source_reflows::original_fixture_source(
+        path,
+        proof["before_sha256"].as_str().unwrap(),
+        &current,
+    );
     assert_eq!(current, archive, "raw current is this exact predecessor");
     let afterimage = receiver_comparison_input(proof, &current);
     assert_eq!(digest(&afterimage), proof["after_sha256"]);

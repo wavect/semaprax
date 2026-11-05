@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs",
+    "archive": "docs/evidence/tail-merge-helper-name-v1/src__cleanup_plan__replay__skeleton_work__dag_storage__tests__tail_moves__old.rs.before.txt",
+    "before_sha256": "9b388f625c838307880ade43dc48c8c346c0cddb06fc4c0bf46f2d28465ce35f",
+    "after_sha256": "53245914c76ef70c27608d1ec64452049e4044e9bb9b5e291542af03b97a49d4",
+    "inverse": [
+      {
+        "after": "e.\nuse super::*;\n\nimpl SkeletonWork<'_, '_> {\n    pub(super) fn tail_merge_control(\n        &mut self,\n        paths: Vec<ExprSkeletonPath>,\n    )",
+        "before": "e.\nuse super::*;\n\nimpl SkeletonWork<'_, '_> {\n    pub(super) fn saved_merged_paths(\n        &mut self,\n        paths: Vec<ExprSkeletonPath>,\n    )"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs",
+    "archive": "docs/evidence/tail-merge-helper-name-v1/src__cleanup_plan__replay__skeleton_work__dag_storage__tests__tail_moves.rs.before.txt",
+    "before_sha256": "7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68",
+    "after_sha256": "4356919c34b81ce14fbe235c27b4f74389eef1f9b938761ab16cc988f3689029",
+    "inverse": [
+      {
+        "after": "rk::new(&program, function, &mut b);\n        let old = old_work.tail_merge_control(vec![path(&item, 2), path(&item, 3)]);\n        let new = new_wo",
+        "before": "rk::new(&program, function, &mut b);\n        let old = old_work.saved_merged_paths(vec![path(&item, 2), path(&item, 3)]);\n        let new = new_wo"
+      },
+      {
+        "after": "               let merged = if saved {\n                    work.tail_merge_control(inputs)\n                } else {\n                    work.merge",
+        "before": "               let merged = if saved {\n                    work.saved_merged_paths(inputs)\n                } else {\n                    work.merge"
+      },
+      {
+        "after": "ms.as_ptr())\n            .collect();\n        let old = old_work.tail_merge_control(inputs.clone()).unwrap();\n        let new = new_work.merged_pat",
+        "before": "ms.as_ptr())\n            .collect();\n        let old = old_work.saved_merged_paths(inputs.clone()).unwrap();\n        let new = new_work.merged_pat"
+      },
+      {
+        "after": ",\n        failed,\n        abrupt,\n    ];\n    let old = old_work.tail_merge_control(inputs.clone()).unwrap();\n    let new = new_work.merged_paths(i",
+        "before": ",\n        failed,\n        abrupt,\n    ];\n    let old = old_work.saved_merged_paths(inputs.clone()).unwrap();\n    let new = new_work.merged_paths(i"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/tail-merge-helper-name-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "3b98e92092b9328bc4aab8f8f0c200f511d564c3e665b68b199f81e278d47b1d",
+    "after_sha256": "fa6aa5b2d53932b4a013ab50168783003af766a41c651fb036cdf95f5f7c860e",
+    "inverse": [
+      {
+        "after": "    _ => panic!(\"unexpected receipt source\"),\n        }\n    }\n}\n\n#[test]\nfn tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_assertions() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/tail-merge-helper-name-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 3);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path == \"src/source_reflows/semantic_receivers.rs\" {\n            assert!(current.starts_with(&before));\n        } else {\n            let old = \"saved_merged_paths\";\n            let new = \"tail_merge_control\";\n            let count = if path.ends_with(\"/old.rs\") { 1 } else { 4 };\n            assert_eq!(current.matches(new).count(), count);\n            assert!(!current.contains(old));\n            assert_eq!(current.replace(new, old), before);\n        }\n    }\n}\n",
+        "before": "    _ => panic!(\"unexpected receipt source\"),\n        }\n    }\n}\n"
+      }
+    ]
+  }
+]

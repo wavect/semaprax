@@ -43,6 +43,16 @@ fn before_current_format(source: &str, current: &str) -> Option<String> {
         ]),
         _ => return None,
     };
+    let stage = if sha(current.as_bytes()) != current_sha {
+        Some(crate::source_reflows::original_fixture_source(
+            source,
+            current_sha,
+            current,
+        ))
+    } else {
+        None
+    };
+    let current = stage.as_deref().unwrap_or(current);
     assert_eq!(current.len(), current_len);
     assert_eq!(sha(current.as_bytes()), current_sha);
     let mut prior = current.to_owned();

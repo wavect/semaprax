@@ -25,7 +25,16 @@ fn legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact(
     assert_eq!(rows.as_array().unwrap().len(), files.len());
     for ((path, current, old), row) in files.into_iter().zip(rows.as_array().unwrap()) {
         assert_eq!(row["source"].as_str().unwrap(), path);
-        let mut restored = current.to_owned();
+        let stage = if path == "src/hir/nominal_payload/legacy/source_tests.rs" {
+            Some(crate::source_reflows::original_fixture_source(
+                path,
+                "62e53ac5c31c6abcfe440d9cebd726b3d758846d2e7d0bcd4287cc0931a84b0f",
+                current,
+            ))
+        } else {
+            None
+        };
+        let mut restored = stage.as_deref().unwrap_or(current).to_owned();
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(restored.matches(new).count(), 1, "{path}");

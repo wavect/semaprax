@@ -70,8 +70,11 @@ pub(crate) const RESULT_OK_ID: &str = "core.result.ok";
 pub(crate) const RESULT_OK_VALUE_ID: &str = "core.result.ok.value";
 pub(crate) const RESULT_ERR_ID: &str = "core.result.err";
 pub(crate) const RESULT_ERR_ERROR_ID: &str = "core.result.err.error";
-pub(crate) const VEC_ID: &str = "core.vec";
-pub(crate) const BOX_ID: &str = "core.box";
+// Copy the same immutable static references into constant pattern identities.
+static VEC_ID_STORAGE: &str = "core.vec";
+static BOX_ID_STORAGE: &str = "core.box";
+pub(crate) const VEC_ID: &str = VEC_ID_STORAGE;
+pub(crate) const BOX_ID: &str = BOX_ID_STORAGE;
 
 /// The owning construction of the process prelude table. The `OnceLock` below
 /// is its only production caller; declarations, order and bytes are unchanged.

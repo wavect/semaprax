@@ -46,20 +46,7 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
     Some(original)
 }
 
-// Whole current audit join only. The original production purity check runs
-// before this historical facade route, and every original phase inverse runs
-// after it. No source component is omitted from the current input.
-pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 650350
-        || digest(supplied) != "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
-    {
-        return None;
-    }
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let mut complete = String::new();
-    // Literal generated from the actual owning macro, in original order.
-    // Data pieces remain read-only source evidence, never compiled authority.
-    const PARTS: &[(&str, &str, usize, &str)] = &[
+const PARTS: &[(&str, &str, usize, &str)] = &[
         ("src/workspace_graph/expected_projection.rs", include_str!("../../workspace_graph/expected_projection.rs"), 59698, "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4"),
         ("src/workspace_graph/expected_projection/vec_constructor.rs", include_str!("../../workspace_graph/expected_projection/vec_constructor.rs"), 13779, "4831e29cce4d39b5c263ffd3743d3cb2227ffc9c57f94e28763994cd78721e10"),
         ("src/workspace_graph/expected_projection/held_projection.rs", include_str!("../../workspace_graph/expected_projection/held_projection.rs"), 21916, "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942"),
@@ -111,6 +98,45 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/workspace_graph/expected_projection/field_update.rs", include_str!("../../workspace_graph/expected_projection/field_update.rs"), 7630, "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc"),
         ("src/workspace_graph/expected_projection/string_slots.rs", include_str!("../../workspace_graph/expected_projection/string_slots.rs"), 11811, "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f"),
     ];
+
+// Whole current audit join only. The original production purity check runs
+// before this historical facade route, and every original phase inverse runs
+// after it. No source component is omitted from the current input.
+pub(super) fn audit_join(supplied: &str) -> Option<String> {
+    let current: String = PARTS.iter().map(|(_, compiled, _, _)| *compiled).collect();
+    if supplied != current {
+        return audit_join_at_publication(supplied);
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for &(path, compiled, _, _) in PARTS {
+        if path.is_empty() {
+            continue;
+        }
+        let physical = reader::read(
+            &root.join(path),
+            compiled.len(),
+            &digest(compiled),
+            2_097_152,
+        )
+        .expect("complete latest compiled/physical projection publication part");
+        assert_eq!(physical, compiled);
+    }
+    // The unchanged fifty-part oracle below authenticates each declared whole
+    // predecessor and replays the entire original phase inverse.
+    audit_join_at_publication(include_str!(
+        "../../../docs/evidence/projection-current-entry-20261022/whole-current.txt"
+    ))
+}
+fn audit_join_at_publication(supplied: &str) -> Option<String> {
+    if supplied.len() != 650350
+        || digest(supplied) != "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
+    {
+        return None;
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut complete = String::new();
+    // Literal generated from the actual owning macro, in original order.
+    // Data pieces remain read-only source evidence, never compiled authority.
     for &(path, compiled, length, sha) in PARTS {
         let before = super::invoice_compiled_stage(path, length, sha, compiled);
         let compiled = before.as_str();

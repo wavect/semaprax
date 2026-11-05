@@ -2590,6 +2590,71 @@
       "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
       "historical_commit": "7ebb58497a1dafb57af9dccf1bc700a50a15cd4b",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+      "view_len": 28714,
+      "view_sha256": "f1458b012d31d958e5fb5cbb06cfc7b914ed5f10664f3ab654f99a9c3d6f16e9",
+      "archive": "e/f1458b012d31d958e5fb5cbb06cfc7b914ed5f10664f3ab654f99a9c3d6f16e9",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7d42ad08b^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+      "view_len": 34204,
+      "view_sha256": "562c506a3064893f4799b778ae8fd6fc0f8ab28f918d32fc6c5cff88b4d12871",
+      "archive": "e/562c506a3064893f4799b778ae8fd6fc0f8ab28f918d32fc6c5cff88b4d12871",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7d42ad08b^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+      "view_len": 6267,
+      "view_sha256": "8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e",
+      "archive": "e/8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7d42ad08b^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+      "view_len": 7075,
+      "view_sha256": "ca5747d15635434b22f7efa9375e2de495f2fc3895a2b54b3d8885fd235e2730",
+      "archive": "e/ca5747d15635434b22f7efa9375e2de495f2fc3895a2b54b3d8885fd235e2730",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7d42ad08b^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+      "view_len": 6770,
+      "view_sha256": "b9f81fa616e8bfddfb89b76744b23c8e113ec69f526ed520628b257dd0b62cd2",
+      "archive": "e/b9f81fa616e8bfddfb89b76744b23c8e113ec69f526ed520628b257dd0b62cd2",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7d42ad08b^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
     }
   ]
 }

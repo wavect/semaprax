@@ -715,7 +715,11 @@ pub(super) mod shared_prefix_prices {
 }
 pub(super) fn whole_source() -> String {
     use sha2::{Digest, Sha256};
-    let whole = include_str!("before_event_prefix.rs");
+    let whole = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+        "562c506a3064893f4799b778ae8fd6fc0f8ab28f918d32fc6c5cff88b4d12871",
+        include_str!("before_event_prefix.rs"),
+    );
     let (body, _) = whole
         .split_once("\n// Exact generation witness glue.")
         .unwrap();

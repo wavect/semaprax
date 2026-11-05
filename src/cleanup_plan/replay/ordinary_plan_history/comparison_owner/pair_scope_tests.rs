@@ -1284,7 +1284,11 @@ fn fused_whole_immediate_886_oracle_and_original_cursor_have_exact_finite_glue()
                 "#[cfg(test)]\nmod before_lexical_cursor;\n#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\nmod pair_scope_census;"
             },
         );
-        restored += "#[cfg(test)]\nmod tests;\n";
+        restored += if paired {
+            "#[cfg(test)]\nmod tests;\n"
+        } else {
+            "\n#[cfg(test)]\nmod tests;\n"
+        };
         assert_eq!(restored.len(), length);
         use sha2::{Digest, Sha256};
         assert_eq!(

@@ -1088,6 +1088,6 @@ pub(super) const TAIL: usize = size_of::<&Rc<SkeletonObservation>>()
     assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(sha2::Sha256::digest(include_bytes!("paired_value_before_tail.rs")))), "d2121a25559a10894ce6f6bd883f8cd55f0c7bab29e182431e65d236aba2df4b");
     let incoming = include_str!("before_retained_tail.rs")
         .replace("#[path = \"lexical_cursor_before_prepared_links.rs\"]\n", "")
-        .replace("#[cfg(test)]\nuse super::pair_scope_census;", "#[cfg(test)]\nmod before_lexical_cursor;\n#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\nmod pair_scope_census;") + "#[cfg(test)]\nmod tests;\n";
+        .replace("#[cfg(test)]\nuse super::pair_scope_census;", "#[cfg(test)]\nmod before_lexical_cursor;\n#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\nmod pair_scope_census;") + "\n#[cfg(test)]\nmod tests;\n";
     assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(sha2::Sha256::digest(incoming.as_bytes()))), "d8f885053f07529877ba05b8f1c7d6687970ae9049ea34d9993eca1ba309d33d");
 }

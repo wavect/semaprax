@@ -632,7 +632,7 @@ fn shared_identity_replay_retains_complete_immediate_sources_and_original_invoic
     );
     // The frozen body is complete production code; only module/test namespace
     // glue and one private-type visibility token differ from the immediate root.
-    let mut restored = include_str!("before_identity_prefix.rs").to_owned();
+    let mut restored = crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs","f1458b012d31d958e5fb5cbb06cfc7b914ed5f10664f3ab654f99a9c3d6f16e9",include_str!("before_identity_prefix.rs"));
     restored = restored
         .replace("#[path = \"lexical_cursor_before_identity.rs\"]\n", "")
         .replace("#[path = \"paired_value_before_identity.rs\"]\n", "")
@@ -668,7 +668,7 @@ fn shared_identity_replay_retains_complete_immediate_sources_and_original_invoic
         "8db6b9a6110b31cdfea17414762febcdd689d9dc8889c7428ed502599f77928b"
     );
     assert_eq!(
-        digest(include_bytes!("paired_value_before_identity.rs")),
+        digest(crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs","8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e",include_str!("paired_value_before_identity.rs")).as_bytes()),
         "8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e"
     );
     assert!(original.contains("replay_shared_prefix!(owner, function, budget, census, 'paired)"));

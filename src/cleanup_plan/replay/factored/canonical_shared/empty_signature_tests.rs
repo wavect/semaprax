@@ -205,8 +205,13 @@ fn empty_signature_carriers_and_complete_original_receiver_are_bound() {
         .find("\n#[cfg(test)]\nmod tests;")
         .unwrap()
         + start;
+    let receiver = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+        "26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693",
+        include_str!("before_empty_signature.rs"),
+    );
     assert!(
-        include_str!("before_empty_signature.rs").contains(&original[start..end]),
+        receiver.contains(&original[start..end]),
         "complete immediate receiver, no old constructor calling new branch"
     );
     assert!(

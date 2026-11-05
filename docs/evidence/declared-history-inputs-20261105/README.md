@@ -4,7 +4,7 @@ Status: Focused local original tests and hostile controls pass; hosted CI remain
 Audience: Compiler maintainers and CI reviewers.
 
 The two unchanged MAIN090/MAIN21 domain manifests and three existing exact
-receiver inverse fixtures declare these 400 complete historical tuples across
+receiver inverse fixtures declare these 402 complete historical tuples across
 273 physical source files. This closed ingress
 authenticates the complete compiled current source, a fresh regular physical
 file and its independent archive before applying an exact indexed inverse.

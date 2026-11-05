@@ -7,6 +7,7 @@ pub(in crate::cleanup_plan::replay) enum Builtin {
     FromU8,
     Get,
     Len,
+    PrefixClass,
     Str(crate::str_ops::StrOp),
 }
 pub(super) fn builtin(
@@ -34,6 +35,7 @@ pub(super) fn builtin(
             crate::str_ops::CONTAINS_ID,
             Builtin::Str(crate::str_ops::StrOp::Contains),
         ),
+        (crate::byte_ops::PREFIX_CLASS_ID, Builtin::PrefixClass),
     ] {
         if id_equal(function, id, expected, budget)? {
             return Ok(Some(operation));
@@ -134,6 +136,18 @@ pub(super) fn expression(
                         && args[0].ty == ResolvedType::SliceU8
                         && args[0].ownership == OwnershipMode::Borrow
                 }
+                Builtin::PrefixClass => {
+                    expression.ty == ResolvedType::Usize
+                        && args.len() == 7
+                        && args[0].ty == ResolvedType::SliceU8
+                        && args[0].ownership == OwnershipMode::Borrow
+                        && args[1..3].iter().all(|arg| {
+                            arg.ty == ResolvedType::Usize && arg.ownership == OwnershipMode::Value
+                        })
+                        && args[3..].iter().all(|arg| {
+                            arg.ty == ResolvedType::U8 && arg.ownership == OwnershipMode::Value
+                        })
+                }
                 Builtin::Str(operation) => {
                     expression.ty == operation.return_type()
                         && args.len() == operation.arity()
@@ -232,6 +246,7 @@ mod tests {
             crate::str_ops::IS_EMPTY_ID,
             crate::str_ops::STARTS_WITH_ID,
             crate::str_ops::CONTAINS_ID,
+            crate::byte_ops::PREFIX_CLASS_ID,
         ];
         for id in candidates.into_iter().chain([
             "",

@@ -19,6 +19,7 @@ pub(crate) fn builtin(id: &str) -> bool {
     id == crate::string_ops::I64_FROM_U8_ID
         || id == crate::byte_ops::GET_ID
         || id == crate::byte_ops::LEN_ID
+        || id == crate::byte_ops::PREFIX_CLASS_ID
         || matches!(
             crate::str_ops::by_id(id),
             Some(
@@ -99,6 +100,18 @@ pub(crate) fn expression<E>(
                     && args.len() == 1
                     && args[0].ty == T::SliceU8
                     && args[0].ownership == O::Borrow);
+            }
+            if callee.as_str() == crate::byte_ops::PREFIX_CLASS_ID {
+                return Ok(expr.ty == T::Usize
+                    && args.len() == 7
+                    && args[0].ty == T::SliceU8
+                    && args[0].ownership == O::Borrow
+                    && args[1..3]
+                        .iter()
+                        .all(|arg| arg.ty == T::Usize && arg.ownership == O::Value)
+                    && args[3..]
+                        .iter()
+                        .all(|arg| arg.ty == T::U8 && arg.ownership == O::Value));
             }
             let Some(operation) = crate::str_ops::by_id(callee.as_str()) else {
                 return Ok(false);

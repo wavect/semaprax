@@ -642,7 +642,9 @@ fn complete_immediate_886_method_roles_and_wrapper_keep_whole_source_after_only_
     expected.push_str("\nimpl Canonicalizer<'_> {\n");
     expected.push_str(&wrapper);
     expected.push_str("\n}\n");
-    let current = include_str!("before_arity_dispatch.rs");
+    let current = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs", "20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242", include_str!("before_arity_dispatch.rs"),
+    );
     let prefix = current.split("\n#[test]\nfn complete_immediate_886_method_roles_and_wrapper_keep_whole_source_after_only_namespace_glue").next().unwrap();
     assert_eq!(
         prefix.trim_end(),

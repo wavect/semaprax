@@ -1,0 +1,8 @@
+{
+  "source": "std/io-lines/src/lines.spx",
+  "commit": "1bf9084fbdaeeb7e42c4a4539477b7503d42beab",
+  "sha": "12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44",
+  "archive": "e/12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44",
+  "bytes": 4129,
+  "purpose": "Complete original loop provider retains the existing hostile Value-to-Borrow match control; current source remains the positive prefix-scan provider"
+}

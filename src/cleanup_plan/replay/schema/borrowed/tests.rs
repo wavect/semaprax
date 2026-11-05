@@ -1,7 +1,25 @@
 //! Saved schema oracle and actual provider profile controls; no admission hook.
 use super::*;
 fn line_end() -> crate::hir::ResolvedProgram {
-    let source = include_str!("../../../../../std/io-lines/src/lines.spx");
+    line_end_source(include_str!("../../../../../std/io-lines/src/lines.spx"))
+}
+fn original_line_end() -> crate::hir::ResolvedProgram {
+    use sha2::Digest;
+    let source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44"
+    ));
+    assert_eq!(source.len(), 4129);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))
+        ),
+        "12be4b613bd80f0aa93ef65b87c3c59a09454918ceea9d3952f48735ad23fd44"
+    );
+    line_end_source(source)
+}
+fn line_end_source(source: &str) -> crate::hir::ResolvedProgram {
     let start = source.find("@id(\"std.io.lines.line-end\")").unwrap();
     let rest = &source[start..];
     let end = rest[4..]
@@ -157,7 +175,7 @@ fn complete_profile_and_inventory_share_exact_work_backing_and_held_pool_through
 #[test]
 fn independently_mutated_modes_roots_option_metadata_and_loan_generation_refuse() {
     for mutation in 0..4 {
-        let mut program = line_end();
+        let mut program = original_line_end();
         match mutation {
             0 => program.functions[0].params[0].ownership = OwnershipMode::Own,
             1 => {
@@ -210,7 +228,7 @@ fn original_lexical_and_writer_priorities_are_not_conferred_by_the_borrowed_prof
 
 #[test]
 fn exact_value_option_profile_does_not_hide_the_original_borrow_match_schema() {
-    let mut program = line_end();
+    let mut program = original_line_end();
     let function = &mut program.functions[0];
     let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
         panic!("actual line-end block");
@@ -239,4 +257,76 @@ fn exact_value_option_profile_does_not_hide_the_original_borrow_match_schema() {
     );
     let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();
     assert!(build(&program, function, &mut budget).is_err());
+}
+
+#[test]
+fn prefix_class_profile_requires_every_actual_read_operand_and_exact_identity() {
+    let original = crate::hir::resolve(
+        &crate::check(
+            "module prefix.profile; @id(\"prefix.read\") fn read(input: borrow Slice<u8>, index: usize, count: usize)->usize { byte_prefix_class(input, index, count, 0u8, 127u8, 10u8, 13u8) } @id(\"main\") fn main()->i64 {0}",
+            "prefix-profile.spx",
+        ).unwrap(),
+    ).unwrap();
+    let index = original
+        .functions
+        .iter()
+        .position(|f| f.name == "read")
+        .unwrap();
+    for mutant in 0..17 {
+        let mut program = original.clone();
+        {
+            let function = &mut program.functions[index];
+            let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+                panic!("actual prefix helper block");
+            };
+            let ResolvedExprKind::Call {
+                callee,
+                type_arguments,
+                args,
+                ..
+            } = &mut tail.kind
+            else {
+                panic!("actual prefix read call");
+            };
+            match mutant {
+                0 => {}
+                1 => {
+                    args.pop();
+                }
+                2 => args.push(args[6].clone()),
+                3 => args[0].ownership = crate::hir::OwnershipMode::Value,
+                4 => args[0].ty = ResolvedType::Str,
+                5 => args[1].ty = ResolvedType::I64,
+                6 => args[2].ownership = crate::hir::OwnershipMode::Borrow,
+                7 => args[3].ty = ResolvedType::Bool,
+                8 => args[6].ownership = crate::hir::OwnershipMode::Borrow,
+                9 => type_arguments.push(ResolvedType::U8),
+                10 => *callee = crate::hir::DeclarationId::new("core.bytes.prefix-class.forged"),
+                11 => tail.ty = ResolvedType::Bool,
+                12 => tail.ownership = crate::hir::OwnershipMode::Borrow,
+                13 => function.params[0].ownership = crate::hir::OwnershipMode::Value,
+                14 => function.params[0].ty = ResolvedType::Str,
+                15 => {
+                    function.params[0].id =
+                        crate::hir::ValueId::intrinsic_parameter("forged.view", 0)
+                }
+                16 => function.loan_plan.schema = "forged.loan.generation",
+                _ => unreachable!(),
+            }
+        }
+        let function = &program.functions[index];
+        let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();
+        let result = build(&program, function, &mut budget);
+        assert_eq!(
+            result.is_ok(),
+            mutant == 0,
+            "exact prefix signature mutant={mutant}"
+        );
+        if let Ok(profile) = result {
+            assert_eq!(
+                profile.schema(&program, function, &mut budget).unwrap(),
+                selected_schema_with_index(&program, function, None).unwrap()
+            );
+        }
+    }
 }

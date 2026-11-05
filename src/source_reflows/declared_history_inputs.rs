@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 19] = [
+const PARTS: [(&str, &str, usize, &str); 20] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 19] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        584350,
-        "1c1b5ae6633bce441d72902485ea1f79fdbede1c0c0eddd0db18250724889910",
+        585197,
+        "4e2ca30bd0f8e82f1ca9fffebf127a2acc51b0eeca46cc0109ad2d9a13d3770d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 19] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        1835,
-        "04b5a691ec5088a0ea26bb47d2d8a51967a2513e251a91eb6b23a606789d4da1",
+        28380,
+        "b137beeb3ee1117197a06ec5258e0d734c7708eb2472517a8b3696bd40d7a159",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -183,8 +183,17 @@ const PARTS: [(&str, &str, usize, &str); 19] = [
         36049,
         "a112813db0de5f3a73fcd9dc66fc809574d89f8caebb8219d3904969f642cefa",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-19.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-19.json"
+        )),
+        29249,
+        "bf6d56c900805a3891db1c53ec780d02c81cc6399053204d4de68586978e6325",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 19] = [const { OnceLock::new() }; 19];
+static CACHE: [OnceLock<serde_json::Value>; 20] = [const { OnceLock::new() }; 20];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -602,6 +611,8 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/workspace_graph/expected_projection/held_projection.rs", "1530f578236abe624f92941698def06f8de44d9deba0003936fb60206afe74bd" ) => Some((18,2)),
 ("src/source_verify/constructor_tests.rs", "b22c54451d486e4d9cb519744293373856f0ab299337b45becab56e21c9ea5c0" ) => Some((18,3)),
 ("tests/workspace/semantic_graph/source_inventory.rs", "aead2c85ae1356c83db5f81531b9bd6dd56934af64d59147e1b341905e761e3c" ) => Some((18,4)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs", "26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693" ) => Some((19,0)),
+("src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs", "20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242" ) => Some((19,1)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {

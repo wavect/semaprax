@@ -282,6 +282,9 @@ pub(super) fn validate<'a, E: Policy>(
                 }
                 Call::Builtin(Builtin::Get) => Signature::Byte(crate::byte_ops::ByteOp::Get),
                 Call::Builtin(Builtin::Len) => Signature::Byte(crate::byte_ops::ByteOp::Len),
+                Call::Builtin(Builtin::PrefixClass) => {
+                    Signature::Byte(crate::byte_ops::ByteOp::PrefixClass)
+                }
                 Call::Builtin(Builtin::Str(op)) => Signature::Str(*op),
             }
         }

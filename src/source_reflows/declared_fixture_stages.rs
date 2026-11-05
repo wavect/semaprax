@@ -462,7 +462,7 @@ pub(crate) fn guard_stage(
         assert_eq!(authenticated, supplied);
     }
     let mut answers = Vec::new();
-    for part in 0..19 {
+    for part in 0..20 {
         for row in records(part).as_array().unwrap().iter() {
             if row["source"] != source
                 || !row["fixture_originals"].as_array().is_some_and(|proofs| {

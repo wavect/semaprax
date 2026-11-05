@@ -853,7 +853,19 @@ jobs:
           # mismatch and describe it in its own words. The gates check this
           # too; a provisioning step that silently installed something else
           # should not reach them.
-          want="$(cut -d: -f2 proofs/kernel0-lean/lean-toolchain)"
+          toolchain="$(cat proofs/kernel0-lean/lean-toolchain)"
+          want="${toolchain#*:}"
+          # Elan downloads lazily. Retry transient release-server failures
+          # before the proof gates; exhausting all attempts still fails CI.
+          for attempt in 1 2 3; do
+            if elan toolchain install "$toolchain"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 10))"
+          done
           lean --version
           lake --version
           lean --version | grep -F "${want#v}"

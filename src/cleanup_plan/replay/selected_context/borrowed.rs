@@ -154,6 +154,7 @@ impl Lease<'_> {
             schema::borrowed::Call::Builtin(
                 schema::borrowed::operands::Builtin::Get
                     | schema::borrowed::operands::Builtin::Len
+                    | schema::borrowed::operands::Builtin::PrefixClass
                     | schema::borrowed::operands::Builtin::Str(crate::str_ops::StrOp::LenBytes)
             )
         ))
@@ -212,9 +213,12 @@ impl Lease<'_> {
                     work,
                 )
             }
-            schema::borrowed::Call::Builtin(operation @ (Builtin::Get | Builtin::Len)) => {
+            schema::borrowed::Call::Builtin(
+                operation @ (Builtin::Get | Builtin::Len | Builtin::PrefixClass),
+            ) => {
                 let op = match operation {
                     Builtin::Get => crate::byte_ops::ByteOp::Get,
+                    Builtin::PrefixClass => crate::byte_ops::ByteOp::PrefixClass,
                     _ => crate::byte_ops::ByteOp::Len,
                 };
                 typed_storage::borrowed_static_params(

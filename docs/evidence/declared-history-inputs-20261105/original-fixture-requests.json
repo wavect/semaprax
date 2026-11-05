@@ -2161,6 +2161,32 @@
       "committed_head": "277ddb283f338ec3ff77fabc3227b631f96cf28b",
       "historical_commit": "277ddb283f338ec3ff77fabc3227b631f96cf28b",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+      "view_len": 59049,
+      "view_sha256": "26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693",
+      "archive": "e/26aeee1fb821b879760d6bb4029eac651113f91a5bc0f4ce5e92c1bc95960693",
+      "owner": "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs",
+      "owner_archive": "e/fdbbe050b4b2e8af75cace6deb09e3d7167f747a96d3a8245aeb3305c821457a",
+      "owner_bytes": 10450,
+      "owner_sha256": "fdbbe050b4b2e8af75cace6deb09e3d7167f747a96d3a8245aeb3305c821457a",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "ae27af52db2786b2653781ebc7d1c49346d7bc19",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs",
+      "view_len": 29084,
+      "view_sha256": "20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242",
+      "archive": "e/20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242",
+      "owner": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs",
+      "owner_archive": "e/982fe65b29a26a38efb7dc8e7aee0e5cb6d45484e0137dfbf58897d4656557cd",
+      "owner_bytes": 31149,
+      "owner_sha256": "982fe65b29a26a38efb7dc8e7aee0e5cb6d45484e0137dfbf58897d4656557cd",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "7e4c8c155a734bef5293223cedd13c176cc1ea69",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
     }
   ]
 }

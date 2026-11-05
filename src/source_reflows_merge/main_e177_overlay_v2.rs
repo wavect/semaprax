@@ -12,7 +12,7 @@ const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","src/cleanup_
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 118684; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "dc3578113cc123cca3074d79325c84ad49ac1dd21d276020bbbc0a8916b8c80e";
+const POLICY_SHA256: &str = "0ec6ec6e2ab28f09d4e693edca0858f518bfe50f926da8459af8d3f5828b9b99";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -389,6 +389,10 @@ fn edges(packet: &Value) -> Result<Vec<(String, String)>, &'static str> {
 #[path = "main_e177_overlay_fragments_v3.rs"]
 mod fragments_v3;
 fn compose_values(before: Value, policy: &Value, page: &Value) -> Result<Value, &'static str> {
+    if page["schema"] == fragments_v3::SCHEMA_V13 {
+        let expanded = fragments_v3::expand_v13(&before, policy, page)?;
+        return compose_values_v2(before, policy, &expanded);
+    }
     if page["schema"] == fragments_v3::SCHEMA_V12 {
         let expanded = fragments_v3::expand_v12(&before, policy, page)?;
         return compose_values_v2(before, policy, &expanded);
@@ -595,7 +599,10 @@ fn compose_with_expansion_cache(
 ) -> Result<Value, &'static str> {
     // Keep the complete current policy/page acquisition on every invocation.
     let (policy, page) = load()?;
-    if page["schema"] != fragments_v3::SCHEMA_V11 && page["schema"] != fragments_v3::SCHEMA_V12 {
+    if page["schema"] != fragments_v3::SCHEMA_V11
+        && page["schema"] != fragments_v3::SCHEMA_V12
+        && page["schema"] != fragments_v3::SCHEMA_V13
+    {
         return compose_values(before, &policy, &page);
     }
     if let Some((authenticated_before, expanded)) = cache.get() {
@@ -607,7 +614,9 @@ fn compose_with_expansion_cache(
             compose_values(before, &policy, &page)
         };
     }
-    let expanded = if page["schema"] == fragments_v3::SCHEMA_V12 {
+    let expanded = if page["schema"] == fragments_v3::SCHEMA_V13 {
+        fragments_v3::expand_v13(&before, &policy, &page)?
+    } else if page["schema"] == fragments_v3::SCHEMA_V12 {
         fragments_v3::expand_v12(&before, &policy, &page)?
     } else {
         fragments_v3::expand_v11(&before, &policy, &page)?
@@ -1189,7 +1198,9 @@ mod tests {
         assert_eq!(after, before);
         let (policy, page) = load().unwrap();
         // Decode only the new wire envelope before the unchanged full predecessor checks.
-        let page = if page["schema"] == fragments_v3::SCHEMA_V12 {
+        let page = if page["schema"] == fragments_v3::SCHEMA_V13 {
+            fragments_v3::expand_v13(&before, &policy, &page).unwrap()
+        } else if page["schema"] == fragments_v3::SCHEMA_V12 {
             fragments_v3::expand_v12(&before, &policy, &page).unwrap()
         } else if page["schema"] == fragments_v3::SCHEMA_V11 {
             fragments_v3::expand_v11(&before, &policy, &page).unwrap()

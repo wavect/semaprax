@@ -256,7 +256,10 @@ def compact_v11_names(ov, page, codec='v11'):
     names = list(selected)
     indices = {name: index for index, name in enumerate(names)}
     encoded = ov['v11_names_slots'](page, lambda name: indices.get(name, name))
-    if codec == 'v12':
+    if codec == 'v13':
+        result = ov['encode_v13_names'](encoded, names)
+        inverse = ov['expand_v13_packed'](result)
+    elif codec == 'v12':
         result = ov['encode_v12_names'](encoded, names)
         inverse = ov['expand_v12_packed'](result)
     else:
@@ -277,7 +280,7 @@ def refresh_overlay(repo, label, admit=()):
         'overlay_page.py POLICY pin is already stale; fix it before refreshing'
     policy, wire = ov['parse'](policy_raw), ov['parse'](page_raw)
     assert policy['page']['length'] == len(page_raw) and policy['page']['sha256'] == sha(page_raw)
-    assert wire['schema'] in (ov['V11_SCHEMA'], ov['V12_SCHEMA']), 'known packed wire'
+    assert wire['schema'] in (ov['V11_SCHEMA'], ov['V12_SCHEMA'], ov['V13_SCHEMA']), 'known packed wire'
     wire_schema = wire['schema']
     composed = ov['compose_values'](before, policy, wire)
     old_rows = before['rows']
@@ -311,10 +314,10 @@ def refresh_overlay(repo, label, admit=()):
         cur = row['current']
         if len(data) != cur['length'] or sha(data) != cur['sha256']:
             drift.append((row['source'], data, cur))
-    if not drift and not admit and wire_schema == ov['V12_SCHEMA']:
+    if not drift and not admit and wire_schema == ov['V13_SCHEMA']:
         return []
-    if wire_schema == ov['V12_SCHEMA']:
-        unpacked = ov['expand_v12_packed'](wire)
+    if wire_schema in (ov['V12_SCHEMA'], ov['V13_SCHEMA']):
+        unpacked = ov['expand_v13_packed'](wire) if wire_schema == ov['V13_SCHEMA'] else ov['expand_v12_packed'](wire)
         wire['page'] = ov['v11_names_slots'](unpacked, name_slot)
     inner = wire['page']
     # Admit an existing compiled file whose current bytes no MAIN_E177 row
@@ -368,7 +371,7 @@ def refresh_overlay(repo, label, admit=()):
     # and enforces the unchanged page cap on the resulting wire.
     expanded = ov['v11_names_slots'](
         wire['page'], lambda value: names[value] if type(value) is int else value)
-    wire = compact_v11_names(ov, expanded, codec='v12')
+    wire = compact_v11_names(ov, expanded, codec='v13')
     page_bytes = ov['canonical'](wire)
     assert len(page_bytes) <= ov['PAGE_CAP'], 'overlay page exceeds its one-page cap'
     policy['page'] = dict(path=PAGE, length=len(page_bytes), sha256=sha(page_bytes))
@@ -381,16 +384,14 @@ def refresh_overlay(repo, label, admit=()):
         if path.is_file():
             data = path.read_bytes()
             assert [len(data), sha(data)] == [row['current']['length'], row['current']['sha256']], row['source']
-    repo.write(PAGE, page_bytes)
-    repo.write(POLICY, policy_bytes)
 
     # Policy pins and replacement lists mirrored in Python and Rust.
     py = repo.raw(OVERLAY_PY).decode()
-    py = re.sub(r"^POLICY_LENGTH = \d+$", f'POLICY_LENGTH = {len(policy_bytes)}', py, count=1, flags=re.M)
-    py = re.sub(r"^POLICY_SHA256 = '[0-9a-f]{64}'$", f"POLICY_SHA256 = '{sha(policy_bytes)}'", py, count=1, flags=re.M)
-    py = re.sub(r"^REPLACEMENTS = \(.*\)$", lambda _: 'REPLACEMENTS = ' + repr(tuple(policy['replacements'])), py, count=1, flags=re.M)
+    py = re.sub(r"^POLICY_LENGTH\s*=\s*\d+$", f'POLICY_LENGTH={len(policy_bytes)}', py, count=1, flags=re.M)
+    py = re.sub(r"^POLICY_SHA256\s*=\s*'[0-9a-f]{64}'$", f"POLICY_SHA256='{sha(policy_bytes)}'", py, count=1, flags=re.M)
+    py = re.sub(r"^REPLACEMENTS\s*=\s*\(.*\)$", lambda _: 'REPLACEMENTS=(' + ','.join(repr(s) for s in policy['replacements']) + ',)', py, count=1, flags=re.M)
     additions = [b['source'] for b in policy['additions']]
-    py = re.sub(r"^ADDITIONS = \(.*\)$", lambda _: 'ADDITIONS = ' + repr(tuple(additions)), py, count=1, flags=re.M)
+    py = re.sub(r"^ADDITIONS\s*=\s*\(.*\)$", lambda _: 'ADDITIONS=(' + ','.join(repr(s) for s in additions) + ',)', py, count=1, flags=re.M)
     rs = repo.raw(OVERLAY_RS).decode()
     rs = re.sub(r'^const POLICY_LENGTH: usize = \d+;', f'const POLICY_LENGTH: usize = {len(policy_bytes)};', rs, count=1, flags=re.M)
     rs = re.sub(r'^const POLICY_SHA256: &str = "[0-9a-f]{64}";', f'const POLICY_SHA256: &str = "{sha(policy_bytes)}";', rs, count=1, flags=re.M)
@@ -402,6 +403,9 @@ def refresh_overlay(repo, label, admit=()):
                 rs, count=1, flags=re.M)
     for text in (py, rs):
         assert str(len(policy_bytes)) in text and sha(policy_bytes) in text
+    assert len(py.encode()) <= 65536, "unchanged Python decoder source cap"
+    repo.write(PAGE, page_bytes)
+    repo.write(POLICY, policy_bytes)
     old_py = repo.raw(OVERLAY_PY)
     repo.write(OVERLAY_PY, py)
     repo.write(OVERLAY_RS, rs)

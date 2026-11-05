@@ -595,7 +595,6 @@ mod v11_tests {
 // V12_PIN_DIGESTS_BEGIN: all preceding V10/V11 bytes remain unchanged.
 pub(in super::super) const SCHEMA_V12: &str = "semaprax.finite-source-overlay-page.v12";
 fn expand_v12_packed(envelope: &Value) -> Result<Value, &'static str> {
-    use std::cell::{Cell, RefCell};
     if !super::super::keys(envelope, &["schema", "names", "digests", "page"])
         || envelope["schema"] != SCHEMA_V12
     {
@@ -603,6 +602,15 @@ fn expand_v12_packed(envelope: &Value) -> Result<Value, &'static str> {
     }
     if super::super::canonical(envelope).len() > super::super::PAGE_CAP {
         return Err("v12 wire cap");
+    }
+    expand_v12_contents(envelope)
+}
+fn expand_v12_contents(envelope: &Value) -> Result<Value, &'static str> {
+    use std::cell::{Cell, RefCell};
+    if !super::super::keys(envelope, &["schema", "names", "digests", "page"])
+        || envelope["schema"] != SCHEMA_V12
+    {
+        return Err("v12 envelope");
     }
     let digests = envelope["digests"].as_array().ok_or("v12 digests")?;
     let mut prior = None;
@@ -829,4 +837,19 @@ mod v12_tests {
             "75e5c0a5937f29211899bf354554d44f9e91684a987eb123a4927bfea9f46f01"
         );
     }
+}
+
+#[path = "main_e177_overlay_digest_text_v13.rs"]
+mod digest_text_v13;
+pub(in super::super) const SCHEMA_V13: &str = "semaprax.finite-source-overlay-page.v13";
+pub(in super::super) fn expand_v13(
+    before: &Value,
+    policy: &Value,
+    envelope: &Value,
+) -> Result<Value, &'static str> {
+    expand_v10(
+        before,
+        policy,
+        &expand_v12_contents(&digest_text_v13::unpack(envelope)?)?,
+    )
 }

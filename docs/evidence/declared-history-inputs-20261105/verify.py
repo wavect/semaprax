@@ -9,7 +9,7 @@ sha=lambda b:hashlib.sha256(b).hexdigest()
 origins={
  'docs/evidence/declared-history-inputs-20261105/reviewed-stage-requests.json':'f50ea5ef2733f46fedeae73cba33a915d1e5f03c61ebdcd137d2ce312318338e',
  'docs/evidence/selected-child-refusal-781/exact-source-inverses.json':'2ff3e371c8bfde876ede4f5e7445a26067858e4a0d84610cca94d5b3ccc1240e',
- 'docs/evidence/declared-history-inputs-20261105/original-fixture-requests.json':'c569fab75339f1fceb28dae44ecf74dde189043b9cb24a7e7cc1fb84513d2419',
+ 'docs/evidence/declared-history-inputs-20261105/original-fixture-requests.json':'a42b8940cafe8c79feda172e26c9aabbce396187d6496b477264ced8601e7a73',
  'docs/evidence/main09013-source-namespaces-v1/input-domains.json':'5df894bf662953e70d1014af93aae17ee401ca6f7c771ae614ca30446345516d',
  'docs/evidence/main21-exit-region-integration-20261017/input-domains.json':'44687cd637b9ea867c84f6afccea40259a24b48231da21a2e76ed5ac4e9e740b',
  'docs/evidence/referenced-edge-ownership-proof/exact-source-inverses.json':'37ad317fbf75310b1f4faa58b63ec081da84a3d361e3731fd6c3a53d8de9672a',
@@ -67,7 +67,7 @@ for name,digest in origins.items():
     body=after.encode();declared.add((source,len(body),sha(body)))
    pending.extend(row.values())
 seen=set();expected_slots={};hashes=[];count=0
-parts=sorted(HERE.glob('part-*.json'))
+parts=sorted(HERE.glob('part-*.json'),key=lambda p:int(p.stem.split('-')[-1]))
 for part,p in enumerate(parts):
  assert p.name==f'part-{part}.json' and not p.is_symlink()
  raw=p.read_bytes();assert len(raw)<=2097152;hashes.append(sha(raw))
@@ -94,5 +94,5 @@ code=(ROOT/'src/source_reflows/declared_history_inputs.rs').read_text()
 assert Counter(re.findall(r'"([a-f0-9]{64})"',code))==Counter(hashes)
 actual={(source,digest):(int(part),int(index)) for source,digest,part,index in re.findall(r'\(\s*"([^"]+)",\s*"([a-f0-9]{64})",?\s*\)\s*=>\s*Some\(\(\s*(\d+),\s*(\d+)\s*\)\)',code)}
 assert actual==expected_slots
-assert count==275 and len(parts)==10
+assert count==276 and len(parts)==11
 print('PASS:',count,'closed declared tuples, complete physical/current archives, exact full inverses and independent predecessor archives')

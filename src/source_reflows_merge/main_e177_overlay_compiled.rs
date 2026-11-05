@@ -548,6 +548,10 @@ mod tests {
         restore_whole_before_previous(&restore_previous_writer(root), child)
     }
     fn restore_previous_writer(root: &str) -> String {
+        let acquired = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+            "src/source_reflows_merge/main_e177_overlay_v2.rs", "03c8a2b52bb0567ae7e7a8ce1e8d2262ee4595af614fa0a9352501cc33cf5488", root,
+        );
+        let root = acquired.as_deref().unwrap_or(root);
         // Cover every new serializer and regression byte before every original inverse.
         assert_eq!(root.matches(CURRENT_CANONICAL_WRITER).count(), 1);
         assert_eq!(root.matches(CURRENT_CANONICAL_WRITER_TESTS).count(), 1);

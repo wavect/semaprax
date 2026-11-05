@@ -1538,6 +1538,18 @@
       "owner_sha256": "2e41e2e6190bb2cefb36594022f88d3f1cde09a0eb51054e32d5f70a0d45120b",
       "committed_head": "4a6eb7a20eb117fda38211fbb128e3f742995262",
       "owning_test": "Complete source checkpoint before Clippy custody repair a5c804e59"
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "view_len": 86637,
+      "view_sha256": "03c8a2b52bb0567ae7e7a8ce1e8d2262ee4595af614fa0a9352501cc33cf5488",
+      "archive": "e/03c8a2b52bb0567ae7e7a8ce1e8d2262ee4595af614fa0a9352501cc33cf5488",
+      "owner": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "owner_archive": "e/03c8a2b52bb0567ae7e7a8ce1e8d2262ee4595af614fa0a9352501cc33cf5488",
+      "owner_bytes": 86637,
+      "owner_sha256": "03c8a2b52bb0567ae7e7a8ce1e8d2262ee4595af614fa0a9352501cc33cf5488",
+      "committed_head": "e9693f2a39f6d75929ca3f795e7ed5237fbf6936",
+      "owning_test": "complete pre-V13 root before unchanged canonical writer and cache source inverses"
     }
   ]
 }

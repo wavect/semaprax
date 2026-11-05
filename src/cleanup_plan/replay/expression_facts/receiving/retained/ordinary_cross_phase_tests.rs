@@ -1,5 +1,6 @@
 use super::*;
 use crate::bounded_output::classifier_string::StorageParent;
+use crate::cleanup_plan::replay::expression_facts::arena::retained::Session;
 use crate::hir::{
     DeclarationId, DeclarationIndex, FunctionInstanceId, ResolvedFunctionInstance,
     ResolvedFunctionTemplate, ResolvedInterface, ResolvedTypeDeclaration,
@@ -391,29 +392,32 @@ fn block_run(
         let mut budget = ReplayBudget::new();
         budget.remaining = work;
         // The production caller establishes this allowance on the same payer.
-        let result =
-            match reserve_program_skeleton_work(context, std::iter::once(function), &mut budget) {
-                Err(error) => Err(error),
-                Ok(_) => {
-                    if current {
-                        validate_structure_with_budget_storage(
+        let result = match reserve_program_skeleton_work(
+            context,
+            std::iter::once(function),
+            &mut budget,
+        ) {
+            Err(error) => Err(error),
+            Ok(_) => {
+                if current {
+                    crate::cleanup_plan::replay::expression_facts::receiving::retained::receiving_generation::validate_structure_with_budget_storage(
                             context,
                             function,
                             &mut budget,
                             None,
                             None,
                         )
-                    } else {
-                        super::super::ordinary_block_before::validate_structure_with_budget_storage(
-                            context,
-                            function,
-                            &mut budget,
-                            None,
-                            None,
-                        )
-                    }
+                } else {
+                    super::super::ordinary_block_before::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
                 }
-            };
+            }
+        };
         (result, work - budget.remaining)
     });
     (result, refused, paid, work)
@@ -726,7 +730,11 @@ impl crate::cleanup::ReplayContext for CallbackContext<'_> {
                     assert_eq!(used, 0, "foreign invocation buys no authority");
                 }
                 4 => return None,
-                5 => panic!("unwind inside actual transition callback"),
+                // Bypass libtest's retained output buffer while exercising the same
+                // real unwind and compiler-owner Drop path inside the observer.
+                5 => {
+                    std::panic::resume_unwind(Box::new("unwind inside actual transition callback"))
+                }
                 _ => unreachable!(),
             }
         }
@@ -830,6 +838,12 @@ fn transition_scratch_callback_unwind_success_and_refusal_drop_all_backing() {
     drop(runtime);
     let program = fixture(8, true);
     let nested = fixture(0, false);
+    // Warm the actual callback panic site before measuring compiler-owned backing.
+    let warm = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        callback_run(&program, &nested, true, 5, None)
+    }));
+    assert!(warm.is_err());
+    drop(warm);
     for mode in [0, 2, 3, 5] {
         let (_, metrics) = measure(|| {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -910,4 +924,78 @@ fn transition_without_skeleton_preflight_keeps_complete_root_refusal_and_drop() 
             "current={current}: {metrics:?}"
         );
     }
+}
+
+#[test]
+fn immediate_receiving_generation_keeps_complete_original_function_and_raw_owners() {
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/6f16988ae67fdb1577e139b890a6ec2f1a469b2460faf35e2038ded0f50153bd"
+    ));
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(sha2::Sha256::digest(original.as_bytes()))
+        ),
+        "6f16988ae67fdb1577e139b890a6ec2f1a469b2460faf35e2038ded0f50153bd"
+    );
+    assert_eq!(
+        std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("e/6f16988ae67fdb1577e139b890a6ec2f1a469b2460faf35e2038ded0f50153bd")
+        )
+        .unwrap(),
+        original
+    );
+    let suffix = "#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"independent historical receivers retain their own before and test modules\"\n)]\n#[path = \"ordinary_cross_phase_before.rs\"]\nmod before;\n#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"independent historical receivers retain their own before and test modules\"\n)]\n#[path = \"ordinary_cross_phase_tests.rs\"]\nmod tests;\n";
+    let expected = original.strip_suffix(suffix).unwrap();
+    let source = include_str!("receiving_generation.rs");
+    assert_eq!(
+        source, expected,
+        "entire original production receiver, only test-module registration removed"
+    );
+    assert_eq!(
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_generation.rs"
+        ))
+        .unwrap(),
+        source
+    );
+}
+
+#[test]
+fn immediate_transport_generation_keeps_complete_original_function_and_raw_owners() {
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"
+    ));
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(sha2::Sha256::digest(original.as_bytes()))
+        ),
+        "fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"
+    );
+    assert_eq!(
+        std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec")
+        )
+        .unwrap(),
+        original
+    );
+    let suffix = "#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"independent historical receivers retain their own before and test modules\"\n)]\n#[path = \"ordinary_cross_phase_before.rs\"]\nmod before;\n#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n    reason = \"independent historical receivers retain their own before and test modules\"\n)]\n#[path = \"ordinary_cross_phase_tests.rs\"]\nmod tests;\n";
+    let expected = original.strip_suffix(suffix).unwrap();
+    let source = include_str!("receiving_transport_generation.rs");
+    assert_eq!(
+        source, expected,
+        "entire original production receiver, only test-module registration removed"
+    );
+    assert_eq!(
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_transport_generation.rs"
+        ))
+        .unwrap(),
+        source
+    );
 }

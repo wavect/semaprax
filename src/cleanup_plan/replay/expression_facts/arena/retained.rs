@@ -30,6 +30,21 @@ pub(in crate::cleanup_plan::replay::expression_facts) struct Session<'arena, 'hi
     control: Control,
     compared: Compared<'arena>,
 }
+/// The paid prefix and its actual mutable payer loan have one owner.
+pub(in crate::cleanup_plan::replay::expression_facts) struct PrefixSession<'arena, 'hir, 'budget> {
+    arena: &'arena Arena<'hir>,
+    function: &'arena ResolvedFunction,
+    pub(in crate::cleanup_plan::replay::expression_facts) budget: &'budget mut ReplayBudget,
+    control: Control,
+    compared: Compared<'arena>,
+    prefix: usize,
+}
+/// An immutable comparison input; the session owns and funds its own prefix.
+pub(in crate::cleanup_plan::replay::expression_facts) struct PrefixView<'arena, 'hir> {
+    arena: &'arena Arena<'hir>,
+    function: &'arena ResolvedFunction,
+    bytes: usize,
+}
 // This is the unchanged compound lookup ABI, including BOTH old Result terms.
 const RESULTS: usize =
     2 * size_of::<Result<Option<&'static Option<CallFact<'static>>>, Diagnostic>>();
@@ -391,53 +406,19 @@ mod into;
 #[cfg(test)]
 mod into_tests;
 
-// The caller pays the original acquisition plus one arena-root field read.
-// The arena loan makes every retained right-spine index immutable and valid.
-impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
-    pub(in crate::cleanup_plan::replay::expression_facts) fn new_prefixed(
-        arena: &'arena Arena<'hir>,
-        function: &'arena ResolvedFunction,
-        budget: &'budget mut ReplayBudget,
-    ) -> Self {
-        Self {
-            arena,
-            function,
-            budget,
-            control: Control {
-                lower: 0,
-                upper: 0,
-                at: NIL,
-                last: arena.root,
-            },
-            compared: Compared {
-                bytes: Bytes {
-                    left: &[],
-                    right: &[],
-                    end: 0,
-                    common: 0,
-                },
-                order: Ordering::Equal,
-                units: 0,
-                a: 0,
-                b: 0,
-            },
-        }
-    }
-}
-
 /// A paid common-prefix certificate for one complete immutable ordered arena.
 /// Full keys and payloads remain in that arena; no query verdict is retained.
-pub(in crate::cleanup_plan::replay::expression_facts) struct PrefixWitness<'arena, 'hir> {
+pub(in crate::cleanup_plan::replay::expression_facts) struct PrefixWitness<'arena, 'hir, 'budget> {
     arena: &'arena Arena<'hir>,
     function: &'arena ResolvedFunction,
-    budget: *const ReplayBudget,
+    budget: &'budget mut ReplayBudget,
     bytes: usize,
 }
-impl<'arena, 'hir> PrefixWitness<'arena, 'hir> {
+impl<'arena, 'hir, 'budget> PrefixWitness<'arena, 'hir, 'budget> {
     pub(in crate::cleanup_plan::replay::expression_facts) fn acquire(
         arena: &'arena Arena<'hir>,
         function: &'arena ResolvedFunction,
-        budget: &mut ReplayBudget,
+        budget: &'budget mut ReplayBudget,
     ) -> Result<Self, Diagnostic> {
         let frames = 2 * size_of::<Self>()
             + 2 * size_of::<(&Arena<'_>, &ResolvedFunction, &mut ReplayBudget)>()
@@ -504,13 +485,116 @@ impl<'arena, 'hir> PrefixWitness<'arena, 'hir> {
             bytes: common,
         })
     }
+    /// Move the exact certificate payer into the exact querying owner.
+    pub(in crate::cleanup_plan::replay::expression_facts) fn into_session(
+        self,
+    ) -> Result<
+        (
+            PrefixSession<'arena, 'hir, 'budget>,
+            PrefixView<'arena, 'hir>,
+        ),
+        Diagnostic,
+    > {
+        let frames = 2 * size_of::<PrefixView<'_, '_>>()
+            + 2 * size_of::<Result<(PrefixSession<'_, '_, '_>, PrefixView<'_, '_>), Diagnostic>>()
+            + 2 * size_of::<(PrefixSession<'_, '_, '_>, PrefixView<'_, '_>)>()
+            + 4 * size_of::<Result<(), Diagnostic>>()
+            + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+            + 2 * size_of::<usize>();
+        self.budget.reserve_bytes(
+            self.function,
+            frames,
+            "expression-fact prefix session transfer",
+        )?;
+        self.budget
+            .charge(self.function, 4, "expression-fact prefix session fields")?;
+        let view = PrefixView {
+            arena: self.arena,
+            function: self.function,
+            bytes: self.bytes,
+        };
+        let session = PrefixSession {
+            arena: self.arena,
+            function: self.function,
+            budget: self.budget,
+            control: Control {
+                lower: 0,
+                upper: 0,
+                at: NIL,
+                last: self.arena.root,
+            },
+            compared: Compared {
+                bytes: Bytes {
+                    left: &[],
+                    right: &[],
+                    end: 0,
+                    common: 0,
+                },
+                order: Ordering::Equal,
+                units: 0,
+                a: 0,
+                b: 0,
+            },
+            prefix: self.bytes,
+        };
+        Ok((session, view))
+    }
 }
-impl Session<'_, '_, '_> {
+impl<'arena, 'hir, 'budget> PrefixSession<'arena, 'hir, 'budget> {
+    pub(in crate::cleanup_plan::replay::expression_facts) const OLD_SCRATCH: usize =
+        Session::OLD_SCRATCH;
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn acquisition_bytes() -> usize {
+        // Full initialized/receiving owner, nested field initializers,
+        // constructor args, acquisition payment/work actual/formal frames and
+        // Results, and two scalar acquisition receivers. Drop has only
+        // trivial references/scalars.
+        // The ordinary caller separately pays its continuation and selection.
+        2 * size_of::<Self>()
+            + 2 * size_of::<Control>()
+            + 2 * size_of::<Compared<'_>>()
+            + 2 * size_of::<Bytes<'_>>()
+            + 2 * size_of::<PrefixWitness<'_, '_, '_>>()
+            + 4 * size_of::<Result<(), Diagnostic>>()
+            + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+            + 2 * size_of::<usize>()
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn into_local_bytes() -> usize {
+        Session::into_local_bytes()
+    }
+    pub(in crate::cleanup_plan::replay::expression_facts) const fn into_edge_local_bytes() -> usize
+    {
+        Session::into_edge_local_bytes()
+    }
+    #[cfg(test)]
+    pub(in crate::cleanup_plan::replay::expression_facts) fn fact(
+        &mut self,
+        query: &'arena ExpressionId,
+    ) -> Result<Option<&'arena Option<CallFact<'hir>>>, Diagnostic> {
+        self.budget.reserve_bytes(
+            self.function,
+            Session::acquisition_bytes()
+                + 2 * size_of::<(&mut Self, &ExpressionId)>()
+                + 2 * size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>(),
+            "retained independent legacy interleaving frame",
+        )?;
+        self.budget.charge(
+            self.function,
+            12,
+            "retained legacy interleaving initialization",
+        )?;
+        let mut legacy = Session::new_prepaid(self.arena, self.function, &mut *self.budget);
+        let result = legacy.fact(query);
+        self.control = legacy.control;
+        self.compared = legacy.compared;
+        result
+    }
+}
+impl PrefixSession<'_, '_, '_> {
     pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_query_bytes() -> usize {
         2 * size_of::<(
             &mut Self,
             &ExpressionId,
-            &PrefixWitness<'_, '_>,
+            &PrefixView<'_, '_>,
             &mut Option<&Option<CallFact<'_>>>,
             &mut crate::cleanup_plan::replay::ordinary_receiving::Failure<'_>,
             bool,
@@ -523,14 +607,14 @@ impl Session<'_, '_, '_> {
     const fn prefix_query_bytes() -> usize {
         2 * size_of::<(*const Arena<'_>, *const Arena<'_>)>()
             + 2 * size_of::<(*const ResolvedFunction, *const ResolvedFunction)>()
-            + 2 * size_of::<(*const ReplayBudget, *const ReplayBudget)>()
+            + 2 * size_of::<(usize, usize)>()
             + 8 * size_of::<bool>()
             + 2 * size_of::<(usize, usize)>()
             + 2 * size_of::<usize>()
     }
 }
 
-impl Session<'_, '_, '_> {
+impl PrefixSession<'_, '_, '_> {
     pub(in crate::cleanup_plan::replay::expression_facts) const fn prefixed_acquisition_bytes(
     ) -> usize {
         Self::OLD_SCRATCH

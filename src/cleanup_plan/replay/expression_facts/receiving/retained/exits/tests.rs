@@ -157,6 +157,10 @@ fn original(program: &ResolvedProgram, function: &ResolvedFunction) -> Result<()
 // The removed operation is executed independently after the same actual status
 // producer/bootstrap, while its retained token remains live through full Drop.
 fn removed_directory_cost(function: &ResolvedFunction) -> (usize, usize, usize) {
+    directory_cost(function, false)
+}
+
+fn directory_cost(function: &ResolvedFunction, earlier: bool) -> (usize, usize, usize) {
     let mut preparation = ReplayBudget::unobserved();
     let facts = Facts::Arena(
         arena::build::<errors::Legacy>(
@@ -170,13 +174,26 @@ fn removed_directory_cost(function: &ResolvedFunction) -> (usize, usize, usize) 
         measure(|| {
             let mut budget = ReplayBudget::new();
             let held = validate_status_sources_retained(function, &facts, &mut budget).unwrap();
-            let work = budget.remaining;
-            let bytes = crate::bounded_output::active_remaining().unwrap();
-            let before = crate::test_allocation_observer::current_metrics();
+            let mut work = budget.remaining;
+            let mut bytes = crate::bounded_output::active_remaining().unwrap();
+            let mut before = crate::test_allocation_observer::current_metrics();
             let mut directory =
                 Directory::new(function, &mut budget, "cleanup exit status directory").unwrap();
+            if earlier {
+                // The original constructor had no optional lookup controls.
+                // Keep the actual new constructor outside this old invoice.
+                work = budget.remaining;
+                bytes = crate::bounded_output::active_remaining().unwrap();
+                before = crate::test_allocation_observer::current_metrics();
+            }
             for source in &function.cleanup_plan.status_sources {
-                directory.insert(function, &source.id, &mut budget).unwrap();
+                if earlier {
+                    directory
+                        .insert_before_height_stable(function, &source.id, &mut budget)
+                        .unwrap();
+                } else {
+                    directory.insert(function, &source.id, &mut budget).unwrap();
+                }
             }
             let after = crate::test_allocation_observer::current_metrics();
             let cost = (
@@ -196,6 +213,46 @@ fn removed_directory_cost(function: &ResolvedFunction) -> (usize, usize, usize) 
     cost
 }
 
+// Later narrow diagnostic transport is independent of status-directory reuse.
+// Execute both complete matchers on every reached non-latch exit, and verify
+// their full result/work plus the actual typed return/receiving byte difference.
+fn removed_matching_transport(function: &ResolvedFunction) -> usize {
+    use crate::cleanup_plan::replay::physical_budget::ByteFailure;
+    let mut removed = 0;
+    for exit in &function.cleanup_plan.exits {
+        if matches!(exit.continuation, ExitContinuation::LoopLatch { .. }) {
+            continue;
+        }
+        let run = |compact| {
+            let ((result, work), refused, bytes) =
+                crate::bounded_output::with_limit_usage(1 << 26, || {
+                    let mut budget = ReplayBudget::new();
+                    let result = if compact {
+                        helpers::exit_regions_match_compact(function, exit, &mut budget)
+                            .map_err(ByteFailure::into_diagnostic)
+                    } else {
+                        helpers::exit_regions_match(function, exit, &mut budget)
+                    };
+                    (result, MAX_REPLAY_WORK_UNITS - budget.remaining)
+                });
+            assert!(!refused);
+            (result, work, bytes)
+        };
+        let old = run(false);
+        let current = run(true);
+        assert_eq!(old.0, current.0);
+        assert_eq!(old.1, current.1);
+        let delta = old.2.checked_sub(current.2).unwrap();
+        assert_eq!(
+            delta,
+            2 * (std::mem::size_of::<Result<bool, Diagnostic>>()
+                - std::mem::size_of::<Result<bool, ByteFailure>>())
+        );
+        removed += delta;
+    }
+    removed
+}
+
 fn exact_accounting(
     function: &ResolvedFunction,
     old: &(bool, usize, usize, bool, Option<ReservationRefusal>, usize),
@@ -205,6 +262,14 @@ fn exact_accounting(
         function.id, function.cleanup_plan.status_sources.len());
     assert!(old.0 && new.0 && !old.3 && !new.3);
     assert!(old.4.is_none() && new.4.is_none());
+    // Normalize only the independently executed later matcher transport. The
+    // original directory invoice, work, allocations and literal ABI pins below
+    // remain exact; all actual current fees are still observed in `observe`.
+    let mut new = *new;
+    new.2 = new
+        .2
+        .checked_add(removed_matching_transport(function))
+        .unwrap();
     let removed = removed_directory_cost(function);
     eprintln!(
         "exit-status-removed function={} cost={removed:?}",
@@ -219,31 +284,48 @@ fn exact_accounting(
         new.2.checked_add(removed.1).unwrap()
     );
     assert_eq!(old.5, new.5.checked_add(removed.2).unwrap());
-    match function.cleanup_plan.status_sources.len() {
-        0 => {
-            assert_eq!(removed, (0, 0, 0));
-            assert_eq!(new.1, old.1 + BORROW_UNITS);
-            assert_eq!(new.2, old.2 + BORROW_BYTES);
-            assert_eq!(new.5, old.5);
-        }
-        1 => {
-            // The actual old first insertion performs relocation1 + VISIT3;
-            // it has no key comparison, rotation or parent rebalance.
-            assert_eq!(removed.0, 4);
-            assert_eq!(BORROW_UNITS, 7);
-            assert_eq!(new.1, old.1 + 3);
-            // Pin the actual a93 64-bit receipt, not a portable Node layout
-            // lemma. All hosts retain the independent additive equations above.
-            #[cfg(target_pointer_width = "64")]
-            {
-                assert_eq!(BORROW_BYTES, 49);
-                assert_eq!(removed.1, 48);
-                assert_eq!(removed.2, 48);
-                assert_eq!(new.2, old.2 + 1);
-                assert_eq!(old.5, new.5 + 48);
+    // Preserve the original a93 zero/singleton pins by executing its retained
+    // insertion method independently. The full current additive equations above
+    // still include every later constructor and height-stability control.
+    let count = function.cleanup_plan.status_sources.len();
+    if count <= 1 {
+        let earlier = directory_cost(function, true);
+        let added = (
+            removed.0 - earlier.0,
+            removed.1 - earlier.1,
+            removed.2 - earlier.2,
+        );
+        assert_eq!(added.2, 0, "later controls allocate no directory backing");
+        let mut old = *old;
+        old.1 -= added.0;
+        old.2 -= added.1;
+        let removed = earlier;
+        match count {
+            0 => {
+                assert_eq!(removed, (0, 0, 0));
+                assert_eq!(new.1, old.1 + BORROW_UNITS);
+                assert_eq!(new.2, old.2 + BORROW_BYTES);
+                assert_eq!(new.5, old.5);
             }
+            1 => {
+                // The actual old first insertion performs relocation1 + VISIT3;
+                // it has no key comparison, rotation or parent rebalance.
+                assert_eq!(removed.0, 4);
+                assert_eq!(BORROW_UNITS, 7);
+                assert_eq!(new.1, old.1 + 3);
+                // Pin the actual a93 64-bit receipt, not a portable Node layout
+                // lemma. All hosts retain the independent additive equations above.
+                #[cfg(target_pointer_width = "64")]
+                {
+                    assert_eq!(BORROW_BYTES, 49);
+                    assert_eq!(removed.1, 48);
+                    assert_eq!(removed.2, 48);
+                    assert_eq!(new.2, old.2 + 1);
+                    assert_eq!(old.5, new.5 + 48);
+                }
+            }
+            _ => unreachable!(),
         }
-        _ => {}
     }
 }
 

@@ -8,10 +8,12 @@ fn fixture() -> ResolvedProgram {
     crate::hir::canonical_loan_storage::tests::fixture()
 }
 fn saved_validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
-    crate::hir::byte_partition::refuse_default(program)?;
-    crate::hir::agent_validation::validate(program)?;
-    crate::hir::inspection::validate_with_static_text(program, None)?;
-    crate::loan_plan::validate_program(program)
+    crate::cleanup_plan::with_coupled(|| {
+        crate::hir::byte_partition::refuse_default(program)?;
+        crate::hir::agent_validation::validate(program)?;
+        crate::hir::inspection::validate_with_static_text(program, None)?;
+        crate::loan_plan::validate_program(program)
+    })
 }
 fn same(program: &ResolvedProgram) {
     assert_eq!(crate::hir::validate(program), saved_validate(program));

@@ -150,6 +150,9 @@ authenticates the exact function, replay budget, invocation and immutable key
 backing before reading the index, then decides membership by full-key ordering.
 Publication seals mutation; rejected owners stay rejected. Other payers retain
 the original lookup. The index grants no verification or source authority.
+The arena prefix certificate holds the actual mutable replay-budget loan and
+consumes it into its querying session. Its immutable prefix view selects no
+payer; each session funds and uses its own certified prefix.
 `hir/canonical_loan_storage/caller/shared` owns immutable lookup publication
 inside the existing captured preparation owner. Active compatibility validators
 and nested closures share exact-program storage; unobserved compatibility owns

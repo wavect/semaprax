@@ -429,17 +429,10 @@ fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
         let (actual, new_work, new_receipt) = run(false);
         same(&actual, &expected);
         assert_eq!(new_work, old_work);
-        // The oracle bills the same calls and work; its byte charge differs
-        // only by the compact selection/count control transport the current
-        // ordinary route uses (f7d35b4d7, 2d4d15679).
-        let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
-            - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
-            + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
-                - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
-                ));
-        let mut adjusted = new_receipt;
-        adjusted.charged += compact;
-        assert_eq!(adjusted, old_receipt);
+        // Both oracle arms deliberately execute the complete original receiver.
+        // Compact transport belongs to the ordinary route, tested separately above.
+        // Compare every original receipt field without a synthetic byte adjustment.
+        assert_eq!(new_receipt, old_receipt);
         drop((actual, expected));
     });
     assert!(!refused);

@@ -302,7 +302,7 @@ fn immutable_maximum_cursor_keeps_full_old_query_results_and_legacy_interleaving
                 budget
                     .reserve_bytes(
                         function,
-                        Session::OLD_SCRATCH + Session::acquisition_bytes(),
+                        PrefixSession::OLD_SCRATCH + PrefixSession::acquisition_bytes(),
                         "retained maximum cursor acquisition",
                     )
                     .unwrap();
@@ -310,13 +310,14 @@ fn immutable_maximum_cursor_keeps_full_old_query_results_and_legacy_interleaving
                     .charge(function, 13, "retained maximum cursor initialization")
                     .unwrap();
                 let witness = PrefixWitness::acquire(&arena, function, &mut budget).unwrap();
-                let mut current = Session::new_prefixed(&arena, function, &mut budget);
+                let (mut current, witness) = witness.into_session().unwrap();
                 let (mut old_total, mut total) = (0, 0);
                 for (ordinal, query) in queries.iter().enumerate() {
                     let header = if edge {
-                        Session::prefixed_edge_query_bytes() + Session::into_edge_local_bytes()
+                        PrefixSession::prefixed_edge_query_bytes()
+                            + Session::into_edge_local_bytes()
                     } else {
-                        Session::prefixed_query_bytes()
+                        PrefixSession::prefixed_query_bytes()
                     };
                     let original_header = if edge {
                         Session::into_edge_query_bytes() + Session::into_edge_local_bytes()
@@ -415,24 +416,38 @@ fn prefix_witness_refuses_a_foreign_arena_before_any_query_and_keeps_the_full_er
         function,
         budget: &budget,
     };
-    let correct = PrefixWitness::acquire(&first, function, &mut budget).unwrap();
-    let foreign = PrefixWitness::acquire(&second, function, &mut budget).unwrap();
     budget
         .reserve_bytes(
             function,
-            Session::OLD_SCRATCH + Session::acquisition_bytes(),
+            PrefixSession::OLD_SCRATCH + PrefixSession::acquisition_bytes(),
             "retained maximum cursor acquisition",
         )
         .unwrap();
     budget
         .charge(function, 13, "retained maximum cursor initialization")
         .unwrap();
-    let mut session = Session::new_prefixed(&first, function, &mut budget);
+    let foreign = {
+        let witness = PrefixWitness::acquire(&second, function, &mut budget).unwrap();
+        let (_session, view) = witness.into_session().unwrap();
+        view
+    };
+    budget
+        .reserve_bytes(
+            function,
+            PrefixSession::OLD_SCRATCH + PrefixSession::acquisition_bytes(),
+            "retained maximum cursor acquisition",
+        )
+        .unwrap();
+    budget
+        .charge(function, 13, "retained maximum cursor initialization")
+        .unwrap();
+    let correct = PrefixWitness::acquire(&first, function, &mut budget).unwrap();
+    let (mut session, correct) = correct.into_session().unwrap();
     assert!(reserve_into!(
         session.budget,
         function,
         slot,
-        Session::prefixed_query_bytes(),
+        PrefixSession::prefixed_query_bytes(),
         "complete prefix query arguments"
     ));
     let mut output = None;
@@ -441,4 +456,82 @@ fn prefix_witness_refuses_a_foreign_arena_before_any_query_and_keeps_the_full_er
     assert!(error.is_some());
     assert!(!session.fact_into_prefixed(&keys[1], &correct, &mut output, &mut slot));
     assert_eq!(slot.error, error);
+}
+
+#[test]
+fn prefix_session_pays_its_own_certificate_when_a_matching_other_budget_view_is_supplied() {
+    let program = program();
+    let function = &program.functions[0];
+    let keys = (0..32)
+        .map(|n| ExpressionId::from_owned(format!("whole.function.prefix.{n:03}")))
+        .collect::<Vec<_>>();
+    let arena = arena(function, &keys);
+    let mut original_budget = ReplayBudget::unobserved();
+    let expected = {
+        let mut original = acquire(&arena, function, &mut original_budget).unwrap();
+        original.fact(&keys[0]).unwrap()
+    };
+    let ((), refused, _, first) = crate::bounded_output::with_limit_usage_refusal(1 << 24, || {
+        let mut first_budget = ReplayBudget::new();
+        let mut second_budget = ReplayBudget::new();
+        second_budget
+            .reserve_bytes(
+                function,
+                PrefixSession::OLD_SCRATCH + PrefixSession::acquisition_bytes(),
+                "other prefix owner",
+            )
+            .unwrap();
+        second_budget
+            .charge(function, 13, "other prefix owner initialization")
+            .unwrap();
+        let other_view = {
+            let other = PrefixWitness::acquire(&arena, function, &mut second_budget).unwrap();
+            let (_session, view) = other.into_session().unwrap();
+            view
+        };
+        let second_remaining = second_budget.remaining;
+        let first_remaining = first_budget.remaining;
+        first_budget
+            .reserve_bytes(
+                function,
+                PrefixSession::OLD_SCRATCH + PrefixSession::acquisition_bytes(),
+                "actual prefix owner",
+            )
+            .unwrap();
+        first_budget
+            .charge(function, 13, "actual prefix owner initialization")
+            .unwrap();
+        let mut slot = Failure {
+            error: None,
+            function,
+            budget: &first_budget,
+        };
+        let owned = PrefixWitness::acquire(&arena, function, &mut first_budget).unwrap();
+        let (mut session, _own_view) = owned.into_session().unwrap();
+        assert!(
+            session.budget.remaining + 20 < first_remaining,
+            "the actual session independently funds its certificate"
+        );
+        assert!(reserve_into!(
+            session.budget,
+            function,
+            slot,
+            PrefixSession::prefixed_query_bytes(),
+            "actual prefix query arguments"
+        ));
+        let before_query = session.budget.remaining;
+        let mut output = None;
+        assert!(session.fact_into_prefixed(&keys[0], &other_view, &mut output, &mut slot));
+        assert!(slot.error.is_none());
+        assert_eq!(output.is_some(), expected.is_some());
+        if let (Some(actual), Some(expected)) = (output, expected) {
+            assert!(std::ptr::eq(actual, expected));
+        }
+        assert!(session.budget.remaining < before_query);
+        assert_eq!(
+            second_budget.remaining, second_remaining,
+            "a view cannot lend another budget"
+        );
+    });
+    assert!(!refused && first.is_none());
 }

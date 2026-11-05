@@ -1241,6 +1241,8 @@
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before_receiving.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_generation.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/receiving_transport_generation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/reference_coverage.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/status_before.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs",
@@ -3035,9 +3037,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "2826a5d569ee18e1fb288e52c230495c72ed2da361c697d1154f6a4bf462d6e3",
-      "full_raw_sha256": "77dba28c96995314360acfebac5113c36121c30f10a9a17b011180e33484d279",
-      "full_authenticated_production_sha256": "d253b4d60faa96eb0bce7f523d6f767153cdd90ddffb98de03b916761cb6bec2"
+      "full_manifest_sha256": "0c00f97c59a3a936230a5bf68e61a3fa7d98f17ab1ce975893ba28c9b37ca510",
+      "full_raw_sha256": "6308ac976c5a0e684ed52c9481e68a3341d028a1f926b3fe9aea390e3ec7bbb0",
+      "full_authenticated_production_sha256": "bc7e4c7c9287af49b7ffbcf0a661841a4ae197308ede58f94130e123d6476fd5"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4188,9 +4190,9 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "4e520d9b8b047a52351195641168cefaec01727b2f585a8ada1209ec9cc6474d",
-      "full_raw_sha256": "ed5aababc2354e4eded52ffeb1d8f5a0316e92fe2d2e143d758e91625afff39a",
-      "full_authenticated_production_sha256": "d2c8c28d6f05248d865d2c2cc7292a36907e3e4851d061151e9327cfad62f9da"
+      "full_manifest_sha256": "f99cb8082fc005b7adfe95edfee195699cdb5a7abbfbd2bff350c49176a11ba5",
+      "full_raw_sha256": "ed59ba1c54bd1f2956ce7de1dbc9f42fd94a17ce09cd0ba62b64bade09c3ac68",
+      "full_authenticated_production_sha256": "a2855baad961eaa0d746af3505b56e815947a5cd41059f7bd5a3d434086558cd"
     }
   }
 }

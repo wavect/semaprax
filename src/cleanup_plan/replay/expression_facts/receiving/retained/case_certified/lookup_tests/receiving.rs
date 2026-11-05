@@ -10,6 +10,14 @@ fn run(
     old: bool,
     limit: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
+    run_epoch(program, old, false, limit)
+}
+fn run_epoch(
+    program: &ResolvedProgram,
+    old: bool,
+    latest: bool,
+    limit: usize,
+) -> (Result<(), Diagnostic>, bool, usize) {
     crate::bounded_output::with_limit_usage(limit, || {
         let mut budget = ReplayBudget::new();
         let helpers = ordinary_renewals::index(program, &mut budget)?;
@@ -26,6 +34,10 @@ fn run(
                         Some(&mut continuations),
                     )
                 })?;
+            } else if !latest {
+                crate::cleanup_plan::replay::expression_facts::receiving::retained::receiving_transport_generation::validate_structure_with_budget_storage(
+                    program, function, &mut budget, Some(&helpers), Some(&mut continuations),
+                )?;
             } else {
                 validate_structure_with_budget_storage(
                     program,
@@ -92,7 +104,10 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
                     - Session::added_edge_query_bytes() as i128)
             + transition_queries as i128
                 * ((Session::OLD_SCRATCH
-                    + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>())
+                    + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()
+                    // The predecessor's independent arena lookup now pays its
+                    // actual narrowed inner return/receiving controls.
+                    - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING)
                     as i128
                     - (Session::into_edge_local_bytes()
                         + Session::into_edge_query_bytes()
@@ -334,4 +349,32 @@ fn receiving_transition_counts(function: &ResolvedFunction) -> (usize, usize) {
         }
     }
     (lookups, callbacks)
+}
+
+#[test]
+fn actual_current_prefix_pipeline_keeps_whole_results_exact_short_zero_and_real_queries() {
+    for rows in [0, 1, 32, 64] {
+        let program = checked_program(rows);
+        let old = run(&program, true, 64 * 1024 * 1024);
+        ordinary_receiving::take_census();
+        let current = run_epoch(&program, false, true, 64 * 1024 * 1024);
+        let census = ordinary_receiving::take_census();
+        assert_eq!(current.0, old.0);
+        assert!(current.0.is_ok() && !current.1 && !old.1 && !census.incomplete);
+        assert!(census.reached[0] > 0);
+        if rows == 64 {
+            assert!(
+                current.2 < old.2,
+                "the actual complete current caller still saves bytes"
+            );
+            assert!(census.reached[1] > 0 && census.reached[2] > 0 && census.reached[3] > 0);
+        }
+        let exact = run_epoch(&program, false, true, current.2);
+        assert_eq!(exact.0, current.0);
+        assert!(!exact.1 && exact.2 == current.2);
+        for limit in [0, current.2 - 1] {
+            let short = run_epoch(&program, false, true, limit);
+            assert!(short.0.is_err() && short.1 && short.2 <= limit);
+        }
+    }
 }

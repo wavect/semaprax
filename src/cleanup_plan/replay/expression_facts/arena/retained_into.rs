@@ -450,14 +450,16 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
         }
         true
     }
-    // This entry requires new_prefixed. Only the immutable
+}
+impl<'arena, 'hir, 'budget> PrefixSession<'arena, 'hir, 'budget> {
+    // This entry requires the consumed certificate payer loan. Only the immutable
     // right-spine cursor persists; all query, comparison and verdict state is
     // reset, and every original authentication/payment still runs. Legacy
     // queries may reset the cursor to the root; that remains a valid spine.
     pub(in crate::cleanup_plan::replay::expression_facts) fn fact_into_prefixed(
         &mut self,
         query: &'arena ExpressionId,
-        witness: &PrefixWitness<'arena, 'hir>,
+        witness: &PrefixView<'arena, 'hir>,
         output: &mut Option<&'arena Option<CallFact<'hir>>>,
         slot: &mut Failure<'_>,
     ) -> bool {
@@ -521,7 +523,7 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
         }
         if !std::ptr::eq(self.arena, witness.arena)
             || !std::ptr::eq(self.function, witness.function)
-            || !std::ptr::eq(&*budget, witness.budget)
+            || self.prefix != witness.bytes
         {
             return refuse_into!(
                 budget,
@@ -662,7 +664,7 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
                     ) {
                         return false;
                     }
-                    control.upper = control.lower.min(witness.bytes);
+                    control.upper = control.lower.min(self.prefix);
                     compare_into!(&node.key, control.upper);
                     match compared.order {
                         Ordering::Greater => return true,
@@ -707,14 +709,14 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
         }
         true
     }
-    // This entry requires new_prefixed. Only the immutable
+    // This entry requires the consumed certificate payer loan. Only the immutable
     // right-spine cursor persists; all query, comparison and verdict state is
     // reset, and every original authentication/payment still runs. Legacy
     // queries may reset the cursor to the root; that remains a valid spine.
     pub(in crate::cleanup_plan::replay::expression_facts) fn fact_edge_into_prefixed(
         &mut self,
         query: &'arena ExpressionId,
-        witness: &PrefixWitness<'arena, 'hir>,
+        witness: &PrefixView<'arena, 'hir>,
         output: &mut Option<&'arena Option<CallFact<'hir>>>,
         slot: &mut Failure<'_>,
     ) -> bool {
@@ -745,7 +747,7 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
         }
         if !std::ptr::eq(self.arena, witness.arena)
             || !std::ptr::eq(self.function, witness.function)
-            || !std::ptr::eq(&*budget, witness.budget)
+            || self.prefix != witness.bytes
         {
             return refuse_into!(
                 budget,
@@ -886,7 +888,7 @@ impl<'arena, 'hir, 'budget> Session<'arena, 'hir, 'budget> {
                     ) {
                         return false;
                     }
-                    control.upper = control.lower.min(witness.bytes);
+                    control.upper = control.lower.min(self.prefix);
                     compare_into!(&node.key, control.upper);
                     match compared.order {
                         Ordering::Greater => return true,

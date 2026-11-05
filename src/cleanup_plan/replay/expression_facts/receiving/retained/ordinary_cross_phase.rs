@@ -3,10 +3,11 @@
 use super::case_certified::retained_lookup;
 use super::*;
 use crate::bounded_output::classifier_string::StorageParent;
-use crate::cleanup_plan::replay::expression_facts::arena::retained::{PrefixWitness, Session};
+use crate::cleanup_plan::replay::expression_facts::arena::retained as prefix_owner;
 use crate::cleanup_plan::replay::ordinary_receiving::{
     prepare_into, refuse_into, reserve_into, Failure,
 };
+use prefix_owner::{PrefixSession, PrefixWitness};
 pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
@@ -157,7 +158,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                         if arena.len() != 0 {
                             budget.reserve_bytes(
                                 function,
-                                Session::prefixed_acquisition_bytes(),
+                                PrefixSession::prefixed_acquisition_bytes(),
                                 "retained expression-fact owner acquisition",
                             )?;
                             budget.charge(
@@ -174,7 +175,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                             };
                             let mut received = None;
                             let witness = PrefixWitness::acquire(arena, function, budget)?;
-                            let mut session = Session::new_prefixed(arena, function, budget);
+                            let (mut session, witness) = witness.into_session()?;
                             loop {
                                 let source = &function.cleanup_plan.status_sources[ordinal];
                                 {
@@ -182,7 +183,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                         session.budget,
                                         function,
                                         failure,
-                                        Session::prefixed_query_bytes(),
+                                        PrefixSession::prefixed_query_bytes(),
                                         "ordinary fact query actual and formal receiving"
                                     ) {
                                         return Err(failure
@@ -397,7 +398,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                         )?;
                                         session.budget.reserve_bytes(
                                             function,
-                                            Session::prefixed_edge_bytes(),
+                                            PrefixSession::prefixed_edge_bytes(),
                                             "retained expression-fact query result controls",
                                         )?;
                                         if !session.fact_edge_into_prefixed(
@@ -477,7 +478,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                     )?;
                                     session.budget.reserve_bytes(
                                         function,
-                                        Session::prefixed_transition_bytes(),
+                                        PrefixSession::prefixed_transition_bytes(),
                                         "retained transition expression-fact query controls",
                                     )?;
                                     if !session.fact_edge_into_prefixed(

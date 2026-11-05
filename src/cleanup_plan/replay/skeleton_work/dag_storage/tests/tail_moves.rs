@@ -360,6 +360,16 @@ fn merge_probe(
     saved: bool,
     limit: usize,
 ) -> (Result<usize, ()>, crate::test_allocation_observer::Metrics) {
+    merge_probe_generation(program, calls, saved, false, limit)
+}
+
+fn merge_probe_generation(
+    program: &ResolvedProgram,
+    calls: bool,
+    saved: bool,
+    current_generation: bool,
+    limit: usize,
+) -> (Result<usize, ()>, crate::test_allocation_observer::Metrics) {
     let function = &program.functions[0];
     let item = observation(function);
     let mut budget = ReplayBudget::with_physical(function, limit).unwrap();
@@ -387,8 +397,10 @@ fn merge_probe(
                 let states = inputs.into_iter().map(|p| (p, vec![])).collect();
                 let merged = if saved {
                     work.saved_merged_call_states(states)
-                } else {
+                } else if current_generation {
                     work.merged_call_states(states)
+                } else {
+                    work.before_merged_call_states(states)
                 }?;
                 // This receiver owns all state carriers until explicitly dropped.
                 if !saved {
@@ -410,8 +422,10 @@ fn merge_probe(
             } else {
                 let merged = if saved {
                     work.tail_merge_control(inputs)
-                } else {
+                } else if current_generation {
                     work.merged_paths(inputs)
+                } else {
+                    work.before_merged_paths(inputs)
                 }?;
                 if !saved {
                     assert_eq!(merged[1].observations.items.as_ptr(), singleton);
@@ -456,12 +470,10 @@ fn merge_probe(
 fn saved_merge_literal_clone_delta_and_exact_one_short_receivers() {
     let program = fixture();
     let function = &program.functions[0];
-    let admission = ReplayBudget::with_physical(function, 1 << 22)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 22).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
     // First group tails 2+3; union tails 2+5. These are four real Vec requests.
     let removed = (2 + 3 + 2 + 5) * std::mem::size_of::<Observation>();
     for calls in [false, true] {
@@ -481,6 +493,32 @@ fn saved_merge_literal_clone_delta_and_exact_one_short_receivers() {
         let (short, observed) = merge_probe(&program, calls, false, admission + charged - 1);
         assert!(short.is_err());
         assert!(!observed.invalid && observed.live == 0);
+    }
+}
+
+#[test]
+fn current_merge_directory_keeps_literal_tail_moves_exact_short_and_complete_drop() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let mut baseline = ReplayBudget::with_physical(function, 1 << 22).unwrap();
+    let initialized = SkeletonWork::new(&program, function, &mut baseline);
+    let admission = initialized.budget.physical.as_ref().unwrap().charged();
+    drop(initialized);
+    for calls in [false, true] {
+        let (result, metrics) = merge_probe_generation(&program, calls, false, true, 1 << 22);
+        let charged = result.unwrap();
+        assert!(!metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+        assert!(metrics.allocated <= charged);
+        let (exact, observed) =
+            merge_probe_generation(&program, calls, false, true, admission + charged);
+        assert_eq!(exact.unwrap(), charged);
+        assert_eq!(observed, metrics);
+        let (short, observed) =
+            merge_probe_generation(&program, calls, false, true, admission + charged - 1);
+        assert!(short.is_err());
+        assert!(!observed.invalid && observed.live == 0);
+        assert_eq!(observed.allocated, observed.freed);
     }
 }
 

@@ -842,3 +842,11 @@ mod ordinary_cross_phase_before_receiving;
 mod ordinary_block_before;
 
 mod reference_coverage;
+
+#[cfg(test)]
+#[rustfmt::skip]
+pub(in crate::cleanup_plan::replay) mod receiving_generation;
+
+#[cfg(test)]
+#[rustfmt::skip]
+pub(in crate::cleanup_plan::replay) mod receiving_transport_generation;

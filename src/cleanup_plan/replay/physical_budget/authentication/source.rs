@@ -11,6 +11,7 @@ fn hex(source: &str) -> String {
     )
 }
 pub(in crate::cleanup_plan::replay) fn previous(path: &str, current: &str) -> String {
+    let raw_current = current;
     let staged = crate::source_reflows_merge::held(path, current);
     let current = staged.as_str();
     let rows: serde_json::Value =
@@ -21,11 +22,20 @@ pub(in crate::cleanup_plan::replay) fn previous(path: &str, current: &str) -> St
     let Some(row) = matches.first() else {
         return current.to_owned();
     };
-    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+    let requested = crate::source_reflows_merge::main_e177_final_inputs::value(
         path,
         row["after_sha256"].as_str().unwrap(),
-        current,
+        raw_current,
     );
+    let acquired = if hex(&requested) == row["after_sha256"] {
+        requested
+    } else {
+        crate::source_reflows_merge::main_e177_final_inputs::value(
+            path,
+            row["after_sha256"].as_str().unwrap(),
+            current,
+        )
+    };
     let current = acquired.as_str();
     assert_eq!(hex(current), row["after_sha256"]);
     assert_eq!(
@@ -100,6 +110,16 @@ fn held_full_current_sources_and_immediate_inverses_authenticate_every_byte() {
             .collect();
         assert_eq!(found.len(), 1);
         let row = found[0];
+        let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
+            path,
+            row["after_sha256"].as_str().unwrap(),
+            raw_current,
+        );
+        let current = if hex(&acquired) == row["after_sha256"] {
+            acquired.as_str()
+        } else {
+            current
+        };
         assert_eq!(hex(current), row["after_sha256"]);
         assert_eq!(current, row["after"].as_str().unwrap());
         if let Some(before) = row["before"].as_str() {

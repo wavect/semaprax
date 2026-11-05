@@ -972,6 +972,9 @@ fn main090_manifest() -> serde_json::Value {
     serde_json::from_str(&text).unwrap()
 }
 fn main090_checked(path: &Path, length: usize, sha: &str) -> String {
+    if let Some(value) = super::legacy_ci_expected_file(path, length, sha) {
+        return value;
+    }
     assert!(length <= MAIN090_CAP);
     if let Some(value) =
         crate::source_reflows_merge::main_e177_final_inputs::file(path, length, sha)

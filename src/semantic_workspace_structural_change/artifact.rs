@@ -1813,8 +1813,8 @@ fn push_json(output: &mut CappedString, value: &str) {
 mod tests {
     use super::*;
     use crate::semantic_workspace_structural_change::tests::{base_fixture, mixed_proposal};
+    use crate::source_reflows::unit_wire_pin as wire_pin;
     use serde_json::Value;
-
     fn prepared() -> SemanticWorkspacePreparedStructuralChange {
         let base = base_fixture();
         let proposal = super::super::parse_proposal(&mixed_proposal(&base)).unwrap();
@@ -2007,11 +2007,11 @@ mod tests {
                 raw_sha(artifacts.evidence()),
             ],
             [
-                "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
-                "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
-                "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
-                "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
-                "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+                wire_pin("sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953"),
+                wire_pin("sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd"),
+                wire_pin("sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a"),
+                wire_pin("sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8"),
+                wire_pin("sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966"),
             ]
         );
 

@@ -1,4 +1,6 @@
 //! Closed final-batch historical acquisition. No production authority or raw-audit projection.
+#[path = "../source_reflows/declared_history_inputs.rs"]
+pub(crate) mod declared_history_inputs;
 #[path = "main_e177_overlay_v2.rs"]
 mod overlay_v2;
 #[macro_use]
@@ -807,6 +809,9 @@ pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Optio
 }
 
 pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {
+    if let Some(before) = declared_history_inputs::expected_file(path, length, expected) {
+        return Some(before);
+    }
     ProjectionInvocation::new().file(path, length, expected)
 }
 #[allow(dead_code, reason = "Invocable complete predecessor acquisition route")]
@@ -842,6 +847,9 @@ fn file_4a6eb(path: &Path, length: usize, expected: &str) -> Option<String> {
     Some(read_view(prior))
 }
 pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
+    if let Some(before) = declared_history_inputs::expected_value(source, expected, supplied) {
+        return before;
+    }
     ProjectionInvocation::new().value(source, expected, supplied)
 }
 #[allow(dead_code, reason = "Invocable complete predecessor acquisition route")]

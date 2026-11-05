@@ -1911,3 +1911,5 @@ Audience: all documentation readers.
 - [Complete historical ingress for eight unregistered sources](evidence/ci-unregistered-inputs-20261105/README.md)
 
 - [Complete unit report bindings](evidence/unit-wire-bindings-20261105/README.md)
+
+- [Exact inputs for declared historical domains](evidence/declared-history-inputs-20261105/README.md)

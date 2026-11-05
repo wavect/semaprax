@@ -2174,6 +2174,7 @@
         "src/loop_calls/byte_writer/validation_frontier/tests.rs",
         "src/project/incremental/cold_source_tests/oracle_owner_before.rs",
         "src/source_reflows/ci_inputs.rs",
+        "src/source_reflows/declared_history_inputs.rs",
         "src/source_reflows/incoming090_semantic_receivers.rs",
         "src/source_reflows/incoming21_semantic_receivers.rs",
         "src/source_reflows/main_c883_receivers.rs",
@@ -3029,8 +3030,8 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "cdc891cf34633ffd7ce143fe5f4e45ea89650d489ce45759d801409454227276",
-      "full_raw_sha256": "1b0d8c164f0fe01fc5711b8552237093ea7521f4d8deeaf6e9241ffe212ed349",
+      "full_manifest_sha256": "f3c8bc1f34c7e2541602af20f8dce9fbe0de945425b71f6f07be7643a03cc95d",
+      "full_raw_sha256": "a344749e51d92204e7bf39afb333e97dfb8977e0ae2ddd4978c4612423fe6466",
       "full_authenticated_production_sha256": "fb96d2a166a68cbfb68baf8c0d30847ce1a740291e03446d62690affd13e323b"
     },
     "projection": {
@@ -4182,8 +4183,8 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "f427ff024ccefb815f06c550f196474e28ff98be7ac3cc93d2c4becf32118a5f",
-      "full_raw_sha256": "4c40079c63bafa9e9b10a843ce0e5bbbad06336f4b9806c62322d99b670ec735",
+      "full_manifest_sha256": "f671e97567b2b48b6a4edb36c7fb4873636dc411b40968234d10dd1c4cc38ab2",
+      "full_raw_sha256": "05a80ccd66f4f7e9f6004dad04358f3d7d9e27c9f4388911ad3b9a95f6fce6a2",
       "full_authenticated_production_sha256": "1d1715b5912bcf21f262341cb0aa39bef2e62420d4a09e3e172e1bdc159adafb"
     }
   }

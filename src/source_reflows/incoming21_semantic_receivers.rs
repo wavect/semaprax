@@ -862,6 +862,9 @@ fn main21_manifest() -> serde_json::Value {
     serde_json::from_str(&text).unwrap()
 }
 fn main21_checked(path: &Path, length: usize, sha: &str) -> String {
+    if let Some(value) = super::legacy_ci_expected_file(path, length, sha) {
+        return value;
+    }
     if let Some(staged) = super::incoming_main090::legacy_checked(path, length, sha) {
         return staged;
     }

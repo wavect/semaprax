@@ -1,9 +1,9 @@
 use super::*;
+use crate::source_reflows::unit_wire_pin as wire_pin;
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
-
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
@@ -555,10 +555,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // workspace builder charge and authenticated graph/artifact
             // digest chain moved. Restoring them reproduces all seven
             // original complete documents byte for byte.
-            "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3",
-            "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b",
-            "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105",
-            "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc"
+            wire_pin("sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3"),
+            wire_pin("sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b"),
+            wire_pin("sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105"),
+            wire_pin("sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc")
         ]
     );
     for artifact in &contexts {
@@ -621,8 +621,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Exact affected-set, edge-order, budget, and digest replay checks
             // below independently bind these re-pinned document digests.
-            "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7",
-            "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1",
+            wire_pin("sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7"),
+            wire_pin("sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1"),
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -763,7 +763,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Nested context, impact, evidence-reference, budget, and digest replay
         // checks independently bind this re-pinned document digest.
-        "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98"
+        wire_pin("sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98")
     );
     let direct_context = analysis
         .render_context(

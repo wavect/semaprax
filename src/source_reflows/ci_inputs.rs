@@ -321,6 +321,15 @@ pub(super) fn file_expected(
     let (index, current) = compiled(source)?;
     let rows = rows();
     let row = &rows[index];
+    if row["current_length"].as_u64() == Some(length as u64) && row["current_sha256"] == expected {
+        // A sealed consumer may request the intermediate checkpoint itself.
+        // Validate the complete existing inverse before returning that stage.
+        let _ = prior(source, current);
+        let checkpoint = historical_entry(source, expected, current).into_owned();
+        assert_eq!(checkpoint.len(), length);
+        assert_eq!(digest(&checkpoint), expected);
+        return Some(checkpoint);
+    }
     if row["before_length"].as_u64() != Some(length as u64) || row["before_sha256"] != expected {
         return None;
     }
@@ -329,6 +338,22 @@ pub(super) fn file_expected(
 // Adapt an exact raw current input only when its consumer names this epoch.
 // Already-projected inputs keep the original consumer's unchanged guards.
 pub(super) fn for_expected<'a>(source: &str, expected: &str, supplied: &'a str) -> Cow<'a, str> {
+    if matches!(
+        (source, expected),
+        (
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs",
+            "96efd3a53927dad900d08c32b5fde9336196eff3f5a29f431e6cc9c76bc059a4"
+        ) | (
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs",
+            "e9ca6ec97a1e1497e50ef352d3e78f81abf1f71c5d81eec72c975b18d8888894"
+        )
+    ) {
+        return Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source, expected, supplied,
+            ),
+        );
+    }
     if let Some(before) = unregistered_sources::value(source, expected, supplied) {
         return Cow::Owned(before);
     }
@@ -348,6 +373,21 @@ pub(super) fn for_expected<'a>(source: &str, expected: &str, supplied: &'a str) 
 )]
 pub(super) fn for_ci<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     match source {
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs" => Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                "96efd3a53927dad900d08c32b5fde9336196eff3f5a29f431e6cc9c76bc059a4",
+                supplied,
+            ),
+        ),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs" => Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                "e9ca6ec97a1e1497e50ef352d3e78f81abf1f71c5d81eec72c975b18d8888894",
+                supplied,
+            ),
+        ),
+
         "src/cleanup_plan/replay/allocation.rs"
         | "src/cleanup_plan/replay/ordinary_plan_history/producer.rs"
         | "src/cleanup_plan/validate.rs" => prior(source, supplied),
@@ -919,5 +959,23 @@ mod unregistered_sources {
         }
         assert!(file("foreign.rs", 0, &"0".repeat(64)).is_none());
         reader::controls();
+    }
+}
+
+#[test]
+fn declared_intermediate_epochs_keep_current_authentication_and_the_complete_original_inverse() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in rows().as_array().unwrap() {
+        let source = row["source"].as_str().unwrap();
+        let length = row["current_length"].as_u64().unwrap() as usize;
+        let expected = row["current_sha256"].as_str().unwrap();
+        let (_, current) = compiled(source).unwrap();
+        let checkpoint = historical_entry(source, expected, current);
+        assert_eq!(
+            file_expected(&root.join(source), length, expected).as_deref(),
+            Some(checkpoint.as_ref())
+        );
+        assert!(file_expected(&root.join(source), length + 1, expected).is_none());
+        assert!(file_expected(&root.join(source), length, &"0".repeat(64)).is_none());
     }
 }

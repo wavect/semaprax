@@ -1,13 +1,13 @@
+use super::*;
+use crate::source_reflows::unit_wire_pin as wire_pin;
+use fs2::FileExt;
+use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-
-use super::*;
-use fs2::FileExt;
-use sha2::{Digest, Sha256};
 
 static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
 const TEST_MAX_EVIDENCE_BYTES: usize = 1_048_576;
@@ -1285,11 +1285,11 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
-            "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
-            "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
-            "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
-            "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+            wire_pin("sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953"),
+            wire_pin("sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd"),
+            wire_pin("sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a"),
+            wire_pin("sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8"),
+            wire_pin("sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966"),
         ]
     );
 
@@ -1336,7 +1336,7 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
     assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82"
+        wire_pin("sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82")
     );
     fixture.assert_exclusive_reacquire();
 }
@@ -2004,7 +2004,7 @@ fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
     assert_eq!(receipt_value["result"], "applied");
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961"
+        wire_pin("sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961")
     );
     assert_eq!(fixture.raw_inventory(), raw_before);
     assert_ne!(

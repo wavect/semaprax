@@ -434,7 +434,13 @@ fn complete_before_status_fact_receiver_and_full_source_remain_exact() {
             .iter()
             .find(|(path, _, _)| *path == row["source"].as_str().unwrap())
             .unwrap();
-        let mut source = (*current).to_owned();
+        let mut source = crate::source_reflows::declared_fixture_stage(
+            file!(),
+            row["source"].as_str().unwrap(),
+            current,
+            archive,
+            row["edits"].as_array().unwrap(),
+        );
         assert_eq!(
             format!(
                 "{:x}",

@@ -366,3 +366,16 @@ mod main_e177_support;
 
 mod unit_wire_pins;
 pub(crate) use unit_wire_pins::unit_wire_pin;
+
+pub(crate) use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+
+pub(crate) fn legacy_ci_expected_file(
+    path: &Path,
+    length: usize,
+    expected: &str,
+) -> Option<String> {
+    ci_inputs::file_expected(path, length, expected)
+}
+
+mod declared_fixture_stages;
+pub(crate) use declared_fixture_stages::fixture_stage as declared_fixture_stage;

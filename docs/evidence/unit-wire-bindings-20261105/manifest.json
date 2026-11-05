@@ -1,6 +1,6 @@
 {
   "schema": "semaprax.unit-wire-bindings.v1",
-  "qualification": "Complete local original-fixture wires; portable expected bodies from complete public fixture captures, with current CI anchors for change arrays and Operations derivation, child evidence and application; full portable execution remains pending",
+  "qualification": "Complete macOS local fixture bodies and matching complete Linux and Windows diagnostic fixture captures; original hosted verdicts retained; repaired original tests require current-head CI qualification",
   "wires": [
     {
       "family": "change",
@@ -199,6 +199,294 @@
       "bytes": 2979,
       "raw_sha256": "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049",
       "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "proposal",
+      "file": "structural/macos/proposal.json",
+      "bytes": 1782,
+      "raw_sha256": "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "proposal",
+      "file": "structural/portable/proposal.json",
+      "bytes": 1782,
+      "raw_sha256": "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "preview",
+      "file": "structural/macos/preview.json",
+      "bytes": 19422,
+      "raw_sha256": "sha256:57020de6bccd9210944455cd7cb97f9c56f9279eea95e0d3de260dba89f48d64",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "preview",
+      "file": "structural/portable/preview.json",
+      "bytes": 19422,
+      "raw_sha256": "sha256:e7ccc62c9ff96860dc7b1700e419ccd7ffab1c4e0b0750eee83f855a395bcb0a",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "context",
+      "file": "structural/macos/context.json",
+      "bytes": 8829,
+      "raw_sha256": "sha256:55e73153c3ba8f200d1a24a5f6e3a748ed01c4bda18d7d4c8af79103f894f856",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "context",
+      "file": "structural/portable/context.json",
+      "bytes": 8829,
+      "raw_sha256": "sha256:9d0f905c771b397b64ea22a4ac05af126a1df2d0b02b09968be35c90446671fd",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "impact",
+      "file": "structural/macos/impact.json",
+      "bytes": 13221,
+      "raw_sha256": "sha256:2e862a9ee865bf3cd6e56775e593bc3a0a778c37fc0c690696240be3a25c8f87",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "impact",
+      "file": "structural/portable/impact.json",
+      "bytes": 13221,
+      "raw_sha256": "sha256:5bc62f37d81d201e92b00797cf126595d5c168cd0e3c53bd037be30752dcd779",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "review",
+      "file": "structural/macos/review.json",
+      "bytes": 14423,
+      "raw_sha256": "sha256:47607cf4909cb2f3459fc678c55823b8954f65cb72d63afc31f3808395c2518a",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "review",
+      "file": "structural/portable/review.json",
+      "bytes": 14423,
+      "raw_sha256": "sha256:9dc70be54cc94eeffd4ddeff3dd9f8a0c61c3f9b97a0c189c5787aed5b519fe4",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "evidence",
+      "file": "structural/macos/evidence.json",
+      "bytes": 6942,
+      "raw_sha256": "sha256:4b3e718a3ad6dcc99dec5e77950266bb9d8c851d7d86f2ad11bced71328a7a91",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "evidence",
+      "file": "structural/portable/evidence.json",
+      "bytes": 6942,
+      "raw_sha256": "sha256:b24a1a0c7c28d07d6818b2c5f1a626a90262cb28f4d746cdcd9ae9c9b8ac5652",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "evidence-verification",
+      "file": "structural/macos/evidence-verification.json",
+      "bytes": 7188,
+      "raw_sha256": "sha256:d36bcd10bbc29b7f25c8919721f95444584c61a16822940a233795b0e6c0501b",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "evidence-verification",
+      "file": "structural/portable/evidence-verification.json",
+      "bytes": 7188,
+      "raw_sha256": "sha256:acc60d906d45391bf26b76106a3f68f933f3998f5c00a6f804a340fdd0a788b5",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "macos",
+      "kind": "evidence-application",
+      "file": "structural/macos/evidence-application.json",
+      "bytes": 7182,
+      "raw_sha256": "sha256:fdc4af2dca253d709ceec3235196b7b87f715a8f05388fcd74d0e8c10276eabb",
+      "domain_digest": null
+    },
+    {
+      "family": "structural",
+      "host": "portable",
+      "kind": "evidence-application",
+      "file": "structural/portable/evidence-application.json",
+      "bytes": 7182,
+      "raw_sha256": "sha256:80d92791a88915a11b452312ffa49b813cd685d7fe69feee72bc244f3a7604c4",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "context-0",
+      "file": "analysis/macos/context-0.json",
+      "bytes": 3169,
+      "raw_sha256": "sha256:83d42b0d72f4300b5b10daca36d3b2f281c712f205bf2781a34a28dc0820cc68",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "context-0",
+      "file": "analysis/portable/context-0.json",
+      "bytes": 3169,
+      "raw_sha256": "sha256:2c373d196519a97f19fb41ad6938d3e1c6b5255ed35e78481b2fddd29d90be64",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "context-1",
+      "file": "analysis/macos/context-1.json",
+      "bytes": 3987,
+      "raw_sha256": "sha256:085d519111a8ce524ed005988f46b1d9baca1649da56eed01e2f47aa3eefef90",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "context-1",
+      "file": "analysis/portable/context-1.json",
+      "bytes": 3987,
+      "raw_sha256": "sha256:46cead8e5e913e8228eec96253893442ce4bd6e67b0cb03aae509841f1c527d0",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "context-2",
+      "file": "analysis/macos/context-2.json",
+      "bytes": 3984,
+      "raw_sha256": "sha256:08eeb05a7bba0357218657167f255338309ed880612001ee039f5b3c0561a092",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "context-2",
+      "file": "analysis/portable/context-2.json",
+      "bytes": 3984,
+      "raw_sha256": "sha256:d915c79b47944a3781138c2d4225fa5f71a4debd946489d51f2edbd030da8d63",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "context-3",
+      "file": "analysis/macos/context-3.json",
+      "bytes": 4342,
+      "raw_sha256": "sha256:ca9db4aa17252469b23f7ecd7f028ca9babb490327453efb7fceb54cbe056f67",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "context-3",
+      "file": "analysis/portable/context-3.json",
+      "bytes": 4342,
+      "raw_sha256": "sha256:d611a141c892575dfc0b4869714ec4bba57473f8f33b51049023a302b5d2336e",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "impact-0",
+      "file": "analysis/macos/impact-0.json",
+      "bytes": 4156,
+      "raw_sha256": "sha256:3b9d196071ec081303c57409e5b36e450b6c3bc00024026f0f9c30ae958cdd51",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "impact-0",
+      "file": "analysis/portable/impact-0.json",
+      "bytes": 4156,
+      "raw_sha256": "sha256:277f3f613fc8aaf68c14c8ba4c6dacdba7e46d589cf343575bc7b071a0837cdc",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "impact-1",
+      "file": "analysis/macos/impact-1.json",
+      "bytes": 4572,
+      "raw_sha256": "sha256:565b57cfb8c7846d45ea7c7ff593cca375f279f10fac3fb320fe3f44aedb17db",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "impact-1",
+      "file": "analysis/portable/impact-1.json",
+      "bytes": 4572,
+      "raw_sha256": "sha256:432588dd69060aa191d004b801821465c2475fdae5dee6994c5911219696c29a",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "macos",
+      "kind": "review",
+      "file": "analysis/macos/review.json",
+      "bytes": 12707,
+      "raw_sha256": "sha256:de8138a6218a1618a2c58c73feb53d45690cfa0a2f9126e15d815df090973f60",
+      "domain_digest": null
+    },
+    {
+      "family": "analysis",
+      "host": "portable",
+      "kind": "review",
+      "file": "analysis/portable/review.json",
+      "bytes": 12707,
+      "raw_sha256": "sha256:0c631b6c8ab62c955d4bb2c94bfab5ac2fa445d749bab10fd639a8edca52c0ff",
+      "domain_digest": null
+    },
+    {
+      "family": "graph",
+      "host": "macos",
+      "kind": "document",
+      "file": "graph/macos/document.json",
+      "bytes": 5530,
+      "raw_sha256": "sha256:52415932f4304468164a10ebd3cb4a836ded7c56967c014931049e40632a0cda",
+      "domain_digest": null
+    },
+    {
+      "family": "graph",
+      "host": "portable",
+      "kind": "document",
+      "file": "graph/portable/document.json",
+      "bytes": 5530,
+      "raw_sha256": "sha256:099d724fa7070d3b8c5fd00f44e977b04e1d223640f9c20c10b482e3b1410d77",
+      "domain_digest": null
     }
   ],
   "pins": [
@@ -271,6 +559,234 @@
       "previous_literal": "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f",
       "macos": "sha256:533dff2b0494adf066bc4b4db55bd5356544d35e3ebdd8e3276a443f51dcefd4",
       "portable": "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049"
+    },
+    {
+      "family": "structural",
+      "kind": "preview",
+      "previous_literal": "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
+      "macos": "sha256:57020de6bccd9210944455cd7cb97f9c56f9279eea95e0d3de260dba89f48d64",
+      "portable": "sha256:e7ccc62c9ff96860dc7b1700e419ccd7ffab1c4e0b0750eee83f855a395bcb0a"
+    },
+    {
+      "family": "structural",
+      "kind": "context",
+      "previous_literal": "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
+      "macos": "sha256:55e73153c3ba8f200d1a24a5f6e3a748ed01c4bda18d7d4c8af79103f894f856",
+      "portable": "sha256:9d0f905c771b397b64ea22a4ac05af126a1df2d0b02b09968be35c90446671fd"
+    },
+    {
+      "family": "structural",
+      "kind": "impact",
+      "previous_literal": "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
+      "macos": "sha256:2e862a9ee865bf3cd6e56775e593bc3a0a778c37fc0c690696240be3a25c8f87",
+      "portable": "sha256:5bc62f37d81d201e92b00797cf126595d5c168cd0e3c53bd037be30752dcd779"
+    },
+    {
+      "family": "structural",
+      "kind": "review",
+      "previous_literal": "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
+      "macos": "sha256:47607cf4909cb2f3459fc678c55823b8954f65cb72d63afc31f3808395c2518a",
+      "portable": "sha256:9dc70be54cc94eeffd4ddeff3dd9f8a0c61c3f9b97a0c189c5787aed5b519fe4"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence",
+      "previous_literal": "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+      "macos": "sha256:4b3e718a3ad6dcc99dec5e77950266bb9d8c851d7d86f2ad11bced71328a7a91",
+      "portable": "sha256:b24a1a0c7c28d07d6818b2c5f1a626a90262cb28f4d746cdcd9ae9c9b8ac5652"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-verification",
+      "previous_literal": "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82",
+      "macos": "sha256:d36bcd10bbc29b7f25c8919721f95444584c61a16822940a233795b0e6c0501b",
+      "portable": "sha256:acc60d906d45391bf26b76106a3f68f933f3998f5c00a6f804a340fdd0a788b5"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-application",
+      "previous_literal": "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961",
+      "macos": "sha256:fdc4af2dca253d709ceec3235196b7b87f715a8f05388fcd74d0e8c10276eabb",
+      "portable": "sha256:80d92791a88915a11b452312ffa49b813cd685d7fe69feee72bc244f3a7604c4"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-0",
+      "previous_literal": "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3",
+      "macos": "sha256:83d42b0d72f4300b5b10daca36d3b2f281c712f205bf2781a34a28dc0820cc68",
+      "portable": "sha256:2c373d196519a97f19fb41ad6938d3e1c6b5255ed35e78481b2fddd29d90be64"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-1",
+      "previous_literal": "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b",
+      "macos": "sha256:085d519111a8ce524ed005988f46b1d9baca1649da56eed01e2f47aa3eefef90",
+      "portable": "sha256:46cead8e5e913e8228eec96253893442ce4bd6e67b0cb03aae509841f1c527d0"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-2",
+      "previous_literal": "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105",
+      "macos": "sha256:08eeb05a7bba0357218657167f255338309ed880612001ee039f5b3c0561a092",
+      "portable": "sha256:d915c79b47944a3781138c2d4225fa5f71a4debd946489d51f2edbd030da8d63"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-3",
+      "previous_literal": "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc",
+      "macos": "sha256:ca9db4aa17252469b23f7ecd7f028ca9babb490327453efb7fceb54cbe056f67",
+      "portable": "sha256:d611a141c892575dfc0b4869714ec4bba57473f8f33b51049023a302b5d2336e"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-0",
+      "previous_literal": "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7",
+      "macos": "sha256:3b9d196071ec081303c57409e5b36e450b6c3bc00024026f0f9c30ae958cdd51",
+      "portable": "sha256:277f3f613fc8aaf68c14c8ba4c6dacdba7e46d589cf343575bc7b071a0837cdc"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-1",
+      "previous_literal": "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1",
+      "macos": "sha256:565b57cfb8c7846d45ea7c7ff593cca375f279f10fac3fb320fe3f44aedb17db",
+      "portable": "sha256:432588dd69060aa191d004b801821465c2475fdae5dee6994c5911219696c29a"
+    },
+    {
+      "family": "analysis",
+      "kind": "review",
+      "previous_literal": "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98",
+      "macos": "sha256:de8138a6218a1618a2c58c73feb53d45690cfa0a2f9126e15d815df090973f60",
+      "portable": "sha256:0c631b6c8ab62c955d4bb2c94bfab5ac2fa445d749bab10fd639a8edca52c0ff"
+    },
+    {
+      "family": "graph",
+      "kind": "document",
+      "previous_literal": "sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8",
+      "macos": "sha256:52415932f4304468164a10ebd3cb4a836ded7c56967c014931049e40632a0cda",
+      "portable": "sha256:099d724fa7070d3b8c5fd00f44e977b04e1d223640f9c20c10b482e3b1410d77"
     }
-  ]
+  ],
+  "linux_capture": {
+    "head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+    "run": "https://github.com/wavect/semaprax/actions/runs/41953874153",
+    "original_verdicts": [
+      {
+        "selector": "semantic_workspace_change::artifact::tests::literal_kats_wire_order_domains_and_reference_parity",
+        "exit_code": 0,
+        "log": "00.log",
+        "wires": 5
+      },
+      {
+        "selector": "semantic_workspace_structural_change::artifact::tests::whole_document_kats_keys_domains_refs_paths_and_fixed_point_are_exact",
+        "exit_code": 101,
+        "log": "01.log",
+        "wires": 6
+      },
+      {
+        "selector": "semantic_workspace_structural_change::tests::managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock",
+        "exit_code": 101,
+        "log": "02.log",
+        "wires": 5
+      },
+      {
+        "selector": "semantic_workspace_structural_change::tests::structural_apply_publishes_exact_candidate_once_without_raw_writes",
+        "exit_code": 101,
+        "log": "03.log",
+        "wires": 1
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts",
+        "exit_code": 0,
+        "log": "04.log",
+        "wires": 0
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::operations_evidence_and_verification_are_exact_one_build_kats",
+        "exit_code": 0,
+        "log": "05.log",
+        "wires": 3
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::operations_apply_is_exact_stale_and_zero_write_before_replay",
+        "exit_code": 0,
+        "log": "06.log",
+        "wires": 1
+      },
+      {
+        "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+        "exit_code": 101,
+        "log": "07.log",
+        "wires": 1
+      },
+      {
+        "selector": "workspace_analysis::tests::context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay",
+        "exit_code": 101,
+        "log": "08.log",
+        "wires": 4
+      }
+    ],
+    "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features"
+  },
+  "windows_capture": {
+    "head": "a508e4711efa0239aedf2e19402fc02cc0a1af56",
+    "run": "https://github.com/wavect/semaprax/actions/runs/41953877758",
+    "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+    "original_verdicts": [
+      {
+        "selector": "semantic_workspace_change::artifact::tests::literal_kats_wire_order_domains_and_reference_parity",
+        "exit_code": 0,
+        "log": "00.log",
+        "wires": 5
+      },
+      {
+        "selector": "semantic_workspace_structural_change::artifact::tests::whole_document_kats_keys_domains_refs_paths_and_fixed_point_are_exact",
+        "exit_code": 101,
+        "log": "01.log",
+        "wires": 6
+      },
+      {
+        "selector": "semantic_workspace_structural_change::tests::managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock",
+        "exit_code": 101,
+        "log": "02.log",
+        "wires": 5
+      },
+      {
+        "selector": "semantic_workspace_structural_change::tests::structural_apply_publishes_exact_candidate_once_without_raw_writes",
+        "exit_code": 101,
+        "log": "03.log",
+        "wires": 1
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts",
+        "exit_code": 0,
+        "log": "04.log",
+        "wires": 0
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::operations_evidence_and_verification_are_exact_one_build_kats",
+        "exit_code": 0,
+        "log": "05.log",
+        "wires": 3
+      },
+      {
+        "selector": "semantic_workspace_operations::tests::operations_apply_is_exact_stale_and_zero_write_before_replay",
+        "exit_code": 0,
+        "log": "06.log",
+        "wires": 1
+      },
+      {
+        "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+        "exit_code": 101,
+        "log": "07.log",
+        "wires": 1
+      },
+      {
+        "selector": "workspace_analysis::tests::context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay",
+        "exit_code": 101,
+        "log": "08.log",
+        "wires": 4
+      }
+    ],
+    "matched_complete_portable_wires": 27
+  }
 }

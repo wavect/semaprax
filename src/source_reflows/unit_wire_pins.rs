@@ -41,6 +41,66 @@ pub(crate) fn unit_wire_pin(previous: &str) -> &'static str {
             "sha256:533dff2b0494adf066bc4b4db55bd5356544d35e3ebdd8e3276a443f51dcefd4",
             "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049",
         ),
+        "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953" => (
+            "sha256:57020de6bccd9210944455cd7cb97f9c56f9279eea95e0d3de260dba89f48d64",
+            "sha256:e7ccc62c9ff96860dc7b1700e419ccd7ffab1c4e0b0750eee83f855a395bcb0a",
+        ),
+        "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd" => (
+            "sha256:55e73153c3ba8f200d1a24a5f6e3a748ed01c4bda18d7d4c8af79103f894f856",
+            "sha256:9d0f905c771b397b64ea22a4ac05af126a1df2d0b02b09968be35c90446671fd",
+        ),
+        "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a" => (
+            "sha256:2e862a9ee865bf3cd6e56775e593bc3a0a778c37fc0c690696240be3a25c8f87",
+            "sha256:5bc62f37d81d201e92b00797cf126595d5c168cd0e3c53bd037be30752dcd779",
+        ),
+        "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8" => (
+            "sha256:47607cf4909cb2f3459fc678c55823b8954f65cb72d63afc31f3808395c2518a",
+            "sha256:9dc70be54cc94eeffd4ddeff3dd9f8a0c61c3f9b97a0c189c5787aed5b519fe4",
+        ),
+        "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966" => (
+            "sha256:4b3e718a3ad6dcc99dec5e77950266bb9d8c851d7d86f2ad11bced71328a7a91",
+            "sha256:b24a1a0c7c28d07d6818b2c5f1a626a90262cb28f4d746cdcd9ae9c9b8ac5652",
+        ),
+        "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82" => (
+            "sha256:d36bcd10bbc29b7f25c8919721f95444584c61a16822940a233795b0e6c0501b",
+            "sha256:acc60d906d45391bf26b76106a3f68f933f3998f5c00a6f804a340fdd0a788b5",
+        ),
+        "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961" => (
+            "sha256:fdc4af2dca253d709ceec3235196b7b87f715a8f05388fcd74d0e8c10276eabb",
+            "sha256:80d92791a88915a11b452312ffa49b813cd685d7fe69feee72bc244f3a7604c4",
+        ),
+        "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3" => (
+            "sha256:83d42b0d72f4300b5b10daca36d3b2f281c712f205bf2781a34a28dc0820cc68",
+            "sha256:2c373d196519a97f19fb41ad6938d3e1c6b5255ed35e78481b2fddd29d90be64",
+        ),
+        "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b" => (
+            "sha256:085d519111a8ce524ed005988f46b1d9baca1649da56eed01e2f47aa3eefef90",
+            "sha256:46cead8e5e913e8228eec96253893442ce4bd6e67b0cb03aae509841f1c527d0",
+        ),
+        "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105" => (
+            "sha256:08eeb05a7bba0357218657167f255338309ed880612001ee039f5b3c0561a092",
+            "sha256:d915c79b47944a3781138c2d4225fa5f71a4debd946489d51f2edbd030da8d63",
+        ),
+        "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc" => (
+            "sha256:ca9db4aa17252469b23f7ecd7f028ca9babb490327453efb7fceb54cbe056f67",
+            "sha256:d611a141c892575dfc0b4869714ec4bba57473f8f33b51049023a302b5d2336e",
+        ),
+        "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7" => (
+            "sha256:3b9d196071ec081303c57409e5b36e450b6c3bc00024026f0f9c30ae958cdd51",
+            "sha256:277f3f613fc8aaf68c14c8ba4c6dacdba7e46d589cf343575bc7b071a0837cdc",
+        ),
+        "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1" => (
+            "sha256:565b57cfb8c7846d45ea7c7ff593cca375f279f10fac3fb320fe3f44aedb17db",
+            "sha256:432588dd69060aa191d004b801821465c2475fdae5dee6994c5911219696c29a",
+        ),
+        "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98" => (
+            "sha256:de8138a6218a1618a2c58c73feb53d45690cfa0a2f9126e15d815df090973f60",
+            "sha256:0c631b6c8ab62c955d4bb2c94bfab5ac2fa445d749bab10fd639a8edca52c0ff",
+        ),
+        "sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8" => (
+            "sha256:52415932f4304468164a10ebd3cb4a836ded7c56967c014931049e40632a0cda",
+            "sha256:099d724fa7070d3b8c5fd00f44e977b04e1d223640f9c20c10b482e3b1410d77",
+        ),
         _ => panic!("unknown whole-wire fixture pin"),
     };
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {

@@ -29,9 +29,9 @@ fn local(value: Point) -> Point { value }
 #[cfg(test)]
 mod projection_tests {
     use super::*;
+    use crate::source_reflows::unit_wire_pin as wire_pin;
     use std::fs::OpenOptions;
     use std::sync::atomic::{AtomicU64, Ordering};
-
     static SERIAL: AtomicU64 = AtomicU64::new(0);
 
     struct ManagedFixture {
@@ -896,7 +896,7 @@ module graph.v14;
         // digest over it move.
         assert_eq!(
             document_sha,
-            "sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8"
+            wire_pin("sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8")
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

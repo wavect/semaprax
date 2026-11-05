@@ -534,7 +534,7 @@ fn live_root_and_lexical_macro_keep_all_actual_paid_many_payment_order_and_obser
         (
             "factored composed flat add receivers",
             "paid_many::ADD_RECEIVING",
-            "paid_many::add(",
+            "paid_many::add_target(",
         ),
         (
             "factored composed flat finish receivers",
@@ -573,7 +573,7 @@ fn live_root_and_lexical_macro_keep_all_actual_paid_many_payment_order_and_obser
         (
             "factored one-pass flat-target receivers",
             "paid_many::ADD_RECEIVING",
-            "paid_many::add(",
+            "paid_many::add_target(",
         ),
         (
             "factored one-pass flat finish receivers",

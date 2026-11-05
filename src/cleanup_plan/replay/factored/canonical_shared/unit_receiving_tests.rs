@@ -205,7 +205,11 @@ fn unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bou
     let old = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/closure-unit-receiving-831-next-20261016/src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt"));
     let start = old.find("type SharedWeighted =").unwrap();
     let end = old[start..].find("\n#[cfg(test)]\nmod tests;").unwrap() + start;
-    let copy = include_str!("before_unit.rs");
+    let copy = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs",
+        "87fd1f290d85fed32cba9f92a5b58b528712031121007b1f2a6875bde2e6fa5e",
+        include_str!("before_unit.rs"),
+    );
     let copied_start = copy.find("type SharedWeighted =").unwrap();
     assert_eq!(
         &copy[copied_start..copied_start + end - start],
@@ -269,6 +273,11 @@ fn unified_closure_slot_keeps_full_immediate_sources_and_old_receiver_bodies_bou
             .iter()
             .find(|row| row["source"] == path)
             .unwrap();
+        let text = crate::source_reflows_merge::main_e177_final_inputs::value(
+            &path,
+            owner["sha256"].as_str().unwrap(),
+            text,
+        );
         assert_eq!(
             format!(
                 "{:x}",

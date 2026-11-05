@@ -275,7 +275,11 @@ fn selected_removed_group_owners_keep_complete_old_work_and_real_receipt_frontie
 
 #[test]
 fn selected_group_removal_retains_whole_immediate_body_and_unchanged_selected_tariffs() {
-    let source = include_str!("before_selected_route.rs");
+    let source = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs",
+        "1d75e09b1e50f9d208d3572d94c26c4b8a8c9314ba434b6bb50cca9625b389bf",
+        include_str!("before_selected_route.rs"),
+    );
     let prefix = include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/before_selected_route.imports.txt");
     let suffix = include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/before_selected_route.suffix.txt");
     let body = source
@@ -308,6 +312,6 @@ fn selected_group_removal_retains_whole_immediate_body_and_unchanged_selected_ta
             .count(),
         2
     );
-    assert_eq!(include_str!("selected_labels.rs"), include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/selected_labels.whole-before.rs.txt"));
-    assert_eq!(include_str!("paid_many.rs"), include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/paid_many.whole-before.rs.txt"));
+    assert_eq!(crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs", "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd", include_str!("selected_labels.rs")), include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/selected_labels.whole-before.rs.txt"));
+    assert_eq!(crate::source_reflows::original_fixture_source("src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs", "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7", include_str!("paid_many.rs")), include_str!("../../../../../docs/evidence/opt831-870-selected-route-repair-20261017/paid_many.whole-before.rs.txt"));
 }

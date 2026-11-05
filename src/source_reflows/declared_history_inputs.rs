@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 22] = [
+const PARTS: [(&str, &str, usize, &str); 24] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 22] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        585628,
-        "348401025663c6466447896ca6ea803c06c74d2b99a0b7e94558e575b9ea0a0b",
+        587110,
+        "5a5e33e9e44e0db2335ce5e7e646450f48e7214cccd48a6cacf4993c35016189",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 22] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        28380,
-        "bce2d977d577ee5619219bc17bee037e022ba38b9d8743974ba8d7b6d30f3abd",
+        28533,
+        "8ad51910aae670d8e0abfa514976f2188302dec4d5dae98197f034f112f0ba3d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -210,8 +210,26 @@ const PARTS: [(&str, &str, usize, &str); 22] = [
         6025,
         "80271d17ea55ca3f2af745d6f0b4fc67f02cf1ec3a45f78cdaec33228929e0ee",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-22.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-22.json"
+        )),
+        59634,
+        "bdb2ae11aec1d2247e99c67cd5db469ae211653cc78e0f364f199eb26c4f26be",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-23.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-23.json"
+        )),
+        55531,
+        "95a7cba1d970320387adc7b91f90406fc3c451280e00439e85cf78b618017703",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 22] = [const { OnceLock::new() }; 22];
+static CACHE: [OnceLock<serde_json::Value>; 24] = [const { OnceLock::new() }; 24];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -633,6 +651,15 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs", "20eb13e7d879aa7c5dac96ea5e07b4aeef5ffe425496956d42d9d003272fb242" ) => Some((19,1)),
 ("src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs", "b10eef27cabb5cc84531e6f6f9f6178a76b0e304119d9da25d71503e82d67321" ) => Some((20,0)),
 ("src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs", "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2" ) => Some((21,0)),
+("src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs", "4e2eb4e769f942d63dc045ba26d8bcf73493c8226133dcfefa2f6e898728b882" ) => Some((22,0)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs", "c532c30e4b82070848cb65a5499a4bb5d58bb60cdaeec5705041e5c287fa3d42" ) => Some((22,1)),
+("src/cleanup_plan/replay/factored/canonical_shared/tests.rs", "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a" ) => Some((22,2)),
+("src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs", "8c4026175e6ed2ec76c5cdfe6bceeb0baa6596cb37a37ef6899aa927d0b40139" ) => Some((22,3)),
+("src/cleanup_plan/replay/factored/moderate_tests.rs", "7123d044a6278a1d1fbc00a40134e6d68fd232068d8c032010e7c052f671764f" ) => Some((22,4)),
+("src/cleanup_plan/replay/factored/storage.rs", "4488a630bfa880caf242b7bed8f46583eb9230cee19dc7c6f0b8a0ba1dc46e02" ) => Some((22,5)),
+("src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs", "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd" ) => Some((23,0)),
+("src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs", "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7" ) => Some((23,1)),
+("src/cleanup_plan/replay/factored/canonical_shared.rs", "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077" ) => Some((23,2)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -718,6 +745,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs")),
@@ -725,12 +753,15 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/tests.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/unit_receiving_tests.rs")),
 "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs")),
 "src/cleanup_plan/replay/factored/compact_nodes/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/compact_nodes/tests.rs")),
 "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs")),
@@ -738,6 +769,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/moderate_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/moderate_tests.rs")),
 "src/cleanup_plan/replay/factored/oracle_hook.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/oracle_hook.rs")),
 "src/cleanup_plan/replay/factored/oracle_order/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/oracle_order/tests.rs")),
+"src/cleanup_plan/replay/factored/storage.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/storage.rs")),
 "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs")),
 "src/cleanup_plan/replay/lexical_replay.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay.rs")),
 "src/cleanup_plan/replay/lexical_replay/before_operands.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay/before_operands.rs")),

@@ -226,7 +226,11 @@ fn complete_before_receiver_is_source_exact_with_only_test_wiring() {
         .split("\n#[cfg(test)]\nmod tests;")
         .next()
         .unwrap();
-    let compiled = include_str!("../before_selected_labels.rs");
+    let compiled = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+        "553179e57cccd27eae0d228ad54b4717ec743007d9ae354d31ed6174266732be",
+        include_str!("../before_selected_labels.rs"),
+    );
     let namespace = r##"//! Complete 67046 production receiver in an independent test namespace.
 //! Source-only: this new compilation unit has not been compiled or executed.
 use super::{
@@ -256,7 +260,11 @@ mod terminal_leaf;
     );
     assert_eq!(
         include_str!("../before_selected_labels/terminal_leaf.rs"),
-        include_str!("../terminal_leaf.rs")
+        crate::source_reflows_merge::main_e177_final_inputs::value(
+            "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+            "6fc9fc8cbfa6e665d260e5dac211dda6ce7a864a641cfc288d4ea95331504e73",
+            include_str!("../terminal_leaf.rs"),
+        )
     );
     let actual_current = include_str!("../../canonical_shared.rs");
     let current_owned = crate::source_reflows_merge::next_big_batch_inputs::value(

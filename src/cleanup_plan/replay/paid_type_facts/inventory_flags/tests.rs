@@ -181,11 +181,19 @@ fn full_cycle_forgery_and_missing_metadata_keep_original_none_and_success_priori
 #[test]
 fn complete_original_owned_facts_compute_and_builtin_bodies_remain_independent_byte_exact() {
     assert_eq!(
-        include_str!("../../../../hir/declaration_index/flags/paid/compute.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/hir/declaration_index/flags/paid/compute.rs",
+            "e3cb4d9e04b9beea8611557f4d533c8b6fe4d58961834ec21617c28ce7f235cf",
+            include_str!("../../../../hir/declaration_index/flags/paid/compute.rs"),
+        ),
         include_str!("../../../../../docs/evidence/schema-summary/flags-paid-compute.rs.before")
     );
     assert_eq!(
-        include_str!("../../../../hir/declaration_index/flags/paid/builtin.rs"),
+        crate::source_reflows::original_fixture_source(
+            "src/hir/declaration_index/flags/paid/builtin.rs",
+            "d36a1bd7e376c1f0fd3b2251039f95172e2869d6ed10b2e6f78305f3275a0539",
+            include_str!("../../../../hir/declaration_index/flags/paid/builtin.rs"),
+        ),
         include_str!("../../../../../docs/evidence/schema-summary/flags-paid-builtin.rs.before")
     );
 }

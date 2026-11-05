@@ -202,7 +202,12 @@ fn complete_original_logical_frontier_suppression_strict_and_raw_modes_stay_equa
 }
 #[test]
 fn full_classifier_string_original_body_remains_independent_of_work_receiver() {
-    let current = include_str!("../../../../bounded_output/classifier_string.rs")
+    let complete = crate::source_reflows::original_fixture_source(
+        "src/bounded_output/classifier_string.rs",
+        "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193",
+        include_str!("../../../../bounded_output/classifier_string.rs"),
+    );
+    let current = complete
         .strip_suffix("\n#[cfg(test)]\nmod oracle_work;\n")
         .unwrap();
     let marker = "    /// A test-account caller authenticates its own invocation separately. This\n    /// detached marker contains no ACTIVE handle and grants no ordinary payer.\n    #[cfg(test)]\n    pub(crate) fn oracle_marker() -> Self {\n        Self(None)\n    }\n\n";

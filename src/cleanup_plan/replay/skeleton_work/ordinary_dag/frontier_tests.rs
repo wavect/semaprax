@@ -633,7 +633,11 @@ impl SkeletonWork<'_, '_> {
             "work.charge_for_test(0, \"sticky ordinal work\")",
             "work.charge(0, \"sticky ordinal work\")",
         );
-    let storage_source = ci_str!("../dag_storage/tests.rs");
+    let storage_source = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs",
+        "6f3aeb448ee3b4bb202d027c93eebbcec8a5c0854496792d53a66206525871f8",
+        ci_str!("../dag_storage/tests.rs"),
+    );
     assert_eq!(
         storage_source
             .matches("drop(work.ordinary_scratch.take());")
@@ -647,7 +651,11 @@ impl SkeletonWork<'_, '_> {
             "../../../../../docs/evidence/ordinary-dag-drop/original-dag-storage-tests.txt"
         )
     );
-    let tails_source = ci_str!("../dag_storage/tests/tail_moves.rs");
+    let tails_source = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs",
+        "7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68",
+        ci_str!("../dag_storage/tests/tail_moves.rs"),
+    );
     assert_eq!(
         tails_source
             .matches("drop(work.ordinary_scratch.take());")

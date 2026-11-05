@@ -610,7 +610,7 @@ pub(super) fn whole_source() -> String {
     );
     assert_eq!(restored.matches("pub(super) const PAIR_MATCH:").count(), 1);
     restored = restored.replacen("pub(super) const PAIR_MATCH:", "const PAIR_MATCH:", 1);
-    restored.push_str("#[cfg(test)]\nmod tests;\n");
+    restored.push_str("\n#[cfg(test)]\nmod tests;\n");
     let admitted = super::reachable_stage(
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
         "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8",

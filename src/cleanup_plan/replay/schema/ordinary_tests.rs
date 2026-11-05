@@ -4,7 +4,11 @@ use super::*;
 /// Each current substitution is unique; the unchanged assertion still compares
 /// every reconstructed byte with its immutable pre-adoption source archive.
 pub(super) fn before_summary(current: &str) -> String {
-    let mut source = current.to_owned();
+    let mut source = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/schema.rs",
+        "47c85dfe56c589c1b7a45a451f55a91286427f3327e8c4a55a9fd7a6155addf7",
+        current,
+    );
     for (after, before) in [
         ("let inventory = crate::cleanup::schema_summary::collect(program, function)?;\n    let has_nested_owned_bytes = inventory.has_nested_owned_bytes;", "let inventory = crate::cleanup::build_inventory(program, function)?;\n    let has_nested_owned_bytes = inventory.slots.iter().try_fold(false, |nested, slot| {\n        crate::cleanup::cleanup_shape_profile(&slot.shape)\n            .map(|profile| nested || profile.has_nested_owned_bytes)\n    })?;"),
         ("inventory.has_iterator", "inventory\n        .flags\n        .iter()\n        .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)"),

@@ -2369,6 +2369,97 @@
       "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
       "historical_commit": "530073a528dcd226bb9260627da189a1fffcf8a8",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/hir/declaration_index/flags/paid.rs",
+      "view_len": 10144,
+      "view_sha256": "4dbfc92879fd88c9eec8827f74e4c62a876b2c01cef194fca81e30a46cb6da36",
+      "archive": "e/4dbfc92879fd88c9eec8827f74e4c62a876b2c01cef194fca81e30a46cb6da36",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "264ed834cd01506417a8f0b74ddb148fa83bbd01",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/schema.rs",
+      "view_len": 5703,
+      "view_sha256": "47c85dfe56c589c1b7a45a451f55a91286427f3327e8c4a55a9fd7a6155addf7",
+      "archive": "e/47c85dfe56c589c1b7a45a451f55a91286427f3327e8c4a55a9fd7a6155addf7",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "f9dc15b4d368ca6da91826fe02a64aed84e32aaf",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "view_len": 7569,
+      "view_sha256": "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193",
+      "archive": "e/c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "9d78291e97bf540fdb622bb3c33325c9dabe3537",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/hir/declaration_index/flags/paid/compute.rs",
+      "view_len": 18939,
+      "view_sha256": "e3cb4d9e04b9beea8611557f4d533c8b6fe4d58961834ec21617c28ce7f235cf",
+      "archive": "e/e3cb4d9e04b9beea8611557f4d533c8b6fe4d58961834ec21617c28ce7f235cf",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "4a6eb7a20^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/hir/declaration_index/flags/paid/builtin.rs",
+      "view_len": 2898,
+      "view_sha256": "d36a1bd7e376c1f0fd3b2251039f95172e2869d6ed10b2e6f78305f3275a0539",
+      "archive": "e/d36a1bd7e376c1f0fd3b2251039f95172e2869d6ed10b2e6f78305f3275a0539",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "4a6eb7a20^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs",
+      "view_len": 15383,
+      "view_sha256": "6f3aeb448ee3b4bb202d027c93eebbcec8a5c0854496792d53a66206525871f8",
+      "archive": "e/6f3aeb448ee3b4bb202d027c93eebbcec8a5c0854496792d53a66206525871f8",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "277ddb283^",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs",
+      "view_len": 39205,
+      "view_sha256": "7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68",
+      "archive": "e/7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68",
+      "owner": "docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json",
+      "owner_archive": "e/2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "owner_bytes": 520789,
+      "owner_sha256": "2fa6ea46bb18d03ccc6f21493259eeb05817586b91f1d67bd679b4305b92c95e",
+      "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
+      "historical_commit": "6c11a0a7e3cff023de32dfdbba3ae9a705aceef2",
+      "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
     }
   ]
 }

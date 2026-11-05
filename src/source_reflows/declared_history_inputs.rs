@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 25] = [
+const PARTS: [(&str, &str, usize, &str); 27] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 25] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        28604,
-        "72887784665662fef39115cb2ba166fa3e7d1a6378d07694e9da2d8d47965bac",
+        28657,
+        "f44c31c64619bc9a9f94943a113d01eebbb3f1b1ff70b4c91a343712172e7ccc",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -237,8 +237,26 @@ const PARTS: [(&str, &str, usize, &str); 25] = [
         3405,
         "4afa82541a643b1d3445240cf6e227f8590d06e0c5401f2ccf4206fa91ddd179",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-25.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-25.json"
+        )),
+        43348,
+        "ad5ba0eb9ae065f316c818c5923110f540078502f0d2c1d5af72268d27744496",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-26.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-26.json"
+        )),
+        2068,
+        "d24f4f4839bf4dd815c653f97b39b2c73ad79280fb6e0f94dba25cad1a95f20b",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 25] = [const { OnceLock::new() }; 25];
+static CACHE: [OnceLock<serde_json::Value>; 27] = [const { OnceLock::new() }; 27];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -672,6 +690,13 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs", "4ff99e3d3876f3fd2db66621b6efed4bda76e80542e37be27283ef6e0dd3b7e9" ) => Some((24,0)),
 ("src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs", "33ceb173a1fad9c0984e6d57f78742eeb775c8e0b513d29316c94b8174f4553d" ) => Some((24,1)),
 ("src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs", "15515da8139c595c8661753af7a1dadd95c715ada5e10c9c99205d653e73ae9e" ) => Some((24,2)),
+("src/hir/declaration_index/flags/paid.rs", "4dbfc92879fd88c9eec8827f74e4c62a876b2c01cef194fca81e30a46cb6da36" ) => Some((25,0)),
+("src/cleanup_plan/replay/schema.rs", "47c85dfe56c589c1b7a45a451f55a91286427f3327e8c4a55a9fd7a6155addf7" ) => Some((25,1)),
+("src/bounded_output/classifier_string.rs", "c301a761a04ef7036c7eed8375e0ee77c34266eeb89b6e1c3ae38eaad5a86193" ) => Some((25,2)),
+("src/hir/declaration_index/flags/paid/compute.rs", "e3cb4d9e04b9beea8611557f4d533c8b6fe4d58961834ec21617c28ce7f235cf" ) => Some((25,3)),
+("src/hir/declaration_index/flags/paid/builtin.rs", "d36a1bd7e376c1f0fd3b2251039f95172e2869d6ed10b2e6f78305f3275a0539" ) => Some((25,4)),
+("src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs", "6f3aeb448ee3b4bb202d027c93eebbcec8a5c0854496792d53a66206525871f8" ) => Some((25,5)),
+("src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs", "7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68" ) => Some((26,0)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -683,6 +708,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/ast/program_source/decl_slices/before_alias.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/ast/program_source/decl_slices/before_alias.rs")),
 "src/ast/program_source/function_alias/presentation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/ast/program_source/function_alias/presentation.rs")),
 "src/bounded_output.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output.rs")),
+"src/bounded_output/classifier_string.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/classifier_string.rs")),
 "src/box_ops/wrappers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops/wrappers.rs")),
 "src/byte_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")),
 "src/cleanup.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup.rs")),
@@ -801,6 +827,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/physical_budget/authentication/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/physical_budget/authentication/tests.rs")),
 "src/cleanup_plan/replay/physical_clone.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/physical_clone.rs")),
 "src/cleanup_plan/replay/scalar_replay/records.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/scalar_replay/records.rs")),
+"src/cleanup_plan/replay/schema.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema.rs")),
 "src/cleanup_plan/replay/selected_context.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_context.rs")),
 "src/cleanup_plan/replay/selected_context/child.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_context/child.rs")),
 "src/cleanup_plan/replay/selected_context/child/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_context/child/tests.rs")),
@@ -834,11 +861,16 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/sequence_vector/funded_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/sequence_vector/funded_tests.rs")),
 "src/cleanup_plan/replay/sequence_vector/observation_parity.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/sequence_vector/observation_parity.rs")),
 "src/cleanup_plan/replay/skeleton_work.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")),
+"src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs")),
+"src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs")),
 "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs")),
 "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs")),
 "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control/calls/custody_tests.rs")),
 "src/format.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/format.rs")),
 "src/hir.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir.rs")),
+"src/hir/declaration_index/flags/paid.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/flags/paid.rs")),
+"src/hir/declaration_index/flags/paid/builtin.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/flags/paid/builtin.rs")),
+"src/hir/declaration_index/flags/paid/compute.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/flags/paid/compute.rs")),
 "src/hir/declaration_index/identity_payer.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/identity_payer.rs")),
 "src/hir/declaration_index/nominal.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/nominal.rs")),
 "src/hir/declaration_index/nominal/legacy.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/declaration_index/nominal/legacy.rs")),

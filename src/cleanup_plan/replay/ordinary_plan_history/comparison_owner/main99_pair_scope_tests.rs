@@ -1017,7 +1017,10 @@ fn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact() 
         current,
     );
     assert_eq!(include_str!("lexical_cursor_shared_steps.rs"), admitted);
-    let restored = include_str!("main99_pair_scope_tests.rs").split_once("\n#[test]\nfn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact").unwrap().0.replacen("use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", "", 1);
+    let complete = include_str!("main99_pair_scope_tests.rs");
+    assert_eq!(complete.matches("use super::super::before_shared_steps::{\n    compare, PAIR_PRIMITIVE, PAIR_SCOPE, PATH_INDEX, PAYMENT_HEADER,\n};\n").count(), 1);
+    let complete = complete.replacen("use super::super::before_shared_steps::{\n    compare, PAIR_PRIMITIVE, PAIR_SCOPE, PATH_INDEX, PAYMENT_HEADER,\n};\n", "use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", 1);
+    let restored = complete.split_once("\n#[test]\nfn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact").unwrap().0.replacen("use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", "", 1);
     assert_eq!(
         restored,
         super::super::reachable_stage(

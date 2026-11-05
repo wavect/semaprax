@@ -372,7 +372,11 @@ mod provisional_result_borrow_tests;
         current,
         ci_str!("../../../../../../docs/evidence/schema-summary/hir.rs.before")
     );
-    let paid_nominal_input = ci_str!("../../../../../hir/declaration_index/flags/paid.rs");
+    let paid_nominal_input = crate::source_reflows::original_fixture_source(
+        "src/hir/declaration_index/flags/paid.rs",
+        "4dbfc92879fd88c9eec8827f74e4c62a876b2c01cef194fca81e30a46cb6da36",
+        ci_str!("../../../../../hir/declaration_index/flags/paid.rs"),
+    );
     let paid_nominal_registration = r####"#[path = "../nominal_paid_facts.rs"]
 mod nominal_constructor;
 "####;

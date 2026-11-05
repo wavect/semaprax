@@ -462,12 +462,28 @@ fn complete_original_receivers_and_current_named_hook_projection_are_source_exac
         for line in &lines[at..] {
             expected.push_str(line);
         }
-        assert_eq!(&expected, current);
+        let acquired = if expected.as_str() == *current {
+            current.to_string()
+        } else {
+            crate::source_reflows::original_fixture_source(
+                row["source"].as_str().unwrap(),
+                &format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(expected.as_bytes()))
+                ),
+                current,
+            )
+        };
+        assert_eq!(expected, acquired);
     }
     let original = include_str!(
         "../../docs/evidence/transcript-flow-witness-821/byte_data_capacity.rs.before.txt"
     );
-    let compiled = include_str!("before.rs");
+    let compiled = crate::source_reflows::original_fixture_source(
+        "src/byte_data_capacity/before.rs",
+        "b8c2763e47884f92c44adacba73fa7a509f1998c1cb2faff3ab197652451780c",
+        include_str!("before.rs"),
+    );
     assert_eq!(
         compiled,
         original

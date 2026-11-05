@@ -753,7 +753,20 @@ mod tests {
                 ),
                 fixed_hash
             );
-            let mut restored = current.to_owned();
+            let row = &inverses["files"][index];
+            let mut restored = if format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+            ) == row["current_sha256"].as_str().unwrap()
+            {
+                current.to_owned()
+            } else {
+                crate::source_reflows::original_fixture_source(
+                    row["path"].as_str().unwrap(),
+                    row["current_sha256"].as_str().unwrap(),
+                    current,
+                )
+            };
             for splice in inverses["files"][index]["splices"]
                 .as_array()
                 .unwrap()

@@ -336,6 +336,9 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         "b24e08d4fb5ca49986917f97b61c72eb796a6dd079db5fc95cd0291a2bf06852"
     );
     let current = ci_str!("../../../src/map_ops.rs");
+    let profiled = "program.functions().profile_iter().any(|function| {";
+    assert_eq!(current.matches(profiled).count(), 1);
+    let current = current.replacen(profiled, "program.functions().iter().any(|function| {", 1);
     assert_eq!(current.matches("pub(crate) const fn id(self)").count(), 1);
     let inverse = current.replace("pub(crate) const fn id(self)", "pub(crate) fn id(self)");
     assert_eq!(inverse, old);

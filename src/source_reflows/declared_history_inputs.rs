@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 27] = [
+const PARTS: [(&str, &str, usize, &str); 29] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 27] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         28657,
-        "f44c31c64619bc9a9f94943a113d01eebbb3f1b1ff70b4c91a343712172e7ccc",
+        "e866d8f1cc2ec4a05f5baa62336fbafc874eb82d5e4db456c6ae2abaffe83cd6",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -255,8 +255,26 @@ const PARTS: [(&str, &str, usize, &str); 27] = [
         2068,
         "d24f4f4839bf4dd815c653f97b39b2c73ad79280fb6e0f94dba25cad1a95f20b",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-27.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-27.json"
+        )),
+        28950,
+        "a1c2aab9f6b4daa0c70154d2a1b1543813fb50e880dc36536a0943f5674f4766",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-28.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-28.json"
+        )),
+        917,
+        "3cdab71db8eb933b6d41755fba9805a03fca8984b490fdf21336cd9e2c338833",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 27] = [const { OnceLock::new() }; 27];
+static CACHE: [OnceLock<serde_json::Value>; 29] = [const { OnceLock::new() }; 29];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -697,6 +715,16 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/hir/declaration_index/flags/paid/builtin.rs", "d36a1bd7e376c1f0fd3b2251039f95172e2869d6ed10b2e6f78305f3275a0539" ) => Some((25,4)),
 ("src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs", "6f3aeb448ee3b4bb202d027c93eebbcec8a5c0854496792d53a66206525871f8" ) => Some((25,5)),
 ("src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs", "7ee5d27f2ae13fa859875cfdc9715b88ad6137996a1362840254a667b3d34f68" ) => Some((26,0)),
+("src/byte_data_capacity.rs", "5ab271c513c431d7ea3c7966c5e2232fa3fc9a74eb2bb76bad0ad60fa2fba6b8" ) => Some((27,0)),
+("src/source_verify/declaration.rs", "5c4987a9e83eb0f80c7c3d6211910e3c1f62cb91e60b9cc3b9d8f87c8000351f" ) => Some((27,1)),
+("src/source_verify/capacity/fused_selection.rs", "610a1a7385d1f56e28f217452ed91b4df45eb1f749ed9110ae3a749f8a7f52c3" ) => Some((27,2)),
+("src/lib.rs", "044494267f47eebdc1cfbd84d037706b72b61ae588e21eac621bc40fd660b9bc" ) => Some((27,3)),
+("src/workspace_graph/source_schema.rs", "d8fc1d3e15cf39b77537c985a2d6168b9d82d80023e0b7b47bc114c579fec5b7" ) => Some((27,4)),
+("src/workspace_graph/source_schema/byte_helper/tests.rs", "ca696de3f3e3605352f0c2fd8daa0744d9f2c99f4366bbf09dc545e830075dbc" ) => Some((27,5)),
+("src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs", "ae528d01a07710e1ed20921bab781553b9a0a39ff9035e0705fbe2886e63089c" ) => Some((27,6)),
+("src/cleanup_plan/replay/nested_shape.rs", "7214d1a49f1884e374770c73e8ca484522529e3f161f94e0ef23fbcd8d6eea74" ) => Some((27,7)),
+("src/semantic_workspace_structural_change.rs", "178a0782e66f5ff32e91f2b9e96d73b391109f61c900646970f7d67fa9902734" ) => Some((27,8)),
+("src/byte_data_capacity/before.rs", "b8c2763e47884f92c44adacba73fa7a509f1998c1cb2faff3ab197652451780c" ) => Some((28,0)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -710,6 +738,8 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/bounded_output.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output.rs")),
 "src/bounded_output/classifier_string.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/classifier_string.rs")),
 "src/box_ops/wrappers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops/wrappers.rs")),
+"src/byte_data_capacity.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_data_capacity.rs")),
+"src/byte_data_capacity/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_data_capacity/before.rs")),
 "src/byte_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")),
 "src/cleanup.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup.rs")),
 "src/cleanup/inventory_builder.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup/inventory_builder.rs")),
@@ -818,6 +848,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/lexical_skeleton.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_skeleton.rs")),
 "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs")),
 "src/cleanup_plan/replay/live_oracle/source_custody/presence.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/presence.json")),
+"src/cleanup_plan/replay/nested_shape.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/nested_shape.rs")),
 "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs")),
 "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_array/sequence_minimum/before.rs")),
 "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs")),
@@ -909,6 +940,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/hir/validation/function_scope/lifecycle/completed.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/function_scope/lifecycle/completed.rs")),
 "src/hir/validation/generic_template.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/generic_template.rs")),
 "src/hir/validation/generic_template/call_graph/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/generic_template/call_graph/tests.rs")),
+"src/lib.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs")),
 "src/literal_format.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/literal_format.rs")),
 "src/literal_format/funded.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/literal_format/funded.rs")),
 "src/loan_plan.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan.rs")),
@@ -930,6 +962,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/loop_calls/byte_writer/source_index.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loop_calls/byte_writer/source_index.rs")),
 "src/prelude.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prelude.rs")),
 "src/project/incremental.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/project/incremental.rs")),
+"src/semantic_workspace_structural_change.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/semantic_workspace_structural_change.rs")),
 "src/source_reflows.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows.rs")),
 "src/source_reflows/incoming090_semantic_receivers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/incoming090_semantic_receivers.rs")),
 "src/source_reflows/incoming67107_semantic_receivers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows/incoming67107_semantic_receivers.rs")),
@@ -947,6 +980,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/source_reflows_merge/main_e177_overlay_v2.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_v2.rs")),
 "src/source_reflows_merge/runtime_json.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/runtime_json.rs")),
 "src/source_reflows_merge/runtime_json/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/runtime_json/tests.rs")),
+"src/source_verify/capacity/fused_selection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/capacity/fused_selection.rs")),
 "src/source_verify/constructor_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/constructor_tests.rs")),
 "src/source_verify/declaration.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/declaration.rs")),
 "src/source_verify/declaration/functions/old.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/declaration/functions/old.rs")),
@@ -978,7 +1012,10 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/workspace_graph/identity_resolution.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution.rs")),
 "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs")),
 "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs")),
+"src/workspace_graph/source_schema.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema.rs")),
+"src/workspace_graph/source_schema/byte_helper/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/byte_helper/tests.rs")),
 "src/workspace_graph/source_schema/nominal_context/main8a.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/nominal_context/main8a.rs")),
+"src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs")),
 "src/workspace_graph/validation/before_roots.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/validation/before_roots.rs")),
 "tests/hir_module_boundaries.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")),
 "tests/wasm/scalar_browser_ci_contract.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract.rs")),

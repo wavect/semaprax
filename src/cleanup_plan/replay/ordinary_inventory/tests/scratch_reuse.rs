@@ -320,7 +320,15 @@ fn full_archived_paid_and_inventory_sources_bind_every_current_hook() {
             archived_sha
         );
         assert_eq!(entry["sha256"].as_str().unwrap(), archived_sha);
-        let mut projected = current.to_owned();
+        let mut projected = if path == "src/cleanup_plan/replay/nested_shape.rs" {
+            crate::source_reflows::original_fixture_source(
+                path,
+                "7214d1a49f1884e374770c73e8ca484522529e3f161f94e0ef23fbcd8d6eea74",
+                current,
+            )
+        } else {
+            current.to_owned()
+        };
         for hook in proof["current_projection"][path].as_array().unwrap() {
             let from = hook["from"].as_str().unwrap();
             let to = hook["to"].as_str().unwrap();

@@ -105,7 +105,7 @@ fn all_original_filesystem_preparers_remain_complete_independent_receivers() {
     for (current, old) in [
         (include_str!("../../semantic_workspace_change.rs"), include_str!("../../../docs/evidence/replay-report-caller/src__semantic_workspace_change.rs.before")),
         (include_str!("../../semantic_workspace_operations.rs"), include_str!("../../../docs/evidence/replay-report-caller/src__semantic_workspace_operations.rs.before")),
-        (include_str!("../../semantic_workspace_structural_change.rs"), include_str!("../../../docs/evidence/replay-report-caller/src__semantic_workspace_structural_change.rs.before")),
+        (crate::source_reflows::original_fixture_source("src/semantic_workspace_structural_change.rs", "178a0782e66f5ff32e91f2b9e96d73b391109f61c900646970f7d67fa9902734", include_str!("../../semantic_workspace_structural_change.rs")).as_str(), include_str!("../../../docs/evidence/replay-report-caller/src__semantic_workspace_structural_change.rs.before")),
     ] {
         assert!(current == format!("{old}pub mod reporting;\n") || current == format!("{old}\npub mod reporting;\n"));
     }

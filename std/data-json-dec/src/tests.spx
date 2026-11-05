@@ -1,6 +1,8 @@
 module std.data.json.dec.tests;
 use type @id("std.io.reader") from std.io as Reader;
 use type @id("std.io.writer") from std.io as Writer;
+use type @id("std.data.json.dec.string-scan") from std.data.json.dec as StringScan;
+use type @id("std.data.json.dec.decoded-step") from std.data.json.dec as DecodedStep;
 use function @id("std.data.json.dec.decode-into") from std.data.json.dec as decode_into;
 use function @id("std.data.json.dec.at_in") from std.data.json.dec as at_in;
 use function @id("std.data.json.dec.at_is") from std.data.json.dec as at_is;
@@ -29,6 +31,8 @@ use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_fa
 use function @id("std.data.json.dec.scalar_at") from std.data.json.dec as scalar_at;
 use function @id("std.data.json.dec.scalar-at-prior") from std.data.json.dec as scalar_at_prior;
 use function @id("std.data.json.dec.scan-string") from std.data.json.dec as scan_string;
+use function @id("std.data.json.dec.scan-string-info") from std.data.json.dec as scan_string_info;
+use function @id("std.data.json.dec.pull-step") from std.data.json.dec as pull_step;
 use function @id("std.data.json.dec.simple_scalar") from std.data.json.dec as simple_scalar;
 use function @id("std.data.json.dec.prefix_eq") from std.data.json.dec as prefix_eq;
 use function @id("std.data.json.dec.slice_eq") from std.data.json.dec as slice_eq;
@@ -103,7 +107,14 @@ fn tokens() -> bool
 {
     let raw = [34u8, 97u8, 92u8, 110u8, 98u8, 34u8];
     let source = array_as_slice(raw);
-    token_end(source, 1usize) == 2usize && token_end(source, 2usize) == 4usize && emit_len(source, 1usize) == 1usize && emit_len(source, 2usize) == 1usize && emit_at(source, 1usize, 0usize) == 97 && emit_at(source, 2usize, 0usize) == 10 && string_end(source, 0usize) == 6usize
+    let info = scan_string_info(source, 0usize);
+    let invalid = scan_string_info(source, 1usize);
+    let expected_scan = StringScan { end: 6usize, decoded_length: 3usize };
+    let plain = pull_step(source, 1usize, 0usize);
+    let escaped = pull_step(source, 2usize, 0usize);
+    let absent = pull_step(source, 6usize, 0usize);
+    let expected_step = DecodedStep { value: 97, next: 2usize, part: 0usize };
+    token_end(source, 1usize) == 2usize && token_end(source, 2usize) == 4usize && emit_len(source, 1usize) == 1usize && emit_len(source, 2usize) == 1usize && emit_at(source, 1usize, 0usize) == 97 && emit_at(source, 2usize, 0usize) == 10 && string_end(source, 0usize) == 6usize && info.end == expected_scan.end && info.decoded_length == expected_scan.decoded_length && invalid.end == failure(source, 1usize) && invalid.decoded_length == invalid.end && plain.value == expected_step.value && plain.next == expected_step.next && plain.part == expected_step.part && escaped.value == 10 && escaped.next == 4usize && escaped.part == 0usize && absent.value == -1 && absent.next == 6usize && absent.part == 0usize
 }
 
 @id("std.data.json.dec.tests.lengths")

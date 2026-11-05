@@ -263,12 +263,40 @@ fn retained_scratch_immediate_complete_originals_and_adaptation_are_exact() {
     let body = body.split("\n#[cfg(test)]\nmod tests;").next().unwrap();
     expected.push_str(&body.replacen("    fn closure(", "    pub(super) fn closure(", 1));
     expected.push_str("\n\nimpl Canonicalizer<'_> {\n    pub(super) fn signatures(&self) -> &BTreeMap<(u64, Vec<(Label, usize)>), usize> { &self.ids }\n    pub(super) fn states(&self) -> &BTreeMap<SharedWeighted, usize> { &self.states }\n}\n");
-    assert_eq!(expected, include_str!("before_scratch.rs"));
+    // Exact compact-node API wiring; every original algorithm byte remains compared.
+    for (before, after, count) in [
+        (
+            "for target in &state.epsilon {",
+            "for target in state.epsilon() {",
+            2,
+        ),
+        ("state.moves.is_empty()", "state.moves().is_empty()", 2),
+        ("state.epsilon.len()", "state.epsilon().len()", 1),
+        ("state.epsilon[0]", "state.epsilon()[0]", 1),
+        (
+            "let moves = &self.automaton.nodes[*node].moves;",
+            "let moves = self.automaton.nodes[*node].moves();",
+            1,
+        ),
+    ] {
+        assert_eq!(expected.matches(before).count(), count);
+        expected = expected.replace(before, after);
+    }
+    let complete_receiver = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs",
+        "33ceb173a1fad9c0984e6d57f78742eeb775c8e0b513d29316c94b8174f4553d",
+        include_str!("before_scratch.rs"),
+    );
+    assert_eq!(expected, complete_receiver);
     let memo =
         include_str!("../../../../../docs/evidence/canonical-scratch-839/memo.rs.before.txt");
     assert_eq!(
         memo.replace("\n#[cfg(test)]\nmod tests;\n", ""),
-        include_str!("before_scratch_memo.rs")
+        crate::source_reflows::original_fixture_source(
+            "src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs",
+            "15515da8139c595c8661753af7a1dadd95c715ada5e10c9c99205d653e73ae9e",
+            include_str!("before_scratch_memo.rs"),
+        )
     );
 }
 

@@ -75,7 +75,31 @@ fn held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bod
             "    pub(super) fn id(",
             "    pub(in crate::cleanup_plan::replay::factored) fn id(",
         );
-    let full = include_str!("../before_closure_receiver.rs");
+    let mut old_body = old_body;
+    // Exact compact-node API wiring; every original algorithm byte remains compared.
+    for (before, after, count) in [
+        (
+            "for target in &state.epsilon {",
+            "for target in state.epsilon() {",
+            2,
+        ),
+        ("state.moves.is_empty()", "state.moves().is_empty()", 2),
+        ("state.epsilon.len()", "state.epsilon().len()", 1),
+        ("state.epsilon[0]", "state.epsilon()[0]", 1),
+        (
+            "let moves = &self.automaton.nodes[*node].moves;",
+            "let moves = self.automaton.nodes[*node].moves();",
+            1,
+        ),
+    ] {
+        assert_eq!(old_body.matches(before).count(), count);
+        old_body = old_body.replace(before, after);
+    }
+    let full = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+        "4ff99e3d3876f3fd2db66621b6efed4bda76e80542e37be27283ef6e0dd3b7e9",
+        include_str!("../before_closure_receiver.rs"),
+    );
     let actual = full
         .split_once("type SharedWeighted")
         .unwrap()
@@ -98,7 +122,11 @@ fn held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bod
         .unwrap()
         .0;
     let expected = format!("pub(super) fn compare_with_index_storage<{body}\n");
-    let caller = include_str!("../../before_closure_invocation.rs");
+    let caller = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+        "a7ae1113a5ef03e8aedb9e842c6ae2ae09d7e0667190cb6ace342326b55558ce",
+        include_str!("../../before_closure_invocation.rs"),
+    );
     assert_eq!(
         caller
             .split_once("pub(super) fn compare_with_index_storage<")
@@ -122,9 +150,12 @@ fn held_closure_complete_old_canonical_and_caller_are_independent_byte_exact_bod
             && !producer.contains("return Ok(")
     );
     assert!(
-        producer.contains("receiving.complete(None)")
+        producer.contains("receiving.finish_overflow()")
             && producer.contains("receiving.refuse(error)")
     );
+    let destination = include_str!("../closure_receiving.rs");
+    assert!(destination.contains("pub(super) fn finish_overflow(&mut self) {\n        self.overflow = true;\n        self.ready = true;\n    }"));
+    assert!(current.contains("if receiving.overflow {\n            return Ok(None);\n        }"));
     let boundary = current
         .split_once("    fn closure_with_receiving(")
         .unwrap()

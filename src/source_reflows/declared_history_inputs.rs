@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 24] = [
+const PARTS: [(&str, &str, usize, &str); 25] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 24] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        28533,
-        "d713e1824b222de8cbf4ee31126c5dc618219310df1aadac9fb71f11a3a91be4",
+        28604,
+        "72887784665662fef39115cb2ba166fa3e7d1a6378d07694e9da2d8d47965bac",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -228,8 +228,17 @@ const PARTS: [(&str, &str, usize, &str); 24] = [
         55531,
         "95a7cba1d970320387adc7b91f90406fc3c451280e00439e85cf78b618017703",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-24.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-24.json"
+        )),
+        3405,
+        "4afa82541a643b1d3445240cf6e227f8590d06e0c5401f2ccf4206fa91ddd179",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 24] = [const { OnceLock::new() }; 24];
+static CACHE: [OnceLock<serde_json::Value>; 25] = [const { OnceLock::new() }; 25];
 pub(crate) fn records(part: usize) -> &'static serde_json::Value {
     let (path, compiled, length, sha) = PARTS[part];
     let fresh = reader::read(
@@ -660,6 +669,9 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs", "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd" ) => Some((23,0)),
 ("src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs", "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7" ) => Some((23,1)),
 ("src/cleanup_plan/replay/factored/canonical_shared.rs", "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077" ) => Some((23,2)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs", "4ff99e3d3876f3fd2db66621b6efed4bda76e80542e37be27283ef6e0dd3b7e9" ) => Some((24,0)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs", "33ceb173a1fad9c0984e6d57f78742eeb775c8e0b513d29316c94b8174f4553d" ) => Some((24,1)),
+("src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs", "15515da8139c595c8661753af7a1dadd95c715ada5e10c9c99205d653e73ae9e" ) => Some((24,2)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -738,6 +750,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_scratch_memo.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs")),
 "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs")),

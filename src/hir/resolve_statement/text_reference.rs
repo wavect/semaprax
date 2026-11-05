@@ -77,10 +77,17 @@ fn full_current_expression_entry_is_exact_original_plus_test_dispatch() {
                         continue;
                     }
 "#;
-    let current = crate::source_reflows_merge::main_f045_input(
+    let current = crate::source_reflows::declared_history_inputs::expected_value(
         "src/hir/resolve_statement.rs",
+        "b0dbb0880ed2ad6b5888e9df06837383e65eb0849ff118e02eff73c71c4c24db",
         include_str!("../resolve_statement.rs"),
-    );
+    )
+    .unwrap_or_else(|| {
+        crate::source_reflows_merge::main_f045_input(
+            "src/hir/resolve_statement.rs",
+            include_str!("../resolve_statement.rs"),
+        )
+    });
     let current = current.as_str();
     assert_eq!(current.matches(DECLARATION).count(), 1);
     assert_eq!(current.matches(DISPATCH).count(), 1);

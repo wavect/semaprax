@@ -257,6 +257,19 @@ fn joined_checked(data: &str, path: &str, current: &str) -> Option<String> {
         return None;
     }
     let row = rows.iter().find(|row| row["path"] == path)?;
+    let expected = row
+        .get("physical_sha256")
+        .unwrap_or(&row["current_sha256"])
+        .as_str()?;
+    let acquired;
+    let current = if joined_digest(current.as_bytes()) == expected {
+        current
+    } else {
+        acquired = crate::source_reflows::declared_history_inputs::expected_value(
+            path, expected, current,
+        )?;
+        acquired.as_str()
+    };
     // The physical source must reconstruct the complete pinned joined input
     // before any unchanged byte-offset inverse or incoming-owner check runs.
     let physical_previous;

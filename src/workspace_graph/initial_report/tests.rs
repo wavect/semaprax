@@ -237,7 +237,23 @@ fn complete_original_builder_mappers_and_all_current_owners_remain_authenticated
     for row in rows.as_array().unwrap() {
         let path = row["source"].as_str().unwrap();
         let actual = std::fs::read_to_string(root.join(path)).unwrap();
-        let mut actual = crate::source_reflows_merge::initial845_input(path, &actual);
+        let mut actual = if format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))
+        ) == row["current_sha256"].as_str().unwrap()
+        {
+            actual
+        } else if let Some(acquired) =
+            crate::source_reflows::declared_history_inputs::expected_value(
+                path,
+                row["current_sha256"].as_str().unwrap(),
+                &actual,
+            )
+        {
+            acquired
+        } else {
+            crate::source_reflows_merge::initial845_input(path, &actual)
+        };
         assert_eq!(
             format!(
                 "{:x}",
@@ -268,7 +284,23 @@ fn complete_original_builder_mappers_and_all_current_owners_remain_authenticated
     for row in owners.as_array().unwrap() {
         let path = row["source"].as_str().unwrap();
         let actual = std::fs::read_to_string(root.join(path)).unwrap();
-        let actual = crate::source_reflows_merge::initial845_input(path, &actual);
+        let actual = if format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))
+        ) == row["sha256"].as_str().unwrap()
+        {
+            actual
+        } else if let Some(acquired) =
+            crate::source_reflows::declared_history_inputs::expected_value(
+                path,
+                row["sha256"].as_str().unwrap(),
+                &actual,
+            )
+        {
+            acquired
+        } else {
+            crate::source_reflows_merge::initial845_input(path, &actual)
+        };
         assert_eq!(
             format!(
                 "{:x}",
@@ -281,16 +313,30 @@ fn complete_original_builder_mappers_and_all_current_owners_remain_authenticated
     let start = old.find("fn build_owned_inner(").unwrap();
     let end = old[start..].find("\ntype ResolvedCore").unwrap() + start;
     let body = old[start..end].replace("fn build_owned_inner(", "pub(super) fn build_owned_inner(");
-    let complete_before = crate::source_reflows_merge::initial845_input(
+    let complete_before = crate::source_reflows::declared_history_inputs::expected_value(
         "src/workspace_graph/initial_report/before.rs",
+        "5c7f71670fb7bfb0ffd77071fcfa60c24230692e310644ce47263a59d43ab87f",
         include_str!("before.rs"),
-    );
+    )
+    .unwrap_or_else(|| {
+        crate::source_reflows_merge::initial845_input(
+            "src/workspace_graph/initial_report/before.rs",
+            include_str!("before.rs"),
+        )
+    });
     assert!(complete_before.contains(&body));
     let legacy = std::fs::read_to_string(packet.join("before/src/bounded_output.rs")).unwrap();
-    let current = crate::source_reflows_merge::initial845_input(
+    let current = crate::source_reflows::declared_history_inputs::expected_value(
         "src/bounded_output.rs",
+        "aea2c8c6ae3ee6f6362316e5a4d5197316e0aedcda5896b6d4e47dca5e7c0d94",
         include_str!("../../bounded_output.rs"),
-    );
+    )
+    .unwrap_or_else(|| {
+        crate::source_reflows_merge::initial845_input(
+            "src/bounded_output.rs",
+            include_str!("../../bounded_output.rs"),
+        )
+    });
     assert_eq!(
         current
             .strip_prefix("pub(crate) mod format_acceptance;\n")

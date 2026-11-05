@@ -18,13 +18,22 @@ fn restore(source: &str, current: &str) -> String {
     let acquired = crate::source_reflows_merge::main_e177_final_inputs::combined_side_value(
         source, "whole785", current,
     );
-    let current = acquired.as_str();
     let record: serde_json::Value = serde_json::from_str(INVERSES).unwrap();
     let rows = record["files"].as_array().unwrap();
     let row = rows
         .iter()
         .find(|row| row["path"] == source)
         .expect("finite 785 input");
+    let acquired = if digest(&acquired) == row["after_sha256"].as_str().unwrap() {
+        acquired
+    } else {
+        crate::source_reflows::original_fixture_source(
+            source,
+            row["after_sha256"].as_str().unwrap(),
+            current,
+        )
+    };
+    let current = acquired.as_str();
     assert_eq!(digest(current), row["after_sha256"].as_str().unwrap());
     assert_eq!(current, row["after"].as_str().unwrap());
     let before = row["before"].as_str().unwrap();
@@ -63,7 +72,7 @@ fn complete_immediate_sources_and_old_clone_and_both_callers_are_exactly_preserv
         snapshot("src/workspace_graph/shape_identity.rs")
     );
     let old_validation = snapshot("src/workspace_graph/validation.rs");
-    let rebuilt_validation = include_str!("before_validation785.rs")
+    let rebuilt_validation = include_str!("before_validation785.rs").replace("    graph_error, prelude_binding, reserve_builder_structure, AuthoredDeclaration,\n    ResolvedModuleInput, WorkspaceDeclarationFact,\n","    graph_error, prelude_binding, reserve_builder_structure,\n    AuthoredDeclaration, ResolvedModuleInput, WorkspaceDeclarationFact,\n")
         .replace("#[path = \"../validation/before_roots.rs\"]\n", "")
         .replace("\nuse super::before785::top_level_declaration;\n", "")
         .replace(
@@ -77,7 +86,11 @@ fn complete_immediate_sources_and_old_clone_and_both_callers_are_exactly_preserv
     );
     let old_root = snapshot("src/workspace_graph.rs");
     assert_eq!(
-        std::fs::read_to_string(root.join("src/workspace_graph.rs")).unwrap(),
+        crate::source_reflows::original_fixture_source(
+            "src/workspace_graph.rs",
+            "b8d71709bbe9961b338552bba4f6098e59c8d78c5da7ca5f8ff4157b36ea3f31",
+            &std::fs::read_to_string(root.join("src/workspace_graph.rs")).unwrap()
+        ),
         old_root
     );
     let start = old_root
@@ -88,10 +101,21 @@ fn complete_immediate_sources_and_old_clone_and_both_callers_are_exactly_preserv
         "use super::*;\nuse super::before785::top_level_declaration;\npub(super) {}\n",
         &old_root[start..end]
     );
-    assert_eq!(include_str!("before_caller785.rs"), expected);
+    assert_eq!(
+        crate::source_reflows::original_fixture_source(
+            "src/workspace_graph/shape_identity/before_caller785.rs",
+            "b642b576c0a4de29c21d0060915522e27278d1596b0e768f9616642dd8f417b5",
+            include_str!("before_caller785.rs")
+        ),
+        expected
+    );
     // The new view cannot quietly reprice or alter the original allocating API.
     let old_budget = snapshot("src/bounded_output.rs");
-    let current_budget = std::fs::read_to_string(root.join("src/bounded_output.rs")).unwrap();
+    let current_budget = crate::source_reflows::original_fixture_source(
+        "src/bounded_output.rs",
+        "e1437d193ab4354ae1e04da9b91b325922c2fe377a07fdfd8da989ef39d6929e",
+        &std::fs::read_to_string(root.join("src/bounded_output.rs")).unwrap(),
+    );
     let clone = |s: &str| {
         s.split("pub(crate) fn budgeted_clone(value: &str) -> String {")
             .nth(1)

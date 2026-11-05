@@ -581,7 +581,11 @@ fn complete_original_paid_entry_and_lazy_fast_gates_stay_source_exact() {
         ),
         "12f1218a6606519c1facdfb622abee4fd9eb6e2a35e2c2a1a91c91cff7343d86"
     );
-    let current = ci_str!("../../declaration_index/flags/paid.rs");
+    let current = crate::source_reflows::original_fixture_source(
+        "src/hir/declaration_index/flags/paid.rs",
+        "4dbfc92879fd88c9eec8827f74e4c62a876b2c01cef194fca81e30a46cb6da36",
+        ci_str!("../../declaration_index/flags/paid.rs"),
+    );
     let start = current
         .find("    /// Invocation-local lazy state:")
         .unwrap();

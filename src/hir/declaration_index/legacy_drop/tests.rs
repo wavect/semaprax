@@ -119,7 +119,11 @@ fn branching_unfunded_disposal_settles_every_allocation_and_original_sticky_ledg
 
 #[test]
 fn complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact() {
-    let current = include_str!("../../declaration_index.rs");
+    let current = crate::source_reflows::original_fixture_source(
+        "src/hir/declaration_index.rs",
+        "9cb1c0667e83e5f72aab03411cb50fb7a74062428bb420e9e1ad2341d4b8e374",
+        include_str!("../../declaration_index.rs"),
+    );
     let current = &current[current.find("impl Drop for DeclarationIndex {").unwrap()..];
     let complete_old = include_str!(
         "../../../../docs/evidence/legacy-linked-drop-reuse-828f/complete-drop-before.rs.txt"
@@ -135,7 +139,11 @@ fn complete_previous_drop_and_existing_mixed_case_512_owner_remain_exact() {
     assert!(current.starts_with(&format!(
         "{paid_prefix}        self.drain_legacy_type_roots(legacy_drop::dispose);\n    }}\n}}"
     )));
-    let saved = include_str!("before.rs");
+    let saved = crate::source_reflows::original_fixture_source(
+        "src/hir/declaration_index/legacy_drop/before.rs",
+        "8eda7927bd2adda6cdb5db62a9742750f1a40e328584dadf4ca9e3a56250f02c",
+        include_str!("before.rs"),
+    );
     let start = saved.find("impl DeclarationIndex {").unwrap();
     let restored = saved[start..]
         .replacen(

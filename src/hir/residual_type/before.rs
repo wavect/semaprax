@@ -628,9 +628,41 @@ mod residual_payload_tests {
     use crate::test_allocation_observer::measure;
     use std::mem::size_of;
 
+    // The payload delta is not the full enum delta: boxing also changes
+    // which discriminant niches are available to the enclosing enum. Keep
+    // an independent union with the residual fields and two real alternatives,
+    // then check its layouts against BOTH complete production/original enums.
+    enum ResidualLayout<T> {
+        Try {
+            operand: Box<ResolvedExpr>,
+            result: DeclarationId,
+            ok_case: DeclarationId,
+            ok_field: DeclarationId,
+            err_case: DeclarationId,
+            err_field: DeclarationId,
+            residual_type: T,
+        },
+        BorrowPlace {
+            operation: DeclarationId,
+            place: Place,
+        },
+        VecFieldRead {
+            origin: crate::hir::VecFieldReadOrigin,
+            element: ResolvedType,
+            field: DeclarationId,
+            bytes: bool,
+            args: Vec<ResolvedExpr>,
+        },
+    }
+
     #[test]
     fn residual_payload_compacts_the_complete_previous_expression_layout() {
-        let saved = size_of::<ResolvedType>() - size_of::<Box<ResolvedType>>();
+        let previous = size_of::<ResidualLayout<ResolvedType>>();
+        let current = size_of::<ResidualLayout<Box<ResolvedType>>>();
+        assert_eq!(size_of::<before::ResolvedExprKind>(), previous);
+        assert_eq!(size_of::<ResolvedExprKind>(), current);
+        let saved = previous - current;
+        assert!(saved > 0);
         assert_eq!(
             size_of::<before::ResolvedExprKind>() - size_of::<ResolvedExprKind>(),
             saved

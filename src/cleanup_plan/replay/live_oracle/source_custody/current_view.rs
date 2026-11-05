@@ -295,3 +295,20 @@ fn funded_promotions_preserve_whole_original_guards_and_refuse_foreign_stages() 
         assert!(std::panic::catch_unwind(|| funded_before_promotion("foreign.rs", raw)).is_err());
     }
 }
+
+// The unchanged #810 inverse starts at its complete pre-revision test input.
+// Acquire only these declared whole modules, with current physical/compiled
+// source, current archive and independent original Git image authenticated.
+pub(super) fn live_oracle_input(source: &str, current: &str) -> String {
+    let expected = match source {
+        "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs" => {
+            "8b9456839d1d18c39550e5d286fc142f2c4a21ef94b7fdf74757c084ba2af5df"
+        }
+        "src/project/incremental/cold_source_tests/oracle_owner_before.rs" => {
+            "d01121cc328a636f5561d32e295cdeea232c53ec43d9cd42e3100ff96391d287"
+        }
+        _ => panic!("undeclared live oracle test input"),
+    };
+    crate::source_reflows::declared_history_inputs::expected_value(source, expected, current)
+        .expect("complete authenticated original live oracle input")
+}

@@ -495,8 +495,11 @@ fn explicit_owner_siblings_match_legacy_selective_routes_and_body_reuse() {
                 r#"
 #[test]
 "#,
-                include_str!(
-                    "../../../../project/incremental/cold_source_tests/oracle_owner_before.rs"
+                super::current_view::live_oracle_input(
+                    "src/project/incremental/cold_source_tests/oracle_owner_before.rs",
+                    include_str!(
+                        "../../../../project/incremental/cold_source_tests/oracle_owner_before.rs"
+                    ),
                 )
                 .strip_prefix("use super::*;\n\npub(super) ")
                 .unwrap()

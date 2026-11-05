@@ -3071,6 +3071,32 @@
       "committed_head": "b9186d81d4e7526c32a6d1ecc53f595ca448bc38",
       "historical_commit": "4a6eb7a20eb117fda38211fbb128e3f742995262^",
       "owning_test": "complete declared source checkpoint, verified from Git and unchanged original source assertions"
+    },
+    {
+      "source": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs",
+      "view_len": 9076,
+      "view_sha256": "8b9456839d1d18c39550e5d286fc142f2c4a21ef94b7fdf74757c084ba2af5df",
+      "archive": "e/8b9456839d1d18c39550e5d286fc142f2c4a21ef94b7fdf74757c084ba2af5df",
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/a_tail.rs",
+      "owner_archive": "e/20c5c864bc3eb84f4d832b1f67ea5898279950b5ac7ba06a7381a2adb4b50637",
+      "owner_bytes": 30973,
+      "owner_sha256": "20c5c864bc3eb84f4d832b1f67ea5898279950b5ac7ba06a7381a2adb4b50637",
+      "committed_head": "220a14d71aa63c78bbaa8cb450a050533a9f110e",
+      "historical_commit": "7ca547b557ec85373eb449f52d92a4e36d34451d",
+      "owning_test": "complete_original_sources_and_compiled_owning_receivers_remain_exact; exact original inverse input recovered from complete Git source"
+    },
+    {
+      "source": "src/project/incremental/cold_source_tests/oracle_owner_before.rs",
+      "view_len": 7212,
+      "view_sha256": "d01121cc328a636f5561d32e295cdeea232c53ec43d9cd42e3100ff96391d287",
+      "archive": "e/d01121cc328a636f5561d32e295cdeea232c53ec43d9cd42e3100ff96391d287",
+      "owner": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+      "owner_archive": "e/dfda5c8a4e70539ccedc8dfbee0adabcf2ec7e5696d97db0c6b3c583f47ba25f",
+      "owner_bytes": 30628,
+      "owner_sha256": "dfda5c8a4e70539ccedc8dfbee0adabcf2ec7e5696d97db0c6b3c583f47ba25f",
+      "committed_head": "220a14d71aa63c78bbaa8cb450a050533a9f110e",
+      "historical_commit": "55261396e6c585cbb20cb378e6a15bf019379917",
+      "owning_test": "complete_original_sources_and_compiled_owning_receivers_remain_exact; exact original inverse input recovered from complete Git source"
     }
   ]
 }

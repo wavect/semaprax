@@ -456,8 +456,10 @@ pub(super) fn capped(
         );
     }
     {
-        let mut current =
-            include_str!("../../paid_type_facts/inventory_encoded/tests.rs").to_owned();
+        let mut current = super::current_view::live_oracle_input(
+            "src/cleanup_plan/replay/paid_type_facts/inventory_encoded/tests.rs",
+            include_str!("../../paid_type_facts/inventory_encoded/tests.rs"),
+        );
         undo(
             &mut current,
             r###"}

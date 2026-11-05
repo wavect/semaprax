@@ -295,5 +295,5 @@ fn complete_original_receivers_and_all_source_joins_are_byte_exact() {
     let start = prior.find("pub(super) fn build(").unwrap();
     let end = prior.find("\nfn lexical_preflight(").unwrap();
     assert_eq!(include_str!("../../funded_flat/inventory_before.rs"),
-        format!("//! Complete pre-reuse funded facade; original helpers remain in its parent.\nuse super::*;\n\n{}\n", &prior[start..end]));
+        format!("//! Complete pre-reuse funded facade; original helpers remain in its parent.\nuse super::*;\n\n{}", &prior[start..end]));
 }

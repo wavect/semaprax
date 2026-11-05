@@ -220,7 +220,13 @@ pub(in crate::loan_plan) fn before_inventory_source(path: &str, source: &str) ->
         .iter()
         .find(|row| row["source"] == path)
         .unwrap();
-    let mut restored = source.to_owned();
+    let original = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("docs/evidence/loan-candidate-inventory-reuse")
+            .join(row["archive"].as_str().unwrap()),
+    )
+    .unwrap();
+    let mut restored = crate::source_reflows::declared_guard_stage(file!(), source, &original, row);
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(restored.matches(after).count(), 1);

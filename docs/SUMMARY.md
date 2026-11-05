@@ -1913,3 +1913,5 @@ Audience: all documentation readers.
 - [Complete unit report bindings](evidence/unit-wire-bindings-20261105/README.md)
 
 - [Exact inputs for declared historical domains](evidence/declared-history-inputs-20261105/README.md)
+
+- [V13 digest text](evidence/finite-source-overlay-v2-20261018/digest-text-v13.md)

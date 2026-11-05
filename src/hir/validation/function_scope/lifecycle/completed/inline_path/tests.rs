@@ -358,7 +358,8 @@ fn complete_original_and_all_source_audit_receivers_are_byte_exact() {
             ),
             row["original_sha256"].as_str().unwrap()
         );
-        let mut restored = current.to_owned();
+        let mut restored =
+            crate::source_reflows::declared_guard_stage(file!(), current, original, row);
         for edit in row["edits"].as_array().unwrap() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(restored.matches(after).count(), 1);
@@ -370,7 +371,11 @@ fn complete_original_and_all_source_audit_receivers_are_byte_exact() {
         ci_str!("../before_inline.rs").to_owned() + "\n#[cfg(test)]\nmod tests;\n",
         originals[0]
     );
-    let mut legacy = ci_str!("../../../lifecycle.rs").to_owned();
+    let mut legacy = crate::source_reflows::original_fixture_source(
+        "src/hir/validation/function_scope/lifecycle.rs",
+        "4359a3991e559f31cbb1ad650886ed3433270cbf17ce535169b3ff04fe64027a",
+        include_str!("../../../lifecycle.rs"),
+    );
     for (current, original) in [
         (
             "#[cfg(test)]\npub(super) fn extend_funded(",

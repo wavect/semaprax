@@ -376,7 +376,8 @@ fn full_generic_graph_sources_and_independent_constructor_dispatch_preserve_orig
             ),
             digest
         );
-        let mut current = current.to_owned();
+        let mut current =
+            crate::source_reflows::declared_guard_stage(file!(), current, original, record);
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(current.matches(after).count(), 1);

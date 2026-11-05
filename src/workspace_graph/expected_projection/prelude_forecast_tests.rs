@@ -220,7 +220,9 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
             digest
         );
         assert_eq!(record["sha256"].as_str().unwrap(), digest);
-        let mut restored = super::super::call_carriers::inverse::pre898(current);
+        let received =
+            crate::source_reflows::declared_guard_stage(file!(), current, original, record);
+        let mut restored = super::super::call_carriers::inverse::pre898(&received);
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(restored.matches(after).count(), 1);

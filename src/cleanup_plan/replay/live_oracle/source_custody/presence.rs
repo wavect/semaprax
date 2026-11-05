@@ -12,7 +12,13 @@ pub(super) fn restore(path: &str, current: &mut String) {
     *current = crate::source_reflows_merge::main7f8_presence::before_eb2(path, current);
     *current = crate::source_reflows_merge::main_eb2_inputs::presence(path, current);
     *current = crate::source_reflows_merge::main7f8_presence::after_eb2(path, current);
-    let records: serde_json::Value = serde_json::from_str(include_str!("presence.json")).unwrap();
+    let metadata =
+        crate::source_reflows_merge::main7f8_source_inputs::presence_before_later_inventory(
+            "incoming",
+            "src/cleanup_plan/replay/live_oracle/source_custody/presence.json",
+            include_str!("presence.json"),
+        );
+    let records: serde_json::Value = serde_json::from_str(&metadata).unwrap();
     let record = records
         .as_array()
         .unwrap()

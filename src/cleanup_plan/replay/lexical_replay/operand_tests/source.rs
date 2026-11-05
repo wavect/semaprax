@@ -88,7 +88,12 @@ fn whole_old_lexical_caller_and_all_new_inventory_sources_remain_bound() {
             .iter()
             .find(|r| r["source"] == path)
             .unwrap();
-        let mut current = source.to_owned();
+        let mut current = crate::source_reflows::declared_guard_stage(
+            file!(),
+            source,
+            row["original_bytes"].as_str().unwrap(),
+            row,
+        );
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(current.matches(new).count(), 1, "{path}");

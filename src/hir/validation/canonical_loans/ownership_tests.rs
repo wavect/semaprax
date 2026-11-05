@@ -386,7 +386,16 @@ fn complete_public_boundary_composition_preserves_original_owner_and_kat_source_
         } else {
             current
         };
-        let mut restored = current.to_owned();
+        let mut restored = if ordinal == 0 {
+            current.to_owned()
+        } else {
+            crate::source_reflows::declared_guard_stage(
+                file!(),
+                current,
+                original,
+                &records[ordinal],
+            )
+        };
         for edit in records[ordinal]["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             let before = edit["before"].as_str().unwrap();

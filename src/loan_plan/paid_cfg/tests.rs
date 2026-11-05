@@ -414,7 +414,8 @@ fn whole_original_cfg_legacy_plan_and_child_projection_sources_remain_exact() {
             .iter()
             .find(|row| row["source"] == path)
             .unwrap();
-        let mut restored = receiving.to_owned();
+        let mut restored =
+            crate::source_reflows::declared_guard_stage(file!(), receiving, original, row);
         for edit in row["edits"].as_array().unwrap() {
             let current = edit["after"].as_str().unwrap();
             assert_eq!(restored.matches(current).count(), 1);

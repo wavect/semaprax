@@ -31,7 +31,8 @@ fn legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact(
     for ((path, current, old), row) in files.into_iter().zip(rows.as_array().unwrap()) {
         assert_eq!(row["source"].as_str().unwrap(), path);
         let current_main = crate::source_reflows_merge::maina3_input(path, current);
-        let mut restored = current_main;
+        let mut restored =
+            crate::source_reflows::declared_guard_stage(file!(), &current_main, old, row);
         for edit in row["edits"].as_array().unwrap() {
             let new = edit["new"].as_str().unwrap();
             assert_eq!(restored.matches(new).count(), 1, "{path}");

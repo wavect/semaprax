@@ -4,8 +4,8 @@ Status: Focused local original tests and hostile controls pass; hosted CI remain
 Audience: Compiler maintainers and CI reviewers.
 
 The two unchanged MAIN090/MAIN21 domain manifests and three existing exact
-receiver inverse fixtures declare these 276 complete historical tuples across
-201 physical source files. This closed ingress
+receiver inverse fixtures declare these 400 complete historical tuples across
+273 physical source files. This closed ingress
 authenticates the complete compiled current source, a fresh regular physical
 file and its independent archive before applying an exact indexed inverse.
 It compares every predecessor byte with its existing independent archive.
@@ -51,3 +51,11 @@ fixtures only, and grant no runtime authority.
 The complete pre-V13 decoder root from `e9693f2a3` remains an independent input
 for the unchanged canonical-writer, expansion-cache and original split inverses.
 The current root is authenticated in full before that old source proof runs.
+
+The original ordered guard requests are also retained across the three fixed
+Maina3/Main8a metadata variants. Each supplied request must equal a complete row
+of an immutable authenticated table. Its full reconstructed checkpoint must run
+the original inverse back to the independent whole predecessor. Changed request
+rows, changed originals, foreign, truncated and duplicated inputs are refused.
+Fixed projector and formatting entries include complete Git-verified source
+bodies; existing downstream selection, inverses and refusal controls still run.

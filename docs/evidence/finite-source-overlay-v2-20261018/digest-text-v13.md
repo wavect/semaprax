@@ -1,5 +1,8 @@
 # V13 digest text
 
+Status: local codec and source-preservation checks passed; hosted CI remains authoritative.
+Audience: compiler maintainers and CI reviewers.
+
 V13 stores the same 256-bit pin digests as canonical 43-character URL-safe
 base64 without padding. Only the existing positional digest slots and digest
 dictionary change; every other field stays literal. Decoding restores the full

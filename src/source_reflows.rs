@@ -176,6 +176,15 @@ pub(crate) fn source(
         CACHE.get_or_init(Mutex::default),
         (caller, included),
         || {
+            if let Some(record) = record {
+                if let Some(acquired) = declared_history_inputs::expected_value(
+                    &path,
+                    record["after_sha256"].as_str().unwrap(),
+                    current,
+                ) {
+                    return restore_formatting(record, &acquired);
+                }
+            }
             let projection_input = entry.as_deref().unwrap_or(current);
             let predecessor = semantic_receivers::predecessor(&path, projection_input);
             let current = predecessor.as_deref().unwrap_or(projection_input);
@@ -397,7 +406,9 @@ pub(crate) fn legacy_ci_expected_file(
 }
 
 mod declared_fixture_stages;
-pub(crate) use declared_fixture_stages::fixture_stage as declared_fixture_stage;
+pub(crate) use declared_fixture_stages::{
+    fixture_stage as declared_fixture_stage, guard_stage as declared_guard_stage,
+};
 
 pub(crate) fn original_fixture_source(source: &str, expected: &str, supplied: &str) -> String {
     declared_history_inputs::expected_value(source, expected, supplied)
@@ -405,3 +416,8 @@ pub(crate) fn original_fixture_source(source: &str, expected: &str, supplied: &s
 }
 
 pub(crate) use declared_fixture_stages::complete_child_input;
+
+pub(crate) fn historical_project_entry(source: &str, expected: &str, supplied: &str) -> String {
+    declared_history_inputs::expected_value(source, expected, supplied)
+        .unwrap_or_else(|| crate::source_reflows_merge::project_before(source, expected, supplied))
+}

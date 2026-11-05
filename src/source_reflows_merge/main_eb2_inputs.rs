@@ -35,13 +35,28 @@ fn formatting_input(path: &str, current: &str) -> String {
         }
         _ => None,
     };
-    let projected = expected
-        .map(|expected| super::main_e177_final_inputs::value_direct(path, expected, current));
+    let projected =
+        expected.map(|expected| super::main_e177_final_inputs::value(path, expected, current));
     projected.unwrap_or_else(|| current.to_owned())
 }
 
 pub(crate) fn presence(path: &str, current: &str) -> String {
-    project("presence", path, current)
+    let declared = declared_domain_input("presence", path, current);
+    project("presence", path, declared.as_deref().unwrap_or(current))
+}
+fn declared_domain_input(domain: &str, path: &str, supplied: &str) -> Option<String> {
+    let rows: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    rows.as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["domain"] == domain && row["path"] == path)
+        .find_map(|row| {
+            super::main_e177_final_inputs::declared_history_inputs::expected_value(
+                path,
+                row["current_sha256"].as_str().unwrap(),
+                supplied,
+            )
+        })
 }
 fn project(domain: &str, path: &str, current: &str) -> String {
     assert_eq!(DATA.len(), DATA_LENGTH);
@@ -59,7 +74,8 @@ fn project(domain: &str, path: &str, current: &str) -> String {
     assert_eq!(
         matching.len(),
         1,
-        "exact finite complete source/domain choice"
+        "exact finite complete source/domain choice: {domain} {path} bytes={} sha={current_sha}",
+        current.len()
     );
     let row = matching[0];
     let mut restored = String::new();
@@ -122,7 +138,18 @@ fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
     if domain != "incoming" {
         return current.to_owned();
     }
+    if let Some(declared) = declared_domain_input(domain, path, current) {
+        return declared;
+    }
     let formatted = formatting_input(path, current);
+    let rows: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    if rows.as_array().unwrap().iter().any(|row| {
+        row["domain"] == domain
+            && row["path"] == path
+            && row["current_sha256"] == digest(&formatted)
+    }) {
+        return formatted;
+    }
     let current = formatted.as_str();
     let normalized = if path == "src/cleanup_plan/replay/physical_budget.rs" {
         super::main_e177_final_inputs::value_direct(

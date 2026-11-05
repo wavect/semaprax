@@ -1,4 +1,5 @@
 //! Test-only physical-input successors for immutable CI/Source36 data; no compiler authority.
+use crate::source_reflows::historical_project_entry;
 #[path = "source_reflows_merge/constructor_stage.rs"]
 mod constructor_stage;
 #[path = "source_reflows_merge/joined_custody.rs"]
@@ -138,7 +139,7 @@ fn post21_input(source: &str, current: &str) -> String {
     metadata_json::project(metadata_json::Fixture::M24, source, current)
 }
 // Exact historical ENTRY stages precede the complete compile35f front and its inverses.
-fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
+pub(crate) fn project_before(source: &str, expected: &str, current: &str) -> String {
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
     let current = legacy.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.

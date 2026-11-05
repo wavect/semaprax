@@ -153,7 +153,11 @@ fn semantic_profile_limit_stays_inline_until_the_complete_final_boundary() {
 
 #[test]
 fn complete_original_cleanup_root_remains_byte_exact_with_paid_profile_separate() {
-    let source = include_str!("../../../../cleanup.rs");
+    let source = crate::source_reflows::original_fixture_source(
+        "src/cleanup.rs",
+        "a0279d669c72ba770bb214bd1a7f8ca06e0e3b55071d49e8dc48aa64071d1712",
+        include_str!("../../../../cleanup.rs"),
+    );
     let registration = "#[cfg(test)]\npub(crate) mod schema_summary;\n";
     assert_eq!(source.matches(registration).count(), 1);
     let projected = source.replacen(registration, "", 1);

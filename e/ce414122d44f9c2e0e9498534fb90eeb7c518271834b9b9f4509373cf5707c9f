@@ -1,0 +1,935 @@
+//! Validation-only rules for bounded generic templates.
+
+use super::*;
+mod call_graph;
+mod reachability;
+#[cfg(test)]
+pub(super) use call_graph::original as original_call_graph;
+pub(super) mod values;
+pub(super) use reachability::{reachable_instances, Reachable};
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_expressions(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+    ) -> Result<(), Diagnostic> {
+        self.validate_template_expressions_with_values(template, execution, values::Values::new()?)
+    }
+
+    fn validate_template_expressions_with_values<'value>(
+        &mut self,
+        template: &'value ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        mut values: values::Values<'value>,
+    ) -> Result<(), Diagnostic> {
+        for parameter in &template.params {
+            self.insert_value(&parameter.id)?;
+            values.insert(parameter.id.clone(), &parameter.ty)?;
+        }
+        for (index, expression) in template.requires.iter().enumerate() {
+            let mut contract_values = values.checkpoint()?;
+            self.validate_template_expr(
+                template,
+                execution,
+                expression,
+                &mut contract_values,
+                &format!("requires.{index}"),
+            )?;
+        }
+        self.validate_template_expr_with_context(
+            template,
+            execution,
+            &template.body,
+            &mut values,
+            "body",
+            (false, true),
+        )?;
+        self.insert_value(&template.result_id)?;
+        values.insert(template.result_id.clone(), &template.return_type)?;
+        for (index, expression) in template.ensures.iter().enumerate() {
+            let mut contract_values = values.checkpoint()?;
+            self.validate_template_expr(
+                template,
+                execution,
+                expression,
+                &mut contract_values,
+                &format!("ensures.{index}"),
+            )?;
+        }
+        Ok(())
+    }
+}
+
+pub(super) fn has_owned_record_composition(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> bool {
+    let owned = template
+        .params
+        .iter()
+        .filter(|parameter| parameter.ownership == OwnershipMode::Own)
+        .collect::<Vec<_>>();
+    !owned.is_empty()
+        && template_has_owned_record_slot(program, template)
+        && owned.iter().all(|parameter| {
+            super::super::type_reachability::is_nested_owned_byte_record_template(
+                &program.declarations,
+                &parameter.ty,
+                &template.id,
+                template.type_parameters.len(),
+            )
+        })
+}
+
+pub(super) fn is_owned_record_expression(expression: &ResolvedExpr) -> bool {
+    matches!(
+        expression.kind,
+        ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::Match { .. }
+            | ResolvedExprKind::UpdateRecord { .. }
+            | ResolvedExprKind::Project { .. }
+    )
+}
+
+pub(super) fn expression_ownership_is_valid(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    expression: &ResolvedExpr,
+) -> bool {
+    expression.ownership == template_ownership(program, template, &expression.ty)
+        || (expression.ownership != OwnershipMode::Value
+            && program
+                .declarations
+                .type_facts(&expression.ty)
+                .is_some_and(|facts| facts.needs_drop))
+}
+
+pub(super) fn body_type_requires_validation(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    ty: &ResolvedType,
+) -> bool {
+    ty != &ResolvedType::Never
+        && ty != &ResolvedType::Char
+        && ty != &ResolvedType::Str
+        && !(ty == &ResolvedType::Bytes && has_owned_record_composition(program, template))
+}
+
+fn admits_owned_record_match_result(
+    program: &ResolvedProgram,
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+) -> bool {
+    let FunctionExecutionId::Generic(instance_id) = execution else {
+        return false;
+    };
+    let Some((template, instance_return)) = owned_record_template_execution(program, instance_id)
+    else {
+        return false;
+    };
+    let ResolvedExprKind::Match {
+        mode,
+        scrutinee,
+        arms,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    let ResolvedMatchPattern::Record {
+        record,
+        instance: pattern_instance,
+        fields: _,
+    } = &arm.pattern
+    else {
+        return false;
+    };
+    let common = arms.len() == 1
+        && has_owned_record_composition(program, template)
+        && pattern_instance == &scrutinee.ty
+        && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
+            if declaration == record)
+        && super::super::type_reachability::is_admitted_nested_owned_byte_record(
+            &program.declarations,
+            &scrutinee.ty,
+        );
+    let owned_result = *mode == ResolvedMatchMode::Own
+        && (instance_return == expression.ty
+            || super::super::type_reachability::is_admitted_nested_owned_byte_record(
+                &program.declarations,
+                &expression.ty,
+            ))
+        && expression.ty == arm.value.ty
+        && expression.ownership == OwnershipMode::Own
+        && scrutinee.ownership == OwnershipMode::Own
+        && arm.value.ownership == OwnershipMode::Own;
+    let borrowed_copy_field = *mode == ResolvedMatchMode::Borrow
+        && expression.ty == arm.value.ty
+        && expression.ownership == OwnershipMode::Value
+        && arm.value.ownership == OwnershipMode::Value
+        && matches!(
+            scrutinee.ownership,
+            OwnershipMode::Own | OwnershipMode::Borrow
+        )
+        && super::super::type_reachability::nested_record_copy_scalar_is_admitted(&expression.ty);
+    common && (owned_result || borrowed_copy_field)
+}
+
+fn owned_record_template_execution<'a>(
+    program: &'a ResolvedProgram,
+    instance_id: &FunctionInstanceId,
+) -> Option<(&'a ResolvedFunctionTemplate, ResolvedType)> {
+    if let Some(instance) = program
+        .function_instances
+        .iter()
+        .find(|candidate| candidate.id == *instance_id)
+    {
+        let template = program
+            .function_templates
+            .iter()
+            .find(|candidate| candidate.id == instance.template)?;
+        return Some((template, instance.function.return_type.clone()));
+    }
+    let mut matched = None;
+    for template in &program.function_templates {
+        if !(1..=2).contains(&template.type_parameters.len())
+            || !has_owned_record_composition(program, template)
+        {
+            continue;
+        }
+        for arguments in super::super::monomorphize::resolved_owned_record_substitutions(
+            template.type_parameters.len(),
+        ) {
+            if FunctionInstanceId::derive(&template.id, &arguments) != *instance_id {
+                continue;
+            }
+            let return_type =
+                substitute_type(&template.return_type, &template.id, &arguments).ok()?;
+            if matched.is_some() {
+                return None;
+            }
+            matched = Some((template, return_type));
+        }
+    }
+    matched
+}
+
+/// Recompute ordinary record-result ownership from retained type facts.
+fn admits_ordinary_record_result(
+    program: &ResolvedProgram,
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+) -> bool {
+    if matches!(execution, FunctionExecutionId::Generic(_)) {
+        return false;
+    }
+    let ResolvedExprKind::Match {
+        mode,
+        scrutinee,
+        arms,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    if arms.len() != 1
+        || expression.ty != arm.value.ty
+        || expression.ownership != arm.value.ownership
+    {
+        return false;
+    }
+    let copy = expression.ownership == OwnershipMode::Value
+        && super::super::type_reachability::nested_record_copy_scalar_is_admitted(&expression.ty);
+    let owns = *mode == ResolvedMatchMode::Own
+        && scrutinee.ownership == OwnershipMode::Own
+        && expression.ownership == OwnershipMode::Own
+        && (super::super::type_reachability::is_admitted_nested_owned_byte_record(
+            &program.declarations,
+            &scrutinee.ty,
+        ) || super::super::owned_text_record::runtime_admitted(
+            &scrutinee.ty,
+            &program.declarations,
+        ))
+        && (matches!(expression.ty, ResolvedType::Bytes | ResolvedType::String)
+            || crate::map_ops::is_collection(&expression.ty)
+            || crate::hir::owned_collection_record::vector(&program.declarations, &expression.ty)
+            || super::super::type_reachability::is_admitted_nested_owned_byte_record(
+                &program.declarations,
+                &expression.ty,
+            )
+            || super::super::owned_text_record::runtime_admitted(
+                &expression.ty,
+                &program.declarations,
+            ));
+    copy || owns
+}
+
+fn validate_record_match_result(
+    program: &ResolvedProgram,
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+) -> Result<(), Diagnostic> {
+    // Completion carries no runtime value. The independent lexical contour
+    // validator still proves the terminal arm and its exact Value ownership.
+    let terminal = !matches!(execution, FunctionExecutionId::Generic(_))
+        && expression.ty == ResolvedType::Never
+        && expression.ownership == OwnershipMode::Value
+        && arm.value.ty == ResolvedType::Never
+        && arm.value.ownership == OwnershipMode::Value
+        && matches!(&expression.kind, ResolvedExprKind::Match { arms, .. } if arms.len() == 1);
+    if terminal
+        || matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
+        || admits_owned_record_match_result(program, execution, expression, arm)
+        || admits_ordinary_record_result(program, execution, expression, arm)
+    {
+        Ok(())
+    } else {
+        Err(hir_error(
+            "resolved record match arm must produce i64 or bool",
+        ))
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_generic_record_match_result(
+        &self,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        arm: &ResolvedMatchArm,
+    ) -> Result<(), Diagnostic> {
+        validate_record_match_result(self.program, execution, expression, arm)
+    }
+}
+
+pub(super) fn projected_place_type<'scope>(
+    program: &ResolvedProgram,
+    place: &Place,
+    values: &'scope values::Values<'_>,
+) -> Result<std::borrow::Cow<'scope, ResolvedType>, Diagnostic> {
+    let mut ty = values
+        .root(&place.root)
+        .ok_or_else(|| hir_error("generic template place root is out of scope"))?;
+    for projection in &place.projections {
+        let PlaceProjection::Field(field) = projection else {
+            return Err(hir_error(
+                "generic template place uses a non-record projection",
+            ));
+        };
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = ty.as_ref()
+        else {
+            return Err(hir_error("generic template projects a non-record place"));
+        };
+        let field_ty = program
+            .declarations
+            .record_fields(declaration)
+            .and_then(|fields| fields.iter().find(|candidate| candidate.id == *field))
+            .map(|candidate| &candidate.ty)
+            .ok_or_else(|| hir_error("generic template projects an unknown record field"))?;
+        ty = std::borrow::Cow::Owned(substitute_type(field_ty, declaration, arguments)?);
+    }
+    Ok(ty)
+}
+
+pub(super) fn validate_template_place(
+    program: &ResolvedProgram,
+    _template: &ResolvedFunctionTemplate,
+    expression: &ResolvedExpr,
+    place: &Place,
+    values: &values::Values<'_>,
+) -> Result<(), Diagnostic> {
+    if *projected_place_type(program, place, values)? != expression.ty {
+        return Err(hir_error("generic projected place type differs"));
+    }
+    Ok(())
+}
+
+pub(super) fn authenticate_vec_wrapper(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> Result<Option<crate::vec_ops::VecOp>, Diagnostic> {
+    let candidate = crate::vec_ops::wrapper_by_id(template.id.as_str()).is_some()
+        || (program.module == crate::vec_ops::MODULE
+            && crate::vec_ops::ALL
+                .into_iter()
+                .any(|op| crate::vec_ops::wrapper_name(op) == Some(template.name.as_str())));
+    match (
+        candidate,
+        crate::vec_ops::hir_wrapper_in_program(program, template),
+    ) {
+        (false, _) => Ok(None),
+        (true, Some(op)) => Ok(Some(op)),
+        (true, None) => Err(hir_error(format!(
+            "generic template `{}` is not an authenticated std.collections vector wrapper",
+            template.id
+        ))),
+    }
+}
+
+pub(super) fn authenticate_box_wrapper(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> Result<Option<crate::box_ops::BoxOp>, Diagnostic> {
+    let candidate = crate::box_ops::wrapper_by_id(template.id.as_str()).is_some()
+        || (program.module == crate::box_ops::MODULE
+            && crate::box_ops::ALL
+                .into_iter()
+                .any(|op| crate::box_ops::wrapper_name(op) == template.name));
+    match (
+        candidate,
+        crate::box_ops::hir_wrapper_in_program(program, template),
+    ) {
+        (false, _) => Ok(None),
+        (true, Some(op)) => Ok(Some(op)),
+        (true, None) => Err(hir_error(format!(
+            "generic template `{}` is not an authenticated std.mem box wrapper",
+            template.id
+        ))),
+    }
+}
+
+pub(super) fn vec_wrapper_substitutions() -> Vec<Vec<ResolvedType>> {
+    [
+        ResolvedType::I64,
+        ResolvedType::I32,
+        ResolvedType::U8,
+        ResolvedType::Usize,
+        ResolvedType::Char,
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+    ]
+    .into_iter()
+    .map(|ty| vec![ty])
+    .collect()
+}
+
+pub(super) fn validate_type(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    ty: &ResolvedType,
+) -> Result<(), Diagnostic> {
+    let admitted = (super::super::generic_variant::profile(program, template)
+        && (super::super::generic_variant::slot(
+            &program.declarations,
+            ty,
+            &template.id,
+            template.type_parameters.len(),
+        ) || *ty == ResolvedType::Bytes
+            || super::super::generic_collection::scalar(ty)))
+        || (super::super::generic_collection::profile(template)
+            && (super::super::generic_collection::slot(
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) || super::super::generic_collection::scalar(ty)
+                || super::super::generic_collection::callback(
+                    ty,
+                    &template.id,
+                    template.type_parameters.len(),
+                )))
+        || (super::super::generic_result::profile(template)
+            && (super::super::generic_result::slot(
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) || *ty == ResolvedType::Bytes))
+        || matches!(
+            ty,
+            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String
+        )
+        || matches!(ty, ResolvedType::TypeParameter { owner, index }
+            if owner == &template.id && usize::try_from(*index).ok()
+                .is_some_and(|index| index < template.type_parameters.len()))
+        || super::super::type_reachability::is_nested_owned_byte_record_template(
+            &program.declarations,
+            ty,
+            &template.id,
+            template.type_parameters.len(),
+        )
+        || crate::vec_ops::template_type_is_admitted(template, ty)
+        || crate::box_ops::template_type_is_admitted(template, ty);
+    admitted.then_some(()).ok_or_else(|| {
+        hir_error(format!(
+            "generic template `{}` has an invalid direct-scalar signature slot",
+            template.id
+        ))
+    })
+}
+
+pub(super) fn is_vec_wrapper_call(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    callee: &DeclarationId,
+    type_arguments: &[ResolvedType],
+    instance: &Option<FunctionInstanceId>,
+) -> bool {
+    instance.is_none()
+        && (super::super::generic_collection::profile(template)
+            && (crate::vec_ops::by_id(callee.as_str()).is_some()
+                || crate::box_ops::by_id(callee.as_str()).is_some()
+                || crate::iterator_ops::by_id(callee.as_str()).is_some())
+            || crate::vec_ops::hir_wrapper_in_program(program, template)
+                == crate::vec_ops::by_id(callee.as_str()))
+        && matches!(type_arguments,
+            [argument] if super::super::generic_collection::parameter(argument, &template.id, template.type_parameters.len()))
+}
+
+pub(super) fn is_forwarded_call(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    callee: &DeclarationId,
+    type_arguments: &[ResolvedType],
+    instance: &Option<FunctionInstanceId>,
+) -> bool {
+    program
+        .function_templates
+        .iter()
+        .find(|target| target.id == *callee)
+        .is_some_and(|target| {
+            target.type_parameters.len() == type_arguments.len()
+                && crate::hir::generic_mapping::arguments(
+                    &template.id,
+                    template.type_parameters.len(),
+                    type_arguments,
+                )
+                && instance.as_ref().is_some_and(|instance| {
+                    FunctionInstanceId::derive(callee, type_arguments) == *instance
+                })
+        })
+}
+
+pub(super) fn validate_call_graph(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if crate::bounded_output::active_remaining().is_some() {
+        call_graph::validate_call_graph_paid(program)
+    } else {
+        validate_call_graph_original(program)
+    }
+}
+
+pub(super) fn validate_call_graph_original(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    let ids = program
+        .function_templates
+        .iter()
+        .map(|template| template.id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut edges = BTreeMap::<DeclarationId, BTreeSet<DeclarationId>>::new();
+    let mut incoming = ids
+        .iter()
+        .cloned()
+        .map(|id| (id, 0usize))
+        .collect::<BTreeMap<_, _>>();
+    for template in &program.function_templates {
+        for expression in template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+        {
+            visit_resolved_calls(expression, &mut |callee, _, _| {
+                if ids.contains(callee)
+                    && edges
+                        .entry(template.id.clone())
+                        .or_default()
+                        .insert(callee.clone())
+                {
+                    *incoming.get_mut(callee).expect("template was indexed") += 1;
+                }
+            });
+        }
+    }
+    let mut pending = incoming
+        .iter()
+        .filter_map(|(id, count)| (*count == 0).then_some(id.clone()))
+        .collect::<std::collections::VecDeque<_>>();
+    let mut visited = 0usize;
+    while let Some(id) = pending.pop_front() {
+        visited += 1;
+        for callee in edges.get(&id).into_iter().flatten() {
+            let count = incoming.get_mut(callee).expect("template was indexed");
+            *count -= 1;
+            if *count == 0 {
+                pending.push_back(callee.clone());
+            }
+        }
+    }
+    (visited == ids.len())
+        .then_some(())
+        .ok_or_else(|| hir_error("generic function template call graph contains a direct cycle"))
+}
+
+pub(super) fn proof_return_type(
+    program: &ResolvedProgram,
+    callee: &DeclarationId,
+    instance: Option<&FunctionInstanceId>,
+    arguments: &[ResolvedType],
+) -> Result<ResolvedType, Diagnostic> {
+    let template = program
+        .function_templates
+        .iter()
+        .find(|template| template.id == *callee)
+        .ok_or_else(|| hir_error(format!("function `{callee}` is not indexed")))?;
+    if instance.is_none_or(|instance| FunctionInstanceId::derive(callee, arguments) != *instance) {
+        return Err(hir_error("proof generic call identity is inconsistent"));
+    }
+    substitute_type(&template.return_type, &template.id, arguments)
+}
+
+pub(super) fn proof_signature(
+    program: &ResolvedProgram,
+    callee: &DeclarationId,
+    instance: Option<&FunctionInstanceId>,
+    arguments: &[ResolvedType],
+) -> Result<(Vec<ResolvedParam>, ResolvedType, Vec<String>), Diagnostic> {
+    let template = program
+        .function_templates
+        .iter()
+        .find(|template| template.id == *callee)
+        .ok_or_else(|| hir_error(format!("resolved callee `{callee}` is not indexed")))?;
+    if instance.is_none_or(|instance| FunctionInstanceId::derive(callee, arguments) != *instance) {
+        return Err(hir_error("proof generic call identity is inconsistent"));
+    }
+    let params = template
+        .params
+        .iter()
+        .map(|parameter| {
+            Ok(ResolvedParam {
+                id: parameter.id.clone(),
+                name: parameter.name.clone(),
+                ownership: parameter.ownership,
+                ty: substitute_type(&parameter.ty, &template.id, arguments)?,
+                span: parameter.span,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    Ok((
+        params,
+        substitute_type(&template.return_type, &template.id, arguments)?,
+        template.effects.clone(),
+    ))
+}
+
+pub(super) fn substitutions(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    transparent_owned_wrapper: bool,
+) -> Vec<Vec<ResolvedType>> {
+    if super::super::generic_collection::profile(template) {
+        super::super::generic_collection::substitutions(template.type_parameters.len())
+    } else if super::super::generic_variant::profile(program, template) {
+        super::super::generic_variant::substitutions()
+    } else if super::super::generic_result::profile(template) {
+        super::super::generic_result::substitutions(&template.return_type)
+    } else if transparent_owned_wrapper {
+        vec_wrapper_substitutions()
+    } else if template_has_owned_record_slot(program, template) {
+        resolved_owned_record_substitutions(template.type_parameters.len())
+    } else {
+        resolved_scalar_substitutions(template.type_parameters.len())
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_result_expression<'value>(
+        &mut self,
+        template: &'value ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &'value ResolvedExpr,
+        values: &mut generic_template::values::Values<'value>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_result::profile(template) || !path.starts_with("body") {
+            return Err(hir_error(
+                "generic Result expression requires its exact owning relay body",
+            ));
+        }
+        let ResolvedType::Nominal { arguments, .. } = &template.return_type else {
+            unreachable!()
+        };
+        let success = &arguments[0];
+        let success_ownership = template_ownership(self.program, template, success);
+        match &expression.kind {
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let [field] = fields.as_slice() else {
+                    return Err(hir_error(
+                        "generic Result reconstruction requires one Ok payload",
+                    ));
+                };
+                if variant.as_str() != crate::prelude::RESULT_ID
+                    || case.as_str() != crate::prelude::RESULT_OK_ID
+                    || field.field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+                    || expression.ty != template.return_type
+                    || expression.ownership != OwnershipMode::Own
+                    || &field.value.ty != success
+                    || field.value.ownership != success_ownership
+                {
+                    return Err(hir_error(
+                        "generic Result reconstruction differs from its owning signature",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    &field.value,
+                    values,
+                    &format!("{path}.field.0.value"),
+                )
+            }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                if result.as_str() != crate::prelude::RESULT_ID
+                    || ok_case.as_str() != crate::prelude::RESULT_OK_ID
+                    || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+                    || err_case.as_str() != crate::prelude::RESULT_ERR_ID
+                    || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
+                    || *residual_type != template.return_type
+                    || operand.ty != *residual_type
+                    || operand.ownership != OwnershipMode::Own
+                    || &expression.ty != success
+                    || expression.ownership != success_ownership
+                {
+                    return Err(hir_error(
+                        "generic Result propagation differs from its exact owning residual",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    operand,
+                    values,
+                    &format!("{path}.operand"),
+                )
+            }
+            _ => Err(hir_error(
+                "generic Result helper received unsupported expression",
+            )),
+        }
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_function_template_type(
+        &self,
+        template: &ResolvedFunctionTemplate,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        generic_template::validate_type(self.program, template, ty)
+    }
+
+    pub(super) fn validate_template_expr<'value>(
+        &mut self,
+        template: &'value ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &'value ResolvedExpr,
+        values: &mut generic_template::values::Values<'value>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        self.validate_template_expr_with_context(
+            template,
+            execution,
+            expression,
+            values,
+            path,
+            (false, false),
+        )
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_callable<'value>(
+        &mut self,
+        template: &'value ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &'value ResolvedExpr,
+        values: &mut generic_template::values::Values<'value>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_collection::profile(template) {
+            return Err(hir_error(
+                "callable templates require the bounded generic collection profile",
+            ));
+        }
+        match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                super::super::function_value::validate_reference(
+                    self.program,
+                    target,
+                    &expression.ty,
+                )
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                super::super::function_value::validate_invocation_scoped(
+                    expression,
+                    Some((&template.id, template.type_parameters.len())),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    callable,
+                    values,
+                    &format!("{path}.callable"),
+                )?;
+                for (index, argument) in args.iter().enumerate() {
+                    self.validate_template_expr(
+                        template,
+                        execution,
+                        argument,
+                        values,
+                        &format!("{path}.arg.{index}"),
+                    )?;
+                }
+                Ok(())
+            }
+            _ => Err(hir_error("expected generic callable expression")),
+        }
+    }
+    pub(super) fn while_callable_arguments<'e>(
+        &self,
+        expression: &'e ResolvedExpr,
+    ) -> Result<Vec<&'e ResolvedExpr>, Diagnostic> {
+        match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                super::super::function_value::validate_reference(
+                    self.program,
+                    target,
+                    &expression.ty,
+                )?;
+                Ok(Vec::new())
+            }
+            ResolvedExprKind::Invoke { args, .. } => {
+                super::super::function_value::validate_invocation(expression)?;
+                Ok(args.iter().collect())
+            }
+            _ => Err(hir_error("expected bounded while callable")),
+        }
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_mutation<'value>(
+        &mut self,
+        template: &'value ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        statement: &'value ResolvedStatement,
+        values: &mut generic_template::values::Values<'value>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_collection::profile(template) {
+            return Err(hir_error(
+                "generic mutation requires the bounded collection profile",
+            ));
+        }
+        match statement {
+            ResolvedStatement::Assign {
+                binding,
+                field,
+                value,
+                ..
+            } => {
+                if field.is_some()
+                    || !template_mutable_binding(template, binding)
+                    || values.get(&binding.id) != Some(&binding.ty)
+                    || binding.ty != value.ty
+                    || binding.ownership != template_ownership(self.program, template, &binding.ty)
+                {
+                    return Err(hir_error(
+                        "generic collection assignment has invalid target or type",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    value,
+                    values,
+                    &format!("{path}.value"),
+                )
+            }
+            ResolvedStatement::While {
+                condition, body, ..
+            }
+            | ResolvedStatement::LexicalWhile {
+                condition, body, ..
+            } => {
+                if condition.ty != ResolvedType::Bool
+                    || !matches!(
+                        body.kind,
+                        ResolvedExprKind::Block { .. } | ResolvedExprKind::VecConstructor { .. }
+                    )
+                {
+                    return Err(hir_error(
+                        "generic collection loop requires bool condition and block body",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    condition,
+                    &mut values.checkpoint()?,
+                    &format!("{path}.condition"),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    body,
+                    &mut values.checkpoint()?,
+                    &format!("{path}.body"),
+                )
+            }
+            _ => Err(hir_error("expected generic collection mutation")),
+        }
+    }
+}
+
+fn template_mutable_binding(
+    template: &ResolvedFunctionTemplate,
+    binding: &ResolvedBinding,
+) -> bool {
+    let mut pending = vec![&template.body];
+    let mut matched = false;
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Block { statements, .. }
+        | ResolvedExprKind::VecConstructor { statements, .. } = &expression.kind
+        {
+            for statement in statements {
+                if let ResolvedStatement::Let {
+                    binding: declared,
+                    mutable,
+                    ..
+                } = statement
+                {
+                    if declared.id == binding.id {
+                        if matched
+                            || !mutable
+                            || declared.name != binding.name
+                            || declared.ty != binding.ty
+                            || declared.ownership != binding.ownership
+                        {
+                            return false;
+                        }
+                        matched = true;
+                    }
+                }
+            }
+        }
+        if let ResolvedExprKind::Closure { body, .. } = &expression.kind {
+            pending.push(body);
+        }
+        super::super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    matched
+}

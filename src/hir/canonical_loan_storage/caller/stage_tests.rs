@@ -8,8 +8,9 @@ fn actual_prepare_stage_keeps_full_old_storage_diagnostics_numeric_receipts_and_
     let seed = ConstructorSeed::authenticate(&program, None).unwrap();
     // This fixture's final current function is the loan-free monomorphic
     // identity instance. Its complete original planner returns no append data.
-    // Raw sealing is an identity move, so the final positive reservation lies
-    // in candidate inventory; later append authentication requests are zero.
+    // Raw sealing is an identity move. Append still funds its actual mutation
+    // and lookup receiving carriers, even when these complete plan vectors are
+    // empty; that fixed reservation is the final positive request.
     let final_function = program
         .functions
         .iter()
@@ -114,16 +115,14 @@ fn actual_prepare_stage_keeps_full_old_storage_diagnostics_numeric_receipts_and_
                 receipt.stage = Some(ReservationStage::FreshResolution);
             } else {
                 assert_eq!(limit, exact - 1);
-                assert_eq!(
-                    receipt.stage,
-                    Some(ReservationStage::LoanCandidateInventory)
-                );
-                // Both receivers invoke that same real paid candidate producer;
-                // preserve its now-more-precise coordinate rather than erasing it.
+                assert_eq!(receipt.stage, Some(ReservationStage::LoanCanonicalAppend));
+                // The independently compiled outer receiver calls the same
+                // paid append without the new enclosing append-stage scope.
                 assert_eq!(
                     old.3.unwrap().stage,
-                    Some(ReservationStage::LoanCandidateInventory)
+                    Some(ReservationStage::FreshResolution)
                 );
+                receipt.stage = Some(ReservationStage::FreshResolution);
             }
         }
         assert_eq!(normalized, old.3);

@@ -415,9 +415,10 @@ fn run_profile(
 
 #[test]
 fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physical_handoff() {
-    // Native result initialization now precedes failure exits. Reversing only
-    // that relocation and recomputing the artifact binding reproduces all three
-    // prior consumer pins byte for byte; descriptor and other files are unchanged.
+    // Historical v0.9.0 control: reversing the result-initialization relocation
+    // and rebinding the artifact reproduced all three prior consumer pins.
+    // v0.10.1 also changes the bound compiler version; every physical case
+    // still runs before the complete generated-consumer byte pin is checked.
     reuse_controls();
     let root = env::temp_dir().join(format!(
         "semaprax-r07-profile-rust-{}-{}",
@@ -440,7 +441,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_rust_v1",
         // The selected branch swaps the distinct, non-palindromic leaves.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "4056250fc5dfba904b08792a1c5f5f0abde8cd62bd6772a3c913c9ff247c3a72",
+        pin: "db6af7c934dfeb97021deba8029dc5b784c5ca02e4e358350d8a3314035ae671",
     };
     let mut processes = run_profile(
         &root,
@@ -482,7 +483,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_allocating_rust_v1",
         // Left is a fresh copy; right is remade by the allocating callee.
         expected: ["[1, 7, 13]", "[9, 0, 0]"],
-        pin: "2b5d031842792e63c6eb41aa76713c25fbfe503123297b9548603aefbf45e083",
+        pin: "6254cb6f28d4df23638f4b254c14d7049e91e411f137532afc40007bff1e3964",
     };
     processes += run_profile(
         &root,
@@ -537,7 +538,7 @@ fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physica
         library: "spx_pg_private_authenticated_moves_nested_rust_v1",
         // `Leaf { a, b }` is swapped exactly like `Pair { left, right }` above.
         expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
-        pin: "bd0ee81f95f0f9f92cec13d11f052a6da95e21aa965a16471510213d6ecf7bd3",
+        pin: "81b41b068cf87916d6ddbb379c106af3d33a7987153a341a6838c62b3e914c15",
     };
     processes += run_profile(
         &root,

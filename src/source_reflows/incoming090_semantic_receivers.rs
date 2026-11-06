@@ -1047,13 +1047,19 @@ fn main090_read(path: impl AsRef<Path>) -> std::io::Result<String> {
     let logical = path
         .strip_prefix(root)
         .ok()
-        .and_then(|p| p.to_str())
+        .and_then(|p| {
+            p.iter()
+                .map(|part| part.to_str())
+                .collect::<Option<Vec<_>>>()
+        })
+        .map(|parts| parts.join("/"))
         .ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "foreign MAIN090 read root",
             )
         })?;
+    let logical = logical.as_str();
     let manifest = main090_manifest();
     if let Some(row) = main090_row(&manifest, "main", logical) {
         let raw = main090_checked(
@@ -1275,7 +1281,14 @@ fn main090_expected(proof: &serde_json::Value, current: &str) -> String {
 }
 pub(super) fn legacy_checked(path: &Path, length: usize, expected: &str) -> Option<String> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let logical = path.strip_prefix(root).ok()?.to_str()?;
+    let logical = path
+        .strip_prefix(root)
+        .ok()?
+        .iter()
+        .map(|part| part.to_str())
+        .collect::<Option<Vec<_>>>()?
+        .join("/");
+    let logical = logical.as_str();
     let manifest = main090_manifest();
     let old = main090_row(&manifest, "legacy_current", logical)?;
     if old["view_sha256"] != expected || old["view_len"].as_u64()? as usize != length {

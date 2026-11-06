@@ -335,7 +335,12 @@ fn acquire(path: &Path) -> std::io::Result<(String, String)> {
     assert!(relative
         .components()
         .all(|part| matches!(part, std::path::Component::Normal(_))));
-    let relative = relative.to_str().unwrap();
+    let relative = relative
+        .iter()
+        .map(|part| part.to_str().unwrap())
+        .collect::<Vec<_>>()
+        .join("/");
+    let relative = relative.as_str();
     let packet = packet();
     let rows = packet["rows"].as_array().unwrap();
     assert_eq!(rows.iter().filter(|row| row["path"] == relative).count(), 1);

@@ -941,10 +941,16 @@ fn main21_read(path: impl AsRef<Path>) -> std::io::Result<String> {
     let logical = path
         .strip_prefix(root)
         .ok()
-        .and_then(|p| p.to_str())
+        .and_then(|p| {
+            p.iter()
+                .map(|part| part.to_str())
+                .collect::<Option<Vec<_>>>()
+        })
+        .map(|parts| parts.join("/"))
         .ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::InvalidInput, "foreign MAIN21 read root")
         })?;
+    let logical = logical.as_str();
     let manifest = main21_manifest();
     if let Some(row) = main21_row(&manifest, "main", logical) {
         let raw = main21_checked(

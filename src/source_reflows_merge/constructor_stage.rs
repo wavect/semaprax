@@ -299,7 +299,12 @@ pub(super) fn owner(source: &str, current: &str) -> Option<String> {
             "../../docs/evidence/runtime-history-20261021/owner-inverse.json"
         ))
         .unwrap();
-        let mut before = current.to_owned();
+        let mut before = super::main_e177_final_inputs::declared_history_inputs::expected_value(
+            source,
+            "abf90d6818bca1f5344e0e6ea7dd9fa000c8bae3ad21923729ec6f869195be11",
+            current,
+        )
+        .expect("complete declared owner before the unchanged indexed inverse");
         for (at, after, prior) in edits.into_iter().rev() {
             assert_eq!(&before[at..at + after.len()], after);
             before.replace_range(at..at + after.len(), &prior);

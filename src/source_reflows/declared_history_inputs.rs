@@ -11,15 +11,15 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 42] = [
+const PARTS: [(&str, &str, usize, &str); 43] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-0.json"
         )),
-        880982,
-        "a58da979e6660710fa6c9fd789abcde18733ecebf4f278397e701b5d33ab7bce",
+        881126,
+        "fbb1e481fa66a417ee7d598af98ad39555fb8e551dc217dcb13b88d6abb540c7",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-1.json",
@@ -27,8 +27,8 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-1.json"
         )),
-        872924,
-        "ef6597b06c193e4187513c1786c65bb83d47558dc409d443b90858c1f57639fb",
+        873068,
+        "13316126a7c6aefcf9e4cf54662299516be86819a38f4a6ceb19ae7d424dd03d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-2.json",
@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        589325,
-        "58676740fbd3618e25b8a5eb0aef07f270a35a584abbac1066220cd4fe3ddd1c",
+        590835,
+        "c2e2edc83a72b3471b883be1d18028736888123674055c614ae2fab744107d0e",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        29011,
-        "f8ec014e1656b5efd251d239a1203999671e5dd4973dc368accaa16dbf0d60ca",
+        29200,
+        "8b2a805bea06464611cce481e19fac801acba35fb72309f08e5a611958100a63",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -162,8 +162,8 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-16.json"
         )),
-        851124,
-        "0071686af283e85a931cac238dd45befd85b40af9e525e50a04698c7c7678c70",
+        851196,
+        "e3d6a4024064952cca58dd6266a9e70a925ca832b903b12afb52f0bc0856c254",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-17.json",
@@ -369,8 +369,8 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-39.json"
         )),
-        899123,
-        "0d1433060c419ce36c8d68defbc4a0a12fd25f9c1efef90e26b6071910a2da6a",
+        899897,
+        "15d16903f8edbd53ab1db6a4c1336d732442c3312e956436f02b35341890047a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-40.json",
@@ -390,8 +390,17 @@ const PARTS: [(&str, &str, usize, &str); 42] = [
         24327,
         "cd05f4a841e77c05bb3ea7126910b273bb98a6d60fdfbb59c77ea37a95766b3b",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-42.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-42.json"
+        )),
+        36255,
+        "803acd91bcfb328eccf490ec75641ee75e24cee231508dbde5ff54d376710b71",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 42] = [const { OnceLock::new() }; 42];
+static CACHE: [OnceLock<serde_json::Value>; 43] = [const { OnceLock::new() }; 43];
 pub(crate) fn part_count() -> usize {
     PARTS.len()
 }
@@ -953,6 +962,12 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/workspace_graph/expected_projection/call_carriers_tests.rs", "bf17711b9ee9801531b16d3a505163c32df52e2ef13a46d1426eeee2cc8c3934" ) => Some((41,8)),
 ("src/workspace_graph/expected_projection/borrowed_imports/typed.rs", "78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1" ) => Some((41,9)),
 ("src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs", "569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f" ) => Some((41,10)),
+("src/loan_plan/paid_live/reuse_tests.rs", "6722b6fe25b841006719f47afeb6610d1880fc5edd6f7a7237dfda7a3f16abb5" ) => Some((42,0)),
+("src/workspace_graph/source_schema.rs", "025ab321bcfe43c8fcad9c16bb475d18e65a991049eb6404c782accc0a3b4beb" ) => Some((42,1)),
+("src/source_reflows_merge/runtime_json/tests.rs", "f832107106cd9afb3c8690319ef8efa67d5498318a1244298bed70e840d0e168" ) => Some((42,2)),
+("src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs", "8d7ce550bcd6f49d491d9a5ea286b209e71307f23bf558f77ec9120e43bdb16a" ) => Some((42,3)),
+("src/workspace_graph/initial_report/tests.rs", "abf90d6818bca1f5344e0e6ea7dd9fa000c8bae3ad21923729ec6f869195be11" ) => Some((42,4)),
+("src/workspace_graph/cold_canonical/tests.rs", "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6" ) => Some((42,5)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1221,6 +1236,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/loan_plan/paid_candidate.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_candidate.rs")),
 "src/loan_plan/paid_cfg.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_cfg.rs")),
 "src/loan_plan/paid_cursor/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_cursor/tests.rs")),
+"src/loan_plan/paid_live/reuse_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_live/reuse_tests.rs")),
 "src/loan_plan/paid_plan.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_plan.rs")),
 "src/loan_plan/paid_plan_legacy.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/paid_plan_legacy.rs")),
 "src/loan_plan/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/tests.rs")),
@@ -1274,6 +1290,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/wasm/aggregate.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/wasm/aggregate.rs")),
 "src/wasm/aggregate/semantic_work.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/wasm/aggregate/semantic_work.rs")),
 "src/workspace_graph.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph.rs")),
+"src/workspace_graph/cold_canonical/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/cold_canonical/tests.rs")),
 "src/workspace_graph/constructor_failure/report/stages.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/constructor_failure/report/stages.rs")),
 "src/workspace_graph/constructor_failure/report/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/constructor_failure/report/tests.rs")),
 "src/workspace_graph/constructor_failure/typed.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/constructor_failure/typed.rs")),

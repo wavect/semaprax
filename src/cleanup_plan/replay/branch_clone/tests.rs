@@ -592,7 +592,8 @@ fn real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_dr
             let first = first.unwrap();
             if first.requested == TAKE_CALL_CONTROLS
                 && site.is_some_and(|(path, line)| {
-                    path.ends_with("cleanup_plan/replay.rs") && line == target_line
+                    std::path::Path::new(path).ends_with("cleanup_plan/replay.rs")
+                        && line == target_line
                 })
             {
                 found = Some(paid);
@@ -624,9 +625,9 @@ fn real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_dr
                 (receipt.requested, receipt.remaining, receipt.floor),
                 (TAKE_CALL_CONTROLS, remaining, floor)
             );
-            assert!(site.is_some_and(
-                |(path, line)| path.ends_with("cleanup_plan/replay.rs") && line == target_line
-            ));
+            assert!(site.is_some_and(|(path, line)| std::path::Path::new(path)
+                .ends_with("cleanup_plan/replay.rs")
+                && line == target_line));
             let (again, again_refused, again_paid, again_receipt, again_site) =
                 observe_generic_probe(function, limit, floor);
             assert_eq!(

@@ -609,6 +609,15 @@ fn complete_receiver_entry_glue(source: &str, current: &str) -> String {
 // restoring its complete predecessor. Every original transport proof still runs.
 #[rustfmt::skip]
 fn complete_receiver_followup_glue(source: &str, current: &str) -> String {
+    let expected = match source {
+        "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs" => "8d7ce550bcd6f49d491d9a5ea286b209e71307f23bf558f77ec9120e43bdb16a",
+        "src/workspace_graph/cold_canonical/tests.rs" => "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6",
+        _ => "6722b6fe25b841006719f47afeb6610d1880fc5edd6f7a7237dfda7a3f16abb5",
+    };
+    let declared = super::super::main_e177_final_inputs::declared_history_inputs::expected_value(
+        source, expected, current,
+    );
+    let current = declared.as_deref().unwrap_or(current);
     let three_before = complete_three_fixture_runtime_glue(source, current);
     let current = three_before.as_str();
     let receiver;
@@ -934,12 +943,16 @@ fn three_runtime_packets_keep_whole_consumers_and_refuse_each_fresh_hostile_read
         format!("{root} "),
         root[..root.len() - 1].to_owned(),
         root.replacen(
-            "fn historical_project_entry",
-            "fn historical_project_Entry",
+            "use crate::source_reflows::historical_project_entry;",
+            "use crate::source_reflows::historical_project_Entry;",
             1,
         ),
         prior,
     ] {
+        assert_ne!(
+            foreign, root,
+            "each hostile root changes the complete input"
+        );
         assert!(
             std::panic::catch_unwind(|| complete_current_writer_signature_entry_before(
                 "src/source_reflows_merge.rs",

@@ -484,16 +484,11 @@ pub(super) fn intrinsic_profile_entry(
     supplied: &str,
 ) -> Option<String> {
     const PAID: &str = "src/hir/validation/function_lookup/paid_custody.rs";
-    if caller == PAID || caller.ends_with("/src/hir/validation/function_lookup/paid_custody.rs") {
+    if std::path::Path::new(caller).ends_with(PAID) {
         return paid_constructor_entry(source, supplied);
     }
     const CALLER: &str = "src/hir/validation/constructor_seed/intrinsic_tests.rs";
-    if caller != CALLER
-        && !caller.ends_with(concat!(
-            "/",
-            "src/hir/validation/constructor_seed/intrinsic_tests.rs"
-        ))
-    {
+    if !std::path::Path::new(caller).ends_with(CALLER) {
         return None;
     }
     let compiled = match source {

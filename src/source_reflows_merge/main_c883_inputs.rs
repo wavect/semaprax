@@ -274,7 +274,12 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
     assert!(relative
         .components()
         .all(|part| matches!(part, std::path::Component::Normal(_))));
-    let relative = relative.to_str().unwrap();
+    let relative = relative
+        .iter()
+        .map(|part| part.to_str().unwrap())
+        .collect::<Vec<_>>()
+        .join("/");
+    let relative = relative.as_str();
     let rows = packet["rows"].as_array().unwrap();
     assert_eq!(
         rows.iter().filter(|row| row["path"] == relative).count(),
@@ -399,7 +404,12 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
     assert!(relative
         .components()
         .all(|p| matches!(p, std::path::Component::Normal(_))));
-    let relative = relative.to_str().unwrap();
+    let relative = relative
+        .iter()
+        .map(|part| part.to_str().unwrap())
+        .collect::<Vec<_>>()
+        .join("/");
+    let relative = relative.as_str();
     let packet = packet_f247();
     let rows = packet["rows"].as_array().unwrap();
     assert_eq!(rows.iter().filter(|r| r["path"] == relative).count(), 1);

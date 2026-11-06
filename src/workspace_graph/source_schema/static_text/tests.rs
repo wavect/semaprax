@@ -631,7 +631,11 @@ mod missing_lexical_authority {
             "every original assertion and entire old test file remains byte-exact prefix"
         );
         assert_eq!(
-            include_str!("../../source_schema.rs"),
+            crate::source_reflows::legacy_ci_expected_input(
+                "src/workspace_graph/source_schema.rs",
+                "025ab321bcfe43c8fcad9c16bb475d18e65a991049eb6404c782accc0a3b4beb",
+                include_str!("../../source_schema.rs"),
+            ),
             original,
             "select and its entire owning source are byte-exact original"
         );

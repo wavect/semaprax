@@ -486,7 +486,8 @@ fn production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_fir
             let receipt = receipt.unwrap();
             if receipt.requested == requested
                 && site.is_some_and(|(path, line)| {
-                    path.ends_with("cleanup_plan/replay.rs") && line == target_line
+                    std::path::Path::new(path).ends_with("cleanup_plan/replay.rs")
+                        && line == target_line
                 })
             {
                 prefix = Some(paid);
@@ -520,9 +521,9 @@ fn production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_fir
                 (receipt.requested, receipt.remaining, receipt.floor),
                 (requested, remaining, floor)
             );
-            assert!(site.is_some_and(
-                |(path, line)| path.ends_with("cleanup_plan/replay.rs") && line == target_line
-            ));
+            assert!(site.is_some_and(|(path, line)| std::path::Path::new(path)
+                .ends_with("cleanup_plan/replay.rs")
+                && line == target_line));
             let expected = frontier_expected(function, requested, remaining, floor, phase);
             assert_eq!(
                 first.0.result.as_ref().err(),

@@ -7,6 +7,7 @@ HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[2]
 sha=lambda b:hashlib.sha256(b).hexdigest()
 origins={
+ 'docs/evidence/declared-history-inputs-20261105/ci1106-source-stage-requests.json':'b28cb1310e3b54ff367d26d755428aa9e89adf02452f3b95ff02feba647b8c88',
  'docs/evidence/prelude-forecast-286/exact-source-inverses.json':'9583da7f424d9e962b60023a62443e3239e5aaa7015e5f3026fdbabc46ef5610',
 
  'docs/evidence/maina3-independent-custody-20261016/selected-session-inverse19.json':'7b12f6b0806a8a8daa7089fc385f122dec7c7beaade797e143ca19f8074886ff',
@@ -161,5 +162,5 @@ code=(ROOT/'src/source_reflows/declared_history_inputs.rs').read_text()
 assert Counter(re.findall(r'"([a-f0-9]{64})"',code))==Counter(hashes)
 actual={(source,digest):(int(part),int(index)) for source,digest,part,index in re.findall(r'\(\s*"([^"]+)",\s*"([a-f0-9]{64})",?\s*\)\s*=>\s*Some\(\(\s*(\d+),\s*(\d+)\s*\)\)',code)}
 assert actual==expected_slots
-assert count==541 and len(parts)==42
+assert count==547 and len(parts)==43
 print('PASS:',count,'closed declared tuples, complete physical/current archives, exact full inverses and independent predecessor archives')

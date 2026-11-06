@@ -509,7 +509,13 @@ fn domain_read(path: &::std::path::Path, domain: &str) -> Result<String, &'stati
     let relative = path
         .strip_prefix(env!("CARGO_MANIFEST_DIR"))
         .map_err(|_| "root")?;
-    let relative = relative.to_str().ok_or("utf8-path")?;
+    let relative = relative
+        .iter()
+        .map(|part| part.to_str())
+        .collect::<Option<Vec<_>>>()
+        .ok_or("utf8-path")?
+        .join("/");
+    let relative = relative.as_str();
     let manifest: serde_json::Value = serde_json::from_str(SUBJECTS).map_err(|_| "manifest")?;
     let row = subject(&manifest, relative, domain)?;
     // Core relocation has an authenticated live compiled endpoint; all other

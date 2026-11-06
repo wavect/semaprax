@@ -73,7 +73,13 @@ fn domain_read(main: bool, path: &std::path::Path) -> std::io::Result<String> {
     {
         return Err(refuse());
     }
-    let logical = relative.to_str().ok_or_else(refuse)?;
+    let logical = relative
+        .iter()
+        .map(|part| part.to_str())
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(refuse)?
+        .join("/");
+    let logical = logical.as_str();
     // Lookup before filesystem access: this adapter never grants a generic read.
     let original = archive(logical).ok_or_else(refuse)?;
     let raw = actual(logical)?;

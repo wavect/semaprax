@@ -185,6 +185,8 @@ fn pure_profile_checked<E>(
                 if (!option_shape
                     && (hir::borrowed_scalar::option_u8::is_type(&expr.ty)
                         || matches!(expr.kind, ResolvedExprKind::Match { .. })))
+                    || matches!(&expr.kind, ResolvedExprKind::Call { callee, .. }
+                        if callee.as_str() == crate::byte_ops::PREFIX_CLASS_ID)
                     || !match borrowed_records::expression(function, expr, records, &mut take)? {
                         Some(admitted) => admitted,
                         None => hir::borrowed_scalar::expression(function, expr, &mut take)?,

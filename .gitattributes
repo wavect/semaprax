@@ -62,3 +62,7 @@ docs/evidence/**/*.before -text
 
 # Frozen operator receiver keeps its exact historical source bytes.
 docs/evidence/operator-refusal-799/src__source_verify__iterative__operators.rs.before -text
+
+# Evidence images are byte-pinned inputs, including extensionless and .prior
+# snapshots; preserve their Git bytes on Windows as on Unix.
+docs/evidence/** -text

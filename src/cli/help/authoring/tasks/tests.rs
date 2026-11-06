@@ -535,20 +535,33 @@ fn neutral_task_examples_pass_ordinary_project_checks_and_independent_codec_plan
                 std::fs::write(path, text(file, "content")).unwrap();
             }
         }
-        project::with_authenticated_project(&cleanup.0.join("semaprax.toml"), |snapshot| {
-            // Ordinary project checking owns both entry and declared-test HIR;
-            // these no-op examples claim no execution or useful application.
-            if category == "json_task" {
-                let plan = serde_json::to_vec(&route["plan"]).unwrap();
-                let (expected_revision, entries) =
-                    project::decode_json_codec_plan(&plan).map_err(|error| vec![error])?;
-                assert!(expected_revision.is_none());
-                let revision = snapshot.retain_revision();
-                let bundle = project::derive_json_codec_plan(&revision, &entries)?;
-                project::verify_json_codec_plan(&revision, &entries, &bundle)?;
-            }
-            Ok(())
-        })
-        .unwrap_or_else(|error| panic!("neutral {category} ordinary admission: {error:?}"));
+        let admission =
+            project::with_authenticated_project(&cleanup.0.join("semaprax.toml"), |snapshot| {
+                // Ordinary project checking owns both entry and declared-test HIR;
+                // these no-op examples claim no execution or useful application.
+                if category == "json_task" {
+                    let plan = serde_json::to_vec(&route["plan"]).unwrap();
+                    let (expected_revision, entries) =
+                        project::decode_json_codec_plan(&plan).map_err(|error| vec![error])?;
+                    assert!(expected_revision.is_none());
+                    let revision = snapshot.retain_revision();
+                    let bundle = project::derive_json_codec_plan(&revision, &entries)?;
+                    project::verify_json_codec_plan(&revision, &entries, &bundle)?;
+                }
+                Ok(())
+            });
+        if category == "selected_file_task" && !cfg!(all(unix, target_pointer_width = "64")) {
+            let errors =
+                admission.expect_err("the selected-file profile requires a native64 Unix host");
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].code, "SPX-B104");
+            assert_eq!(
+                errors[0].message,
+                "source-command.selected-file.resource-output.v1 requires a native64 Unix host"
+            );
+        } else {
+            admission
+                .unwrap_or_else(|error| panic!("neutral {category} ordinary admission: {error:?}"));
+        }
     }
 }

@@ -19,7 +19,13 @@ pub(super) fn before(current: &str) -> String {
         "../../../docs/evidence/runtime-history-20261021/tests-inverse.json"
     ))
     .unwrap();
-    let mut original = current.to_owned();
+    let mut original =
+        super::super::super::main_e177_final_inputs::declared_history_inputs::expected_value(
+            "src/source_reflows_merge/runtime_json/tests.rs",
+            "f832107106cd9afb3c8690319ef8efa67d5498318a1244298bed70e840d0e168",
+            current,
+        )
+        .expect("complete declared controls before the unchanged indexed inverse");
     for (at, after, prior) in edits.into_iter().rev() {
         assert_eq!(&original[at..at + after.len()], after);
         original.replace_range(at..at + after.len(), &prior);

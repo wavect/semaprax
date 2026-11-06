@@ -382,7 +382,8 @@ fn qualify_actual_moved_caller_banks(function: &ResolvedFunction) {
         let first = first.unwrap();
         assert!(first.requested > first.remaining);
         if let Some((path, line)) = site {
-            if path.ends_with("expression_facts/receiving/directory/status_prefix.rs")
+            if std::path::Path::new(path)
+                .ends_with("expression_facts/receiving/directory/status_prefix.rs")
                 && (line == allocation || line == insertion)
                 && !found
                     .iter()

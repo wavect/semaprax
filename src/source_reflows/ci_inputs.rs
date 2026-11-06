@@ -132,6 +132,13 @@ fn compiled(source: &str) -> Option<(usize, &'static str)> {
 // Authenticate the actual compiled/physical/current row before selecting the
 // already-declared whole view; every original indexed inverse still runs.
 fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'a, str> {
+    if let Some(before) =
+        crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+            source, expected, current,
+        )
+    {
+        return Cow::Owned(before);
+    }
     match (source, expected) {
         // The current entry adds the coupled replay call introduced in 1be38beec.
         // Authenticate the whole input and reconstruct the exact prior HIR module.

@@ -31,7 +31,8 @@ Every rewritten record is re-validated with the repository's own decoder
 (overlay compose + physical/archive check) or with a port of the Rust check
 (edge text at offset, domain digests) before anything is written.
 
-`--check` reports drift without writing.  A brand-new file that must become an
+`--check` reports drift in every custody family without writing and exits
+nonzero when a refresh is needed. A brand-new file that must become an
 overlay *addition* (new compiled child of the source-inventory carrier) is
 reported, not admitted: add it by hand as in d70e4af22 (policy/page additions,
 both ADDITIONS constants and a `main_e177_overlay_compiled.rs` arm), then rerun.
@@ -450,6 +451,7 @@ def relocate(repo, classes):
 
 def refresh_authority(repo, fast):
     out = repo.root / 'target/refresh-source-custody/authority'
+    manifests = {}
     if not fast:
         out.mkdir(parents=True, exist_ok=True)
         subprocess.run([sys.executable, str(repo.root / AUTHORITY_GENERATOR), '--repo', str(repo.root),
@@ -479,7 +481,10 @@ def refresh_authority(repo, fast):
                             sources=generated['sources'], classes=classes,
                             chunks=generated['chunks'], closure_only=generated['closure_only'])
         relocate(repo, manifest['classes'])
-        repo.write(path, json.dumps(manifest, separators=(',', ':')) + '\n')
+        current = (json.dumps(manifest, separators=(',', ':')) + '\n').encode()
+        manifests[name] = current
+        repo.write(path, current)
+    return manifests
 
 
 def compiled_edge(text):
@@ -506,14 +511,15 @@ def compiled_edge(text):
     raise SystemExit(f'unrecognized actual registration edge: {text}')
 
 
-def refresh_domains(repo):
+def refresh_domains(repo, manifests=None):
     raw = repo.raw(DOMAINS)
     domains = json.loads(raw)
     for name, (base_path, base_sha) in DOMAIN_BASE.items():
         base_raw = repo.raw(base_path)
         assert sha(base_raw) == base_sha
         roots = set(json.loads(base_raw)['classes'])
-        manifest_raw = repo.raw(f'{AUTHORITY_DIR}/{name}.json')
+        manifest_raw = (manifests[name] if manifests is not None
+                        else repo.raw(f'{AUTHORITY_DIR}/{name}.json'))
         full = json.loads(manifest_raw)
         classes = full['classes']
         edges = {}
@@ -557,7 +563,8 @@ def main():
     a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     a.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[1])
     a.add_argument('--label', help='view-name suffix for superseded pins, e.g. prelude-inverse-d70e')
-    a.add_argument('--check', action='store_true', help='report what would change; write nothing')
+    a.add_argument('--check', action='store_true',
+                   help='report every custody family without writing; exit nonzero on drift')
     a.add_argument('--fast', action='store_true',
                    help='skip the ~5 minute authority generator; valid only when no include!/mod/include_str! '
                         'registration or audit-inventory list changed')
@@ -601,12 +608,17 @@ def main():
     else:
         raise SystemExit('custody refresh did not reach a fixed point')
     if args.check:
+        # Check the physical source pins too: an unchanged overlay does not
+        # imply that the authority manifests still bind the current sources.
+        # Pass the computed manifests directly to domain derivation so this
+        # remains read-only and checks the same values a refresh would write.
+        refresh_domains(repo, refresh_authority(repo, True))
         print('check only; overlay files that would change:', *repo.written, sep='\n  ')
-        return
+        return int(bool(repo.written))
     refresh_authority(repo, args.fast)
     refresh_domains(repo)
     print('written:', *repo.written, sep='\n  ')
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

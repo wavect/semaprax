@@ -740,6 +740,7 @@ jobs:
           python3 scripts/test-release-reconcile-install-claims.py
           python3 scripts/test-channel-manifests.py
           python3 scripts/test-release-surfaces.py
+          python3 -m unittest discover -s scripts -p test_refresh_source_custody.py -v
 
   installed-journey:
     name: Installed toolchain journey

@@ -2,6 +2,9 @@
 
 Status: tag-release procedure and historical evidence; v0.9.0 is published.
 
+Candidate: v0.10.1. Its version preparation is not publication evidence; create
+the annotated tag only after the exact candidate commit passes required CI.
+
 Audience: maintainers and release reviewers.
 
 Only the repository CI workflow can publish a tag release, and only after the

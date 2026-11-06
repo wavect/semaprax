@@ -12,24 +12,24 @@ mod parity;
 
 // Independent known answers for the checked-in, explicitly acquired project.
 // Replay must not accept identity claims supplied by the emitter under test.
-// The v0.9.0 package identity changes the provider/component bytes and their
+// The v0.10.1 package identity changes the provider/component bytes and their
 // digests. Descriptor digests remain bound to the unchanged checked source.
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST: &str =
-    "sha256:67a5b1d6234bb617adc96ec51848dab3df48ac16a9a2bd5d0d603d15381667bc";
+    "sha256:57375368386f61821ec1b24d50e8695e8353b98588845655e419e8e6d0d8fb28";
 const EXPECTED_PUBLIC_GENERIC_DESCRIPTOR_DIGEST: &str =
     "sha256:52473587274784c87a62e109cd8640bf337306117f8fa943a6b930aeb6a75b1a";
 const EXPECTED_PUBLIC_GENERIC_PROVIDER_DIGEST: &str =
-    "sha256:a77c781b2a4546927fa48bc609b5549383220a1e31fdcd51d1524d32248d2998";
+    "sha256:46603417001d39a8ce72574c5b6dafa4c78d18d1244bb9d28907f0560ab8f259";
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_SHA256: &str =
-    "1d3227af19f8b22daf0c15a41a60daf320bc0a3d68749635b2fe5400ea77230f";
+    "4ec96f2598dd7f7154779b0ca41a2cbc81561e790aae220b43aa1b81ab8e5e8e";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:b9ddd38f424d1cbff566d53f1b5f5df93dae488ed2bd246c051b498ca65f8439";
+    "sha256:80d8d622fb321104f205f03fa533a159df7ff6b754c7fcc01b24f6594acc3545";
 const EXPECTED_CONTRACT_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:1cef20213f00dce6e80b9cc1eb977065018986bc5568263d6ab4cd04ba9c5d49";
 const EXPECTED_CONTRACT_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:67afc3972f440fb859a25467be250923e69c9de91480216d9e1e5f78504045ce";
+    "sha256:c6bcea086dfcaacd0108ed9017f7cfe2c69e5a713017fcb3dbacdeb52f6e2fa5";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_SHA256: &str =
-    "3bc26e17bf823b8ab38a97d71b02b0083b734863cca732fdf55e8632c1dde911";
+    "1f9fd0335650b06ac096e08923272fb870e0a42b7361b531c40276dbf09bd8f4";
 
 const MAX_LIST_BYTES: usize = 65_536;
 const REUSE_CYCLES: usize = 200;

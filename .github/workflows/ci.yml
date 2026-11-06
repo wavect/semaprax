@@ -541,6 +541,7 @@ jobs:
           set -euo pipefail
           # A freestanding module with no WASI or allocator imports. The native
           # reference renderer remains the owner; no public profile is widened.
+          sudo python3 scripts/ci-configure-apt.py
           sudo apt-get update
           sudo apt-get install -y lld
           command -v wasm-ld
@@ -741,6 +742,7 @@ jobs:
           python3 scripts/test-channel-manifests.py
           python3 scripts/test-release-surfaces.py
           python3 -m unittest discover -s scripts -p test_refresh_source_custody.py -v
+          python3 -m unittest discover -s scripts -p test_ci_configure_apt.py -v
 
   installed-journey:
     name: Installed toolchain journey
@@ -963,6 +965,7 @@ jobs:
         run: |
           set -euo pipefail
           if ! command -v gdb >/dev/null; then
+            sudo python3 scripts/ci-configure-apt.py
             sudo apt-get update
             sudo apt-get install --yes --no-install-recommends gdb
           fi
@@ -1586,8 +1589,10 @@ jobs:
           if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Provision the native HTTPS development interface (Linux)
+        timeout-minutes: 10
         if: runner.os == 'Linux'
         run: |
+          sudo python3 scripts/ci-configure-apt.py
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
@@ -1901,8 +1906,10 @@ jobs:
           if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Provision the native HTTPS development interface (Linux)
+        timeout-minutes: 10
         if: runner.os == 'Linux'
         run: |
+          sudo python3 scripts/ci-configure-apt.py
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
@@ -2109,8 +2116,10 @@ jobs:
           if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Provision the native HTTPS development interface (Linux)
+        timeout-minutes: 10
         if: runner.os == 'Linux'
         run: |
+          sudo python3 scripts/ci-configure-apt.py
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
@@ -2198,6 +2207,7 @@ jobs:
         run: |
           set -euo pipefail
           if ! command -v gdb >/dev/null; then
+            sudo python3 scripts/ci-configure-apt.py
             sudo apt-get update
             sudo apt-get install --yes --no-install-recommends gdb
           fi
@@ -2881,7 +2891,9 @@ jobs:
         shell: bash
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
       - name: Provision the native HTTPS development interface (Linux)
+        timeout-minutes: 10
         run: |
+          sudo python3 scripts/ci-configure-apt.py
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure

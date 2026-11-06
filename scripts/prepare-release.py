@@ -17,6 +17,7 @@ DATE_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 VERSION_FILES = (
     "Cargo.toml",
     "crates/semaprax-toolchain/Cargo.toml",
+    "crates/semaprax-harness/Cargo.toml",
     "crates/semaprax-doctor-collector/Cargo.toml",
     "crates/semaprax-native-host/Cargo.toml",
     "crates/semaprax-native-rust-interop-builder/Cargo.toml",

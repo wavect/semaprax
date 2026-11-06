@@ -43,24 +43,24 @@ mod native;
 // Independent known answers for the checked-in parity projects. Replay must
 // not accept identity claims supplied by the emitter under test.
 //
-// The v0.9.0 package identity changes the compiled provider and component
+// The v0.10.1 package identity changes the compiled provider and component
 // bytes. Descriptor digests remain bound to the unchanged checked source.
 const EXPECTED_PARITY_COMPONENT_DIGEST: &str =
-    "sha256:2f16d808177ab9f103c537968cd27565299138e0aa17e281a48414aeeebbbaa2";
+    "sha256:0910f6cd40ff33504ff210acc79668fa9a4ba95f796092e72629154da175826a";
 const EXPECTED_PARITY_DESCRIPTOR_DIGEST: &str =
     "sha256:a4c32697da4d273ce3883bdb485d1a449741bd157eee1ada2e92732efee2ec0c";
 const EXPECTED_PARITY_PROVIDER_DIGEST: &str =
-    "sha256:e054c951d6c36e5cc6048147ca1035b7d064ae2776e5a2f51c4e74507760294e";
+    "sha256:f138c2fd4a7852840232618a3ffbbd9842837f8676c39d16b44e3f24c47b4bae";
 const EXPECTED_PARITY_COMPONENT_SHA256: &str =
-    "0ff0d23fac4c51890441e14f053860f9e1edae52ab73cdc68a00b73d4664b50a";
+    "e51f618b0398aaa5ddc1df9bdb3ca98fb8b2089a49f1860963d823afc0f8eac9";
 const EXPECTED_PARITY_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:b1345ef691869913962dabc4418513dbf8a9eec8b06413f956b2f7f9770329db";
+    "sha256:2bd9982c7eb63f9dcad94206bd2d747c8ae5ffa231a8afba144b4f4fd4f2ec15";
 const EXPECTED_PARITY_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:3cdecabf943da6c44e762c17c3555fb05dd079e0dca0066ecf9cb1e7ad5a5a86";
 const EXPECTED_PARITY_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:b176241e65311ee40137b4f3a7c2ebf863f93eaf58919c45726d15cb59159ee7";
+    "sha256:baf31d000829fdf01cc7e5163054bf8b05744381882ec54cbf34390a1e12dbe1";
 const EXPECTED_PARITY_FAILURE_COMPONENT_SHA256: &str =
-    "f14d3d2db82388e4af12e74aba044d6ccfc18fccc6feee2317c90ad71c8ec66a";
+    "4a9b3093da6428e0865b2ccc2c4b81eadde4c4644d118e3612825271e3c9130c";
 
 const PARITY_MANIFEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

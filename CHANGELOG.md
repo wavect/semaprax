@@ -1861,6 +1861,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+## 0.10.1 — 2026-11-06
+
+- Replace the stalled Azure Ubuntu APT mirror in hosted CI with the canonical
+  HTTPS mirror, bound network waits, and cap dependency-provisioning steps.
+
+- Merge the v0.10.1 development work and prepare matching compiler, toolchain,
+  consumer manifests, lockfiles, and CLI version contracts.
+- Repair cross-platform source-history authentication, path handling, closed
+  scalar purity, and host-profile controls while retaining their original
+  rejection tests and historical evidence.
+- Refresh the generated agent skill bundle and make read-only custody checks
+  detect stale source-authority manifests and derived domain hashes.
+
 - Add an explicit hash-bound current reference-qualification input to the matched webapp v2 campaign, preserving historical qualification and all 912 obligations; live execution remains pending.
 
 - Add a smaller paid no-growth sequencing header while preserving the first work frontier and complete predecessor controls (#858). Private source-only candidate; paid/heap gains and unfavorable cases await scoped qualification.

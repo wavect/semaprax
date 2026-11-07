@@ -11,7 +11,7 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 43] = [
+const PARTS: [(&str, &str, usize, &str); 44] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
@@ -399,8 +399,17 @@ const PARTS: [(&str, &str, usize, &str); 43] = [
         36255,
         "803acd91bcfb328eccf490ec75641ee75e24cee231508dbde5ff54d376710b71",
     ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-43.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-43.json"
+        )),
+        783,
+        "e178f0bd791efdd4ef9c5fc579dd3227a7b17e4d714362cf737da41708ac9ac8",
+    ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 43] = [const { OnceLock::new() }; 43];
+static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
 pub(crate) fn part_count() -> usize {
     PARTS.len()
 }
@@ -968,6 +977,7 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs", "8d7ce550bcd6f49d491d9a5ea286b209e71307f23bf558f77ec9120e43bdb16a" ) => Some((42,3)),
 ("src/workspace_graph/initial_report/tests.rs", "abf90d6818bca1f5344e0e6ea7dd9fa000c8bae3ad21923729ec6f869195be11" ) => Some((42,4)),
 ("src/workspace_graph/cold_canonical/tests.rs", "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6" ) => Some((42,5)),
+("src/hir/owned_leaf_collection.rs", "e09a3f6f6a7234acbe922be60a45a4ac63f45d9d60482a0953f19a8e2428b401") => Some((43,0)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1341,6 +1351,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "tests/workspace/semantic_graph/source_inventory_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory_controls.rs")),
 "tests/workspace/semantic_structural_change.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change.rs")),
 "tests/workspace/semantic_structural_change/reporting.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change/reporting.rs")),
+"src/hir/owned_leaf_collection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/owned_leaf_collection.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

@@ -214,6 +214,29 @@ class FakeCargoTests(unittest.TestCase):
         for host in ("ubuntu-latest", "macos-latest", "windows-latest"):
             self.assertIn(f"- os: {host}\n            shard: unit-live", tests)
 
+    def test_agent_runtime_target_stays_serial_when_planner_moves_it(self):
+        for extra in (0, 3):
+            metadata = {
+                "workspace_members": ["root"],
+                "packages": [{"id": "root", "name": "semaprax", "targets": [
+                    {"name": "semaprax", "kind": ["lib"]},
+                    {"name": "agent_runtime_v1", "kind": ["test"]},
+                    *[{"name": f"a_{i}", "kind": ["test"]} for i in range(extra)],
+                    *[{"name": f"z_{i}", "kind": ["test"]} for i in range(6)],
+                ]}],
+            }
+            owning = next(shard for shard in router["plan"](metadata)["shards"]
+                          if any(t["name"] == "agent_runtime_v1" for t in shard["targets"]))
+            with patch("subprocess.run", side_effect=[
+                subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+                subprocess.CompletedProcess([], 101),
+            ]) as run, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(router["main"](["--shard", owning["name"]]), 101)
+                command = run.call_args_list[1].args[0]
+            self.assertEqual(command.count("--test-threads=1"), 1)
+            self.assertIn("--no-fail-fast", command)
+            self.assertIn("agent_runtime_v1", command)
+
     def test_valid_exact_test_runs_once_and_reports_counts(self):
         environment = self.scenario(run_output([("other::exact", "ok")], 1, 0, 0, 6))
         code, out = self.checked(environment, exact=("other::exact",), harness=["--nocapture"])

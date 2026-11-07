@@ -644,6 +644,12 @@ def main(argv=None):
         # Every repair case runs once in the dedicated source-repair jobs.
         # Keep its multi-case replay cost out of the main unit lane.
         test_arguments.extend(("--skip", "source_live_cli::repair::tests::"))
+    if any(target["name"] == "agent_runtime_v1" for target in shard["targets"]):
+        # Stage subprocesses serialize, but concurrent CPU-heavy harness tests
+        # can still starve a held Wasm process past its production deadline.
+        # Follow the target if the planner moves it to another shard.
+        if "--test-threads=1" not in test_arguments:
+            test_arguments.append("--test-threads=1")
     if (
         sys.platform == "darwin"
         and args.label == "Rust macOS"
@@ -653,7 +659,8 @@ def main(argv=None):
         # select the real binary before dispatch. Apple's /usr/bin/git shim
         # can intermittently fail even when the host Git process is healthy.
         macos_test_git(cargo_env)
-        test_arguments.append("--test-threads=1")
+        if "--test-threads=1" not in test_arguments:
+            test_arguments.append("--test-threads=1")
 
     # One Cargo invocation; preserve its exact exit status. Every target runs
     # so one CI attempt reports all failing binaries instead of the first.

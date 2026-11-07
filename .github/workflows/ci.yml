@@ -2009,6 +2009,12 @@ jobs:
             shard: unit-projection
           - os: windows-latest
             shard: unit-projection
+          - os: ubuntu-latest
+            shard: unit-live
+          - os: macos-latest
+            shard: unit-live
+          - os: windows-latest
+            shard: unit-live
     runs-on: ${{ matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths

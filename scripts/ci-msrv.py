@@ -22,6 +22,8 @@ SHARDS = (
     "integration-5",
 )
 HEAVY_UNIT_SHARD = "unit-heavy"
+LIVE_UNIT_SHARD = "unit-live"
+LIVE_UNIT_FILTER = "live_invocation::"
 PROJECTION_UNIT_SHARD = "unit-projection"
 PROJECTION_UNIT_FILTER = "workspace_graph::expected_projection::"
 HEAVY_UNIT_FILTERS = ("kernel_zero::differential::", "workspace_graph::tests::")
@@ -47,7 +49,7 @@ REPAIR_TEST = [
 # case plus one summary whose counts are bound to the listed target.
 #
 # Migrated so far: the GEN-05B generic-instance exact-selector step in
-# .github/workflows/ci.yml, both unit-heavy families, and the source-repair
+# .github/workflows/ci.yml, the dedicated unit families, and source-repair
 # shards. Every other direct `cargo test ... -- --exact` selector in the
 # workflows is still unchecked; this is a bounded slice, not whole-CI coverage.
 LISTING_LIMIT = 32 * 1024 * 1024
@@ -520,7 +522,7 @@ def main(argv=None):
     if argv[:1] == ["checked"]:
         return checked_main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD, PROJECTION_UNIT_SHARD))
+    parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD, PROJECTION_UNIT_SHARD, LIVE_UNIT_SHARD))
     parser.add_argument("--repair-shard", metavar="INDEX/COUNT")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--exclude-package", action="append", default=[])
@@ -544,6 +546,18 @@ def main(argv=None):
         print(json.dumps(selected_plan, sort_keys=True))
         return 0
     shard = next((shard for shard in selected_plan["shards"] if shard["name"] == args.shard), None)
+    if args.shard == LIVE_UNIT_SHARD:
+        if args.split_windows_agent_runtime:
+            raise ValueError("agent runtime split does not apply to live unit tests")
+        # The complete live-invocation family took almost three hours in the
+        # serial Ubuntu unit job, exhausting its six-hour ceiling with the
+        # remaining tests. Keep every case and its production deadlines;
+        # move the whole family to its own serial, inventory-checked lane.
+        return run_checked_selection(
+            HEAVY_UNIT_TEST, cargo_env, prefix=LIVE_UNIT_FILTER,
+            harness=["--test-threads=1", *(["--nocapture"] if args.nocapture else [])],
+            label=f"{args.label} {args.shard}",
+        )
     if args.shard == PROJECTION_UNIT_SHARD:
         if args.split_windows_agent_runtime:
             raise ValueError("agent runtime split does not apply to projection unit tests")
@@ -597,6 +611,7 @@ def main(argv=None):
         for test_filter in HEAVY_UNIT_FILTERS:
             test_arguments.extend(("--skip", test_filter))
         test_arguments.extend(("--skip", PROJECTION_UNIT_FILTER))
+        test_arguments.extend(("--skip", LIVE_UNIT_FILTER))
     if os.name == "nt" and args.label == "Rust Windows" and args.shard.startswith("integration-"):
         # C ABI fixtures allocate a 1 MiB aligned context on the stack, which
         # leaves no headroom under the Windows linker's 1 MiB default stack

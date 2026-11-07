@@ -146,6 +146,8 @@ class FakeCargoTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(router["main"](["--shard", "unit"]), 0)
             command = run.call_args_list[1].args[0]
+        self.assertEqual(command.count("--test-threads=1"), 1)
+        self.assertIn("--no-fail-fast", command)
         self.assertEqual(command.count(prefix), 1)
         self.assertEqual(command[command.index(prefix) - 1], "--skip")
         for old in router["HEAVY_UNIT_FILTERS"]:

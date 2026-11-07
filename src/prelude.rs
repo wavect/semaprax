@@ -70,11 +70,19 @@ pub(crate) const RESULT_OK_ID: &str = "core.result.ok";
 pub(crate) const RESULT_OK_VALUE_ID: &str = "core.result.ok.value";
 pub(crate) const RESULT_ERR_ID: &str = "core.result.err";
 pub(crate) const RESULT_ERR_ERROR_ID: &str = "core.result.err.error";
-// Copy the same immutable static references into constant pattern identities.
-static VEC_ID_STORAGE: &str = "core.vec";
-static BOX_ID_STORAGE: &str = "core.box";
-pub(crate) const VEC_ID: &str = VEC_ID_STORAGE;
-pub(crate) const BOX_ID: &str = BOX_ID_STORAGE;
+// Addressable byte arrays give every codegen unit the same backing storage.
+// A static &str only fixes the reference's address; its literal can be copied
+// when that reference is evaluated in a constant used by another codegen unit.
+static VEC_ID_STORAGE: [u8; 8] = *b"core.vec";
+static BOX_ID_STORAGE: [u8; 8] = *b"core.box";
+pub(crate) const VEC_ID: &str = match std::str::from_utf8(&VEC_ID_STORAGE) {
+    Ok(text) => text,
+    Err(_) => panic!("compiler Vec identity must be UTF-8"),
+};
+pub(crate) const BOX_ID: &str = match std::str::from_utf8(&BOX_ID_STORAGE) {
+    Ok(text) => text,
+    Err(_) => panic!("compiler Box identity must be UTF-8"),
+};
 
 /// The owning construction of the process prelude table. The `OnceLock` below
 /// is its only production caller; declarations, order and bytes are unchanged.

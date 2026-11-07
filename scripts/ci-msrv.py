@@ -588,6 +588,10 @@ def main(argv=None):
     if args.nocapture:
         test_arguments.append("--nocapture")
     if args.shard == "unit":
+        # CPU-heavy compiler tests can starve the real Node/clang fixtures even
+        # though stage subprocesses serialize among themselves. Run this shard
+        # serially so the unchanged production deadlines measure stage work.
+        test_arguments.append("--test-threads=1")
         # These two expensive semaprax lib-test families run in unit-heavy.
         # Each test name is in exactly one side of this partition.
         for test_filter in HEAVY_UNIT_FILTERS:

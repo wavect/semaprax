@@ -54,7 +54,7 @@ fn owned_builtin_prefix<'t>(
         return None;
     };
     let prefix = match declaration.as_str() {
-        crate::prelude::VEC_ID
+        crate::prelude::VEC_PATTERN_ID
             if crate::vec_ops::resolved_vec_element_is_admitted(element)
                 || crate::hir::copy_record_collection::admitted(declarations, element)
                 || crate::hir::owned_record_collection::
@@ -62,9 +62,9 @@ fn owned_builtin_prefix<'t>(
         {
             "vec"
         }
-        crate::prelude::VEC_ID if super::super::declared_collection::text_element(declarations,element) => "declared-vector-only",
-        crate::prelude::VEC_ID if crate::hir::owned_leaf_collection::layout(declarations,element).is_some() => "owned-leaf-vector-v1",
-        crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
+        crate::prelude::VEC_PATTERN_ID if super::super::declared_collection::text_element(declarations,element) => "declared-vector-only",
+        crate::prelude::VEC_PATTERN_ID if crate::hir::owned_leaf_collection::layout(declarations,element).is_some() => "owned-leaf-vector-v1",
+        crate::prelude::BOX_PATTERN_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
             "box"
         }
         _ => return None,

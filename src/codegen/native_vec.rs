@@ -78,7 +78,7 @@ pub(super) fn program_uses_owned_leaf(program: &crate::hir::ResolvedProgram) -> 
     let new_carrier = |ty: &ResolvedType| {
         crate::hir::collection_outcome::owned_admitted(&program.declarations, ty)
             || matches!(ty, ResolvedType::Nominal { declaration, arguments }
-        if matches!(declaration.as_str(), crate::prelude::VEC_ID
+        if matches!(declaration.as_str(), crate::prelude::VEC_PATTERN_ID
             | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
         && matches!(arguments.as_slice(), [element] if new_element(element)))
     };

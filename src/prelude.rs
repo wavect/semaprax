@@ -75,14 +75,19 @@ pub(crate) const RESULT_ERR_ERROR_ID: &str = "core.result.err.error";
 // when that reference is evaluated in a constant used by another codegen unit.
 static VEC_ID_STORAGE: [u8; 8] = *b"core.vec";
 static BOX_ID_STORAGE: [u8; 8] = *b"core.box";
-pub(crate) const VEC_ID: &str = match std::str::from_utf8(&VEC_ID_STORAGE) {
+pub(crate) static VEC_ID: &str = match std::str::from_utf8(&VEC_ID_STORAGE) {
     Ok(text) => text,
     Err(_) => panic!("compiler Vec identity must be UTF-8"),
 };
-pub(crate) const BOX_ID: &str = match std::str::from_utf8(&BOX_ID_STORAGE) {
+pub(crate) static BOX_ID: &str = match std::str::from_utf8(&BOX_ID_STORAGE) {
     Ok(text) => text,
     Err(_) => panic!("compiler Box identity must be UTF-8"),
 };
+
+// Literal patterns keep Clippy's constant evaluator away from static memory.
+// Runtime identities above retain the one addressable backing on every host.
+pub(crate) const VEC_PATTERN_ID: &str = "core.vec";
+pub(crate) const BOX_PATTERN_ID: &str = "core.box";
 
 /// The owning construction of the process prelude table. The `OnceLock` below
 /// is its only production caller; declarations, order and bytes are unchanged.
@@ -190,8 +195,8 @@ pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
             | RESULT_OK_VALUE_ID
             | RESULT_ERR_ID
             | RESULT_ERR_ERROR_ID
-            | VEC_ID
-            | BOX_ID
+            | VEC_PATTERN_ID
+            | BOX_PATTERN_ID
             | crate::iterator_ops::ITER_ID
             | crate::iterator_ops::STEP_ID
             | crate::iterator_ops::DONE_ID
@@ -981,6 +986,14 @@ fn list_step() -> TypeDeclaration {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn fixed_identity_patterns_match_the_addressable_runtime_storage() {
+        assert_eq!(super::VEC_ID, super::VEC_PATTERN_ID);
+        assert_eq!(super::BOX_ID, super::BOX_PATTERN_ID);
+        assert_eq!(super::VEC_ID.as_ptr(), super::VEC_ID_STORAGE.as_ptr());
+        assert_eq!(super::BOX_ID.as_ptr(), super::BOX_ID_STORAGE.as_ptr());
+    }
+
     use super::*;
 
     #[test]

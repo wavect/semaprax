@@ -56,12 +56,12 @@ pub(super) fn facts<P: Payer>(
         return None;
     };
     let prefix = match declaration.as_str() {
-        crate::prelude::VEC_ID if crate::vec_ops::resolved_vec_element_is_admitted(element)
+        crate::prelude::VEC_PATTERN_ID if crate::vec_ops::resolved_vec_element_is_admitted(element)
             || crate::hir::copy_record_collection::admitted(index, element)
             || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(index, element) => "vec",
-        crate::prelude::VEC_ID if crate::hir::declared_collection::text_element(index, element) => "declared-vector-only",
-        crate::prelude::VEC_ID if crate::hir::owned_leaf_collection::layout(index, element).is_some() => "owned-leaf-vector-v1",
-        crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => "box",
+        crate::prelude::VEC_PATTERN_ID if crate::hir::declared_collection::text_element(index, element) => "declared-vector-only",
+        crate::prelude::VEC_PATTERN_ID if crate::hir::owned_leaf_collection::layout(index, element).is_some() => "owned-leaf-vector-v1",
+        crate::prelude::BOX_PATTERN_ID if crate::box_ops::resolved_box_element_is_admitted(element) => "box",
         _ => return None,
     };
     let key = key::identity(element, storage)?;

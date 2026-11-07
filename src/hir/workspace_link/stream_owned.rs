@@ -50,7 +50,7 @@ pub(crate) fn function_requires_owned_profile(
                 arguments,
             } if matches!(
                 declaration.as_str(),
-                crate::prelude::VEC_ID
+                crate::prelude::VEC_PATTERN_ID
                     | crate::iterator_ops::ITER_ID
                     | crate::iterator_ops::STEP_ID
             ) =>

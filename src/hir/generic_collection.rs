@@ -6,7 +6,7 @@ pub(crate) fn scalar(ty: &ResolvedType) -> bool {
 pub(crate) fn slot(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bool {
     (1..=2).contains(&count)
         && matches!(ty, ResolvedType::Nominal { declaration, arguments }
- if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
+ if matches!(declaration.as_str(), crate::prelude::BOX_PATTERN_ID | crate::prelude::VEC_PATTERN_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
  && matches!(arguments.as_slice(), [element] if parameter(element, owner, count)))
 }
 pub(crate) fn parameter(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bool {
@@ -41,7 +41,7 @@ pub(crate) fn arguments(arguments: &[ResolvedType]) -> bool {
     matches!(arguments, [ty] if scalar(ty))
 }
 pub(crate) fn concrete_signature(function: &super::ResolvedFunction) -> bool {
-    let carrier = |ty: &ResolvedType| matches!(ty, ResolvedType::Nominal { declaration, arguments } if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID) && (self::arguments(arguments) || (matches!(declaration.as_str(), crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID) && arguments.as_slice() == [ResolvedType::Bytes])));
+    let carrier = |ty: &ResolvedType| matches!(ty, ResolvedType::Nominal { declaration, arguments } if matches!(declaration.as_str(), crate::prelude::BOX_PATTERN_ID | crate::prelude::VEC_PATTERN_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID) && (self::arguments(arguments) || (matches!(declaration.as_str(), crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID) && arguments.as_slice() == [ResolvedType::Bytes])));
     (carrier(&function.return_type) || function.params.iter().any(|p| carrier(&p.ty)))
         && (carrier(&function.return_type) || scalar(&function.return_type))
         && function.params.iter().all(|p| {

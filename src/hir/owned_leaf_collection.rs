@@ -373,7 +373,9 @@ pub(crate) fn function_requires_profile_by<'a>(
         };
         if !matches!(
             declaration.as_str(),
-            crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
+            crate::prelude::VEC_PATTERN_ID
+                | crate::iterator_ops::ITER_ID
+                | crate::iterator_ops::STEP_ID
         ) {
             return arguments.is_empty()
                 && lookup(declaration).is_some_and(|item| {

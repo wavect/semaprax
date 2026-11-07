@@ -315,8 +315,8 @@ impl Resolver<'_, '_> {
         match declaration.as_str() {
             crate::prelude::OPTION_ID => Some("Option"),
             crate::prelude::RESULT_ID => Some("Result"),
-            crate::prelude::VEC_ID => Some("Vec"),
-            crate::prelude::BOX_ID => Some("Box"),
+            crate::prelude::VEC_PATTERN_ID => Some("Vec"),
+            crate::prelude::BOX_PATTERN_ID => Some("Box"),
             _ => self
                 .program
                 .types()

@@ -1171,7 +1171,7 @@ pub(super) fn check_ownership_mode_ref(
         || types.is_admitted_iterator(&param.ty)
         || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
-        || matches!(&param.ty, Type::Named { name, arguments } if arguments.len() == 1 && types.declaration(name).is_some_and(|d| matches!(d.stable_id.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID)));
+        || matches!(&param.ty, Type::Named { name, arguments } if arguments.len() == 1 && types.declaration(name).is_some_and(|d| matches!(d.stable_id.as_str(), crate::prelude::BOX_PATTERN_ID | crate::prelude::VEC_PATTERN_ID)));
     match (requires_explicit_mode, param.mode) {
         (true, ParamMode::Value) => {
             let diagnostic = error(

@@ -572,8 +572,8 @@ impl DeclarationIndex {
                 crate::stdin_stream_ops::READER_ID
                     | crate::iterator_ops::ITER_ID
                     | crate::iterator_ops::STEP_ID
-                    | crate::prelude::VEC_ID
-                    | crate::prelude::BOX_ID
+                    | crate::prelude::VEC_PATTERN_ID
+                    | crate::prelude::BOX_PATTERN_ID
             ) {
                 self.declaration(declaration)?;
                 // Fund the real complete result, its receiving value and the

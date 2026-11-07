@@ -313,6 +313,13 @@ fn assert_coverage_sources() {
 // Each original full-source table retains its own authenticated physical domain.
 fn source_input(domain: &str, source: &str, current: &str) -> String {
     use sha2::{Digest, Sha256};
+    let release_predecessor;
+    let current = if domain == "fixture-current" {
+        release_predecessor = static_identity_predecessor(source, current);
+        release_predecessor.as_str()
+    } else {
+        current
+    };
     let current_stage;
     let current = if domain == "fixture-current" {
         let data: serde_json::Value = serde_json::from_str(include_str!(
@@ -413,4 +420,99 @@ fn source_input(domain: &str, source: &str, current: &str) -> String {
         "authenticated original whole input: {source}"
     );
     original
+}
+
+// Authenticate complete current owners before the unchanged historical chains.
+// Both predecessors are genuine files from 9923b1eac, before static pattern
+// spellings changed; no earlier packet, inverse or backend assertion changes.
+fn static_identity_predecessor(source: &str, current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let expected_before = match source {
+        "src/codegen/native_vec.rs" => {
+            "e96a33ef703f09e0fe61b952af784314e403b55745c80b2c67e413d848c785fc"
+        }
+        "tests/support/record_copy_field_update.rs" => {
+            "7b14eb6f9ae50600e21e631db0534aa3edd8303320561af3672a24adae0718fd"
+        }
+        _ => return current.to_owned(),
+    };
+    let rows: serde_json::Value = serde_json::from_str(include_str!(
+        "../../docs/evidence/ci-static-identities-20261107/record-inputs.json"
+    ))
+    .unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    let mut matching = rows.iter().filter(|row| row["source"] == source);
+    let row = matching
+        .next()
+        .expect("required complete source transition");
+    assert!(
+        matching.next().is_none(),
+        "unique complete source transition"
+    );
+    let digest = |bytes: &[u8]| {
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+        )
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        std::fs::read(root.join(source)).unwrap(),
+        current.as_bytes()
+    );
+    assert_eq!(current.len() as u64, row["current_bytes"]);
+    assert_eq!(digest(current.as_bytes()), row["current_sha256"]);
+    assert_eq!(
+        row["current_archive"],
+        format!("e/{}", digest(current.as_bytes()))
+    );
+    assert_eq!(
+        std::fs::read(root.join(row["current_archive"].as_str().unwrap())).unwrap(),
+        current.as_bytes()
+    );
+    let mut restored = current.to_owned();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let new = edit[1].as_str().unwrap();
+        assert_eq!(
+            &restored[at..at + new.len()],
+            new,
+            "exact whole-source inverse"
+        );
+        restored.replace_range(at..at + new.len(), edit[2].as_str().unwrap());
+    }
+    assert_eq!(restored.len() as u64, row["before_bytes"]);
+    assert_eq!(row["before_sha256"], expected_before);
+    assert_eq!(digest(restored.as_bytes()), expected_before);
+    assert_eq!(row["before_archive"], format!("e/{expected_before}"));
+    assert_eq!(
+        std::fs::read(root.join(row["before_archive"].as_str().unwrap())).unwrap(),
+        restored.as_bytes()
+    );
+    restored
+}
+
+#[test]
+fn static_identity_history_keeps_complete_predecessors_and_refuses_stale_or_mutated_inputs() {
+    for (source, current) in [
+        (
+            "src/codegen/native_vec.rs",
+            include_str!("../../src/codegen/native_vec.rs"),
+        ),
+        (
+            "tests/support/record_copy_field_update.rs",
+            include_str!("record_copy_field_update.rs"),
+        ),
+    ] {
+        let before = static_identity_predecessor(source, current);
+        assert_ne!(before, current);
+        let mut mutated = current.to_owned();
+        mutated.replace_range(0..1, "!");
+        for invalid in [&before, &mutated] {
+            assert!(
+                std::panic::catch_unwind(|| static_identity_predecessor(source, invalid)).is_err()
+            );
+        }
+    }
 }

@@ -228,8 +228,21 @@ destination. `build --json` reports `status`, `target`, `product`, and
 `output`; native-callable bundles also report `manifest_sha256`.
 
 Explicit single-file build outputs must be new. An existing path fails with
-`SPX-I307`; an invalid parent fails with `SPX-I301`. Builds do not merge into
-an existing directory or overwrite source.
+`SPX-I307`. Builds do not merge into an existing directory or overwrite source.
+
+For `--target native` executables and Web packages built with `--export`, the
+output's parent directory must already exist and be a real directory, not a
+symbolic link or Windows junction. Otherwise the build fails with `SPX-I301`,
+which names the parent and, for a link, suggests the resolved output path; a
+missing parent gets a hint to create it first. Control characters in those
+paths are shown escaped. Only the immediate parent is checked: on macOS,
+`--target native -o /tmp/app` fails because `/tmp` links to `/private/tmp`, so
+use `-o /private/tmp/app`. `--target native-callable` and Web packages built
+without `--export` or `--profile` do not reject a linked parent:
+`native-callable` builds into the directory the link resolves to, and a
+missing or non-directory parent fails with `SPX-I107`. Such a Web package is
+created through the link, and a missing or non-directory parent fails with
+`SPX-I301` without a hint.
 
 For command-profile projects, `run` executes the ordinary project entry, not
 the process-input command function. The output points to the built adapters

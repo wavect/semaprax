@@ -9,6 +9,18 @@
 - Give the construction-phase ordinary renewal directory its own 4,000,000-unit work allowance instead of the 1,000,000-unit helper lookup remainder, which the 72-member `std/pattern` linked test program exceeded.
 - Raise `MAX_BUILDER_BYTES` (`SPX-G171`) from 67,108,864 to 134,217,728 bytes: `std/pattern`, `catalog-normalizer` and the Catalog scoped-record successor exceed 64 MiB without replay scratch, and the ShiftSim typed starter needs 133,282,152 bytes.
 
+## Schema-less function rename capture refusal (2026-10-28)
+
+- Refuse schema-less function renames, single-file and Project, that would retarget a call to or from a same-named local value as `SPX-G111`, leaving source unchanged on refusal. A single-file rename must also start from a resolvable base; a Project rename compares the resolved HIR of every Project module. Renames without capture and v2/v3 patches are unaffected.
+
+## Legacy Web import admission (2026-10-28)
+
+- Refuse legacy `build --target web` modules whose host imports the generated browser loader does not supply, such as the unversioned `env.spx_vec_*` Vec imports, with `SPX-W131` before creating output, and stop leaving an empty output directory when emission fails.
+
+## SPX-I301 output parent diagnostics (2026-10-28)
+
+- Name the rejected output parent in SPX-I301 for native, Web package and explicit Project outputs, identify symbolic links with their resolved output path, and hint to create a missing parent, keeping the real non-reparse parent policy. Control characters in the named paths are escaped so a hostile file name cannot forge diagnostic lines.
+
 ## Replay and loan scratch allocation (2026-10-27)
 
 - Reduce transient replay history, continuation, path-join, and loan-directory allocation while preserving complete checked HIR, canonical plans, diagnostics, work limits, and independent comparisons. Keep the original allocation and failure controls and add full prior-producer comparisons for the changed storage paths.

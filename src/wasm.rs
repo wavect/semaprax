@@ -42,6 +42,8 @@ mod network_io;
 pub(crate) mod numeric_conversions;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod option_propagation_component_v10;
+#[doc(hidden)]
+pub mod output_parent;
 mod owned;
 mod owned_data_exports;
 mod owned_data_public;
@@ -72,6 +74,8 @@ mod scalar_call_admission;
 mod source_result_component_v4;
 mod text_exports;
 mod vec_ops;
+/// Legacy Web import-inventory admission (refuses before output creation).
+mod web_import_inventory;
 /// Core Wasm call-depth admission (issue #293 P2-1): the sticky exported
 /// marker a refused build sets.
 pub(crate) use aggregate::call_admission::CALL_DEPTH_EXCEEDED_EXPORT;
@@ -2032,6 +2036,8 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             "for standalone scalar String source, use --profile internal-strings-v1 with admitted scalar exports; aggregate String programs use the aggregate Web lowering",
         ));
     }
+    let wasm_bytes = emit_resolved_module(&resolved)?;
+    web_import_inventory::admit(&wasm_bytes, !owned_plans.is_empty())?;
     std::fs::create_dir(output).map_err(|error| {
         let code = if error.kind() == std::io::ErrorKind::AlreadyExists {
             "SPX-I307"
@@ -2046,7 +2052,6 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             ),
         )
     })?;
-    let wasm_bytes = emit_resolved_module(&resolved)?;
     std::fs::write(output.join("app.wasm"), &wasm_bytes).map_err(|error| {
         Diagnostic::io(
             "SPX-I302",
@@ -2987,18 +2992,24 @@ fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     let parent_metadata = fs::symlink_metadata(parent_path).map_err(|error| {
-        Diagnostic::io(
+        let diagnostic = Diagnostic::io(
             "SPX-I301",
             format!(
                 "cannot inspect Public Scalar Export output parent {}: {error}",
-                parent_path.display()
+                output_parent::shown(parent_path)
             ),
-        )
+        );
+        match output_parent::missing_directory_help(parent_path, &error) {
+            Some(help) => diagnostic.with_help(help),
+            None => diagnostic,
+        }
     })?;
     if !is_plain_directory(&parent_metadata) {
-        return Err(Diagnostic::io(
-            "SPX-I301",
-            "Public Scalar Export output parent must be a real non-reparse directory",
+        return Err(output_parent::rejected_directory(
+            "Public Scalar Export output parent",
+            parent_path,
+            output,
+            &parent_metadata,
         ));
     }
     let parent_identity = Handle::from_path(parent_path).map_err(|error| {

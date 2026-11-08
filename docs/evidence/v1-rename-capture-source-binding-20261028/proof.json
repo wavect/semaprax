@@ -1,0 +1,14 @@
+{
+  "base": "2d215d3377",
+  "cause": "The rebased v1 function rename fix appends a changelog section and adds the SPX-G111 diagnostic, which raises the agent skill bundle diagnostic catalog from 1517 to 1518 codes. Both files are finite-overlay sources, so their current tuples had to advance.",
+  "change": "Bind all 597996 actual changelog bytes and all 5544 regenerated bundle bytes through e/f9132bed5d9915e8bfbb44876c25caa273b4f2cdb911f919cba6e59c33494e35 and e/075f26236147695baf8248a36bc6cd2055f936fa095ee3553aebe1401588f1a2. Retain the previous 597636-byte changelog and 5544-byte bundle tuples as the named views whole-before-v1-rename-capture-2d215 and whole-before-v1-rename-capture-catalog-2d215, with every other row, historical view, compiled flag, fragment edge and unknown field unchanged. Refresh the transitive policy/code hashes, the a3-e47 source tuples and the source boundary manifests.",
+  "metadata_page_bytes": 252600,
+  "metadata_page_cap": 262144,
+  "bundle_regeneration": "regenerate_committed_bundle (ignored) left the committed bytes unchanged; committed_bundle_is_pinned_and_regenerates_byte_identical PASS",
+  "domain_hashes": "PASS:6/6 recomputed with the original verify-authority definition through boundary_tools.original_verifier",
+  "rust_current_source_channels": "PASS: writer source owners 1/1, path_join bundle receivers 6/6, agent_skill_bundle 11/11, source_locked_contracts 2/2, hir_module_boundaries 11/11",
+  "latest_main_and_afa_full_view_regression": "NOT COMPLETED: no failure within 5400 s in a debug build; no result claimed",
+  "prior_head_failures": "Unchanged at 2d215d3377: the same 17 source_reflows_merge tests, 3 workspace overlay compiled-source tests and semantic_workspace constructor_schema_round_trips_without_admitting_forged_spellings fail at the same sites on 2d215d3377 and on this head",
+  "python_raw_verifiers": "diagnostic-writer-846/verify.py and accepted-strict-guard-generation check-source.py refuse at 2d215d3377 as well: their raw-byte inverses and carrier pins predate later owner edits",
+  "all_ci": "NOT RUN; scripts/quality.sh full remains pending"
+}

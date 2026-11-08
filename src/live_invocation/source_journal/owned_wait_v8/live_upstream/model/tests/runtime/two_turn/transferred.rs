@@ -333,7 +333,15 @@ fn relaunch(mode: &str) {
         } else {
             command.env_remove("SEMAPRAX_KEEP_OWNED_WAIT_CONTEXT_FIXTURE");
         }
-        assert!(command.status().unwrap().success(), "child {child_mode}");
+        // Keep the nested libtest wire out of the parent harness's checked
+        // result stream; retain both child streams in any failure diagnostic.
+        let output = command.output().unwrap();
+        assert!(
+            output.status.success(),
+            "child {child_mode}: stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
     }
     let meta: PublicRestartMeta =
         serde_json::from_slice(&std::fs::read(&metadata).unwrap()).unwrap();

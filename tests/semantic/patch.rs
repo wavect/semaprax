@@ -710,6 +710,26 @@ fn function_rename_refuses_a_name_captured_by_a_local_value() {
 }
 
 #[test]
+fn function_rename_refuses_a_name_captured_by_a_closure_value() {
+    let source = r#"module t;
+
+@id("t.one")
+fn one() -> i64
+{
+    1
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    let f = fn() -> i64 { 7 };
+    one() * 10 + f()
+}
+"#;
+    assert_rename_refused("closure-capture", source, "t.one to f", "SPX-G111");
+}
+
+#[test]
 fn function_rename_refuses_a_name_captured_by_a_function_parameter() {
     let source = r#"module t;
 

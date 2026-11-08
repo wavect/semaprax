@@ -326,6 +326,83 @@ fn a_comment_outside_the_rewritten_source_is_admitted_and_preserved_verbatim() {
     );
 }
 
+/// Appends `one`, `two` and a caller whose body is `caller_body` to the
+/// fixture's `src/core.spx` and returns the resulting revision.
+fn capture_fixture(caller_body: &str) -> (Fixture, Arc<ProjectRevision>) {
+    let fixture = Fixture::new();
+    let core = fixture.0.join("src/core.spx");
+    let mut source = std::fs::read_to_string(&core).unwrap();
+    source.push_str(&format!(
+        "\n@id(\"calculator.one\")\nfn one() -> i64\n{{\n    1\n}}\n\n\
+         @id(\"calculator.two\")\nfn two() -> i64\n{{\n    2\n}}\n\n\
+         @id(\"calculator.caller\")\nfn caller() -> i64\n{{\n{caller_body}\n}}\n"
+    ));
+    std::fs::write(&core, source).unwrap();
+    let revision = fixture.revision();
+    (fixture, revision)
+}
+
+fn rename_one(revision: &ProjectRevision, to: &str) -> SemanticTransaction {
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    SemanticTransaction::rename_display_name(
+        workspace.workspace_revision(),
+        SemanticTransactionRenameDisplayName::new("calculator.one", "one", to),
+    )
+    .unwrap()
+}
+
+fn assert_capture_refused<T>(result: Result<T, Vec<Diagnostic>>) {
+    match result {
+        Ok(_) => panic!("a rename that retargets a call in `calculator.caller` was admitted"),
+        Err(errors) => assert!(
+            errors.iter().any(|error| {
+                error.code == "SPX-G111" && error.message.contains("calculator.caller")
+            }),
+            "{errors:?}"
+        ),
+    }
+}
+
+/// `rename_declaration` rewrites calls by module binding name. Renaming `one`
+/// to `f` beside `let f = two;` would turn `one() * 10 + f()` into
+/// `f() * 10 + f()`, and renaming `one` while a call `one()` resolves to a
+/// same-named local value would retarget that call to the renamed function.
+/// Both must refuse as SPX-G111 through the semantic transaction and the
+/// candidate API, without touching the Project files.
+#[test]
+fn rename_display_name_refuses_a_call_captured_by_or_from_a_local_value() {
+    let (fixture, revision) = capture_fixture("    let f = two;\n    one() * 10 + f()");
+    let disk_before = inventory(&fixture.0);
+    assert_capture_refused(rename_one(&revision, "f").validate(Arc::clone(&revision)));
+    let open = ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let change = SemanticChange::new(
+        revision.project_revision(),
+        &json!({"kind":"rename_declaration", "name":"f", "target":"calculator.one"}),
+    )
+    .unwrap();
+    assert_capture_refused(open.apply(open.candidate_digest(), &change));
+    rename_one(&revision, "uno")
+        .validate(Arc::clone(&revision))
+        .expect("a rename no local value captures stays admitted");
+    let change = SemanticChange::new(
+        revision.project_revision(),
+        &json!({"kind":"rename_declaration", "name":"uno", "target":"calculator.one"}),
+    )
+    .unwrap();
+    let candidate = open.apply(open.candidate_digest(), &change).unwrap();
+    assert!(candidate
+        .revision()
+        .sources()
+        .iter()
+        .any(|source| source.source().contains("uno() * 10 + f()")));
+    assert_eq!(disk_before, inventory(&fixture.0));
+
+    let (fixture, revision) = capture_fixture("    let one = two;\n    one()");
+    let disk_before = inventory(&fixture.0);
+    assert_capture_refused(rename_one(&revision, "uno").validate(Arc::clone(&revision)));
+    assert_eq!(disk_before, inventory(&fixture.0));
+}
+
 fn replacement_block() -> Value {
     json!({
         "kind":"binary", "op":"-",

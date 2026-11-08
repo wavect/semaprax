@@ -7,7 +7,7 @@ fn sg20_sg21_actual_rustdoc_extraction_replays_with_payload_and_alias() {
     let args = captures.as_array().unwrap().iter().find(|row| row["name"] == "full").unwrap()["args"].as_array().unwrap();
     // The recorded capture uses a POSIX absolute root. Preserve its relative
     // source identities instead of interpreting that foreign root on Windows.
-    let recorded_root = args[2..].chunks_exact(2).find(|pair| pair[0] == "--source-root").unwrap()[1].as_str().unwrap();
+    let recorded_root = args[2..].as_chunks::<2>().0.iter().find(|pair| pair[0] == "--source-root").unwrap()[1].as_str().unwrap();
     let prefix = format!("{recorded_root}/");
     let mut document: Value = serde_json::from_slice(&std::fs::read(fixture.join("review_index.json")).unwrap()).unwrap();
     for item in document["index"].as_object_mut().unwrap().values_mut() {
@@ -23,7 +23,7 @@ fn sg20_sg21_actual_rustdoc_extraction_replays_with_payload_and_alias() {
     drop(input_file);
     let mut command = std::process::Command::new(std::env::var("HARNESS_PYTHON").unwrap_or_else(|_| "python3".into()));
     command.arg(repo.join("crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py"));
-    for pair in args[2..].chunks_exact(2) {
+    for pair in args[2..].as_chunks::<2>().0 {
         let flag = pair[0].as_str().unwrap();
         if flag == "--output" { continue; }
         command.arg(flag);

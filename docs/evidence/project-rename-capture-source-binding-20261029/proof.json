@@ -1,0 +1,11 @@
+{
+  "base": "30460a4287",
+  "cause": "Project rename now refuses a call-target change as SPX-G111, so the changelog section no longer says Project renames are unaffected, and the new Project rename unit test names SPX-G111 in a new source file, which changes the diagnostic catalog identity. Both files are finite-overlay sources, so their current tuples had to advance.",
+  "change": "Bind all 598064 actual changelog bytes and all 5544 regenerated bundle bytes through e/39b7c05ba27864ed70876f249fa9d3d6befa79385a5e098a39f70e553fa58ae7 and e/806defa02207907e05f149fd9e4bacf48f2742c77015da25b9694655769ff437. Retain the previous 597996-byte changelog and 5544-byte bundle tuples as the named views whole-before-project-rename-capture-30460 and whole-before-project-rename-capture-catalog-30460. Advance the policy, overlay_page.py, guard_payload.py, main_e177_overlay_v2.rs, a3-e47 source tuples and source-boundary domain hashes; every other row, view and assertion is unchanged.",
+  "metadata_page_bytes": 252846,
+  "metadata_page_cap": 262144,
+  "bundle_regeneration": "regenerate_committed_bundle (ignored) changed only the bundle digest and the diagnostic catalog operation digest; code_count unchanged; committed_bundle_is_pinned_and_regenerates_byte_identical PASS",
+  "domain_hashes": "PASS: hir and projection manifest, raw and authenticated production hashes recomputed as tests/support/new_boundary_module.rs defines them, after the same computation reproduced the committed values at 30460a4287",
+  "rust_current_source_channels": "PASS: writer source owners 1/1, path_join bundle receivers 6/6, agent_skill_bundle 11/11 (1 ignored), source_locked_contracts 2/2, hir_module_boundaries 11/11",
+  "all_ci": "NOT RUN; scripts/quality.sh full remains pending"
+}

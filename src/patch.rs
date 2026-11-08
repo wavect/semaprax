@@ -1,5 +1,6 @@
 mod direct_apply;
 mod operations;
+mod rename_targets;
 mod source_index;
 use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
@@ -13,6 +14,7 @@ use std::path::{Path, PathBuf};
 use self::direct_apply::apply_with_commit_hook;
 use self::operations::{PatchSchema, PatchSelector, ReplaceCallTypeArgument, SemanticPatch};
 pub(crate) use self::operations::{PreflightOperation, ScalarType};
+pub(crate) use self::rename_targets::validate_project_rename_targets;
 use self::source_index::SemanticSourceIndex;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1421,7 +1423,8 @@ fn preflight_parsed_owned(
                 after: rename.new_name.to_owned(),
                 operation_indices: operation_indices.clone(),
             });
-            for (start, end) in function_name_positions(&before, &tokens, function) {
+            for (start, end) in rename_targets::function_name_positions(&before, &tokens, function)
+            {
                 let replacement = rename.new_name.to_owned();
                 planned_edits.push(planned_edit(
                     start,
@@ -1802,6 +1805,17 @@ fn preflight_parsed_owned(
             "SPX-G105",
             "semantic patch violates requirement `no-new-effects`",
         )]);
+    }
+    if patch.schema() == PatchSchema::V1
+        && candidate_validation == CandidateValidation::Standalone
+        && patch.renames().any(|rename| {
+            before
+                .functions
+                .iter()
+                .any(|function| function.stable_id == rename.stable_id)
+        })
+    {
+        rename_targets::validate_v1_function_rename_targets(&before, &candidate)?;
     }
     if let Some(before_resolved) = &before_resolved {
         let after_resolved = hir::resolve(&candidate)?;
@@ -2914,35 +2928,6 @@ fn scrub_semantic_graph(
         | serde_json::Value::Number(_)
         | serde_json::Value::String(_) => {}
     }
-}
-
-fn function_name_positions(
-    program: &crate::ast::Program,
-    tokens: &[lexer::Token],
-    target: &crate::ast::Function,
-) -> BTreeSet<(usize, usize)> {
-    let mut positions = BTreeSet::from([(target.name_span.start, target.name_span.end)]);
-    for function in &program.functions {
-        let mut collect = |callee: &str, span: crate::ast::Span| {
-            if callee != target.name {
-                return;
-            }
-            if let Some(token) = tokens.iter().find(|token| {
-                token.span.start == span.start
-                    && matches!(&token.kind, lexer::TokenKind::Ident(name) if name == callee)
-            }) {
-                positions.insert((token.span.start, token.span.end));
-            }
-        };
-        for contract in &function.requires {
-            contract.visit_calls(&mut collect);
-        }
-        for contract in &function.ensures {
-            contract.visit_calls(&mut collect);
-        }
-        function.body.visit_calls(&mut collect);
-    }
-    positions
 }
 
 fn resource_type_positions(

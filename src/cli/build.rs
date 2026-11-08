@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 
 use same_file::Handle;
 use semaprax::diagnostic::Diagnostic;
+use semaprax::wasm::output_parent::{missing_directory_help, rejected_directory, shown};
 
 use super::project::{
     is_project_manifest, normalize_project_path, resolve_positional, DEFAULT_MANIFEST,
@@ -75,14 +76,20 @@ impl SourceNativeOutput {
             .filter(|parent| !parent.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
         let parent_metadata = fs::symlink_metadata(parent).map_err(|error| {
-            parent_error(format!(
-                "cannot inspect single-file native output parent {}: {error}",
-                parent.display()
-            ))
+            with_optional_help(
+                parent_error(format!(
+                    "cannot inspect single-file native output parent {}: {error}",
+                    shown(parent)
+                )),
+                missing_directory_help(parent, &error),
+            )
         })?;
         if !is_plain_directory(&parent_metadata) {
-            return Err(parent_error(
-                "single-file native output parent must be a real non-reparse directory",
+            return Err(rejected_directory(
+                "single-file native output parent",
+                parent,
+                path,
+                &parent_metadata,
             ));
         }
         let parent_identity = Handle::from_path(parent).map_err(|error| {
@@ -212,8 +219,11 @@ impl ProjectOutputParent {
         match fs::symlink_metadata(parent) {
             Ok(metadata) => {
                 if !is_plain_directory(&metadata) {
-                    return Err(parent_error(
-                        "explicit Project output parent must be a real non-reparse directory",
+                    return Err(rejected_directory(
+                        "explicit Project output parent",
+                        parent,
+                        output,
+                        &metadata,
                     ));
                 }
                 return Ok(Self {
@@ -235,14 +245,20 @@ impl ProjectOutputParent {
             .filter(|path| !path.as_os_str().is_empty())
             .unwrap_or_else(|| Path::new("."));
         let metadata = fs::symlink_metadata(grandparent).map_err(|error| {
-            parent_error(format!(
-                "explicit Project output may create only one missing parent; cannot inspect grandparent {}: {error}",
-                grandparent.display()
-            ))
+            with_optional_help(
+                parent_error(format!(
+                    "explicit Project output may create only one missing parent; cannot inspect grandparent {}: {error}",
+                    shown(grandparent)
+                )),
+                missing_directory_help(grandparent, &error),
+            )
         })?;
         if !is_plain_directory(&metadata) {
-            return Err(parent_error(
-                "explicit Project output grandparent must be a real non-reparse directory",
+            return Err(rejected_directory(
+                "explicit Project output grandparent",
+                grandparent,
+                output,
+                &metadata,
             ));
         }
         let grandparent_identity = Handle::from_path(grandparent).map_err(|error| {
@@ -273,9 +289,10 @@ impl ProjectOutputParent {
             ))
         })?;
         if !is_plain_directory(&parent_metadata) {
-            return Err(parent_error(
-                "created explicit Project output parent is not a real non-reparse directory",
-            ));
+            return Err(parent_error(format!(
+                "created explicit Project output parent {} is not a real non-reparse directory",
+                shown(parent)
+            )));
         }
         let parent_identity = Handle::from_path(parent).map_err(|error| {
             parent_error(format!(
@@ -383,6 +400,13 @@ fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool {
 
 fn parent_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-I301", message)
+}
+
+fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -> Diagnostic {
+    match help {
+        Some(help) => diagnostic.with_help(help),
+        None => diagnostic,
+    }
 }
 
 pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {

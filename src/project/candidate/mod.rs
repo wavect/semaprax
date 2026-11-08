@@ -676,6 +676,17 @@ impl ProjectCandidate {
         if let Some(rename) = &generic_rename {
             generic_rename::validate(&candidate, rename)?;
         }
+        if summary.kind == "rename_declaration" && nominal_rename.is_none() {
+            // A function rename rewrites calls by module binding name, and the
+            // typed-fact gates compare no display names, so a call that a local
+            // value captures, or a call to a same-named local value that now
+            // reaches the renamed function, is refused here with the same
+            // call-target diagnostic as a Project or single-file v1 rename.
+            crate::patch::validate_project_rename_targets(
+                self.revision.semantic.image_modules(),
+                candidate.semantic.image_modules(),
+            )?;
+        }
         let rebuilt_programs = parse_revision(&candidate)?;
         interface::identities(&rebuilt_programs)?;
         if interface::inventory(&rebuilt_programs)? != before_implementations {

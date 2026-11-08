@@ -53,10 +53,10 @@ serde_json = "=1.0.154"
 sha2 = "=0.11.1"
 ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
 rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
-sigstore-verify = { version = "=0.15.0", default-features = false, features = ["aws-lc-rs"] }
+sigstore-verify = { version = "=0.15.1", default-features = false, features = ["aws-lc-rs"] }
 x509-cert = { version = "=0.3.0", default-features = false }
-webpki-roots = "=1.0.10"
-wasmparser = { version = "=0.261.0", default-features = false, features = ["component-model", "features", "validate"] }
+webpki-roots = "=1.0.11"
+wasmparser = { version = "=0.263.0", default-features = false, features = ["component-model", "features", "validate"] }
 wasm-encoder = { version = "=0.261.0", default-features = false, features = ["std", "component-model"] }
 
 [dev-dependencies]
@@ -64,7 +64,7 @@ flate2 = { version = "=1.1.10", default-features = false, features = ["rust_back
 criterion = { version = "0.8", features = ["html_reports"] }
 regex_alias = { package = "regex", version = "=1.13.1" }
 socket2 = "=0.6.5"
-tokio = { version = "=1.53.3", features = ["rt", "net", "time", "sync"] }
+tokio = { version = "=1.54.1", features = ["rt", "net", "time", "sync"] }
 
 [[bench]]
 name = "compiler"
@@ -98,7 +98,7 @@ reqwest = { version = "=0.13.5", default-features = false, features = ["blocking
 
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.190"
-rustix = { version = "=1.1.5", default-features = false, features = ["fs", "process", "std", "stdio"] }
+rustix = { version = "=1.1.6", default-features = false, features = ["fs", "process", "std", "stdio"] }
 
 [target.'cfg(windows)'.dependencies]
 renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }

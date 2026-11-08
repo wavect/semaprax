@@ -210,7 +210,7 @@ class Winget(unittest.TestCase):
             f"  InstallerUrl: https://github.com/wavect/semaprax/releases/download/{TAG}/{folder}.zip",
             f"  InstallerSha256: {DIGESTS[WIN].upper()}",
             "ManifestType: installer",
-            "ManifestVersion: 1.10.0",
+            "ManifestVersion: 1.28.0",
         ):
             self.assertIn(line + "\n", installer)
         self.assertNotIn("arm64", installer)

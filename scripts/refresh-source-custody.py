@@ -24,7 +24,9 @@ records that authenticate *current* bytes, in this order:
 4. `docs/evidence/a3-e47-final-custody-20261016/{hir,projection}.json`:
    sources, chunks and closure come from the canonical-byte generator; current registration chains and production/test roles are regenerated,
    while other existing class metadata is retained;
-5. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
+5. declared-history current pins and exact current-to-predecessor inverses,
+   after the overlay reader pins settle; sealed predecessor archives stay fixed;
+6. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
    (members and the three full-manifest/raw/production digests).
 
 Every rewritten record is re-validated with the repository's own decoder
@@ -187,6 +189,74 @@ def refresh_main043_successors(repo):
     rs = replace_once(rs, f'        {len(raw)},\n        "{sha(raw)}",',
                       f'        {len(new)},\n        "{sha(new)}",', MAIN043_SUCCESSORS_RS)
     repo.write(MAIN043_SUCCESSORS_RS, rs)
+    return changed
+
+
+DECLARED_HISTORY = 'docs/evidence/declared-history-inputs-20261105'
+DECLARED_HISTORY_RS = 'src/source_reflows/declared_history_inputs.rs'
+
+
+def refresh_declared_history(repo):
+    """Rebind complete current-to-history inverses after the overlay pins settle.
+
+    Authenticate both sealed archives and replay the original inverse first.
+    Preserve every historical byte, provenance field and unrelated table row.
+    """
+    import difflib
+    changed = []
+    holder = None
+    for path in sorted((repo.root / DECLARED_HISTORY).glob('part-*.json')):
+        relative = str(path.relative_to(repo.root))
+        raw = repo.raw(relative)
+        rows = json.loads(raw)
+        assert (json.dumps(rows, separators=(',', ':')) + '\n').encode() == raw
+        dirty = False
+        for row in rows:
+            live = repo.raw(row['source'])
+            if len(live) == row['current_bytes'] and sha(live) == row['current_sha256']:
+                continue
+            current = repo.raw(row['current_archive'])
+            previous = repo.raw(row['before_archive'])
+            assert len(current) == row['current_bytes'] and sha(current) == row['current_sha256']
+            assert len(previous) == row['before_bytes'] and sha(previous) == row['before_sha256']
+            restored = current
+            for start, after, before in reversed(row['inverse']):
+                after, before = after.encode(), before.encode()
+                assert restored[start:start + len(after)] == after
+                restored = restored[:start] + before + restored[start + len(after):]
+            assert restored == previous, 'complete declared predecessor must remain identical'
+            a, b = live.splitlines(keepends=True), previous.splitlines(keepends=True)
+            offsets = [0]
+            for line in a:
+                offsets.append(offsets[-1] + len(line))
+            inverse = [[offsets[i], b''.join(a[i:j]).decode(), b''.join(b[k:l]).decode()]
+                       for tag, i, j, k, l in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes()
+                       if tag != 'equal']
+            restored = live
+            for start, after, before in reversed(inverse):
+                after, before = after.encode(), before.encode()
+                assert restored[start:start + len(after)] == after
+                restored = restored[:start] + before + restored[start + len(after):]
+            assert restored == previous, 'refreshed inverse must restore the complete sealed predecessor'
+            archive = f'e/{sha(live)}'
+            repo.write(archive, live)
+            row.update(current_bytes=len(live), current_sha256=sha(live),
+                       current_archive=archive, inverse=inverse)
+            changed.append(row['source'])
+            dirty = True
+        if dirty:
+            new = (json.dumps(rows, separators=(',', ':')) + '\n').encode()
+            assert len(new) <= 2_097_152, 'unchanged declared-history table cap'
+            repo.write(relative, new)
+            if holder is None:
+                holder = repo.raw(DECLARED_HISTORY_RS).decode()
+            pattern = (r'("' + re.escape(relative) + r'",\s*include_str!\(concat!\(.*?\)\),\s*)'
+                       + str(len(raw)) + r',\s*"' + sha(raw) + r'"')
+            holder, count = re.subn(pattern, lambda m: m[1] + str(len(new)) + ',\n        "' + sha(new) + '"',
+                                    holder, count=1, flags=re.S)
+            assert count == 1, f'{relative}: exactly one compiled history-table pin'
+    if holder is not None:
+        repo.write(DECLARED_HISTORY_RS, holder)
     return changed
 
 
@@ -607,6 +677,9 @@ def main():
             break
     else:
         raise SystemExit('custody refresh did not reach a fixed point')
+    declared = refresh_declared_history(repo)
+    if declared:
+        print('declared history rows refreshed:', *declared, sep='\n  ')
     if args.check:
         # Check the physical source pins too: an unchanged overlay does not
         # imply that the authority manifests still bind the current sources.

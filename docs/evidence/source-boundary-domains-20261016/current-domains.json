@@ -3037,7 +3037,7 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "c2938e899cf31f63c11141683b40b178dcf1f2a513cbc31b65a2c5771d512d1b",
+      "full_manifest_sha256": "066d1fb2ef8e863f716c3e9d90b7adcefd1cbf9fb35cdb95374e0b34503519fc",
       "full_raw_sha256": "08dea17191615dfd1082258f30ab2e719a36e27291345b510ea3aca705cff5ee",
       "full_authenticated_production_sha256": "a959266ea404b92b62f8d441b1b9152821ecddce1196ef719a18285aeeed765d"
     },
@@ -4190,7 +4190,7 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "7d7c870d4989042c185f3b6a6d91957c898efd6f042ddaaf977f58607c1397b4",
+      "full_manifest_sha256": "76de2830818a2cecd8a593b91300a633747e3203e1b018a6e150d203357b9615",
       "full_raw_sha256": "9a74d86cc183da1f1056930d58ce392ead710a14f46ec4fb5fda3e0f0daa2934",
       "full_authenticated_production_sha256": "fc9ef3566ee6ff1066d87f768a5ba41e2901ee4d97b97d731166aa9a3080f0b2"
     }

@@ -191,9 +191,12 @@ interpreter and native C11. Standalone internal String Wasm signatures and
 Text Toolkit `string_slice` still have their existing refusals; this package
 makes no Core Wasm support claim. All operations remain subject to the
 invocation's ordinary memory/fuel limits. Front-prepending addition and
-subtraction copy strings and are quadratic in digits; long division performs
-at most nine subtractions per dividend digit and also copies decimal strings.
-No operand is narrowed to a machine integer.
+subtraction copy strings and are quadratic in digits. Division selects exact
+digit-wise i64 remainder arithmetic only for canonical divisors at most
+922337203685477580; the dividend is never parsed as a machine integer. Larger
+divisors retain the original long division, with at most nine subtractions per
+dividend digit. Quotient construction still copies decimal strings. No operand
+is required to fit a machine integer.
 Comparison stops at the first unequal digit. Scalar implementation helpers
 keep loop decisions separate; the supported inventory retains the original
 eight operations. The helpers remain ordinary declarations, not a source

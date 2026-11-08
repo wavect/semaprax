@@ -1,3 +1,7 @@
+## Exact bounded-divisor decimal arithmetic (2026-11-08)
+
+- Use digit-wise i64 remainder arithmetic in `std.int.decimal.divide` for canonical divisors at most 922337203685477580, without narrowing the dividend. Retain the original arbitrary-divisor implementation, public identities, contracts and target inventory. Add threshold, fallback and quotient-zero controls plus native O0/O2 checks for 33,000- and 65,536-digit dividends. This does not adopt the library in the frozen LogLens application or establish a token/cost advantage.
+
 ## Payer-independent replay work (2026-10-30)
 
 - Retire the ActiveBuilder-only paired weighted comparison from production. It debited its own traversal work instead of the canonical comparator's, so the same program's observable work depended on the payer; every payer now runs the canonical comparator. The proof stays compiled for its tests.

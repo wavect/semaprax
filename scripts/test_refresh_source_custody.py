@@ -111,5 +111,81 @@ class AuthorityCheckTests(unittest.TestCase):
                          'restoring a manifest pin must preserve already-correct domain hashes')
 
 
+class DeclaredHistoryRefreshTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory(prefix='semaprax-declared-history-')
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.current = b'first\nold current\nlast\n'
+        self.previous = b'first\nsealed predecessor\nlast\n'
+        self.source = 'src/owner.rs'
+        self.part = CUSTODY.DECLARED_HISTORY + '/part-0.json'
+        self.put(self.source, self.current)
+        self.put('e/' + digest(self.current), self.current)
+        self.put('e/' + digest(self.previous), self.previous)
+        self.row = dict(source=self.source, provenance='independent-original',
+                        current_bytes=len(self.current), current_sha256=digest(self.current),
+                        current_archive='e/' + digest(self.current),
+                        before_bytes=len(self.previous), before_sha256=digest(self.previous),
+                        before_archive='e/' + digest(self.previous),
+                        inverse=[[6, 'old current\n', 'sealed predecessor\n']],
+                        unknown_metadata={'retain': True})
+        raw = canonical([self.row])
+        self.put(self.part, raw)
+        holder = (f'const PARTS: &[(&str, &str, usize, &str)] = &[("{self.part}",\n'
+                  f'include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/{self.part}")),\n'
+                  f'{len(raw)}, "{digest(raw)}")];\n')
+        self.put(CUSTODY.DECLARED_HISTORY_RS, holder.encode())
+
+    def put(self, path, value):
+        file = self.root / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(value)
+
+    def snapshot(self):
+        return {str(p.relative_to(self.root)): p.read_bytes()
+                for p in self.root.rglob('*') if p.is_file()}
+
+    def test_refresh_preserves_the_complete_sealed_predecessor_and_metadata(self):
+        live = 'new é header\nfirst\nnew current\nlast\nnew tail\n'.encode()
+        self.put(self.source, live)
+        repo = CUSTODY.Repo(self.root, False)
+        self.assertEqual(CUSTODY.refresh_declared_history(repo), [self.source])
+        row = json.loads((self.root / self.part).read_bytes())[0]
+        for key in ('before_bytes', 'before_sha256', 'before_archive', 'provenance', 'unknown_metadata'):
+            self.assertEqual(row[key], self.row[key])
+        self.assertEqual(row['current_sha256'], digest(live))
+        self.assertEqual((self.root / row['current_archive']).read_bytes(), live)
+        restored = live
+        for start, after, before in reversed(row['inverse']):
+            after, before = after.encode(), before.encode()
+            self.assertEqual(restored[start:start + len(after)], after)
+            restored = restored[:start] + before + restored[start + len(after):]
+        self.assertEqual(restored, self.previous)
+        self.assertEqual((self.root / self.row['current_archive']).read_bytes(), self.current)
+        raw = (self.root / self.part).read_bytes()
+        holder = (self.root / CUSTODY.DECLARED_HISTORY_RS).read_text()
+        self.assertIn(digest(raw), holder)
+        self.assertIn(str(len(raw)), holder)
+        self.assertEqual(CUSTODY.refresh_declared_history(repo), [])
+
+    def test_check_reports_drift_without_writing(self):
+        self.put(self.source, b'changed\n')
+        before = self.snapshot()
+        repo = CUSTODY.Repo(self.root, True)
+        self.assertEqual(CUSTODY.refresh_declared_history(repo), [self.source])
+        self.assertIn(self.part, repo.written)
+        self.assertIn(CUSTODY.DECLARED_HISTORY_RS, repo.written)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_corrupt_predecessor_archive_is_refused_before_writes(self):
+        self.put(self.source, b'changed\n')
+        self.put(self.row['before_archive'], b'forged predecessor\n')
+        before = self.snapshot()
+        with self.assertRaises(AssertionError):
+            CUSTODY.refresh_declared_history(CUSTODY.Repo(self.root, False))
+        self.assertEqual(self.snapshot(), before)
+
+
 if __name__ == '__main__':
     unittest.main()

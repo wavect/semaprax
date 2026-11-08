@@ -113,7 +113,7 @@ fn report_is_exact_typed_and_read_only() {
     assert_eq!(value["capabilities"]["added"], serde_json::json!([]));
     assert_eq!(value["capabilities"]["removed"], serde_json::json!([]));
     assert_eq!(value["targets"][1]["validation"], "wasmparser_structural");
-    assert_eq!(value["targets"][1]["validator_version"], "0.261.0");
+    assert_eq!(value["targets"][1]["validator_version"], "0.263.0");
     // Keep report metadata tied to the actual pinned dependency.
     assert!(include_str!("../../Cargo.toml").contains(&format!(
         "wasmparser = {{ version = \"={}\"",
@@ -537,7 +537,7 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         reports
             .each_ref()
-            .map(|report| sha256(&report.replace("0.261.0", "0.256.0"))),
+            .map(|report| sha256(&report.replace("0.263.0", "0.256.0"))),
         [
             "b3d6417d4ebdd50c007405030b60d7ddc26e05e7bf503c2a469c46d82f8bd3c0".to_owned(),
             "5051b9c342761cf3990a1078adc50a81c044fe108e3c64ba40a3eba02b5461d3".to_owned(),

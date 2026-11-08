@@ -19,8 +19,9 @@ native digests and byte counts for those subjects. The schema and digest
 domains do not change. String-free known answers remain frozen; this
 work does not refresh or establish execution of historical KATs.
 
-The locked wasmparser 0.261.0 dependency requires `validator_version`
-0.261.0. The CI repair updates the stale 0.259.0 report metadata to match it. This intentionally changes whole-report hashes and the
+The locked wasmparser 0.263.0 dependency requires `validator_version`
+0.263.0. The dependency update also updates the report metadata to match it.
+This intentionally changes whole-report hashes and the
 Evidence v2 bindings that include them, including String-free subjects; emitted
 Graph, capability, native, and Wasm bytes are unchanged by this metadata update.
 Schemas, digest domains, limits, and authority remain unchanged. Regenerate

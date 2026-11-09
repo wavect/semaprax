@@ -166,6 +166,8 @@ jobs:
         run: |
           export SEMAPRAX_BIN="$PWD/target/installed-bundle-producer/debug/semaprax"
           export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          # The matcher tests use a sibling sample and the native provider requires a regular file.
+          cp "$LOGLENS_SAMPLE" experiments/ascii-pattern-source/loglens-reference/sample.log
           python3 - <<'PYCODE'
           import hashlib,json,os,pathlib,subprocess
           def git(*args):
@@ -657,6 +659,8 @@ jobs:
           cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
           export SEMAPRAX_BIN="$PWD/target/hosted-opt-batch/debug/semaprax"
           export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          # The matcher tests use a sibling sample and the native provider requires a regular file.
+          cp "$LOGLENS_SAMPLE" experiments/ascii-pattern-source/loglens-reference/sample.log
           python3 - <<'PYCODE'
           import hashlib,json,os,pathlib,subprocess
           binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])

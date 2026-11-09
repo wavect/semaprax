@@ -1,0 +1,330 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    913
+  ],
+  "source_commit": "5fad74f9c564c421dc1f7fa0ef41ad3e8b5463fd",
+  "source_tree": "0424b5118004b36073b2178021a751856b1a258d",
+  "implementation_commit": "37bf5891b248eedd6d648c4165d4d8279e45c885",
+  "platform": "macOS arm64",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
+  "rust_tests": {
+    "command": "cargo test --locked --offline -p semaprax --lib hir::validation::scope_checkpoint::marks:: -- --nocapture",
+    "tests_passed": 15,
+    "opt913_tests_passed": 9,
+    "adjacent_opt939_tests_passed": 6,
+    "measurement_rerun_threads": 1
+  },
+  "clippy": {
+    "command": "cargo clippy --locked --offline -p semaprax --lib --bin semaprax --jobs 2 -- -D warnings",
+    "ci_pinned_rust_1_97_1_exit_code": 101,
+    "ci_pinned_diagnostics": [
+      "error: this `if` can be collapsed into the outer `match`",
+      "--> src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs:746:13",
+      "error: could not compile `semaprax` (lib) due to 1 previous error"
+    ],
+    "homebrew_rust_1_98_0_exit_code": 101,
+    "homebrew_diagnostics": [
+      "error: manually filling a slice",
+      "--> src/cleanup_plan/replay/expression_facts/arena/invocation.rs:193:13",
+      "error: this `if` can be collapsed into the outer `match`",
+      "--> src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs:746:13",
+      "error: could not compile `semaprax` (lib) due to 2 previous errors"
+    ]
+  },
+  "workflow": {
+    "path": ".github/workflows/macos-cli-diagnostic.yml",
+    "sha256": "cf1b17796948fad7e1e6e02f0978dc2f9fb6b0171cb861c88e3e4a655a3a09c4",
+    "actionlint": "Passed with ShellCheck disabled. Full actionlint reports the same two existing ShellCheck warnings before and after this change."
+  },
+  "source_custody": {
+    "changed_pins": 0,
+    "strict_controls": {
+      "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+      "complete_current_carriers": 3,
+      "complete_original_guard_carriers": 3,
+      "old_maximums_unchanged": true,
+      "refusals": 67,
+      "original_verifier_executed": false,
+      "rust_executed": false
+    }
+  },
+  "measurements": {
+    "allocator_scope": "Requested Rust allocation backing through Drop. Peak live backing is distinct from cumulative allocator requests, ledger debits, and process RSS.",
+    "comparison": "The inert-root driver isolates OPT-913. Whole-function fixtures compare the pre-inert driver with the current driver, which also includes the later terminal Place optimization.",
+    "samples": [
+      {
+        "scope": "complete_function_chain",
+        "source_bytes": 129,
+        "pre_inert_dispatch": {
+          "cumulative_ledger_debit_bytes": 20616,
+          "allocator": {
+            "allocations": 37,
+            "reallocations": 3,
+            "allocated": 4198,
+            "freed": 4198,
+            "live": 0,
+            "highwater": 2360
+          }
+        },
+        "current": {
+          "cumulative_ledger_debit_bytes": 20430,
+          "allocator": {
+            "allocations": 33,
+            "reallocations": 3,
+            "allocated": 3958,
+            "freed": 3958,
+            "live": 0,
+            "highwater": 2360
+          }
+        }
+      },
+      {
+        "scope": "complete_function_chain",
+        "source_bytes": 7871,
+        "pre_inert_dispatch": {
+          "cumulative_ledger_debit_bytes": 692118,
+          "allocator": {
+            "allocations": 2584,
+            "reallocations": 256,
+            "allocated": 300267,
+            "freed": 300267,
+            "live": 0,
+            "highwater": 48032
+          }
+        },
+        "current": {
+          "cumulative_ledger_debit_bytes": 689421,
+          "allocator": {
+            "allocations": 2526,
+            "reallocations": 256,
+            "allocated": 296787,
+            "freed": 296787,
+            "live": 0,
+            "highwater": 48032
+          }
+        }
+      },
+      {
+        "scope": "root-driver",
+        "calls": 1,
+        "pre_inert_dispatch": {
+          "cumulative_ledger_debit_bytes": 120,
+          "allocator": {
+            "allocations": 7,
+            "reallocations": 0,
+            "allocated": 466,
+            "freed": 466,
+            "live": 0,
+            "highwater": 456
+          }
+        },
+        "current": {
+          "cumulative_ledger_debit_bytes": 27,
+          "allocator": {
+            "allocations": 5,
+            "reallocations": 0,
+            "allocated": 346,
+            "freed": 346,
+            "live": 0,
+            "highwater": 336
+          }
+        }
+      },
+      {
+        "scope": "root-driver",
+        "calls": 64,
+        "pre_inert_dispatch": {
+          "cumulative_ledger_debit_bytes": 7680,
+          "allocator": {
+            "allocations": 133,
+            "reallocations": 0,
+            "allocated": 8026,
+            "freed": 8026,
+            "live": 0,
+            "highwater": 456
+          }
+        },
+        "current": {
+          "cumulative_ledger_debit_bytes": 1728,
+          "allocator": {
+            "allocations": 5,
+            "reallocations": 0,
+            "allocated": 346,
+            "freed": 346,
+            "live": 0,
+            "highwater": 336
+          }
+        }
+      },
+      {
+        "scope": "root-driver",
+        "calls": 1024,
+        "pre_inert_dispatch": {
+          "cumulative_ledger_debit_bytes": 122880,
+          "allocator": {
+            "allocations": 2053,
+            "reallocations": 0,
+            "allocated": 123226,
+            "freed": 123226,
+            "live": 0,
+            "highwater": 456
+          }
+        },
+        "current": {
+          "cumulative_ledger_debit_bytes": 27648,
+          "allocator": {
+            "allocations": 5,
+            "reallocations": 0,
+            "allocated": 346,
+            "freed": 346,
+            "live": 0,
+            "highwater": 336
+          }
+        }
+      }
+    ]
+  },
+  "cli49": {
+    "issue_acceptance": "Pending matcher admission at the original 64 MiB Project builder limit.",
+    "inputs_unchanged_from": "19241ca1bbecd1eae55b5e069212bc2f6088c93e",
+    "matcher_sample": "Both diagnostic jobs copy the existing benchmark sample to the historical ../sample.log path as a regular file. The matcher test source and assertions are byte-identical.",
+    "source_and_fixture_sha256": {
+      "benchmarks/cli-tokens-v1/SPEC.md": "51bf564cb9f7eadd4b3bd12fac53b7857befa09b3ef757d9c34400a8509fdeae",
+      "benchmarks/cli-tokens-v1/boundary-audit-v1/corpus.json": "9fd0993142aee8b47e5d3a4256379eeddcd903cadf69419717c40032d769c745",
+      "benchmarks/cli-tokens-v1/live_campaign.py": "d0210bb074777782f9dcc958ec7b9ab1ef7464bb7f499bc37921b3960d4c2210",
+      "benchmarks/cli-tokens-v1/qualification.py": "d2214ae5922fee6949767ca661cba84fa07aab4ad66d4f446160927f838d6dd5",
+      "benchmarks/cli-tokens-v1/sample.log": "b4574c3e627aff7760a934ec5dc10c45abf76ade1f6ae0c20518c56cc6660598",
+      "benchmarks/cli-tokens-v1/selected_file_adoption.py": "1085365952c75a44d448a8aa796089e0c41ad67586cdc720be88965640230b06",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/README.md": "a7f8b244b066c3fd178545e0ca323de68c23fd991ff44563822ae0ae8ef48304",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/build.sh": "4472886bf4c8e098be277256c99028880df329e539a145b69183f7815ad94ffc",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/loglens.spx": "f0f1d849f81eaf6238bbd0cf3b8b9830cba87a9b40239bf41dab8697cf208c38",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/run.sh": "2225e59a4c08a79f56d08e905c6b0c949929a20e3fd1d7c6e532651dab565431",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/semaprax.toml": "562de81a29f3440745228a9d046655cf70034a35794feec1c30c980ab1141734",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/tests.mjs": "dfe55d51ff79cb39e8d392605bdc2f5e35c154037ae5729698d125a67d5bea53",
+      "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82",
+      "experiments/selected-file-input/loglens/README.md": "a311a643adef8b5f46645ee7892f8edbaa2def0050924bd3eb744f9a8933f5aa",
+      "experiments/selected-file-input/loglens/build.sh": "5fb6f6bc7051f06917933dd8acb165791461b771e8eb37096d228104c1c8e1cd",
+      "experiments/selected-file-input/loglens/derivation.json": "1af5873a78f19160dd8cb0710f93cf3e3836506926e9cf596d5f51e7d9e6d042",
+      "experiments/selected-file-input/loglens/loglens.spx": "61ef260e21c025f1b26201c8eb0721f9be954787f35865b750d0bdb4635b73bc",
+      "experiments/selected-file-input/loglens/run.sh": "1eb6a10b749270c6b08c0a0fe3d7eed5c4e01273f37181e91810be6d4c8fdec6",
+      "experiments/selected-file-input/loglens/semaprax.toml": "685e45d94e1e26f31d5e0c72ff8a91645e9d73e40972277241a922e666f932af",
+      "experiments/selected-file-input/loglens/test.sh": "aa027be53ae6792f56cbabd126386269ce90fbc0f17ec8c75924e6fd25ed570f",
+      "experiments/selected-file-input/loglens/tests.mjs": "d691f08c8809fe80c4fb7e3194953b0a0f5f3839900fb0985ed3000a21ac0afd",
+      "experiments/selected-file-input/loglens/unit.spx": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+    },
+    "default_build": {
+      "cumulative_builder_ceiling_bytes": 134217728,
+      "compiler_sha256": "80c3d741166b0dc2e472af1060855256b06f2d7467d87f0089a07f4f89056b3e",
+      "references": [
+        {
+          "candidate": "experiments/selected-file-input/loglens",
+          "admission": {
+            "command": "semaprax check experiments/selected-file-input/loglens/semaprax.toml",
+            "exit_code": 0,
+            "maximum_rss_bytes": 74924032,
+            "diagnostics": []
+          },
+          "cli49": {
+            "command": "python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/selected-file-input/loglens --output <new-directory>",
+            "exit_code": 0,
+            "accepted": true,
+            "build_status": "passed",
+            "candidate_tests_status": "passed",
+            "build_diagnostics": "",
+            "historical_checks_run": 33,
+            "boundary_checks_run": 16,
+            "historical_checks_passed": 33,
+            "boundary_checks_passed": 16,
+            "qualification_profile": "loglens-historical33-plus-spec-boundaries.v1"
+          }
+        },
+        {
+          "candidate": "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted",
+          "admission": {
+            "command": "semaprax check experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/semaprax.toml",
+            "exit_code": 0,
+            "maximum_rss_bytes": 98910208,
+            "diagnostics": []
+          },
+          "cli49": {
+            "command": "python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted --output <new-directory>",
+            "exit_code": 0,
+            "accepted": true,
+            "build_status": "passed",
+            "candidate_tests_status": "passed",
+            "build_diagnostics": "",
+            "historical_checks_run": 33,
+            "boundary_checks_run": 16,
+            "historical_checks_passed": 33,
+            "boundary_checks_passed": 16,
+            "qualification_profile": "loglens-historical33-plus-spec-boundaries.v1"
+          }
+        }
+      ]
+    },
+    "original_ceiling_build": {
+      "cumulative_builder_ceiling_bytes": 67108864,
+      "build_override": "The temporary CLI build supplied a 64 MiB finite builder limit to the ordinary authenticated Project reporting route used by check and build. The global maximum, diagnostics, and Project sources retained their committed values.",
+      "compiler_sha256": "a8d1e9f94a8dd2ed91838c635cd3b2af05de934666e604406f86ca67dc1a9528",
+      "references": [
+        {
+          "candidate": "experiments/selected-file-input/loglens",
+          "admission": {
+            "command": "semaprax check experiments/selected-file-input/loglens/semaprax.toml",
+            "exit_code": 0,
+            "maximum_rss_bytes": 76316672,
+            "diagnostics": []
+          },
+          "cli49": {
+            "command": "python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/selected-file-input/loglens --output <new-directory>",
+            "exit_code": 0,
+            "accepted": true,
+            "build_status": "passed",
+            "candidate_tests_status": "passed",
+            "build_diagnostics": "",
+            "historical_checks_run": 33,
+            "boundary_checks_run": 16,
+            "historical_checks_passed": 33,
+            "boundary_checks_passed": 16,
+            "qualification_profile": "loglens-historical33-plus-spec-boundaries.v1"
+          }
+        },
+        {
+          "candidate": "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted",
+          "admission": {
+            "command": "semaprax check experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/semaprax.toml",
+            "exit_code": 1,
+            "maximum_rss_bytes": 63963136,
+            "diagnostics": [
+              "error[SPX-G171]: Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+              "help: live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 65245712 bytes for 4 module(s) and fit within 67108864, with `dependencies/std.pattern/0.1.0/pattern.spx` the largest at 54071840 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 144 bytes with 85 remaining and 0 reserved floor. Authenticated internal stage: fresh HIR resolution. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown. Reservation caller: src/bounded_output/identity_reservation.rs:101:8."
+            ],
+            "first_sticky_refusal": {
+              "stage": "fresh HIR resolution",
+              "requested_bytes": 144,
+              "remaining_bytes": 85,
+              "reserved_floor_bytes": 0
+            },
+            "cumulative_ledger_debit_at_refusal_bytes": 67108779
+          },
+          "cli49": {
+            "command": "python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted --output <new-directory>",
+            "exit_code": 1,
+            "accepted": false,
+            "build_status": "failed",
+            "candidate_tests_status": "not_run",
+            "build_diagnostics": "error[SPX-G171]: Workspace Semantic Graph `builder_bytes` exceeds 67108864\n  help: live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 65245712 bytes for 4 module(s) and fit within 67108864, with `dependencies/std.pattern/0.1.0/pattern.spx` the largest at 54071840 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 144 bytes with 85 remaining and 0 reserved floor. Authenticated internal stage: fresh HIR resolution. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown. Reservation caller: src/bounded_output/identity_reservation.rs:101:8.\n",
+            "historical_checks_run": 0,
+            "boundary_checks_run": 0,
+            "historical_checks_passed": 0,
+            "boundary_checks_passed": 0,
+            "qualification_profile": "loglens-historical33-plus-spec-boundaries.v1"
+          }
+        }
+      ]
+    }
+  },
+  "scope": "Focused local verification. CLI RSS covers the check process. The successful CLI runs did not expose cumulative debits. No whole-suite, hosted, model-token, or billed-cost measurement."
+}

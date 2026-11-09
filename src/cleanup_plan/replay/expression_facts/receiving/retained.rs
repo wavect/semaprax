@@ -836,6 +836,9 @@ mod last_use;
 #[rustfmt::skip]
 #[path = "retained/last_use/before.rs"]
 mod before_structure_release;
+#[cfg(test)]
+#[rustfmt::skip]
+mod after_structure_release;
 mod ordinary_cross_phase;
 mod ordinary_invocation;
 pub(in crate::cleanup_plan::replay) use ordinary_cross_phase::validate_structure_with_budget_storage;

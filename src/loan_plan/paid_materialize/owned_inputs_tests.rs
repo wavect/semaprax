@@ -352,6 +352,29 @@ fn owned_rows_keep_entire_immediate_source_abi_helpers_and_typed_transport_map()
 
 #[test]
 fn owned_rows_malformed_unwind_releases_complete_inputs_and_partly_built_result() {
+    const CHILD: &str = "SEMAPRAX_LOAN_MALFORMED_UNWIND_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        // Libtest's captured panic text can grow its retained output buffer
+        // during measurement. Use the same test and default hook in a process
+        // whose output is captured by the parent, outside the measured heap.
+        let module = module_path!().split_once("::").unwrap().1;
+        let test = format!(
+            "{module}::owned_rows_malformed_unwind_releases_complete_inputs_and_partly_built_result"
+        );
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", &test, "--nocapture", "--test-threads=1"])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout).contains("1 passed; 0 failed"),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        return;
+    }
     let (program, index) = boundary_tests::fixture_with_uses(3, true);
     let function = &program.functions[index];
     let plan = saved_planner::build_plan(&program, function).unwrap();

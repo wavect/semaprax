@@ -51,7 +51,7 @@ fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byt
             .unwrap();
     assert!(page_bytes.len() <= PAGE_CAP);
     let page: Value = serde_json::from_slice(&page_bytes).unwrap();
-    if page["schema"] == "semaprax.finite-source-overlay-page.v20" {
+    if super::super::super::compiled_successor_v19::is_successor20(&page) {
         super::super::verify_current_v18(&page);
         return;
     }

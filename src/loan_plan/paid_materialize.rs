@@ -306,6 +306,22 @@ type TerminationCompact<'a> = (
     PaidTurn,
 );
 #[cfg(test)]
+type EndpointTurn<'a> = (
+    usize,
+    usize,
+    bool,
+    &'a mut std::vec::IntoIter<Vec<LoanId>>,
+    &'a mut std::vec::IntoIter<Vec<LoanId>>,
+    Option<Vec<LoanId>>,
+    Option<Vec<LoanId>>,
+    Vec<LoanId>,
+    Vec<LoanId>,
+    Vec<LoanId>,
+    Vec<LoanId>,
+    PaidTurn,
+);
+
+#[cfg(test)]
 mod before;
 #[cfg(test)]
 mod immediate_before;

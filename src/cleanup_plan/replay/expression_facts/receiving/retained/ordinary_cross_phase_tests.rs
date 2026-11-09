@@ -403,6 +403,7 @@ fn block_run(
 enum BlockDriver {
     Immediate,
     Transition,
+    AfterRelease,
     Current,
 }
 fn block_run_driver(
@@ -448,6 +449,14 @@ fn block_run_driver(
                     )
                 } else if matches!(driver, BlockDriver::Transition) {
                     super::super::before_structure_release::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
+                } else if matches!(driver, BlockDriver::AfterRelease) {
+                    super::super::after_structure_release::validate_structure_with_budget_storage(
                         context,
                         function,
                         &mut budget,
@@ -515,6 +524,16 @@ fn transition_counts(function: &ResolvedFunction) -> (usize, usize) {
 #[test]
 fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() {
     use std::mem::size_of;
+    let archived = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246"
+    ));
+    let boundary = "#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n";
+    assert_eq!(
+        include_str!("after_structure_release.rs"),
+        archived.split_once(boundary).unwrap().0,
+        "the complete original shipping release driver",
+    );
     for rows in [0, 1, 64] {
         let program = fixture(rows, true);
         let function = function(&program);
@@ -535,28 +554,51 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
             super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.get());
         let new_reference =
             super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.get());
-        let shipping = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
-        let shipping_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
-        assert_eq!(shipping.0, current.0); // complete current six-field verdict
-        assert!(shipping.0.is_ok() && !shipping.1);
-        assert_eq!(shipping.3, current.3);
-        assert_eq!(shipping_census.reached, generation_census.reached);
-        assert!(!shipping_census.incomplete && !generation_census.incomplete);
+        let released = block_run_driver(
+            &program,
+            function,
+            BlockDriver::AfterRelease,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
+        let released_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
+        assert_eq!(released.0, current.0); // complete current six-field verdict
+        assert!(released.0.is_ok() && !released.1);
+        assert_eq!(released.3, current.3);
+        assert_eq!(released_census.reached, generation_census.reached);
+        assert!(!released_census.incomplete && !generation_census.incomplete);
         // The reached status-session count is an observation of the actual
         // completed retained-attempt arm, never permission to select it.
-        assert!(shipping_census.reached[1] <= 1);
+        assert!(released_census.reached[1] <= 1);
         let release = super::super::last_use::RELEASE
             .checked_add(
-                shipping_census.reached[1]
+                released_census.reached[1]
                     .checked_mul(super::super::last_use::ATTEMPT)
                     .unwrap(),
             )
             .unwrap();
         assert_eq!(
-            shipping.2,
+            released.2,
             current.2.checked_add(release).unwrap(),
             "complete current scratch-release composition rows={rows}"
         );
+        // The current prefix certificate has its own positive work reduction.
+        // Keep the exact release equation on its complete original drivers,
+        // then check the shipping receiver independently.
+        let shipping = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        assert_eq!(
+            shipping.0, released.0,
+            "complete shipping verdict rows={rows}"
+        );
+        assert!(!shipping.1);
+        if rows == 64 {
+            assert!(
+                shipping.3 < released.3,
+                "shipping prefix queries must save work"
+            );
+        } else {
+            assert_eq!(shipping.3, released.3, "cold route work rows={rows}");
+        }
         assert_eq!(current.0, old.0, "all six fields rows={rows}");
         assert!(
             current.0.is_ok() && !old.1 && !current.1,

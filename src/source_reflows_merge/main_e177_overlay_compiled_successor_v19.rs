@@ -314,14 +314,14 @@ pub(super) fn authenticate_using(
 }
 
 pub(super) const SCHEMA_V20: &str = "semaprax.finite-source-overlay-page.v20";
-const SCHEMA_V21: &str = "semaprax.finite-source-overlay-page.v21";
+pub(super) const SCHEMA_V21: &str = "semaprax.finite-source-overlay-page.v21";
 const V21_OUTPUT_CAP: usize = 524_288;
 
 pub(super) fn is_successor20(page: &Value) -> bool {
     matches!(page["schema"].as_str(), Some(SCHEMA_V20 | SCHEMA_V21))
 }
 
-fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'static str> {
+pub(super) fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'static str> {
     if page["schema"] != SCHEMA_V21 {
         return Ok((Cow::Borrowed(page), PAGE_CAP));
     }

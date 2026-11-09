@@ -484,7 +484,7 @@ mod indexed_tests {
             "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
         )))
         .unwrap();
-        if page["schema"] == "semaprax.finite-source-overlay-page.v20" { return retained_indexed_fixture(); }
+        if super::super::super::super::compiled_successor_v19::is_successor20(&page) { return retained_indexed_fixture(); }
         assert_eq!(page["schema"], "semaprax.finite-source-overlay-page.v19");
         assert_eq!(page["page"]["schema"], SCHEMA_V19_INDEXED);
         page["page"].clone()
@@ -590,7 +590,7 @@ mod indexed_opaque_tests {
     #[test]
     fn indexed_opaque_nested_tags_survive_without_recursive_rewriting() {
         let outer: Value = serde_json::from_slice(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/page.json"))).unwrap();
-        let mut wire = if outer["schema"] == "semaprax.finite-source-overlay-page.v20" { retained_indexed_fixture() } else { outer["page"].clone() };
+        let mut wire = if super::super::super::super::compiled_successor_v19::is_successor20(&outer) { retained_indexed_fixture() } else { outer["page"].clone() };
         let at = wire["replacements"].as_array().unwrap().iter().position(|v| indexed_replacement(v).unwrap().is_some()).unwrap();
         // Keep every original row: dropping rows invalidates the complete
         // digest table's first-use order before opaque preservation is tested.
@@ -804,6 +804,9 @@ fn encode_compact_tables(result: &mut Value) -> Result<(), &'static str> {
 }
 
 pub(super) fn encode_compact_rows(page: &Value) -> Result<Value, &'static str> {
+    encode_compact_rows_with_bound(page, PAGE_CAP)
+}
+fn encode_compact_rows_with_bound(page: &Value, cap: usize) -> Result<Value, &'static str> {
     source_envelope(page, SCHEMA_V15)?;
     if canonical(page).len() > SOURCE_CAP {
         return Err("v18 logical input bound");
@@ -857,10 +860,10 @@ pub(super) fn encode_compact_rows(page: &Value) -> Result<Value, &'static str> {
     }
     result["schema"] = SCHEMA_V20_COMPACT.into();
     encode_compact_tables(&mut result)?;
-    if canonical(&result).len() > PAGE_CAP {
+    if canonical(&result).len() > cap {
         return Err("v20 same one-page cap");
     }
-    if canonical(&expand_compact_to_v15(&result)?) != canonical(page) {
+    if canonical(&expand_compact_to_v15_with_bound(&result, cap)?) != canonical(page) {
         return Err("v20 ENTIRE V15 page inverse");
     }
     Ok(result)
@@ -901,19 +904,21 @@ pub(super) fn verify_current_compact(current: &Value) {
     assert_eq!(canonical(current),canonical(&loaded));
     let before=super::super::super::super::packet_before_overlay();
     let expected=super::super::super::compose_values(before.clone(),&policy,current).unwrap();
-    let inner=&current["page"];
-    let logical=expand_compact_to_v15(inner).unwrap();
-    assert_eq!(canonical(&encode_compact_rows(&logical).unwrap()),canonical(inner));
+    let (transport, cap) = super::super::super::compiled_successor_v19::decoded20(current).unwrap();
+    let inner=&transport["page"];
+    let logical=expand_compact_to_v15_with_bound(inner, cap).unwrap();
+    assert_eq!(canonical(&encode_compact_rows_with_bound(&logical, cap).unwrap()),canonical(inner));
     let v12=expand_to_v12_logical(&expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap()).unwrap();
-    assert_eq!(canonical(&encode_compact(&v12).unwrap()),canonical(inner));
+    let encoded = encode_v15_sources_logical(&encode_v14_tails_logical(&encode_v13_logical(&v12).unwrap()).unwrap()).unwrap();
+    assert_eq!(canonical(&encode_compact_rows_with_bound(&encoded,cap).unwrap()),canonical(inner));
     use std::io::{Read,Write}; use std::process::{Command,Stdio};
     let mut child=Command::new("python3").args(["-B","-c",r#"
 import json,runpy,sys
 n=runpy.run_path(sys.argv[1],run_name='v20_owning_parity');v=json.load(sys.stdin)
-wire=n['encode_v20_compact_inner'](v['logical'])
-sys.stdout.buffer.write(n['canonical']({'wire':wire,'v15':n['expand_v20_compact_fragment_refs'](wire),'whole':n['compose_values'](v['before'],v['policy'],v['outer'])}))
+wire=n['encode_v20_compact_inner'](v['logical'],v['cap'])
+sys.stdout.buffer.write(n['canonical']({'wire':wire,'v15':n['expand_v20_compact_fragment_refs'](wire,v['cap']),'whole':n['compose_values'](v['before'],v['policy'],v['outer'])}))
 "#]).arg(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
-    child.stdin.take().unwrap().write_all(&canonical(&serde_json::json!({"logical":v12,"before":before,"policy":policy,"outer":current}))).unwrap();
+    child.stdin.take().unwrap().write_all(&canonical(&serde_json::json!({"logical":v12,"before":before,"policy":policy,"outer":current,"cap":cap}))).unwrap();
     let mut bytes=Vec::new();let read=child.stdout.take().unwrap().take((3*SOURCE_CAP+1)as u64).read_to_end(&mut bytes);let status=child.wait().unwrap();read.unwrap();assert!(status.success());assert!(bytes.len()<=3*SOURCE_CAP);
     let actual:Value=serde_json::from_slice(&bytes).unwrap();
     assert_eq!(canonical(&actual["wire"]),canonical(inner));assert_eq!(canonical(&actual["v15"]),canonical(&logical));assert_eq!(canonical(&actual["whole"]),canonical(&expected));
@@ -923,8 +928,16 @@ mod compact_tests {
     use super::*;
     fn current() -> Value {
         let outer:Value=serde_json::from_slice(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/page.json"))).unwrap();
-        if outer["schema"] == "semaprax.finite-source-overlay-page.v20" { outer["page"].clone() }
-        else { encode_compact_rows(&expand_indexed_to_v15(&outer["page"]).unwrap()).unwrap() }
+        if outer["schema"] == "semaprax.finite-source-overlay-page.v20" { return outer["page"].clone(); }
+        if super::super::super::super::compiled_successor_v19::is_successor20(&outer) {
+            let sha="5a2793a4da2c6447a9b2942148de346b0b5750e06207efe23477c05408f78944";
+            let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("e/{sha}"));
+            let raw=super::super::super::super::held_4a6eb(&path,261257,sha).unwrap();
+            let sealed:Value=serde_json::from_str(&raw).unwrap();
+            assert_eq!(canonical(&sealed),raw.as_bytes());
+            return sealed["page"].clone();
+        }
+        encode_compact_rows(&expand_indexed_to_v15(&outer["page"]).unwrap()).unwrap()
     }
     #[test]
     fn compact_current_whole_inverse_and_exact_bounds_match_python() {
@@ -933,7 +946,7 @@ mod compact_tests {
         let full=expand_compact_to_v15(&wire).unwrap();assert_eq!(canonical(&full).len(),size);assert_eq!(canonical(&encode_compact_rows(&full).unwrap()),canonical(&wire));
         assert!(preflight(&wire,SOURCE_CAP).is_err());assert!(preflight_indexed(&wire,SOURCE_CAP).is_err());
         let (_,outer)=super::super::super::super::load_current().unwrap();
-        assert_eq!(outer["schema"],"semaprax.finite-source-overlay-page.v20");verify_current_compact(&outer);
+        assert!(super::super::super::super::compiled_successor_v19::is_successor20(&outer));verify_current_compact(&outer);
         let mut cap=wire.clone();cap["predecessor"]="".into();let base=canonical(&cap).len();cap["predecessor"]="x".repeat(PAGE_CAP-base).into();
         assert_eq!(canonical(&cap).len(),PAGE_CAP);assert!(preflight_compact(&cap,SOURCE_CAP).is_ok());
         cap["predecessor"]="x".repeat(PAGE_CAP-base+1).into();assert_eq!(preflight_compact(&cap,SOURCE_CAP),Err("v20 same one-page cap"));

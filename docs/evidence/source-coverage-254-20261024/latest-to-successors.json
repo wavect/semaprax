@@ -649,12 +649,16 @@
     },
     {
       "source": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
-      "length": 38916,
-      "sha256": "780a52fab58d0c6242e477bb57288575bbde9719ce372d64561686a1801dddb3",
+      "length": 38975,
+      "sha256": "521051cf90feb702a095bff3e470eed6a3f1035f8f4e247209a6b0e3dfaba5cb",
       "checkpoint_length": 37088,
       "checkpoint_sha256": "912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8",
       "archive": "e/912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8",
       "inverse": [
+        [
+          "#[cfg(test)]\n#[rustfmt::skip]\nmod after_structure_release;\n",
+          ""
+        ],
         [
           "\n// Consume fields in the ORIGINAL StatusSources Drop order: ledger before ids.\n// No key/index is dropped while its original ledger receiver remains held.\nimpl<'hir> StatusSources<'hir> {\n    #[cfg(test)]\n    fn return_invocation_directory(\n        self,\n        backing: &mut super::directory::invocation::Backing<'hir>,\n    ) {\n        let Self {\n            function: _,\n            budget: _,\n            ledger,\n            ids,\n        } = self;\n        drop(ledger);\n        if let Some(directory) = ids {\n            backing.recycle(directory);\n        }\n    }\n    fn return_held_invocation_directory(\n        self,\n        backing: &mut super::directory::held_invocation::Backing<'hir>,\n    ) {\n        let Self {\n            function: _,\n            budget: _,\n            ledger,\n            ids,\n        } = self;\n        drop(ledger);\n        if let Some(directory) = ids {\n            backing.recycle(directory);\n        }\n    }\n}\n#[cfg(test)]\nmod ordinary_status_invocation;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) use ordinary_status_invocation::validate_structure_with_status_backing as before_941_status_structure;\nmod held_status_invocation;\npub(in crate::cleanup_plan::replay) use held_status_invocation::validate_structure_with_status_backing;\n",
           ""

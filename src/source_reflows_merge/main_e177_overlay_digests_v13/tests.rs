@@ -1316,7 +1316,7 @@ fn v18_complete_current_page_and_python_rust_transport_match() {
     verify_current_v18(&current);
 }
 pub(in super::super::super) fn verify_current_v18(current: &Value) {
-    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA_V20 { return typed_refs_v18::verify_current_compact(current); }
+    if super::super::super::compiled_successor_v19::is_successor20(current) { return typed_refs_v18::verify_current_compact(current); }
     if current["schema"] != super::super::super::compiled_successor_v19::SCHEMA {
         return verify_current_v18_before_v19(current);
     }
@@ -1422,7 +1422,7 @@ fn v18_python_rust_hostile_reference_decisions_match() {
 // Historical controls acquire the actual live wire first, then an exact
 // independently pinned full predecessor. Their evidence remains historical.
 fn authenticate_current_page_for_retained_controls(current: &Value) {
-    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA || current["schema"] == super::super::super::compiled_successor_v19::SCHEMA_V20 {
+    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA || super::super::super::compiled_successor_v19::is_successor20(current) {
         let (policy, loaded) = super::super::super::load_current().unwrap();
         assert_eq!(canonical(current), canonical(&loaded));
         let before = super::super::super::super::packet_before_overlay();
@@ -1445,7 +1445,7 @@ fn authenticate_current_page_for_retained_controls(current: &Value) {
     }
 }
 fn retain_current_v17_for_v18(current: Value) -> Value {
-    if current["schema"] != typed_refs_v18::SCHEMA_V18 && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA_V20 { return current; }
+    if current["schema"] != typed_refs_v18::SCHEMA_V18 && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA && !super::super::super::compiled_successor_v19::is_successor20(&current) { return current; }
     authenticate_current_page_for_retained_controls(&current);
     let raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
         "/e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"));

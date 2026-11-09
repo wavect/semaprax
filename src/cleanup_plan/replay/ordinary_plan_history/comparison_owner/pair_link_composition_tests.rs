@@ -1,5 +1,6 @@
 //! Both independently compiled complete shipping generations, without a synthetic baseline.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 
 fn observe(
     function: &ResolvedFunction,
@@ -20,74 +21,84 @@ fn observe(
 // Current + removed = complete fd4c + added. Every coefficient below is a
 // literal actual typed bank, never an observed debit or a fabricated stage.
 fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usize, usize) {
-    assert!(
-        old.complete && r.complete,
-        "whole matched caller, no prefix price inference"
-    );
-    assert_eq!(
-        old.identity_probes,
-        r.identity_probes + old.identity_empty_probes
-    );
-    assert_eq!(old.shared_boundaries, r.shared_boundaries);
-    // The old loop paid its loaded guard before each ordinary paired turn;
-    // the fused inner loop bypasses that physical guard, retaining its work.
-    assert_eq!(old.shared_checks, r.shared_checks + r.fused_turns);
-    assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
-    let removed_boundary_checks =
-        certified_heads::BOUNDARY_CHECK * (old.shared_checks - r.shared_checks);
-    let selector_header = PAYMENT_HEADER;
-    let selector_payload = size_of::<bool>() * r.empty_selectors;
-    let removed_empty_probes =
-        3 * size_of::<&[Rc<SkeletonObservation>]>() * old.identity_empty_probes;
-    assert_eq!(
-        super::super::legacy_matching(),
-        before_pair_links::PAIR_MATCH
-    );
-    let old_links = 4 * size_of::<&Vec<usize>>()
-        + 4 * size_of::<&[usize]>()
-        + 4 * size_of::<usize>()
-        + 3 * size_of::<bool>();
-    let old_boundary = 4 * size_of::<&mut Vec<usize>>()
-        + 2 * size_of::<Option<usize>>()
-        + 10 * size_of::<usize>()
-        + 6 * size_of::<bool>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + size_of::<Ordering>();
-    let old_capture = 2 * size_of::<&[Rc<SkeletonObservation>]>() + 3 * size_of::<usize>();
-    let old_turn = 4 * size_of::<usize>() + size_of::<bool>();
-    let links = 2 * size_of::<&[usize]>() + 4 * size_of::<usize>() + 3 * size_of::<bool>();
-    // Full current boundary already excludes the one removed right-rest
-    // assignment. Do not also credit it on the removed side of this equation.
-    let boundary = 2 * size_of::<&[usize]>()
-        + 8 * size_of::<usize>()
-        + 4 * size_of::<bool>()
-        + size_of::<&[Rc<SkeletonObservation>]>()
-        + size_of::<Ordering>();
-    let capture = 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + 4 * size_of::<usize>()
-        + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
-        + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
-        + 2 * size_of::<Option<()>>();
-    assert_eq!(
-        (links, boundary, capture),
+    let loaded_delta = loaded::complete_loaded_delta(r);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
+    let r = &immediate438_counts;
+    let prior_generation = {
+        assert!(
+            old.complete && r.complete,
+            "whole matched caller, no prefix price inference"
+        );
+        assert_eq!(
+            old.identity_probes,
+            r.identity_probes + old.identity_empty_probes
+        );
+        assert_eq!(old.shared_boundaries, r.shared_boundaries);
+        // The old loop paid its loaded guard before each ordinary paired turn;
+        // the fused inner loop bypasses that physical guard, retaining its work.
+        assert_eq!(old.shared_checks, r.shared_checks + r.fused_turns);
+        assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
+        let removed_boundary_checks =
+            certified_heads::BOUNDARY_CHECK * (old.shared_checks - r.shared_checks);
+        let selector_header = PAYMENT_HEADER;
+        let selector_payload = size_of::<bool>() * r.empty_selectors;
+        let removed_empty_probes =
+            3 * size_of::<&[Rc<SkeletonObservation>]>() * old.identity_empty_probes;
+        assert_eq!(
+            super::super::legacy_matching(),
+            before_pair_links::PAIR_MATCH
+        );
+        let old_links = 4 * size_of::<&Vec<usize>>()
+            + 4 * size_of::<&[usize]>()
+            + 4 * size_of::<usize>()
+            + 3 * size_of::<bool>();
+        let old_boundary = 4 * size_of::<&mut Vec<usize>>()
+            + 2 * size_of::<Option<usize>>()
+            + 10 * size_of::<usize>()
+            + 6 * size_of::<bool>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + size_of::<Ordering>();
+        let old_capture = 2 * size_of::<&[Rc<SkeletonObservation>]>() + 3 * size_of::<usize>();
+        let old_turn = 4 * size_of::<usize>() + size_of::<bool>();
+        let links = 2 * size_of::<&[usize]>() + 4 * size_of::<usize>() + 3 * size_of::<bool>();
+        // Full current boundary already excludes the one removed right-rest
+        // assignment. Do not also credit it on the removed side of this equation.
+        let boundary = 2 * size_of::<&[usize]>()
+            + 8 * size_of::<usize>()
+            + 4 * size_of::<bool>()
+            + size_of::<&[Rc<SkeletonObservation>]>()
+            + size_of::<Ordering>();
+        let capture = 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 4 * size_of::<usize>()
+            + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
+            + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
+            + 2 * size_of::<Option<()>>();
+        assert_eq!(
+            (links, boundary, capture),
+            (
+                certified_heads::BOUNDARY_LINKS,
+                certified_heads::BOUNDARY_BODY,
+                certified_heads::RUN_CAPTURE
+            )
+        );
+        // Keep the complete immediate driver expression/assertion above; the new
+        // actual certified caller forms only the separately prepaid scalar frame.
+        let capture = 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 8 * size_of::<usize>()
+            + size_of::<bool>();
+        assert_eq!(capture, certified_heads::RUN_SCALAR_CAPTURE);
+        // The distinct complete old/new load and split packets have equal totals;
+        // this is an exact formation witness, not an anonymous same-width donor.
+        let old_pop = 2 * size_of::<&mut Vec<usize>>()
+            + size_of::<Option<usize>>()
+            + size_of::<usize>()
+            + 2 * size_of::<bool>();
+        let pop = 2 * size_of::<&[usize]>() + size_of::<usize>() + 2 * size_of::<bool>();
+        assert_eq!(old_pop, pop);
+        assert_eq!(pop, certified_heads::POP);
+        assert_eq!(paired_value::PAIR_LOAD, paired_value::LOAD);
         (
-            certified_heads::BOUNDARY_LINKS,
-            certified_heads::BOUNDARY_BODY,
-            certified_heads::RUN_CAPTURE
-        )
-    );
-    // The distinct complete old/new load and split packets have equal totals;
-    // this is an exact formation witness, not an anonymous same-width donor.
-    let old_pop = 2 * size_of::<&mut Vec<usize>>()
-        + size_of::<Option<usize>>()
-        + size_of::<usize>()
-        + 2 * size_of::<bool>();
-    let pop = 2 * size_of::<&[usize]>() + size_of::<usize>() + 2 * size_of::<bool>();
-    assert_eq!(old_pop, pop);
-    assert_eq!(pop, certified_heads::POP);
-    assert_eq!(paired_value::PAIR_LOAD, paired_value::LOAD);
-    (
-        2 * (2 * size_of::<&Vec<usize>>() + 2 * size_of::<&[usize]>()) * r.pairs
+            2 * (2 * size_of::<&Vec<usize>>() + 2 * size_of::<&[usize]>()) * r.pairs
             + links * r.shared_links
             + boundary * r.shared_boundaries
             + capture * r.shared_runs
@@ -96,18 +107,23 @@ fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usiz
             + super::super::reader_payload_added(r)
             + selector_header + selector_payload
             + final_affine::delta(r).0,
-        PAYMENT_HEADER
-            + old_links * r.shared_links
-            + old_boundary * r.shared_boundaries
-            + old_capture * r.shared_runs
-            + old_turn * r.shared_turns
-            + r.fused_turns
-                * (super::super::legacy_matching()
-                    + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
-            + super::super::reader_removed(r)
-            + removed_empty_probes
-            + removed_boundary_checks
-            + final_affine::delta(r).1,
+            PAYMENT_HEADER
+                + old_links * r.shared_links
+                + old_boundary * r.shared_boundaries
+                + old_capture * r.shared_runs
+                + old_turn * r.shared_turns
+                + r.fused_turns
+                    * (super::super::legacy_matching()
+                        + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
+                + super::super::reader_removed(r)
+                + removed_empty_probes
+                + removed_boundary_checks
+                + final_affine::delta(r).1,
+        )
+    };
+    (
+        prior_generation.0 + loaded_delta.0,
+        prior_generation.1 + loaded_delta.1,
     )
 }
 
@@ -150,7 +166,7 @@ fn borrowed_pair_links_keep_both_whole_generations_and_all_original_source_bytes
             sha
         );
     }
-    let mut old_tests = include_str!("main001_pair_scope_tests.rs").to_owned();
+    let mut old_tests = frontiers::before_preparation("main001_pair_scope_tests.rs").to_owned();
     let import = "use super::super::before_main001::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n";
     assert_eq!(old_tests.matches(import).count(), 1);
     old_tests = old_tests.replacen(import, "", 1);

@@ -204,7 +204,18 @@ fn read_view(view: &serde_json::Value) -> String {
     )
     .unwrap()
 }
+#[allow(
+    dead_code,
+    reason = "Complete standalone source-custody entry retains its own invocation"
+)]
 fn actual(row: &serde_json::Value) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    actual_with(&mut invocation, row)
+}
+fn actual_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    row: &serde_json::Value,
+) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
@@ -214,14 +225,14 @@ fn actual(row: &serde_json::Value) -> String {
         current["sha256"].as_str().unwrap(),
     )
     .or_else(|| {
-        crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
+        invocation.combined_side_file(
             &root.join(source),
             current["length"].as_u64().unwrap() as usize,
             current["sha256"].as_str().unwrap(),
         )
     })
     .or_else(|| {
-        crate::source_reflows_merge::main_e177_final_inputs::file(
+        invocation.file(
             &root.join(source),
             current["length"].as_u64().unwrap() as usize,
             current["sha256"].as_str().unwrap(),
@@ -243,12 +254,12 @@ fn actual(row: &serde_json::Value) -> String {
         )
         .unwrap_or_else(|| {
             let prior =
-                crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
+                invocation.combined_side_expected_value(
                     source,
                     current["sha256"].as_str().unwrap(),
                     compiled(source).unwrap(),
                 );
-            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            invocation.value_direct(
                 source,
                 current["sha256"].as_str().unwrap(),
                 &prior,
@@ -317,17 +328,22 @@ fn declared_value(source: &str, expected: &str, supplied: &str) -> Option<String
     })
 }
 pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    file_with(&mut invocation, path, length, expected)
+}
+pub(crate) fn file_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    path: &Path,
+    length: usize,
+    expected: &str,
+) -> Option<String> {
     if let Some(value) = declared_file(path, length, expected) {
         return value;
     }
-    if let Some(value) = crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
-        path, length, expected,
-    ) {
+    if let Some(value) = invocation.combined_side_file(path, length, expected) {
         return Some(value);
     }
-    if let Some(value) =
-        crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
-    {
+    if let Some(value) = invocation.file(path, length, expected) {
         return Some(value);
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -350,17 +366,24 @@ pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String>
         .unwrap()
         .iter()
         .find(|v| v["length"].as_u64() == Some(length as u64) && v["sha256"] == expected)?;
-    actual(row);
+    actual_with(invocation, row);
     Some(read_view(prior))
 }
 pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    value_with(&mut invocation, source, expected, supplied)
+}
+pub(crate) fn value_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
     if let Some(value) = declared_value(source, expected, supplied) {
         return value;
     }
-    let side = crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
-        source, expected, supplied,
-    );
-    let outer = crate::source_reflows_merge::main_e177_final_inputs::value(source, expected, &side);
+    let side = invocation.combined_side_expected_value(source, expected, supplied);
+    let outer = invocation.value(source, expected, &side);
     let supplied = outer.as_str();
     let packet = packet();
     let Some(row) = packet["rows"]
@@ -379,13 +402,9 @@ pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
     else {
         return supplied.to_owned();
     };
-    let current = actual(row);
+    let current = actual_with(invocation, row);
     let previous = read_view(prior);
-    let supplied = crate::source_reflows_merge::main_e177_final_inputs::value(
-        source,
-        row["current"]["sha256"].as_str().unwrap(),
-        supplied,
-    );
+    let supplied = invocation.value(source, row["current"]["sha256"].as_str().unwrap(), supplied);
     if supplied == current || supplied == previous {
         previous
     } else {

@@ -82,3 +82,74 @@ attributes and retains the original SHA for all remaining bytes. Production
 uses the funded receiver; no unpriced fallback or lint waiver is introduced.
 The saved lifecycle extension and its private import likewise have test-only
 ownership. Their complete original comparison body remains unchanged.
+
+
+## Invocation-local continuation backing (#912)
+
+Ordinary monomorphic function validation shares empty typed continuation and
+scope-directory backing for the exact immutable invocation. Every function,
+contract and expression still executes all checks. A successful root publishes
+its final scope and removes the sole result scope before returning either
+backing. Errors and unwinds destroy live scopes and continuations before the
+Publication guard, in the original order. The owner is dropped after the ordinary
+function loop; it carries no validation verdict or cross-invocation authority.
+
+The lifetime-bearing Frame enum lives in `validation/continuation_frame.rs`.
+`validation/frame_reuse` owns the empty directories and optional-argument
+transport. New owners, replacement/result transports and leases pay before
+formation; every growth still uses the existing full actual-capacity payer.
+Reuse authenticates the active payer even when no allocation is needed. The
+literal limit, reserved floor, sticky first refusal and absence of refunds remain.
+
+Temporary generic proof functions, retained generic instances and nested variant
+guard validation use fresh backing in the same production dispatch kernel.
+Nested guards can run with outer frames live; they never borrow that active
+lease. The complete immediate previous driver, function and contract receivers
+remain independently executable under `cfg(test)`, alongside all older controls.
+The previous driver is byte-bound to its complete source, including every local
+definition and literal. Production has one expression dispatch body.
+
+The owning `hir::validation::frame_reuse` controls cover full old/current state
+and diagnostic equality, direct map publication, guarded reentry, decimal and
+repeated scalar function/contract invocations, cold tiny/shallow roots, physical allocations through Drop,
+exact/one-short and floor limits, and sticky retry without reacquisition. They
+are source-authored and unexecuted pending the combined focused qualification.
+No measured saving, complete funding, or application-fit claim is made here.
+
+
+## Lexical match-witness join (#904)
+
+The successor keeps the complete immediate witness helper and its full invoice
+under test ownership. The two production AfterArm sites perform the same
+already-validated immutable witness join lexically. The only removed boundaries
+are that helper's actual/formal argument tuple and outer Result transport.
+Delegated type checking and diagnostic construction keep their complete banks;
+new lexical reference bindings are prepaid. No Frame, capacity, growth, payload
+clone, semantic check, work unit, scope settlement or result-selection rule is
+credited or changed. Latest Never and first non-Never identity remain exact.
+
+A test-only selector executes the original full caller/helper frontier on its
+original invoice; production has no selector. New owning controls require exact
+full diagnostics and selected pointers, complete caller debit reconciliation,
+unchanged full-capacity requests, zero/exact/short/floor/sticky refusal and full
+Drop. Whole immediate source bytes are retained and projected only after exact
+physical/compiled authentication and a late physical reread. All controls remain
+authored and unexecuted pending the authorized combined focused qualification.
+No measured saving, application admission or issue-closure claim is made.
+
+## Match-finalization diagnostic baseline
+
+Scalar and record match finalization retains the immediate public iterative
+`finish_expr` contract from `20b4479280` (the production source before
+`8fadf0c69`). Cached result-type and ownership failures retain its generic
+expression diagnostic and original publication order. Both complete saved
+validators remain byte-for-byte historical controls.
+
+The older recursive walker used different scalar/record finalization wording.
+The arm-context control pins both raw six-field diagnostics separately only for
+two authenticated source fixtures and their exact single cached-type/ownership
+mutations. Current results must equal the immediate owned walker in all six
+fields; the older recursive raw result must equal its explicit historical
+diagnostic. Expression/value identities, scopes, auxiliary state and static
+text remain directly compared. Every other case still requires raw diagnostic
+equality against both complete walkers. No diagnostic is normalized or ignored.

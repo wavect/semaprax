@@ -501,6 +501,13 @@ mod retained;
 pub(super) use retained::build as build_retained;
 
 #[cfg(test)]
+pub(super) mod before_reachability_release;
+#[cfg(test)]
+mod reachability_release_tests;
+
+#[cfg(test)]
 mod retained_before_dense;
 #[cfg(test)]
 pub(super) use retained_before_dense::build as build_retained_before_dense;
+
+pub(super) use retained::build_canonical;

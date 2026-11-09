@@ -1,5 +1,6 @@
 //! Real shipping tails; complete pre-fusion and pure-main generations stay compiled.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn tail_run(
     function: &ResolvedFunction,
     generation: usize,
@@ -18,43 +19,52 @@ fn tail_run(
     )
 }
 fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, usize) {
-    assert!(
-        old.complete && row.complete,
-        "complete invoice only, never a refused prefix"
-    );
-    assert_eq!(
-        old.identity_probes,
-        row.identity_probes + old.identity_empty_probes
-    );
-    assert_eq!(old.shared_boundaries, row.shared_boundaries);
-    // The authentic old paired loop enters the loaded-guard payment on every
-    // turn, even for ordinary tails. The fused inner loop retains all logical
-    // work but never re-enters that three-boolean boundary guard.
-    assert_eq!(old.shared_checks, row.shared_checks + row.fused_turns);
-    assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
-    let removed_boundary_checks =
-        certified_heads::BOUNDARY_CHECK * (old.shared_checks - row.shared_checks);
-    let selector_header = PAYMENT_HEADER;
-    let selector_payload = size_of::<bool>() * row.empty_selectors;
-    let removed_empty_probes =
-        (3 * size_of::<&[Rc<SkeletonObservation>]>()) * old.identity_empty_probes;
-    let removed_right_rest = size_of::<&[Rc<SkeletonObservation>]>() * row.shared_boundaries;
-    let current = super::super::paired_tail_added(row) + size_of::<ComparisonOwner<'static>>()
-        - size_of::<before_paired_tail::ComparisonOwner<'static>>()
-        + PAYMENT_HEADER
-        + super::super::reader_payload_added(row)
-        + selector_header
-        + selector_payload
-        + final_affine::delta(row).0;
-    let removed = row.fused_turns
-        * (super::super::legacy_matching()
-            + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
-        + super::super::reader_removed(row)
-        + removed_empty_probes
-        + removed_right_rest
-        + removed_boundary_checks
-        + final_affine::delta(row).1;
-    (current, removed)
+    let loaded_delta = loaded::complete_loaded_delta(row);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(row);
+    let row = &immediate438_counts;
+    let prior_generation = {
+        assert!(
+            old.complete && row.complete,
+            "complete invoice only, never a refused prefix"
+        );
+        assert_eq!(
+            old.identity_probes,
+            row.identity_probes + old.identity_empty_probes
+        );
+        assert_eq!(old.shared_boundaries, row.shared_boundaries);
+        // The authentic old paired loop enters the loaded-guard payment on every
+        // turn, even for ordinary tails. The fused inner loop retains all logical
+        // work but never re-enters that three-boolean boundary guard.
+        assert_eq!(old.shared_checks, row.shared_checks + row.fused_turns);
+        assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
+        let removed_boundary_checks =
+            certified_heads::BOUNDARY_CHECK * (old.shared_checks - row.shared_checks);
+        let selector_header = PAYMENT_HEADER;
+        let selector_payload = size_of::<bool>() * row.empty_selectors;
+        let removed_empty_probes =
+            (3 * size_of::<&[Rc<SkeletonObservation>]>()) * old.identity_empty_probes;
+        let removed_right_rest = size_of::<&[Rc<SkeletonObservation>]>() * row.shared_boundaries;
+        let current = super::super::paired_tail_added(row) + size_of::<ComparisonOwner<'static>>()
+            - size_of::<before_paired_tail::ComparisonOwner<'static>>()
+            + PAYMENT_HEADER
+            + super::super::reader_payload_added(row)
+            + selector_header
+            + selector_payload
+            + final_affine::delta(row).0;
+        let removed = row.fused_turns
+            * (super::super::legacy_matching()
+                + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
+            + super::super::reader_removed(row)
+            + removed_empty_probes
+            + removed_right_rest
+            + removed_boundary_checks
+            + final_affine::delta(row).1;
+        (current, removed)
+    };
+    (
+        prior_generation.0 + loaded_delta.0,
+        prior_generation.1 + loaded_delta.1,
+    )
 }
 #[test]
 fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() {
@@ -362,7 +372,7 @@ fn paired_tail_composition_restores_all_complete_old_roots_macros_and_main_test_
             sha
         );
     }
-    let mut tests = include_str!("main_b692_pair_scope_tests.rs").to_owned();
+    let mut tests = frontiers::before_preparation("main_b692_pair_scope_tests.rs").to_owned();
     assert_eq!(tests.matches("use super::super::before_main_b692::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE, ComparisonOwner, Step};\n").count(),1);
     tests=tests.replacen("use super::super::before_main_b692::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE, ComparisonOwner, Step};\n","",1);
     assert_eq!(
@@ -508,6 +518,7 @@ fn paired_tail_composition_feature_counts_actual_admitted_banks_and_each_work_fr
 
 #[test]
 fn paired_tail_live_unwind_keeps_all_owned_storage_and_reports_only_reached_work() {
+    frontiers::prepare();
     let program = super::super::super::super::super::tests::program();
     let function = &program.functions[0];
     let (mut actual, expected) = fixture(4, 1, true, 0);

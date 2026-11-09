@@ -1,9 +1,11 @@
-//! Same-call borrowing only; no stored packet or acquisition cache.
+//! Stack-owned projection borrowing; each logical lookup authenticates live containers.
 use super::SOURCE_CAP;
 use super::{actual, clippy_stage, digest, packet, read_view, value_4a6eb};
 use serde_json::Value;
 use std::path::Path;
-
+#[path = "main_e177_reacquired_context.rs"]
+pub(super) mod reacquired_context;
+pub(super) use reacquired_context::{cursor_epoch_value, declared_registered_file};
 #[rustfmt::skip] // Exact extracted historical lookup body.
 pub(super) fn from_packet(packet: &serde_json::Value, source: &str, expected: &str, supplied: &str) -> String {
     let Some(row) = packet["rows"]
@@ -59,374 +61,7 @@ pub(super) fn with_packet(authenticated: &serde_json::Value, source: &str, expec
 
 #[cfg(test)]
 mod tests {
-    use super::from_packet;
-    use crate::source_reflows_merge::main_e177_final_inputs::digest;
-    use std::path::PathBuf;
-
-    struct Files(PathBuf);
-    impl Drop for Files {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-    fn files() -> Files {
-        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let dir =
-            std::env::temp_dir().join(format!("semaprax-packet-borrow-{}-{n}", std::process::id()));
-        std::fs::create_dir(&dir).unwrap();
-        Files(dir)
-    }
-    fn panic_text(f: impl FnOnce() + std::panic::UnwindSafe) -> String {
-        let panic = std::panic::catch_unwind(f).expect_err("fresh authentication must refuse");
-        if let Some(text) = panic.downcast_ref::<String>() {
-            text.clone()
-        } else {
-            panic.downcast_ref::<&str>().unwrap().to_string()
-        }
-    }
-
-    #[test]
-    fn registered_context_preserves_the_entire_original_reader_and_every_guard() {
-        fn body<'a>(text: &'a str, signature: &str) -> &'a str {
-            let start = text.find(&format!("\n{signature}")).unwrap() + 1;
-            let length = text[start..].find("\n}\n").unwrap() + 3;
-            &text[start..start + length]
-        }
-        let current = include_str!("main_e177_packet_lookup.rs");
-        let before = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/e/1e31aba22d551ebabbfb57e2f0b1d36f6bb1517f816a1ed6413ebd732df66981"
-        ));
-        let original = body(before, "pub(super) fn registered_file(");
-        let saved = body(
-            current,
-            "pub(super) fn registered_file_before_packet_context(",
-        )
-        .replacen(
-            "registered_file_before_packet_context(",
-            "registered_file(",
-            1,
-        );
-        assert_eq!(saved, original);
-        let restored = body(current, "pub(super) fn registered_file(")
-            .replacen("actual_with_packet(&packet, row)", "super::actual(row)", 1)
-            .replacen(
-                "read_view_with_packet(&packet, selected)",
-                "super::read_view(selected)",
-                1,
-            );
-        assert_eq!(restored, original);
-        // Keep the complete existing current/history/cap/child/unknown-input controls.
-        super::registered_digest_reads_keep_current_history_and_each_original_file_bound();
-    }
-
-    #[test]
-    fn borrowed_registered_reader_matches_original_complete_current_and_history() {
-        let packet = super::super::packet();
-        let row = packet["rows"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|row| row["source"] == "src/ast/program_source/decl_slices.rs")
-            .unwrap();
-        let source = row["source"].as_str().unwrap();
-        for pin in [&row["current"], &row["views"][0]] {
-            let expected = pin["sha256"].as_str().unwrap();
-            let old = super::registered_file_before_packet_context(source, expected, usize::MAX);
-            let borrowed = super::registered_file(source, expected, usize::MAX);
-            assert_eq!(borrowed, old);
-            assert_eq!(
-                borrowed.unwrap(),
-                std::fs::read_to_string(
-                    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                        .join(pin["archive"].as_str().unwrap())
-                )
-                .unwrap()
-            );
-        }
-    }
-
-    #[test]
-    fn borrowed_lookup_rechecks_current_on_each_invocation_before_history() {
-        let files = files();
-        let current = files.0.join("current.rs");
-        let old = files.0.join("prior.rs");
-        std::fs::write(&current, b"new!").unwrap();
-        std::fs::write(&old, b"old!").unwrap();
-        let source = current.to_str().unwrap();
-        let expected = digest(b"old!");
-        let packet = serde_json::json!({"rows":[{"source":source,"compiled":false,
-            "current":{"archive":source,"length":4,"sha256":digest(b"new!")},
-            "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
-        assert_eq!(from_packet(&packet, source, &expected, "new!"), "old!");
-        assert_eq!(
-            from_packet(&packet, source, &expected, "foreign"),
-            "foreign"
-        );
-        // A second invocation with the same borrowed metadata still reads the
-        // physical current channel; missing history cannot precede its refusal.
-        std::fs::write(&current, b"drft").unwrap();
-        std::fs::remove_file(&old).unwrap();
-        assert!(panic_text(|| {
-            from_packet(&packet, source, &expected, "old!");
-        })
-        .contains("length-or-digest"));
-        std::fs::write(&current, b"new!extra").unwrap();
-        assert!(panic_text(|| {
-            from_packet(&packet, source, &expected, "new!");
-        })
-        .contains("length-or-identity"));
-        std::fs::write(&current, [0xff; 4]).unwrap();
-        let mut invalid_utf8 = packet.clone();
-        invalid_utf8["rows"][0]["current"]["sha256"] = digest(&[0xff; 4]).into();
-        assert!(panic_text(|| {
-            from_packet(&invalid_utf8, source, &expected, "new!");
-        })
-        .contains("utf8"));
-        std::fs::write(&current, b"new!").unwrap();
-        assert!(panic_text(|| {
-            from_packet(&packet, source, &expected, "new!");
-        })
-        .contains("missing"));
-    }
-
-    #[test]
-    fn packet_borrowing_preserves_complete_old_root_and_both_fresh_fallbacks() {
-        let before = include_str!("main_e177_packet_lookup_before.rs.txt");
-        assert_eq!(
-            digest(before.as_bytes()),
-            "b8b5ca81b4e0001c7dc8ffc354da34cf9966f7dee840b58f7e1265c2806479e6"
-        );
-        let current = super::root_before_nested_context(include_str!("main_e177_final_inputs.rs"));
-        let child = include_str!("main_e177_packet_lookup.rs");
-        let old_value = before
-            .split_once("pub(crate) fn value(source:")
-            .unwrap()
-            .1
-            .split_once("fn value_4a6eb(")
-            .unwrap()
-            .0;
-        let old_lookup = before
-            .split_once("fn value_4a6eb(")
-            .unwrap()
-            .1
-            .split_once("#[test]\nfn latest_main")
-            .unwrap()
-            .0;
-        let child_lookup = child.split_once("pub(super) fn from_packet(packet: &serde_json::Value, source:").unwrap().1
-            .split_once("#[rustfmt::skip] // Exact historical continuation; only first lookup is borrowed.\npub(super) fn with_packet(").unwrap().0;
-        assert_eq!(
-            child_lookup,
-            old_lookup.strip_prefix("source:").unwrap().replacen(
-                "    let packet = packet();\n",
-                "",
-                1
-            ) + "\n"
-        );
-        let child_value = child
-            .split_once("pub(super) fn with_packet(authenticated: &serde_json::Value, source:")
-            .unwrap()
-            .1
-            .split_once("#[cfg(test)]\nmod tests")
-            .unwrap()
-            .0;
-        assert_eq!(
-            child_value,
-            old_value.replacen(
-                "let direct = value_4a6eb(source, expected, supplied);",
-                "let direct = from_packet(authenticated, source, expected, supplied);",
-                1
-            ) + "\n"
-        );
-        let mut restored = current.replace(
-            "#[path = \"main_e177_packet_lookup.rs\"]\nmod packet_lookup;\n",
-            "",
-        );
-        let invocation_export = "pub(crate) use packet_lookup::ProjectionInvocation;\n";
-        assert_eq!(restored.matches(invocation_export).count(), 1);
-        restored = restored.replacen(invocation_export, "", 1);
-        let new_value = "pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {\n    packet_lookup::with_packet(&packet(), source, expected, supplied)\n}\n";
-        let new_lookup = "fn value_4a6eb(source: &str, expected: &str, supplied: &str) -> String {\n    packet_lookup::from_packet(&packet(), source, expected, supplied)\n}\n";
-        assert_eq!(restored.matches(new_value).count(), 1);
-        restored = restored.replacen(
-            new_value,
-            &("pub(crate) fn value(source:".to_owned() + old_value),
-            1,
-        );
-        assert_eq!(restored.matches(new_lookup).count(), 1);
-        restored = restored.replacen(new_lookup, &("fn value_4a6eb(".to_owned() + old_lookup), 1);
-        let reuse = "        packet_lookup::with_packet(&current, source, expected, supplied)\n";
-        assert_eq!(restored.matches(reuse).count(), 1);
-        restored = restored.replacen(reuse, "        value(source, expected, supplied)\n", 1);
-        assert_eq!(restored, before, "complete independently pinned old root");
-    }
-
-    #[test]
-    fn same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_refusals_and_drop(
-    ) {
-        use super::ProjectionInvocation;
-        let files = files();
-        let current = files.0.join("current.rs");
-        let old = files.0.join("prior.rs");
-        std::fs::write(&current, b"new!").unwrap();
-        std::fs::write(&old, b"old!").unwrap();
-        let source = current.to_str().unwrap();
-        let expected = digest(b"old!");
-        let fixture = serde_json::json!({"unknown_root":{"retained":[1,2]},
-            "rows":[{"source":source,"compiled":false,"unknown_metadata":{"retained":"whole"},
-            "current":{"archive":source,"length":4,"sha256":digest(b"new!")},
-            "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
-        let ((), heap) = crate::test_allocation_observer::measure(|| {
-            let mut context = ProjectionInvocation::new();
-            assert!(
-                context.packet.is_none(),
-                "a new invocation owns no prior packet"
-            );
-            assert!(context
-                .file(std::path::Path::new("foreign"), 4, &expected)
-                .is_none());
-            assert!(
-                context.packet.is_none(),
-                "foreign paths retain the pre-packet refusal"
-            );
-            // Only this private control installs a synthetic immutable packet.
-            // The public constructor always acquires the complete real packet.
-            context.packet = Some(fixture.clone());
-            let identity = context.metadata() as *const serde_json::Value;
-            for _ in 0..2 {
-                assert_eq!(
-                    context.file_row(source, 4, &expected),
-                    Some("old!".to_owned())
-                );
-                assert_eq!(from_packet(&fixture, source, &expected, "new!"), "old!");
-                assert_eq!(context.value_direct_row(source, &expected, "new!"), "old!");
-                assert_eq!(context.value_direct(source, &expected, "old!"), "old!");
-                assert_eq!(
-                    from_packet(&fixture, source, &expected, "foreign"),
-                    "foreign"
-                );
-                assert_eq!(context.metadata() as *const serde_json::Value, identity);
-                assert_eq!(
-                    context.metadata(),
-                    &fixture,
-                    "every unknown field remains whole"
-                );
-            }
-            assert!(context.file_row(source, 5, &expected).is_none());
-            assert!(context.file_row(source, 4, &"0".repeat(64)).is_none());
-            assert!(context.file_row("foreign", 4, &expected).is_none());
-            drop(context);
-        });
-        assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
-        // Refusal panics are outside the complete normal-Drop measurement.
-        let mut context = ProjectionInvocation::new();
-        context.packet = Some(fixture.clone());
-        assert_eq!(
-            context.file_row(source, 4, &expected),
-            Some("old!".to_owned())
-        );
-        std::fs::write(&current, b"drft").unwrap();
-        std::fs::remove_file(&old).unwrap();
-        assert!(panic_text(std::panic::AssertUnwindSafe(|| {
-            context.file_row(source, 4, &expected);
-        }))
-        .contains("length-or-digest"));
-        assert!(panic_text(std::panic::AssertUnwindSafe(|| {
-            context.value_direct(source, &expected, "new!");
-        }))
-        .contains("length-or-digest"));
-        drop(context);
-        let mut next = ProjectionInvocation::new();
-        assert!(
-            next.packet.is_none(),
-            "Drop cannot publish metadata into the next invocation"
-        );
-        next.packet = Some(fixture);
-        std::fs::write(&current, b"new!").unwrap();
-        assert!(panic_text(std::panic::AssertUnwindSafe(|| {
-            next.file_row(source, 4, &expected);
-        }))
-        .contains("missing"));
-        // Common public endpoint methods use one lazy loader for this call only.
-        let loads = std::cell::Cell::new(0usize);
-        std::fs::write(&old, b"old!").unwrap();
-        let fixture = serde_json::json!({"unknown_root":{"kept":true},"rows":[{
-            "source":source,"compiled":false,"unknown_metadata":[1,2],
-            "current":{"archive":source,"length":4,"sha256":digest(b"new!")},
-            "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
-        let ((), heap) = crate::test_allocation_observer::measure(|| {
-            for invocation in 1..=2 {
-                let mut context = ProjectionInvocation {
-                    packet: None,
-                    acquire: || {
-                        loads.set(loads.get() + 1);
-                        fixture.clone()
-                    },
-                };
-                assert_eq!(context.value(source, &expected, "new!"), "old!");
-                assert_eq!(context.value_direct(source, &expected, "new!"), "old!");
-                assert_eq!(
-                    context.file_row_with_context(source, 4, &expected),
-                    Some("old!".to_owned())
-                );
-                assert_eq!(
-                    super::from_packet_with_context(
-                        context.metadata(),
-                        source,
-                        &expected,
-                        "foreign"
-                    ),
-                    "foreign"
-                );
-                assert_eq!(loads.get(), invocation);
-                assert_eq!(context.metadata(), &fixture);
-                drop(context);
-            }
-        });
-        assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
-        // Metadata reuse never hides fresh-current failure or the missing archive.
-        let mut context = ProjectionInvocation {
-            packet: None,
-            acquire: || fixture.clone(),
-        };
-        assert_eq!(context.value(source, &expected, "new!"), "old!");
-        std::fs::write(&current, b"drft").unwrap();
-        std::fs::remove_file(&old).unwrap();
-        assert!(panic_text(std::panic::AssertUnwindSafe(|| {
-            context.value(source, &expected, "new!");
-        }))
-        .contains("length-or-digest"));
-        std::fs::write(&current, b"new!").unwrap();
-        assert!(panic_text(std::panic::AssertUnwindSafe(|| {
-            context.file_row_with_context(source, 4, &expected);
-        }))
-        .contains("missing"));
-        // The borrowed row lookup is the complete original file lookup suffix.
-        let root = include_str!("main_e177_final_inputs.rs");
-        let old = root
-            .split_once("fn file_4a6eb(")
-            .unwrap()
-            .1
-            .split_once("    let packet = packet();\n")
-            .unwrap()
-            .1
-            .split_once("pub(crate) fn value(")
-            .unwrap()
-            .0;
-        let child = include_str!("main_e177_packet_lookup.rs");
-        let actual = child
-            .rsplit_once("    fn file_row(&mut self,")
-            .unwrap()
-            .1
-            .split_once("        let packet = self.metadata();\n")
-            .unwrap()
-            .1
-            .split_once("\n}\n// END INVOCATION-LOCAL PROJECTION METADATA")
-            .unwrap()
-            .0;
-        assert_eq!(actual, old.trim_end_matches('\n'));
-    }
+    include!("main_e177_packet_lookup_tests.rs");
 }
 
 fn held_with_packet(
@@ -544,56 +179,19 @@ fn with_packet_context(authenticated: &serde_json::Value, source: &str, expected
 
 #[cfg(test)]
 fn root_before_nested_context(current: &str) -> String {
-    let declared_predecessor;
-    let current = if current.contains("pub(crate) mod declared_history_inputs;") {
-        assert_eq!(current, include_str!("main_e177_final_inputs.rs"));
-        let physical = std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("src/source_reflows_merge/main_e177_final_inputs.rs"),
+    let declared_predecessor = super::declared_history_inputs::expected_value(
+        "src/source_reflows_merge/main_e177_final_inputs.rs",
+        "c32583b9fc2c73360702c056b68e50bbcec65c9adb661a28132d77d284a95c0a",
+        current,
+    );
+    let current = declared_predecessor.as_deref().unwrap_or(current);
+    let current = current
+        .replace(
+            "    pub(super) fn compiled(source:",
+            "    fn compiled(source:",
         )
-        .unwrap();
-        assert_eq!(physical, current, "whole fresh current reader");
-        let mut restored = current.to_owned();
-        const DECLARED_REGISTERED: &str = r###"pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
-    if let Some(value) = packet_lookup::declared_registered_file(source, expected, cap) {
-        return value;
-    }
-    packet_lookup::registered_file(source, expected, cap)
-}
-
-"###;
-        assert_eq!(restored.matches(DECLARED_REGISTERED).count(), 1);
-        restored = restored.replacen(DECLARED_REGISTERED, r###"pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
-    packet_lookup::registered_file(source, expected, cap)
-}
-
-"###, 1);
-        for hook in [
-            "#[path = \"../source_reflows/declared_history_inputs.rs\"]\npub(crate) mod declared_history_inputs;\n",
-            "    if let Some(before) = declared_history_inputs::expected_file(path, length, expected) {\n        return Some(before);\n    }\n",
-            "    if let Some(before) = declared_history_inputs::expected_value(source, expected, supplied) {\n        return before;\n    }\n",
-
-        ] {
-            assert_eq!(restored.matches(hook).count(), 1);
-            restored = restored.replacen(hook, "", 1);
-        }
-        let before = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/e/c32583b9fc2c73360702c056b68e50bbcec65c9adb661a28132d77d284a95c0a"
-        ));
-        assert_eq!(
-            digest(before.as_bytes()),
-            "c32583b9fc2c73360702c056b68e50bbcec65c9adb661a28132d77d284a95c0a"
-        );
-        assert_eq!(
-            restored, before,
-            "complete reader before declared-history acquisition"
-        );
-        declared_predecessor = restored;
-        declared_predecessor.as_str()
-    } else {
-        current
-    };
+        .replace("    pub(super) fn pin(pin:", "    fn pin(pin:");
+    let current = current.as_str();
     let reader_predecessor;
     let current = if current.contains("fn actual_before_current_context(") {
         let mut restored = current.to_owned();
@@ -656,30 +254,57 @@ fn root_before_nested_context(current: &str) -> String {
 // BEGIN INVOCATION-LOCAL PROJECTION METADATA
 // Each outer projection acquisition owns one lazy immutable metadata packet.
 // Current sources, compiled bytes and current/prior archives are never cached.
-pub(crate) struct ProjectionInvocation<F = fn() -> serde_json::Value> {
+pub(crate) struct ProjectionInvocation<F = fn() -> serde_json::Value, S = fn() -> serde_json::Value>
+{
     packet: Option<serde_json::Value>,
+    // Only new() installs the complete ordinary packet producer.
+    ordinary_packet_loader: bool,
     acquire: F,
+    stage: Option<serde_json::Value>,
+    acquire_stage: S,
+    pub(super) guard: super::overlay_v2::InvocationGuard,
 }
 impl ProjectionInvocation {
     pub(crate) fn new() -> Self {
         Self {
             packet: None,
+            ordinary_packet_loader: true,
             acquire: packet,
+            stage: None,
+            acquire_stage: clippy_stage::rows,
+            guard: super::overlay_v2::InvocationGuard::Current,
         }
     }
 }
 #[rustfmt::skip] // Keep the complete old file-lookup suffix available verbatim.
-impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
+impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> ProjectionInvocation<F, S> {
+    #[cfg(test)]
+    pub(super) fn with_loaders(acquire: F, acquire_stage: S) -> Self {
+        Self { packet: None, ordinary_packet_loader: false, acquire, stage: None, acquire_stage, guard: super::overlay_v2::InvocationGuard::Disabled }
+    }
+    fn finish_call(&self, call: InvocationCall) { if call.metadata { self.guard.after_body(); self.guard.check(call.stage); } }
+    fn call_metadata(&mut self, call: &mut InvocationCall) -> &serde_json::Value { if self.packet.is_none() { self.packet=Some((self.acquire)());call.metadata=true; } else if !call.metadata { self.guard.check(false);call.metadata=true; } self.packet.as_ref().unwrap() }
+    fn call_direct_metadata(&mut self, call: &mut InvocationCall, source: &str) -> (&serde_json::Value,Option<&serde_json::Value>) { let _=self.call_metadata(call);let packet=self.packet.as_ref().unwrap();let stage=if clippy_stage::compiled(source).is_some() {let stage=self.stage.get_or_insert_with(&mut self.acquire_stage);if !call.stage {self.guard.stage();call.stage=true;}Some(stage as &serde_json::Value)}else{None};(packet,stage) }
     fn metadata(&mut self) -> &serde_json::Value {
         self.packet.get_or_insert_with(&mut self.acquire)
     }
-    pub(crate) fn value(&mut self, source: &str, expected: &str, supplied: &str) -> String {
-        with_packet_context(self.metadata(), source, expected, supplied)
+    fn direct_metadata(&mut self, source: &str) -> (&serde_json::Value, Option<&serde_json::Value>) {
+        let packet = self.packet.get_or_insert_with(&mut self.acquire);
+        let stage = if clippy_stage::compiled(source).is_some() {
+            Some(self.stage.get_or_insert_with(&mut self.acquire_stage) as &serde_json::Value)
+        } else { None };
+        (packet, stage)
     }
-    pub(crate) fn file(&mut self, path: &std::path::Path, length: usize, expected: &str) -> Option<String> {
+    pub(crate) fn value(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.value_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
+    fn value_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
+        let lookup: fn(&Value, &str, &str, &str) -> String = if self.ordinary_packet_loader { reacquired_context::value } else { with_packet_context };
+        lookup(self.call_metadata(call), source, expected, supplied)
+    }
+    pub(crate) fn file(&mut self, path: &std::path::Path, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.file_inner(&mut call, path, length, expected); self.finish_call(call); result }
+    fn file_inner(&mut self, call: &mut InvocationCall, path: &std::path::Path, length: usize, expected: &str) -> Option<String> {
         // Original Clippy read precedes metadata acquisition on every lookup.
         if let Some(Ok(value)) = clippy_stage::read(path, length, expected) {
-            let _ = self.metadata();
+            let _ = self.call_metadata(call);
             return Some(value);
         }
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -691,18 +316,66 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
             return None;
         }
         let source = relative.to_str()?;
-        self.file_row_with_context(source, length, expected)
+        self.file_row_with_context_inner(call, source, length, expected)
     }
 
     // Reuse only immutable canonical metadata; all lookup readers and fallbacks stay live.
-    pub(crate) fn value_direct(&mut self, source: &str, expected: &str, supplied: &str) -> String {
-        // Preserve the original nondelegating domain before any Clippy stage.
-        if !self.metadata()["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
+    #[cfg(test)]
+    pub(super) fn independent_old_value_direct(&mut self, source: &str, expected: &str, supplied: &str) -> String {
+        let direct = from_packet_with_context(self.metadata(), source, expected, supplied);
+        if digest(direct.as_bytes()) == expected { return direct; }
+        let (authenticated, stage) = self.direct_metadata(source);
+        independent_old_direct(authenticated, stage, source, expected, supplied)
+    }
+    pub(crate) fn value_direct(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.value_direct_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
+    fn value_direct_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
+        // This intentionally closes the noncanonical-known-Clippy boundary.
+        // A foreign subject never gains a historical acquisition route here.
+        if !self.call_metadata(call)["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
             return supplied.to_owned();
         }
         if let Some(value) = cursor_epoch_value(source, expected, supplied) {
             return value;
         }
+
+        // A current-table hit needs no stage metadata or fallback allocation.
+        let direct = from_packet_with_context(self.call_metadata(call), source, expected, supplied);
+        if digest(direct.as_bytes()) == expected {
+            return direct;
+        }
+        self.value_direct_with_stage_context_inner(call, source, expected, supplied)
+    }
+
+    // Borrow only invocation metadata; current/prior source reads remain live.
+    fn value_direct_with_stage_context_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
+        // A whole logical-table view is selected only after its actual current
+        // physical, compiled and archive channels have authenticated. Preserve the
+        // complete historical stage fallback below for every other input.
+        let (authenticated, stage) = self.call_direct_metadata(call, source);
+        let direct = direct_row_context(authenticated, stage, source, expected, supplied);
+        if digest(direct.as_bytes()) == expected {
+            return direct;
+        }
+
+        if let Some(value) = requested_context(authenticated, stage, source, expected, supplied) {
+            let _ = authenticated;
+            return value;
+        }
+        let normalized = normalize_context(authenticated, stage, source, supplied);
+        let result = direct_row_context(authenticated, stage, source, expected, normalized.as_ref());
+        if normalized.as_ref() != supplied
+            && result == normalized.as_ref()
+            && digest(result.as_bytes()) != expected
+        {
+            supplied.to_owned()
+        } else {
+            result
+        }
+    }
+
+    // Entire immediate predecessor, independently exercised by the foreign
+    // known-Clippy control; canonical-member fallback bodies stay byte-exact.
+    fn value_direct_before_closed_membership(&mut self, source: &str, expected: &str, supplied: &str) -> String {
         // A whole logical-table view is selected only after its actual current
         // physical, compiled and archive channels have authenticated. Preserve the
         // complete historical stage fallback below for every other input.
@@ -727,6 +400,7 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
         }
     }
 
+    #[allow(dead_code, reason = "Complete predecessor row acquisition") ]
     fn value_direct_row(&mut self, source: &str, expected: &str, supplied: &str) -> String {
         let current = self.metadata();
         if current["rows"]
@@ -741,24 +415,24 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
         }
     }
 
-    fn combined_side_actual(&mut self, row: &serde_json::Value) -> String {
+    fn combined_side_actual_inner(&mut self, call: &mut InvocationCall, row: &serde_json::Value) -> String {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
         let source = row["source"].as_str().unwrap();
         let current = &row["current"];
-        let actual = self.file(
+        let actual = self.file_inner(call,
             &root.join(source),
             current["length"].as_u64().unwrap() as usize,
             current["sha256"].as_str().unwrap(),
         )
         .unwrap_or_else(|| {
-            held_with_packet(self.metadata(),
+            held_with_packet(self.call_metadata(call),
                 &root.join(source),
                 current["length"].as_u64().unwrap() as usize,
                 current["sha256"].as_str().unwrap(),
             )
             .unwrap()
         });
-        let compiled = self.value_direct(
+        let compiled = self.value_direct_inner(call,
             source,
             current["sha256"].as_str().unwrap(),
             super::combined_side_compiled(source).unwrap(),
@@ -769,13 +443,14 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
         );
         assert_eq!(
             actual,
-            read_view_with_packet(self.metadata(), current),
+            read_view_with_packet(self.call_metadata(call), current),
             "complete combined raw-carrier archive"
         );
         actual
     }
 
-    pub(crate) fn combined_side_file(&mut self, path: &Path, length: usize, expected: &str) -> Option<String> {
+    pub(crate) fn combined_side_file(&mut self, path: &Path, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.combined_side_file_inner(&mut call, path, length, expected); self.finish_call(call); result }
+    fn combined_side_file_inner(&mut self, call: &mut InvocationCall, path: &Path, length: usize, expected: &str) -> Option<String> {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
         let relative = path.strip_prefix(root).ok()?;
         if !relative
@@ -795,12 +470,13 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
             row["views"].as_array().unwrap().iter().find(|old| {
                 old["length"].as_u64() == Some(length as u64) && old["sha256"] == expected
             })?;
-        self.combined_side_actual(row);
-        Some(read_view_with_packet(self.metadata(), previous))
+        self.combined_side_actual_inner(call, row);
+        Some(read_view_with_packet(self.call_metadata(call), previous))
     }
 
-    fn file_row_with_context(&mut self, source: &str, length: usize, expected: &str) -> Option<String> {
-        let authenticated = self.metadata();
+    fn file_row_with_context(&mut self, source: &str, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.file_row_with_context_inner(&mut call, source, length, expected); self.finish_call(call); result }
+    fn file_row_with_context_inner(&mut self, call: &mut InvocationCall, source: &str, length: usize, expected: &str) -> Option<String> {
+        let authenticated = self.call_metadata(call);
         let row = authenticated["rows"].as_array().unwrap().iter().find(|r| r["source"] == source)?;
         let prior = row["views"].as_array().unwrap().iter()
             .find(|v| v["length"].as_u64() == Some(length as u64) && v["sha256"] == expected)?;
@@ -826,6 +502,632 @@ impl<F: FnMut() -> serde_json::Value> ProjectionInvocation<F> {
 }
 // END INVOCATION-LOCAL PROJECTION METADATA
 
+// BEGIN BORROWED INDEPENDENT OLD DIRECT CONTROL
+#[cfg(test)]
+fn independent_old_direct(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    // A whole logical-table view is selected only after its actual current
+    // physical, compiled and archive channels have authenticated. Preserve the
+    // complete historical stage fallback below for every other input.
+    let direct = independent_old_row(authenticated, stage, source, expected, supplied);
+    if digest(direct.as_bytes()) == expected {
+        return direct;
+    }
+
+    if let Some(value) = requested_context(authenticated, stage, source, expected, supplied) {
+        let _ = authenticated;
+        return value;
+    }
+    let normalized = normalize_context(authenticated, stage, source, supplied);
+    let result = independent_old_row(authenticated, stage, source, expected, normalized.as_ref());
+    if normalized.as_ref() != supplied
+        && result == normalized.as_ref()
+        && digest(result.as_bytes()) != expected
+    {
+        supplied.to_owned()
+    } else {
+        result
+    }
+}
+// END BORROWED INDEPENDENT OLD DIRECT CONTROL
+
+// BEGIN BORROWED INDEPENDENT OLD ROW CONTROL
+#[cfg(test)]
+fn independent_old_row(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    let current = authenticated;
+    if current["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["source"] == source)
+    {
+        with_packet_direct_context(current, stage, source, expected, supplied)
+    } else {
+        supplied.to_owned()
+    }
+}
+// END BORROWED INDEPENDENT OLD ROW CONTROL
+
+#[cfg(test)]
+pub(super) fn assert_independent_old_direct_source() {
+    assert_transitive_context_source();
+    let child = include_str!("main_e177_packet_lookup.rs");
+    let borrowed = child
+        .split_once("// BEGIN BORROWED INDEPENDENT OLD DIRECT CONTROL\n")
+        .unwrap()
+        .1
+        .split_once("// END BORROWED INDEPENDENT OLD DIRECT CONTROL")
+        .unwrap()
+        .0;
+    let restored = borrowed.strip_prefix("#[cfg(test)]\n").unwrap()
+            .replacen("fn independent_old_direct(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str)", "pub(super) fn value_direct(source: &str, expected: &str, supplied: &str)", 1)
+            .replacen("independent_old_row(authenticated, stage, source, expected, supplied)", "super::value_direct_4a6eb(source, expected, supplied)", 1)
+            .replacen("let _ = authenticated;", "let _ = super::packet();", 1)
+            .replacen("independent_old_row(authenticated, stage, source, expected, normalized.as_ref())", "super::value_direct_4a6eb(source, expected, normalized.as_ref())", 1)
+            .replace("requested_context(authenticated, stage, source, expected, supplied)", "super::clippy_stage::requested(source, expected, supplied)")
+            .replace("normalize_context(authenticated, stage, source, supplied)", "super::clippy_stage::normalize(source, supplied)");
+    let current = include_str!("main_e177_overlay_v2.rs");
+    // The declaration moved before the test module; the old delimiter remains at EOF.
+    // Reverse only the two exact layout edits, then compare the complete old body.
+    let signature =
+        "pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {";
+    assert_eq!(current.matches(signature).count(), 1);
+    assert!(current.ends_with(
+        "// Nondelegating current/prior view front, followed by the entire old stage path.\n"
+    ));
+    let mut current_wrapper = signature.to_owned()
+        + current
+            .split_once(signature)
+            .unwrap()
+            .1
+            .split_once("#[cfg(test)]\nmod tests {")
+            .unwrap()
+            .0;
+    for (after, before) in [
+            ("{ // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.\n",
+             "{\n    // A whole logical-table view is selected only after its actual current\n    // physical, compiled and archive channels have authenticated. Preserve the\n    // complete historical stage fallback below for every other input.\n"),
+            ("        return direct;\n    }\n    if let Some(value)", "        return direct;\n    }\n\n    if let Some(value)"),
+        ] {
+            assert_eq!(current_wrapper.matches(after).count(), 1);
+            current_wrapper = current_wrapper.replacen(after, before, 1);
+        }
+    assert_eq!(restored, current_wrapper);
+    let borrowed_row = child
+        .split_once("// BEGIN BORROWED INDEPENDENT OLD ROW CONTROL\n")
+        .unwrap()
+        .1
+        .split_once("// END BORROWED INDEPENDENT OLD ROW CONTROL")
+        .unwrap()
+        .0;
+    let restored_row = borrowed_row.strip_prefix("#[cfg(test)]\n").unwrap()
+            .replacen("fn independent_old_row(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source:", "fn value_direct_4a6eb(source:", 1)
+            .replacen("let current = authenticated;", "let current = packet();", 1)
+            .replacen("with_packet_direct_context(current, stage, source, expected, supplied)", "packet_lookup::with_packet(&current, source, expected, supplied)", 1);
+    let root = include_str!("main_e177_final_inputs.rs");
+    assert_eq!(
+        restored_row.trim_end(),
+        format!(
+            "fn value_direct_4a6eb({}",
+            root.split_once("fn value_direct_4a6eb(")
+                .unwrap()
+                .1
+                .split_once("// Exact finite successor")
+                .unwrap()
+                .0
+        )
+        .trim_end()
+    );
+}
+
+// BEGIN EXPLICIT BORROWED STAGE METADATA
+fn stage_with_context(
+    authenticated: &serde_json::Value,
+    canonical: &serde_json::Value,
+    row: &serde_json::Value,
+) -> Option<serde_json::Value> {
+    let source = row["source"].as_str().unwrap();
+    if !super::overlay_v2::REPLACEMENTS.contains(&source)
+        && !super::overlay_v2::ADDITIONS.contains(&source)
+    {
+        return None;
+    }
+    let current_row = authenticated["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["source"] == source)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        canonical["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["source"] == source),
+        Some(row),
+        "closed original stage row"
+    );
+    super::overlay_v2::current(&current_row).unwrap();
+    Some(current_row)
+}
+fn stage_normalize_context(
+    authenticated: &serde_json::Value,
+    canonical: &serde_json::Value,
+    row: &serde_json::Value,
+    supplied: &str,
+) -> Option<String> {
+    let current_row = stage_with_context(authenticated, canonical, row)?;
+    let raw = super::overlay_v2::current(&current_row).unwrap();
+    if supplied == raw {
+        Some(super::overlay_v2::image(&row["before"]).unwrap())
+    } else {
+        None
+    }
+}
+fn stage_requested_context(
+    authenticated: &serde_json::Value,
+    canonical: &serde_json::Value,
+    row: &serde_json::Value,
+    expected: &str,
+    supplied: &str,
+) -> Option<Option<String>> {
+    let current_row = stage_with_context(authenticated, canonical, row)?;
+    let raw = super::overlay_v2::current(&current_row).unwrap();
+    let selected = [&row["before"], &row["current"]]
+        .into_iter()
+        .chain(
+            row.get("views")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten(),
+        )
+        .find(|p| p["sha256"] == expected);
+    Some(selected.and_then(|p| {
+        let prior = super::overlay_v2::image(p).unwrap();
+        if supplied == raw || supplied == prior {
+            Some(prior)
+        } else {
+            None
+        }
+    }))
+}
+fn requested_context(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> Option<String> {
+    clippy_stage::compiled(source)?;
+    let stage = stage.expect("compiled stage metadata belongs to this invocation");
+    let packet = stage;
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    if let Some(value) = stage_requested_context(authenticated, stage, row, expected, supplied) {
+        return value;
+    }
+    let actual = current_context(authenticated, stage, row);
+    let selected = [&row["before"], &row["current"]]
+        .into_iter()
+        .chain(
+            row.get("views")
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten(),
+        )
+        .find(|pin| pin["sha256"] == expected)?;
+    let previous = clippy_stage::pin(selected);
+    if supplied == actual || supplied == previous {
+        Some(previous)
+    } else {
+        None
+    }
+}
+fn normalize_context<'a>(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    supplied: &'a str,
+) -> std::borrow::Cow<'a, str> {
+    if clippy_stage::compiled(source).is_none() {
+        return std::borrow::Cow::Borrowed(supplied);
+    }
+    let stage = stage.expect("compiled stage metadata belongs to this invocation");
+    let packet = stage;
+    let Some(row) = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)
+    else {
+        return std::borrow::Cow::Borrowed(supplied);
+    };
+    if let Some(value) = stage_normalize_context(authenticated, stage, row, supplied) {
+        return std::borrow::Cow::Owned(value);
+    }
+    let actual = current_context(authenticated, stage, row);
+    if supplied == actual {
+        std::borrow::Cow::Owned(clippy_stage::pin(&row["before"]))
+    } else {
+        std::borrow::Cow::Borrowed(supplied)
+    }
+}
+fn with_packet_direct_context(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    // Current and prior logical-table views retain their complete scope before
+    // the separately authenticated historical Clippy-stage acquisition.
+    let direct = from_packet_with_context(authenticated, source, expected, supplied);
+    if digest(direct.as_bytes()) == expected {
+        return direct;
+    }
+    if let Some(value) = requested_context(authenticated, stage, source, expected, supplied) {
+        let _ = authenticated;
+        return value;
+    }
+    let normalized = normalize_context(authenticated, stage, source, supplied);
+    let result = from_packet_with_context(authenticated, source, expected, normalized.as_ref());
+    if normalized.as_ref() != supplied
+        && result == normalized.as_ref()
+        && digest(result.as_bytes()) != expected
+    {
+        supplied.to_owned()
+    } else {
+        result
+    }
+}
+fn direct_row_context(
+    authenticated: &serde_json::Value,
+    stage: Option<&serde_json::Value>,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    if authenticated["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["source"] == source)
+    {
+        with_packet_direct_context(authenticated, stage, source, expected, supplied)
+    } else {
+        supplied.to_owned()
+    }
+}
+// END EXPLICIT BORROWED STAGE METADATA
+
+fn stage_current_context(
+    authenticated: &serde_json::Value,
+    canonical: &serde_json::Value,
+    row: &serde_json::Value,
+) -> Option<String> {
+    stage_with_context(authenticated, canonical, row)?;
+    Some(super::overlay_v2::image(&row["current"]).unwrap())
+}
+fn current_context(
+    authenticated: &serde_json::Value,
+    canonical: &serde_json::Value,
+    row: &serde_json::Value,
+) -> String {
+    if let Some(value) = stage_current_context(authenticated, canonical, row) {
+        return value;
+    }
+    let source = row["source"].as_str().unwrap();
+    let expected = &row["current"];
+    let raw = super::held_4a6eb(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join(source),
+        expected["length"].as_u64().unwrap() as usize,
+        expected["sha256"].as_str().unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        Some(raw.as_str()),
+        clippy_stage::compiled(source),
+        "complete successor compiled source"
+    );
+    assert_eq!(
+        raw,
+        clippy_stage::pin(expected),
+        "complete successor archive"
+    );
+    raw
+}
+
+// END BORROWED CURRENT CONTINUATION
+
+#[cfg(test)]
+fn assert_transitive_context_source() {
+    let child = include_str!("main_e177_packet_lookup.rs");
+    let overlay = include_str!("main_e177_overlay_v2.rs");
+    let root = include_str!("main_e177_final_inputs.rs");
+    {
+        let mut restored = ("fn stage_current_context".to_owned() + child.split_once("\nfn stage_current_context").unwrap().1.split_once("\nfn current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> String {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (0usize, "fn stage_current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<String> {\n    stage_with_context(authenticated, canonical, row)?;\n    Some(super::overlay_v2::image(&row[\"current\"]).unwrap())\n", "pub(super) fn stage_current(row: &Value) -> Option<String> {\n    stage(row)?;\n    Some(image(&row[\"current\"]).unwrap())\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "pub(super) fn stage_current(".to_owned()
+            + overlay
+                .split_once("pub(super) fn stage_current(")
+                .unwrap()
+                .1
+                .split_once("pub(super) fn stage_normalize")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole stage_current_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn current_context".to_owned()
+            + child
+                .split_once("\nfn current_context")
+                .unwrap()
+                .1
+                .split_once("\n// END BORROWED CURRENT CONTINUATION")
+                .unwrap()
+                .0)
+            .trim_end()
+            .to_owned();
+        for (offset, after, before) in [
+            (732usize, "        assert_eq!(raw, clippy_stage::pin(expected), \"complete successor archive\");\n", "        assert_eq!(raw, pin(expected), \"complete successor archive\");\n"),
+            (628usize, "            clippy_stage::compiled(source),\n", "            compiled(source),\n"),
+            (336usize, "        let raw = super::held_4a6eb(\n", "        let raw = held_4a6eb(\n"),
+            (0usize, "fn current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> String {\n        if let Some(value) = stage_current_context(authenticated, canonical, row) {\n", "    fn current(row: &serde_json::Value) -> String {\n        if let Some(value) = overlay_v2::stage_current(row) {\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "    fn current(".to_owned()
+            + root
+                .split_once("    fn current(")
+                .unwrap()
+                .1
+                .split_once("    pub(super) fn compiled(")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole current_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn stage_with_context".to_owned() + child.split_once("\nfn stage_with_context").unwrap().1.split_once("\nfn stage_normalize_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value, supplied: &str) -> Option<String> {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (657usize, "    super::overlay_v2::current(&current_row).unwrap();\n", "    current(&current_row).unwrap();\n"),
+            (194usize, "    if !super::overlay_v2::REPLACEMENTS.contains(&source) && !super::overlay_v2::ADDITIONS.contains(&source) { return None; }\n    let current_row = authenticated[\"rows\"].as_array().unwrap().iter().find(|r| r[\"source\"] == source).unwrap().clone();\n", "    let current_row = affected_row(source)?;\n    let canonical = super::clippy_stage::rows();\n"),
+            (0usize, "fn stage_with_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<serde_json::Value> {\n", "fn stage(row: &Value) -> Option<Value> {\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "fn stage(row:".to_owned()
+            + overlay
+                .split_once("fn stage(row:")
+                .unwrap()
+                .1
+                .split_once("pub(super) fn stage_current")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole stage_with_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn stage_normalize_context".to_owned() + child.split_once("\nfn stage_normalize_context").unwrap().1.split_once("\nfn stage_requested_context(authenticated: &serde_json::Value, canonical: &serde_json::Value,").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (318usize, "        Some(super::overlay_v2::image(&row[\"before\"]).unwrap())\n", "        Some(image(&row[\"before\"]).unwrap())\n"),
+            (0usize, "fn stage_normalize_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value, supplied: &str) -> Option<String> {\n    let current_row = stage_with_context(authenticated, canonical, row)?;\n    let raw = super::overlay_v2::current(&current_row).unwrap();\n", "pub(super) fn stage_normalize(row: &Value, supplied: &str) -> Option<String> {\n    let current_row = stage(row)?;\n    let raw = current(&current_row).unwrap();\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "pub(super) fn stage_normalize(".to_owned()
+            + overlay
+                .split_once("pub(super) fn stage_normalize(")
+                .unwrap()
+                .1
+                .split_once("pub(super) fn stage_requested")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole stage_normalize_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn stage_requested_context".to_owned() + child.split_once("\nfn stage_requested_context").unwrap().1.split_once("\nfn requested_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> Option<String> {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (649usize, "        let prior = super::overlay_v2::image(p).unwrap();\n", "        let prior = image(p).unwrap();\n"),
+            (450usize, "                .and_then(serde_json::Value::as_array)\n", "                .and_then(Value::as_array)\n"),
+            (192usize, "    let current_row = stage_with_context(authenticated, canonical, row)?;\n    let raw = super::overlay_v2::current(&current_row).unwrap();\n", "    let current_row = stage(row)?;\n    let raw = current(&current_row).unwrap();\n"),
+            (0usize, "fn stage_requested_context(authenticated: &serde_json::Value, canonical: &serde_json::Value,\n    row: &serde_json::Value,\n", "pub(super) fn stage_requested(\n    row: &Value,\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "pub(super) fn stage_requested(".to_owned()
+            + overlay
+                .split_once("pub(super) fn stage_requested(")
+                .unwrap()
+                .1
+                .split_once("#[path = \"main_e177_overlay_compiled.rs\"]")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole stage_requested_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn requested_context".to_owned() + child.split_once("\nfn requested_context").unwrap().1.split_once("\nfn normalize_context<'a>(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (993usize, "        let previous = clippy_stage::pin(selected);\n", "        let previous = pin(selected);\n"),
+            (602usize, "        let actual = current_context(authenticated, stage, row);\n", "        let actual = current(row);\n"),
+            (464usize, "        if let Some(value) = stage_requested_context(authenticated, stage, row, expected, supplied) {\n", "        if let Some(value) = overlay_v2::stage_requested(row, expected, supplied) {\n"),
+            (0usize, "fn requested_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> Option<String> {\n        clippy_stage::compiled(source)?;\n        let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n        let packet = stage;\n", "    pub(super) fn requested(source: &str, expected: &str, supplied: &str) -> Option<String> {\n        compiled(source)?;\n        let packet = rows();\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "    pub(super) fn requested(".to_owned()
+            + root
+                .split_once("    pub(super) fn requested(")
+                .unwrap()
+                .1
+                .split_once("    pub(super) fn normalize")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole requested_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn normalize_context".to_owned() + child.split_once("\nfn normalize_context").unwrap().1.split_once("\nfn with_packet_direct_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (971usize, "            std::borrow::Cow::Borrowed(supplied)\n", "            Cow::Borrowed(supplied)\n"),
+            (883usize, "            std::borrow::Cow::Owned(clippy_stage::pin(&row[\"before\"]))\n", "            Cow::Owned(pin(&row[\"before\"]))\n"),
+            (786usize, "        let actual = current_context(authenticated, stage, row);\n", "        let actual = current(row);\n"),
+            (633usize, "        if let Some(value) = stage_normalize_context(authenticated, stage, row, supplied) {\n            return std::borrow::Cow::Owned(value);\n", "        if let Some(value) = overlay_v2::stage_normalize(row, supplied) {\n            return Cow::Owned(value);\n"),
+            (565usize, "            return std::borrow::Cow::Borrowed(supplied);\n", "            return Cow::Borrowed(supplied);\n"),
+            (280usize, "        let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n        let packet = stage;\n", "        let packet = rows();\n"),
+            (0usize, "fn normalize_context<'a>(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {\n        if clippy_stage::compiled(source).is_none() {\n            return std::borrow::Cow::Borrowed(supplied);\n", "    pub(super) fn normalize<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {\n        if compiled(source).is_none() {\n            return Cow::Borrowed(supplied);\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "    pub(super) fn normalize".to_owned()
+            + root
+                .split_once("    pub(super) fn normalize")
+                .unwrap()
+                .1
+                .split_once("    pub(super) fn read(")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole normalize_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn with_packet_direct_context".to_owned() + child.split_once("\nfn with_packet_direct_context").unwrap().1.split_once("\nfn direct_row_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {").unwrap().0).trim_end().to_owned();
+        for (offset, after, before) in [
+            (627usize, "    let normalized = normalize_context(authenticated, stage, source, supplied);\n    let result = from_packet_with_context(authenticated, source, expected, normalized.as_ref());\n", "    let normalized = clippy_stage::normalize(source, supplied);\n    let result = value_4a6eb(source, expected, normalized.as_ref());\n"),
+            (473usize, "    if let Some(value) = requested_context(authenticated, stage, source, expected, supplied) {\n        let _ = authenticated;\n", "    if let Some(value) = clippy_stage::requested(source, expected, supplied) {\n        let _ = packet();\n"),
+            (311usize, "    let direct = from_packet_with_context(authenticated, source, expected, supplied);\n", "    let direct = from_packet(authenticated, source, expected, supplied);\n"),
+            (0usize, "fn with_packet_direct_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n", "pub(super) fn with_packet(authenticated: &serde_json::Value, source: &str, expected: &str, supplied: &str) -> String {\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "pub(super) fn with_packet(authenticated:".to_owned()
+            + child
+                .split_once("pub(super) fn with_packet(authenticated:")
+                .unwrap()
+                .1
+                .split_once("#[cfg(test)]\nmod tests")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole with_packet_direct_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn from_packet_with_context".to_owned()
+            + child
+                .split_once("\nfn from_packet_with_context")
+                .unwrap()
+                .1
+                .split_once("\n#[rustfmt::skip]")
+                .unwrap()
+                .0)
+            .trim_end()
+            .to_owned();
+        for (offset, after, before) in [
+            (579usize, "    let current = actual_with_packet(packet, row);\n    let previous = read_view_with_packet(packet, prior);\n", "    let current = actual(row);\n    let previous = read_view(prior);\n"),
+            (0usize, "fn from_packet_with_context(packet: &serde_json::Value, source: &str, expected: &str, supplied: &str) -> String {\n", "pub(super) fn from_packet(packet: &serde_json::Value, source: &str, expected: &str, supplied: &str) -> String {\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "pub(super) fn from_packet(packet:".to_owned()
+            + child
+                .split_once("pub(super) fn from_packet(packet:")
+                .unwrap()
+                .1
+                .split_once("#[rustfmt::skip] // Exact historical continuation")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole from_packet_with_context source inverse"
+        );
+    }
+    {
+        let mut restored = ("fn direct_row_context".to_owned()
+            + child
+                .split_once("\nfn direct_row_context")
+                .unwrap()
+                .1
+                .split_once("\n// END EXPLICIT BORROWED STAGE METADATA")
+                .unwrap()
+                .0)
+            .trim_end()
+            .to_owned();
+        for (offset, after, before) in [
+            (0usize, "fn direct_row_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n    if authenticated[\"rows\"].as_array().unwrap().iter().any(|row| row[\"source\"] == source) {\n        with_packet_direct_context(authenticated, stage, source, expected, supplied)\n    } else { supplied.to_owned() }\n", "fn value_direct_4a6eb(source: &str, expected: &str, supplied: &str) -> String {\n    let current = packet();\n    if current[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .any(|row| row[\"source\"] == source)\n    {\n        packet_lookup::with_packet(&current, source, expected, supplied)\n    } else {\n        supplied.to_owned()\n    }\n"),
+        ] {
+            assert_eq!(&restored[offset..offset + after.len()], after);
+            restored.replace_range(offset..offset + after.len(), before);
+        }
+        let original = "fn value_direct_4a6eb(".to_owned()
+            + root
+                .split_once("fn value_direct_4a6eb(")
+                .unwrap()
+                .1
+                .split_once("// Exact finite successor")
+                .unwrap()
+                .0;
+        assert_eq!(
+            restored,
+            original.trim_end(),
+            "whole direct_row_context source inverse"
+        );
+    }
+}
 // Caller-cap lookup retained verbatim in the already audited sibling.
 #[rustfmt::skip]
 pub(super) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
@@ -1065,61 +1367,17 @@ mod current_reader_tests {
     }
 }
 
-// Preserve the original caller cap on both the full current read and its
-// explicitly declared historical output before entering a source-only view.
-pub(super) fn declared_registered_file(
-    source: &str,
-    expected: &str,
-    cap: usize,
-) -> Option<Option<String>> {
-    let (part, index) = super::declared_history_inputs::slot(source, expected)?;
-    let packet = super::packet();
-    let actual = packet["rows"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|row| row["source"] == source)?;
-    let fits = |row: &Value| row["current"]["length"].as_u64().unwrap() <= cap as u64;
-    if !fits(actual)
-        || actual.get("fragments").is_some_and(|children| {
-            children
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|child| !fits(child))
-        })
-    {
-        return Some(None);
-    }
-    actual_with_packet(&packet, actual);
-    let row = &super::declared_history_inputs::records(part)[index];
-    let length = row["before_bytes"].as_u64().unwrap() as usize;
-    Some(
-        if length <= cap && super::declared_history_inputs::compiled(source).len() <= cap {
-            super::declared_history_inputs::expected_file(
-                &Path::new(env!("CARGO_MANIFEST_DIR")).join(source),
-                length,
-                expected,
-            )
-        } else {
-            None
-        },
-    )
+#[derive(Default)]
+struct InvocationCall {
+    metadata: bool,
+    stage: bool,
 }
-
-// This named source epoch remains a complete authenticated historical input.
-pub(super) fn cursor_epoch_value(source: &str, expected: &str, supplied: &str) -> Option<String> {
-    const SOURCE: &str = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
-    const EPOCH: &str = "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2";
-    const BEFORE: &str = "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34";
-    if source != SOURCE || expected != BEFORE || digest(supplied.as_bytes()) != EPOCH {
-        return None;
-    }
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(SOURCE);
-    let epoch = super::declared_history_inputs::expected_file(&path, 8182, EPOCH)?;
-    assert_eq!(
-        supplied, epoch,
-        "entire named cursor epoch on current channels"
-    );
-    super::declared_history_inputs::expected_file(&path, 8127, BEFORE)
+#[cfg(test)]
+pub(super) fn test_stage_metadata<F: FnMut() -> Value, S: FnMut() -> Value>(
+    invocation: &mut ProjectionInvocation<F, S>,
+    source: &str,
+) {
+    let mut call = InvocationCall::default();
+    let _ = invocation.call_direct_metadata(&mut call, source);
+    invocation.finish_call(call);
 }

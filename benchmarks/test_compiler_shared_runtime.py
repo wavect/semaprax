@@ -308,5 +308,9 @@ class SharedRuntimeChecks(unittest.TestCase):
                 session.run_turn('not sent', None, timeout)
 
 
+# Child controls use only synthetic transport frames, never a live grant.
+from compiler_executor_channel_tests import CompletionChannelChecks
+
+
 if __name__ == '__main__':
     unittest.main()

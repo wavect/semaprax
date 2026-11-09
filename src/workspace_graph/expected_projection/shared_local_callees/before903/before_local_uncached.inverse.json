@@ -1,0 +1,80 @@
+{
+  "git_before": "21574297e02afb6f286901171f6c179bf2ccea0a",
+  "source": "src/workspace_graph/expected_projection/uncached_peak.rs",
+  "current": {
+    "length": 14760,
+    "sha256": "1ba9af6d94a50096c1a2a6f18aa6feb3b6bb7ea513fd001cfbd740fdb9584af0"
+  },
+  "target": {
+    "length": 14520,
+    "sha256": "4206e2a1a96eb2d4c89634aa193999383d0deb28a22a5a67b30647f9590d67f8"
+  },
+  "edits": [
+    {
+      "start": 927,
+      "end": 986,
+      "after": "    pub order: [usize; crate::workspace_graph::MAX_FILES],\n",
+      "before": "    pub order: [usize; super::super::MAX_FILES],\n"
+    },
+    {
+      "start": 1543,
+      "end": 1707,
+      "after": "    let mut observation = crate::workspace_graph::forecast_observation::begin_pass(6);\n    let _precharge = crate::workspace_graph::diagnostics::precharge_scope();\n",
+      "before": "    let mut observation = super::super::forecast_observation::begin_pass(6);\n    let _precharge = super::super::diagnostics::precharge_scope();\n"
+    },
+    {
+      "start": 1845,
+      "end": 2114,
+      "after": "    crate::workspace_graph::diagnostics::begin_precharge_pass();\n    let mut order = [0; crate::workspace_graph::MAX_FILES];\n    let mut full_costs = [0usize; crate::workspace_graph::MAX_FILES];\n    let mut retained_costs = [0usize; crate::workspace_graph::MAX_FILES];\n",
+      "before": "    super::super::diagnostics::begin_precharge_pass();\n    let mut order = [0; super::super::MAX_FILES];\n    let mut full_costs = [0usize; super::super::MAX_FILES];\n    let mut retained_costs = [0usize; super::super::MAX_FILES];\n"
+    },
+    {
+      "start": 2258,
+      "end": 2342,
+      "after": "        crate::workspace_graph::diagnostics::begin_precharge_module(&program.path);\n",
+      "before": "        super::super::diagnostics::begin_precharge_module(&program.path);\n"
+    },
+    {
+      "start": 2784,
+      "end": 2923,
+      "after": "        crate::workspace_graph::diagnostics::record_precharge_module(\n            &program.path,\n            full_costs[index],\n        );\n",
+      "before": "        super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);\n"
+    },
+    {
+      "start": 4215,
+      "end": 4307,
+      "after": "    crate::workspace_graph::diagnostics::complete_sequential_precharge(peak.max(retained));\n",
+      "before": "    super::super::diagnostics::complete_sequential_precharge(peak.max(retained));\n"
+    },
+    {
+      "start": 4880,
+      "end": 4962,
+      "after": "        crate::workspace_graph::diagnostics::record_sequential_precharge_refusal(\n",
+      "before": "        super::super::diagnostics::record_sequential_precharge_refusal(\n"
+    },
+    {
+      "start": 9268,
+      "end": 9345,
+      "after": "    let _precharge = crate::workspace_graph::diagnostics::precharge_scope();\n",
+      "before": "    let _precharge = super::super::diagnostics::precharge_scope();\n"
+    },
+    {
+      "start": 10806,
+      "end": 11035,
+      "after": "    let mut observation = crate::workspace_graph::forecast_observation::begin_pass(5);\n    let _precharge = crate::workspace_graph::diagnostics::precharge_scope();\n    crate::workspace_graph::diagnostics::begin_precharge_pass();\n",
+      "before": "    let mut observation = super::super::forecast_observation::begin_pass(5);\n    let _precharge = super::super::diagnostics::precharge_scope();\n    super::super::diagnostics::begin_precharge_pass();\n"
+    },
+    {
+      "start": 11141,
+      "end": 11225,
+      "after": "        crate::workspace_graph::diagnostics::begin_precharge_module(&program.path);\n",
+      "before": "        super::super::diagnostics::begin_precharge_module(&program.path);\n"
+    },
+    {
+      "start": 11455,
+      "end": 11595,
+      "after": "        crate::workspace_graph::diagnostics::record_precharge_module(\n            &program.path,\n            costs.retained_hir,\n        );\n",
+      "before": "        super::super::diagnostics::record_precharge_module(&program.path, costs.retained_hir);\n"
+    }
+  ]
+}

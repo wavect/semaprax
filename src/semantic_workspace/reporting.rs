@@ -40,8 +40,58 @@ fn preflight_typed(
     change_builder_limit: Option<usize>,
     retain_operations: bool,
     graph_builder_limit: Option<usize>,
-    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<SemanticWorkspacePreflight, WorkspaceReportFailure> {
+    preflight_typed_with_report_controls(
+        path_set_source,
+        sources,
+        change_builder_limit,
+        retain_operations,
+        graph_builder_limit,
+        frontend,
+        const {
+            use std::mem::size_of;
+            size_of::<Result<SemanticWorkspacePreflight, WorkspaceReportFailure>>()
+                + size_of::<Result<SemanticWorkspacePreflight, WorkspaceReportFailure>>()
+                + 2 * size_of::<&str>()
+                + 2 * size_of::<Vec<SemanticWorkspaceSource>>()
+                + 2 * size_of::<Option<usize>>() // change limit
+                + 2 * size_of::<bool>()
+                + 2 * size_of::<Option<usize>>() // graph limit
+                + 2 * size_of::<Option<&mut crate::project::incremental::FrontendPass>>()
+                + 2 * size_of::<usize>() // report-controls actual/formal
+        },
+    )
+}
+
+fn preflight_typed_with_report_controls(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    change_builder_limit: Option<usize>,
+    retain_operations: bool,
+    graph_builder_limit: Option<usize>,
+    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    report_controls: usize,
+) -> Result<SemanticWorkspacePreflight, WorkspaceReportFailure> {
+    // This shared route newly selects a finite ordinary graph limit. The exact
+    // unwrap_or receiver/default/return ABI and THIS checked composition are
+    // paid by both Project and original typed callers at the original gate.
+    const LIMIT_SELECTION_CONTROLS: usize = {
+        use std::mem::size_of;
+        2 * size_of::<Option<usize>>() // unwrap_or actual/formal receiver
+            + 2 * size_of::<usize>() // unwrap_or actual/formal default
+            + 2 * size_of::<usize>() // unwrap_or return and received graph limit
+            + 2 * size_of::<usize>() // checked_add actual/formal bank receiver
+            + 2 * size_of::<usize>() // checked_add actual/formal added bank
+            + size_of::<Option<usize>>() // checked_add returned Option
+            + size_of::<Option<usize>>() // match receiving Option
+            + size_of::<usize>() // selected sum binding
+            + size_of::<usize>() // new report_controls receiving slot
+    };
+    let report_controls = match report_controls.checked_add(LIMIT_SELECTION_CONTROLS) {
+        Some(total) => total,
+        None => usize::MAX,
+    };
     #[cfg(feature = "unstable-workflow-profiling")]
     let _workflow_span =
         crate::workflow_profile::span(crate::workflow_profile::Stage::WorkspacePreflight);
@@ -86,7 +136,7 @@ fn preflight_typed(
         })
         .collect();
     let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {
-        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(
+        workspace_graph::build_owned_retaining_sources_with_report_controls::<WorkspaceReportFailure>(
             graph_sources,
             if retain_operations {
                 graph_builder_limit.expect("operations preflight supplies Graph limit")
@@ -96,14 +146,16 @@ fn preflight_typed(
             Some(change_builder_limit),
             retain_operations,
             None,
+            report_controls,
         )?
     } else {
-        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(
+        workspace_graph::build_owned_retaining_sources_with_report_controls::<WorkspaceReportFailure>(
             graph_sources,
-            workspace_graph::MAX_BUILDER_BYTES,
+            graph_builder_limit.unwrap_or(workspace_graph::MAX_BUILDER_BYTES),
             None,
             false,
             frontend.as_deref_mut(),
+            report_controls,
         )?
     };
     // The exact sources this build consumed are the receiving authority.
@@ -272,4 +324,22 @@ pub(crate) fn authenticated_operations_preflight(
     };
     replay_typed(&preflight, None)?;
     Ok(preflight)
+}
+
+/// Actual ordinary Project receiver; all checks remain in the same typed preflight.
+pub(crate) fn preflight_owned_project(
+    paths: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    report_controls: usize,
+    builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, WorkspaceReportFailure> {
+    preflight_typed_with_report_controls(
+        paths,
+        sources,
+        None,
+        false,
+        Some(builder_limit),
+        None,
+        report_controls,
+    )
 }

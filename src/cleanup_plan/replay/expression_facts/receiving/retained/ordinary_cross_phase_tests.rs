@@ -387,6 +387,46 @@ fn block_run(
     cap: usize,
     work: usize,
 ) -> (Result<(), Diagnostic>, bool, usize, usize) {
+    block_run_driver(
+        context,
+        function,
+        if current {
+            BlockDriver::Current
+        } else {
+            BlockDriver::Immediate
+        },
+        cap,
+        work,
+    )
+}
+#[derive(Clone, Copy)]
+enum BlockDriver {
+    Immediate,
+    Transition,
+    AfterRelease,
+    Current,
+}
+fn block_run_driver(
+    context: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    driver: BlockDriver,
+    cap: usize,
+    work: usize,
+) -> (Result<(), Diagnostic>, bool, usize, usize) {
+    // The comparison hook is an independent test reference, not part of the
+    // ordinary builder invoice. Both real arms retain the original byte limit.
+    // The single checked function invokes the two original receivers.
+    // Preserve declared physical funding and derive work from both unchanged
+    // work domains for each receiver.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    const RECEIVERS: usize = 2;
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
+        .expect("finite independent ordinary replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
+    let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
     let ((result, work), refused, paid) = crate::bounded_output::with_limit_usage(cap, || {
         let mut budget = ReplayBudget::new();
@@ -399,14 +439,30 @@ fn block_run(
         ) {
             Err(error) => Err(error),
             Ok(_) => {
-                if current {
-                    crate::cleanup_plan::replay::expression_facts::receiving::retained::receiving_generation::validate_structure_with_budget_storage(
-                            context,
-                            function,
-                            &mut budget,
-                            None,
-                            None,
-                        )
+                if matches!(driver, BlockDriver::Current) {
+                    validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
+                } else if matches!(driver, BlockDriver::Transition) {
+                    super::super::before_structure_release::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
+                } else if matches!(driver, BlockDriver::AfterRelease) {
+                    super::super::after_structure_release::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
                 } else {
                     super::super::ordinary_block_before::validate_structure_with_budget_storage(
                         context,
@@ -420,6 +476,18 @@ fn block_run(
         };
         (result, work - budget.remaining)
     });
+    drop(selected);
+    drop(trace);
+    let reference = reference.finish();
+    assert!(reference.started <= RECEIVERS, "{reference:?}");
+    eprintln!("block reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
     (result, refused, paid, work)
 }
 
@@ -456,17 +524,81 @@ fn transition_counts(function: &ResolvedFunction) -> (usize, usize) {
 #[test]
 fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() {
     use std::mem::size_of;
+    let archived = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246"
+    ));
+    let boundary = "#[cfg(test)]\n#[allow(\n    clippy::duplicate_mod,\n";
+    assert_eq!(
+        include_str!("after_structure_release.rs"),
+        archived.split_once(boundary).unwrap().0,
+        "the complete original shipping release driver",
+    );
     for rows in [0, 1, 64] {
         let program = fixture(rows, true);
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
         super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.set(0));
         super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.set(0));
-        let current = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        // Original #889 transition equation uses its full independently compiled
+        // generation, before the later #903 last-use scratch transport.
+        let current = block_run_driver(
+            &program,
+            function,
+            BlockDriver::Transition,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
+        let generation_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
         let reference_routes =
             super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.get());
         let new_reference =
             super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.get());
+        let released = block_run_driver(
+            &program,
+            function,
+            BlockDriver::AfterRelease,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
+        let released_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
+        assert_eq!(released.0, current.0); // complete current six-field verdict
+        assert!(released.0.is_ok() && !released.1);
+        assert_eq!(released.3, current.3);
+        assert_eq!(released_census.reached, generation_census.reached);
+        assert!(!released_census.incomplete && !generation_census.incomplete);
+        // The reached status-session count is an observation of the actual
+        // completed retained-attempt arm, never permission to select it.
+        assert!(released_census.reached[1] <= 1);
+        let release = super::super::last_use::RELEASE
+            .checked_add(
+                released_census.reached[1]
+                    .checked_mul(super::super::last_use::ATTEMPT)
+                    .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            released.2,
+            current.2.checked_add(release).unwrap(),
+            "complete current scratch-release composition rows={rows}"
+        );
+        // The current prefix certificate has its own positive work reduction.
+        // Keep the exact release equation on its complete original drivers,
+        // then check the shipping receiver independently.
+        let shipping = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        assert_eq!(
+            shipping.0, released.0,
+            "complete shipping verdict rows={rows}"
+        );
+        assert!(!shipping.1);
+        if rows == 64 {
+            assert!(
+                shipping.3 < released.3,
+                "shipping prefix queries must save work"
+            );
+        } else {
+            assert_eq!(shipping.3, released.3, "cold route work rows={rows}");
+        }
         assert_eq!(current.0, old.0, "all six fields rows={rows}");
         assert!(
             current.0.is_ok() && !old.1 && !current.1,
@@ -623,10 +755,29 @@ fn transition_scratch_keeps_missing_and_noncall_diagnostic_priority_and_source_i
         let whole = format!("{program:?}");
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
+        let released = block_run_driver(
+            &program,
+            function,
+            BlockDriver::AfterRelease,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
         let current = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
         assert!(old.0.is_err());
-        assert_eq!(current.0, old.0, "all six fields mode={mode}");
-        assert_eq!(current.3, old.3);
+        assert_eq!(released.0, old.0, "all six transition fields mode={mode}");
+        assert_eq!(released.3, old.3, "original transition work mode={mode}");
+        assert_eq!(current.0, released.0, "all six shipping fields mode={mode}");
+        if mode == 2 {
+            assert_eq!(
+                current.3, released.3,
+                "schema refusal precedes prefix lookup"
+            );
+        } else {
+            assert!(
+                current.3 < released.3,
+                "shipping prefix lookup saves work mode={mode}"
+            );
+        }
         assert_eq!(format!("{program:?}"), whole);
     }
 }
@@ -749,8 +900,21 @@ fn callback_run(
     mode: u8,
     target: Option<usize>,
 ) -> ((Result<(), Diagnostic>, usize), bool, usize) {
+    // One finite private reference account covers both the outer comparison
+    // and mode1's nested real call. Do not create a nested OracleScope inside
+    // the callback; every receiver retains its original individual work MAX.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    // The fired Cell permits at most one nested validation, only in mode 1.
+    let receivers = if mode == 1 { 4 } else { 2 };
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(receivers))
+        .expect("finite independent callback replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, receivers);
+    let selected = opt_in(reference.lease()).expect("one callback replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
-    crate::bounded_output::with_limit_usage(CAP, || {
+    let result = crate::bounded_output::with_limit_usage(CAP, || {
         let context = CallbackContext {
             program,
             nested,
@@ -791,7 +955,25 @@ fn callback_run(
             }
         };
         (result, context.fired_at.get())
-    })
+    });
+    drop(selected);
+    drop(trace);
+    let reference = reference.finish();
+    assert!(reference.started <= receivers, "{reference:?}");
+    // A captured eprintln can keep an unrelated libtest allocation live.
+    use std::io::Write;
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "callback reference max_receivers={receivers} complete_receipt={reference:?}"
+    );
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
+    result
 }
 
 #[test]

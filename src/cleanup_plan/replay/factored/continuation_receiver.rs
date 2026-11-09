@@ -12,18 +12,31 @@ pub(super) fn cross_check<'hir>(
     #[cfg(feature = "unstable-workflow-profiling")]
     let paid_enumeration = enumerating
         .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);
+    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::crosscheck::enumerated_hir_plan",
+    );
     let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
         let mut plan = plan_skeleton_paths(function, &mut enumerating)?;
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
-        hir.sort();
-        plan.sort();
-        Ok(hir == plan)
+        if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)
+            && !ordinary_plan_history::completed_fork::emission::before_selected()
+        {
+            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)
+        } else {
+            hir.sort();
+            plan.sort();
+            Ok(hir == plan)
+        }
     });
+    drop(enumeration_phase);
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     #[cfg(feature = "unstable-workflow-profiling")]
     drop(paid_enumeration);
     if let Ok(true) = enumerated {
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::crosscheck::factored_compare",
+        );
         let mut factored = ReplayBudget::with_skeleton_limit(0);
         #[cfg(feature = "unstable-workflow-profiling")]
         let _paid_crosscheck = factored

@@ -71,6 +71,8 @@ class ExecuteBroker:
         if type(session) is not Session or not session.initialized or session.closed:
             raise Refusal('trusted runtime session is unavailable')
         require_authority(session.authority)
+        from compiler_executor_channel import CompletionChannel
+        self.completions = CompletionChannel(session)
         self.session = session
         self.authority = session.authority
         self.candidate = Path(os.path.abspath(candidate))
@@ -109,13 +111,16 @@ class ExecuteBroker:
             before = provenance.validate_input_snapshot(snapshot, snapshot_sha)
             held = {row['path']: row for row in before}
             selected_rows = [held[relative] for relative in selected]
-            compiler_argv = [str(self.authority.compiler_binary), *argv, '--receipt-stdout-seal', nonce]
+            compiler_argv = (str(self.authority.compiler_binary), *argv, '--receipt-stdout-seal', nonce)
             record['actual_argv'] = compiler_argv
             record['invocation_sha256'] = retained.invocation_sha256(
                 str(self.authority.compiler_binary), compiler_argv[1:], cwd)
             record['before_snapshot_sha256'] = snapshot_sha
             # Actual execution occurs only here, once, through the private runtime.
-            observation = self.session.execute(compiler_argv, cwd)
+            completion = self.session.execute_owned(self.completions, compiler_argv, cwd)
+            observation = self.completions.consume(self.session, completion, compiler_argv, cwd)
+            record['completion_binding_schema'] = observation['completion_binding_schema']
+            record['completion_binding_sha256'] = observation['completion_binding_sha256']
             record['trusted_exit_code'] = observation['exit_code']
             record['process_id'] = observation['process_id']
             record['runtime_request_id'] = observation['request_id']

@@ -1,0 +1,69 @@
+    pub(in crate::cleanup_plan::replay::factored) fn id_with_receiving(
+        &mut self,
+        function: &ResolvedFunction,
+        root: Weighted,
+        budget: &mut ReplayBudget,
+        receiving: &mut closure_receiving::ClosureReceiving,
+    ) -> Result<Option<usize>, Diagnostic> {
+        #[cfg(test)]
+        let _successor_invocation = lexical_successors::census::invocation(false, function, budget);
+        #[cfg(test)]
+        let _operation = crate::bounded_output::stage_debits::operation_guard(
+            crate::bounded_output::stage_debits::Operation::ReplayFactoredCanonical,
+        );
+        #[cfg(feature = "unstable-workflow-profiling")]
+        let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
+            crate::bounded_output::exclusive_debits::Operation::ReplayFactoredCanonical,
+        );
+        #[cfg(test)]
+        super::tests::note_actual_entry(budget);
+        // Authenticate even when states already contains the requested root.
+        // One equivalent() call holds this function and budget borrowed across
+        // both roots; no closure/cache view leaves that invocation.
+        // Validate the held destination before any ordinary payer query.
+        if !receiving.valid(function, budget) {
+            self.closures.reject_after_error();
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        authenticate_closure!(self, function, budget, receiving);
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        if budget.pays_allocations() {
+            budget.reserve_bytes(
+                function,
+                std::mem::size_of::<Weighted>(),
+                "factored canonical moved root",
+            )?;
+        }
+        // Keep first-use acquisition at its original lexical position, but
+        // construct no forwarding prepare_scratch Result or argument receivers.
+        if !self.scratch_paid {
+            if budget.pays_allocations() {
+                budget.reserve_bytes(
+                    function,
+                    std::mem::size_of::<Vec<(usize, bool)>>()
+                        + std::mem::size_of::<Vec<CanonicalFrame<'_>>>()
+                        + std::mem::size_of::<Vec<SharedWeighted>>()
+                        + std::mem::size_of::<bool>(),
+                    "factored retained canonical scratch controls",
+                )?;
+            }
+            self.scratch_paid = true;
+        }
+        self.id_inner_into(function, root, budget, receiving);
+        // Retain capacity, never owned references, across either root and all
+        // success, arithmetic, work, physical and semantic failure exits.
+        self.cursor.clear();
+        self.child_ids.clear();
+        self.frames.clear();
+        self.open.clear();
+        receiving.ready = false;
+        if receiving.refusal.is_some() {
+            return Err(receiving.refusal.take().expect("published refusal"));
+        }
+        if receiving.overflow {
+            return Ok(None);
+        }
+        Ok(Some(receiving.id))
+    }

@@ -1,5 +1,7 @@
 //! Original full-field joins with funded mutation paths and scratch builders.
 use super::*;
+mod moved_direct;
+mod partial_retain;
 fn moved(binding: &ValidationBinding) -> Option<usize> {
     let nodes =
         crate::cleanup_plan::replay_btree_node_upper::<Vec<PlaceProjection>, Availability>()?
@@ -7,6 +9,31 @@ fn moved(binding: &ValidationBinding) -> Option<usize> {
                 Vec<PlaceProjection>,
                 (),
             >()?)?;
+    let mut bytes = nodes.checked_mul(binding.moved_places.len())?;
+    for path in binding.moved_places.keys() {
+        bytes = bytes.checked_add(
+            path.len()
+                .checked_mul(std::mem::size_of::<PlaceProjection>())?,
+        )?;
+    }
+    bytes = bytes.checked_add(
+        crate::cleanup_plan::replay_btree_node_upper::<Vec<PlaceProjection>, ()>()?
+            .checked_mul(binding.definitely_partial.len())?,
+    )?;
+    for path in &binding.definitely_partial {
+        bytes = bytes.checked_add(
+            path.len()
+                .checked_mul(std::mem::size_of::<PlaceProjection>())?,
+        )?;
+    }
+    Some(bytes)
+}
+fn moved_join_output(binding: &ValidationBinding) -> Option<usize> {
+    // Only the final BTreeMap node remains; the owned candidate BTreeSet
+    // was physically removed by the borrowed ordered merge. Existing path
+    // payload upper, partial prefixes and all output/COW payments remain.
+    let nodes =
+        crate::cleanup_plan::replay_btree_node_upper::<Vec<PlaceProjection>, Availability>()?;
     let mut bytes = nodes.checked_mul(binding.moved_places.len())?;
     for path in binding.moved_places.keys() {
         bytes = bytes.checked_add(
@@ -35,10 +62,10 @@ fn prefixes(binding: &ValidationBinding) -> Option<usize> {
         .chain(binding.definitely_partial.iter())
     {
         let count = path.len().checked_add(1)?;
-        // The old candidate builder copies every prefix even when that prefix
-        // is a duplicate. Its filtered output reuses vectors but builds a new
-        // set. Keep both complete tree directories and every prefix payload.
-        let slots = node.checked_mul(count)?.checked_mul(2)?;
+        // The SAME owned candidate builder still copies every prefix, even
+        // duplicates and rejected paths. Retain reuses that one tree; all
+        // copied path payload and other output/COW fees remain independent.
+        let slots = node.checked_mul(count)?;
         let payload = path
             .len()
             .checked_mul(count)?
@@ -49,10 +76,16 @@ fn prefixes(binding: &ValidationBinding) -> Option<usize> {
     Some(bytes)
 }
 fn join_scratch(left: &ValidationBinding, right: &ValidationBinding) -> Result<(), Diagnostic> {
+    charge::reserve(Some(moved_direct::CONTROL + partial_retain::CONTROL))?;
+    let count = left
+        .moved_places
+        .len()
+        .checked_add(right.moved_places.len());
+    charge::reserve(count.and_then(|n| moved_direct::ROW.checked_mul(n)))?;
     let loans = left.active_loans.union(&right.active_loans).count();
     charge::reserve(
-        moved(left)
-            .and_then(|a| moved(right).and_then(|b| a.checked_add(b)))
+        moved_join_output(left)
+            .and_then(|a| moved_join_output(right).and_then(|b| a.checked_add(b)))
             .and_then(|b| {
                 prefixes(left)?
                     .checked_add(prefixes(right)?)?
@@ -120,6 +153,14 @@ pub(in crate::hir::validation) fn conditional(
     source: &dyn Read,
     ids: &dyn Ids,
 ) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    if partial_retain::before_selected() {
+        return partial_retain::before::conditional(target, source, ids);
+    }
+    #[cfg(test)]
+    if moved_direct::before_selected() {
+        return moved_direct::before::conditional(target, source, ids);
+    }
     for id in ids.ids() {
         let (Some(before), Some(after)) = (target.get(id), source.get(id)) else {
             continue;
@@ -132,8 +173,8 @@ pub(in crate::hir::validation) fn conditional(
             continue;
         }
         join_scratch(before, after)?;
-        let moved_places = HirValidator::join_moved_places(before, after);
-        let definitely_partial = HirValidator::join_definitely_partial(before, after);
+        let moved_places = moved_direct::join(before, after);
+        let definitely_partial = HirValidator::join_definitely_partial_retained(before, after);
         let availability = before.availability.join(after.availability);
         // Full canonical builders already ran. Only the fields this join
         // writes authorize a no-op; immutable type/flags need not be cloned.
@@ -161,6 +202,14 @@ pub(in crate::hir::validation) fn branches(
     right: &dyn Read,
     ids: &dyn Ids,
 ) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    if partial_retain::before_selected() {
+        return partial_retain::before::branches(target, left, right, ids);
+    }
+    #[cfg(test)]
+    if moved_direct::before_selected() {
+        return moved_direct::before::branches(target, left, right, ids);
+    }
     for id in ids.ids() {
         let (Some(before), Some(left), Some(right)) = (target.get(id), left.get(id), right.get(id))
         else {
@@ -180,8 +229,8 @@ pub(in crate::hir::validation) fn branches(
             .union(&right.active_loans)
             .copied()
             .collect();
-        let moved_places = HirValidator::join_moved_places(left, right);
-        let definitely_partial = HirValidator::join_definitely_partial(left, right);
+        let moved_places = moved_direct::join(left, right);
+        let definitely_partial = HirValidator::join_definitely_partial_retained(left, right);
         if before.availability == availability
             && before.active_loans == active_loans
             && before.moved_places == moved_places

@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "original": "src/cleanup_plan/replay/path_join/direct_one_before/path_join.rs.txt",
+    "length": 53395,
+    "sha256": "18a2986eafe23dc5eacb7521b890fcde987cca568218eee421f87e1e0bdfe806"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/boxed_flow.rs",
+    "original": "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs.txt",
+    "length": 4467,
+    "sha256": "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "original": "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs.txt",
+    "length": 18676,
+    "sha256": "bf59b03e66773bb7ab3aa216a21631eb6e6b7468fdc02cb95d31d8b8b4992663"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
+    "original": "src/cleanup_plan/replay/path_join/direct_one_before/held_edge_tests.rs.txt",
+    "length": 8779,
+    "sha256": "96eacd0bb05c9bebb2fc8df02dd80f5da5678e999f6d5b4f5e04507f236cf5dc"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    "original": "src/cleanup_plan/replay/path_join/direct_one_before/shared_insertions_tests.rs.txt",
+    "length": 19862,
+    "sha256": "5145bc43c588fe8e464ca0a916d5217dbcd95de0a880a1a420879aff08fc39b7"
+  }
+]

@@ -114,10 +114,14 @@ impl Emitter<'_> {
             .find(|case| case.case.as_str() == crate::iterator_ops::YIELD_ID)
             .ok_or_else(|| error("owned-leaf Step Yield case is missing"))?;
         let item = yielded
-            .field(&DeclarationId::new(crate::iterator_ops::ITEM_ID))
+            .field(&DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::IterItem,
+            ))
             .ok_or_else(|| error("owned-leaf Step item is missing"))?;
         let rest = yielded
-            .field(&DeclarationId::new(crate::iterator_ops::REST_ID))
+            .field(&DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::IterRest,
+            ))
             .ok_or_else(|| error("owned-leaf Step rest is missing"))?;
         let item_pointer = Pointer {
             local: result_pointer.local,
@@ -323,10 +327,14 @@ impl Emitter<'_> {
             .find(|case| case.case.as_str() == crate::iterator_ops::YIELD_ID)
             .ok_or_else(|| error("record iterator Yield layout is missing"))?;
         let item = yielded
-            .field(&DeclarationId::new(crate::iterator_ops::ITEM_ID))
+            .field(&DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::IterItem,
+            ))
             .ok_or_else(|| error("record iterator item layout is missing"))?;
         let rest = yielded
-            .field(&DeclarationId::new(crate::iterator_ops::REST_ID))
+            .field(&DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::IterRest,
+            ))
             .ok_or_else(|| error("record iterator rest layout is missing"))?;
         let record = layout(self.program, element)?;
         let fields = crate::hir::owned_record_collection::owned_record_element_fields(

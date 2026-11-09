@@ -342,6 +342,170 @@ def compact_v11_names(ov, page, codec='v11'):
     return result
 
 
+def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
+    """Refresh the V21 transport while keeping both historical input sets."""
+    ov = guard['_OVERLAY_NS']
+    original = ov['compose_values'](before, policy, wire)
+    logical = ov['expand_compressed_page'](wire)
+    successor = ov['_v20_successor'](logical, ov['V21_OUTPUT_CAP'])
+    rows = {row['source']: copy.deepcopy(row) for row in original['rows']}
+    base = {row['source']: row for row in before['rows']}
+    if admit:
+        lookup = OVERLAY_COMPILED_RS.replace('compiled.rs', 'lookup.rs')
+        header = 'pub(crate) fn compiled(source: &str) -> Option<&\'static str> {\n    match source {\n'
+        arms = ''.join(f'        {json.dumps(s)} => Some(include_str!("../../{s}")),\n'
+                       for s, _ in admit)
+        repo.write(lookup, replace_once(repo.raw(lookup).decode(), header, header + arms, lookup))
+    changed = []
+    for source, previous in admit:
+        current = repo.raw(source)
+        assert source not in rows and current != previous
+        current_sha = sha(current)
+        repo.write(f'e/{current_sha}', current)
+        views = []
+        if previous is not None:
+            previous_sha = sha(previous)
+            repo.write(f'e/{previous_sha}', previous)
+            views.append(dict(name=label, length=len(previous), sha256=previous_sha, archive=f'e/{previous_sha}'))
+        rows[source] = dict(
+            source=source, compiled=True,
+            current=dict(length=len(current), sha256=current_sha, archive=f'e/{current_sha}'),
+            views=views,
+        )
+        changed.append(source)
+    for parent, children in (attach_fragments or {}).items():
+        assert parent in ov['V3_ROOTS']
+        fragments = rows[parent].setdefault('fragments', [])
+        assert not {child['source'] for child in fragments}.intersection(children)
+        fragments.extend(rows[child] for child in children)
+    for source, row in rows.items():
+        path = repo.root / source
+        if not path.is_file():
+            continue
+        current, old = path.read_bytes(), row['current']
+        digest = sha(current)
+        if (len(current), digest) == (old['length'], old['sha256']):
+            continue
+        name = PRE_OVERLAY if source in base and old == base[source]['current'] else label
+        view = dict(name=name, **old)
+        if view not in row['views']:
+            row['views'].append(view)
+        row['current'] = dict(old, length=len(current), sha256=digest, archive=f'e/{digest}')
+        repo.write(f'e/{digest}', current)
+        changed.append(source)
+    if not changed:
+        return []
+    for row in rows.values():
+        if 'fragments' in row:
+            row['fragments'] = [copy.deepcopy(rows[child['source']]) for child in row['fragments']]
+    owner = successor['registration']['owner']
+    declaration = successor['registration']['text'].encode()
+    owner_raw = repo.raw(owner)
+    assert owner_raw.count(declaration) == 1
+    start = owner_raw.index(declaration)
+    assert owner_raw[start - 2:start] == b'\n\n'
+    successor['current'] = rows[successor['source']]['current']
+    successor['registration'].update(current=rows[owner]['current'], start=start)
+
+    edges = ov['edges'](before)
+    combined = list(rows.values())
+    policy['new_fragment_edges'] = [dict(parent=parent, child=child)
+                                    for parent, child in ov['edges'](dict(rows=combined))
+                                    if (parent, child) not in edges]
+    policy['replacements'] = []
+    policy['additions'] = []
+    compact = dict(schema=ov['V8_SCHEMA'], index=1, total_pages=1,
+                   predecessor=policy['predecessor'], replacements=[], additions=[])
+    carriers = {binding[1] for binding in ov['V8_CARRIERS']}
+
+    def packed(row):
+        result = copy.deepcopy(row)
+        if row['source'] in (*ov['V3_ROOTS'], *carriers) and 'fragments' in row:
+            result['fragments'] = [dict(canonical_source=child['source']) for child in row['fragments']]
+        return result
+
+    for index, prior in enumerate(before['rows']):
+        source = prior['source']
+        row = rows[source]
+        if row == prior and source != successor['source']:
+            continue
+        policy['replacements'].append(source)
+        current = packed(row)
+        fragments = current.get('fragments') if row.get('fragments') != prior.get('fragments') else None
+        if fragments is not None and source not in ov['V3_ROOTS'] and source not in carriers:
+            compact['replacements'].append(current)
+        else:
+            count = len(prior['views'])
+            assert row['views'][:count] == prior['views']
+            compact['replacements'].append(dict(old519_index=[index, row['current'], row['views'][count:], fragments]))
+    for source, row in rows.items():
+        if source not in base:
+            policy['additions'].append(dict(source=source, compiled=row['compiled']))
+            compact['additions'].append(packed(row))
+
+    v9 = ov['transform_v9_pin_slots'](compact, True)
+    v9['schema'] = ov['V9_SCHEMA']
+    v10 = ov['encode_v10_with_prefixes'](v9, logical['page']['archive_prefixes'])
+    v11 = ov['transform_v11_digest_slots'](v10, True)
+    v11['schema'] = ov['V11_SCHEMA']
+    cap = ov['V21_OUTPUT_CAP']
+    v12 = ov['encode_v12_view_labels'](v11, cap)
+    v20 = ov['encode_v20'](ov['encode_v20_compact_inner'](v12, cap), successor, cap)
+    page = ov['canonical'](ov['encode_compressed_page'](v20))
+    policy['page'] = dict(path=PAGE, length=len(page), sha256=sha(page))
+    policy_bytes = ov['canonical'](policy)
+    assert len(policy_bytes) <= ov['PAGE_CAP']
+    assert ov['compose_values'](before, policy, ov['parse'](page))['rows'] == combined
+
+    # Keep the existing compact source spellings whenever the source scope
+    # stays fixed. For a new path reuse the reader's existing prefix aliases.
+    old_py = repo.raw(OVERLAY_PY)
+    py = old_py.decode()
+    rs = repo.raw(OVERLAY_RS).decode()
+    for name, values in (('REPLACEMENTS', policy['replacements']),
+                         ('ADDITIONS', [binding['source'] for binding in policy['additions']])):
+        if ov[name] == values:
+            continue
+        aliases = [(key, value) for key, value in ov.items()
+                   if key.startswith('_') and isinstance(value, str) and value.endswith('/')]
+        def spelling(path):
+            return min([repr(path), *(key + '+' + repr(path[len(prefix):])
+                                      for key, prefix in aliases if path.startswith(prefix))], key=len)
+        py = re.sub(rf'^{name}=\[.*\]$', lambda _: name + '=[' + ','.join(map(spelling, values)) + ']',
+                    py, count=1, flags=re.M)
+        rs = re.sub(rf'^pub\(super\) const {name}: &\[&str\] = &\[(?s:.*?)\];$',
+                    lambda _: f'pub(super) const {name}: &[&str] = &'
+                    + json.dumps(values, separators=(',', ':')) + ';', rs, count=1, flags=re.M)
+    py = re.sub(r'^POLICY_LENGTH\s*=\s*\d+$', f'POLICY_LENGTH={len(policy_bytes)}', py, count=1, flags=re.M)
+    py = re.sub(r"^POLICY_SHA256\s*=\s*'[0-9a-f]{64}'$", f"POLICY_SHA256='{sha(policy_bytes)}'", py, count=1, flags=re.M)
+    rs = re.sub(r'^const POLICY_LENGTH: usize = \d+;', f'const POLICY_LENGTH: usize = {len(policy_bytes)};', rs, count=1, flags=re.M)
+    rs = re.sub(r'^const POLICY_SHA256: &str = "[0-9a-f]{64}";', f'const POLICY_SHA256: &str = "{sha(policy_bytes)}";', rs, count=1, flags=re.M)
+    assert len(py.encode()) <= 65536
+    assert sha(policy_bytes) in py and sha(policy_bytes) in rs
+
+    config = copy.deepcopy(guard['CONFIG'])
+    for source in (successor['source'], owner):
+        current = rows[source]['current']
+        config['modules'][source] = {key: current[key] for key in ('length', 'sha256')}
+    if config != guard['CONFIG']:
+        candidate = guard['_encode_configuration'](config)
+        assert guard['_decode_configuration'](copy.deepcopy(candidate)) == config
+        path = str(guard['_CONFIG_PATH'].relative_to(repo.root))
+        old_config = repo.raw(path)
+        new_config = (json.dumps(candidate, ensure_ascii=False, separators=(',', ':')) + '\n').encode()
+        assert len(new_config) <= ov['PAGE_CAP']
+        repo.write(f'e/{sha(old_config)}', old_config)
+        repo.write(path, new_config)
+        raw = repo.raw(GUARD).decode()
+        raw = replace_once(raw, f'_CONFIG_LENGTH={len(old_config)}', f'_CONFIG_LENGTH={len(new_config)}', GUARD)
+        raw = replace_once(raw, f"_CONFIG_SHA256='{sha(old_config)}'", f"_CONFIG_SHA256='{sha(new_config)}'", GUARD)
+        repo.write(GUARD, raw)
+
+    for path, data in ((PAGE, page), (POLICY, policy_bytes), (OVERLAY_PY, py), (OVERLAY_RS, rs)):
+        repo.write(path, data)
+    return changed, old_py
+
+
 def refresh_overlay(repo, label, admit=()):
     guard = load_guard(repo)
     ov = guard['_OVERLAY_NS']
@@ -351,6 +515,8 @@ def refresh_overlay(repo, label, admit=()):
         'overlay_page.py POLICY pin is already stale; fix it before refreshing'
     policy, wire = ov['parse'](policy_raw), ov['parse'](page_raw)
     assert policy['page']['length'] == len(page_raw) and policy['page']['sha256'] == sha(page_raw)
+    if wire['schema'] in ov['COMPRESSED_SCHEMAS']:
+        return refresh_overlay_v21(repo, guard, before, policy, wire, label, admit)
     assert wire['schema'] in (ov['V11_SCHEMA'], ov['V12_SCHEMA'], ov['V13_SCHEMA']), 'known packed wire'
     wire_schema = wire['schema']
     composed = ov['compose_values'](before, policy, wire)
@@ -672,7 +838,8 @@ def main():
             if not args.check:
                 rebind(repo, GUARD, OVERLAY_PY, old_overlay_py)
                 for holder in GUARD_HOLDERS:
-                    rebind(repo, holder, GUARD, old_guard)
+                    if GUARD.encode() in repo.raw(holder):
+                        rebind(repo, holder, GUARD, old_guard)
         if args.check or len(repo.written) == before:
             break
     else:

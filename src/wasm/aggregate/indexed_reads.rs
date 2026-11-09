@@ -10,17 +10,18 @@ impl Emitter<'_> {
         let pointer = self.plan.expr_pointer(expr)?;
         let layout = variant_layout(self.variant_layouts, &expr.ty)?;
         let none = layout
-            .case(&crate::hir::DeclarationId::new(
-                crate::prelude::OPTION_NONE_ID,
+            .case(&crate::hir::DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::OptionNone,
             ))
             .ok_or_else(|| error("Option<u8> layout has no None case"))?;
-        let some_id = crate::hir::DeclarationId::new(crate::prelude::OPTION_SOME_ID);
+        let some_id =
+            crate::hir::DeclarationId::compiler(crate::hir::CompilerDeclaration::OptionSome);
         let some = layout
             .case(&some_id)
             .ok_or_else(|| error("Option<u8> layout has no Some case"))?;
         let field = some
-            .field(&crate::hir::DeclarationId::new(
-                crate::prelude::OPTION_SOME_VALUE_ID,
+            .field(&crate::hir::DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::OptionSomeValue,
             ))
             .ok_or_else(|| error("Option<u8> layout has no Some payload"))?;
         self.emit_pointer(pointer);

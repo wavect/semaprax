@@ -223,10 +223,10 @@ pub(crate) fn classify<'a>(
     let mut leaves = Vec::with_capacity(plan.slots.len());
     let mut slot_positions = BTreeMap::new();
     let mut leaf_positions = BTreeMap::new();
-    let bytes_lifecycle = DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
-    let vec_lifecycle = DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID);
-    let box_lifecycle = DeclarationId::new(crate::cleanup::BOX_DROP_LIFECYCLE_ID);
-    let iter_lifecycle = DeclarationId::new(crate::cleanup::ITER_DROP_LIFECYCLE_ID);
+    let bytes_lifecycle = DeclarationId::compiler(crate::hir::CompilerDeclaration::BytesDrop);
+    let vec_lifecycle = DeclarationId::compiler(crate::hir::CompilerDeclaration::VecDrop);
+    let box_lifecycle = DeclarationId::compiler(crate::hir::CompilerDeclaration::BoxDrop);
+    let iter_lifecycle = DeclarationId::compiler(crate::hir::CompilerDeclaration::IterDrop);
 
     for slot in &plan.slots {
         let expected_lifecycle = if matches!(slot.ty, ResolvedType::Bytes) {

@@ -166,3 +166,28 @@ unchanged; they supply no credit to current code. All preceding controls remain
 executable. The new unprojected source owner distinguishes the current fallback
 from the whole historical Groups producer. Strict831 saving and exact870 small
 fallback assertions are unchanged and require actual combined execution.
+
+## Authenticated lexical compact receiving (OPT915, source only)
+
+The authenticated lexical comparison now uses the same general compact
+canonical receiving twin as the scalar comparison, for both independently
+constructed roots. Authentication, cold-dead handling, ordered Label/signature
+algebra, weighted multiplicity, work, and scratch clearing retain their existing
+order. This selects no narrower label or exit shape. All byte/argument/result,
+node/vector/Rc and refusal/Drop invoices remain those of the existing compact
+producer; only successful Diagnostic-bearing primitive Result carriers absent
+from that producer are absent here. Its real failure still converts to the same
+six-field Diagnostic at the original failure boundary. No cap, funding, refund,
+profile, certificate or semantic authority changes.
+
+The complete immediate-old authenticated caller remains independently compiled,
+with its complete source image and unchanged helper dependencies bound by the
+owning controls. The general canonical receiver and cold-dead path remain
+unchanged. Tiny, branch and full ordinary/selected lexical callers compare
+semantic outcomes and cumulative work; physical/heap observations include cold
+setup and final Drop. Exact/short/zero work and backing, reserved floor, sticky
+refusal, lexical target/order hostility and all six diagnostic fields are
+additional unexecuted definitions. The enclosing ReplayFactoredCanonical debit
+of 14,399,250 bytes in one historical selected refusing prefix is ranking
+evidence only. No amount of that debit is claimed as savings, and no application
+recovery or runtime qualification is established by this source batch.

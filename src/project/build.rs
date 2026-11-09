@@ -469,3 +469,28 @@ fn project_revision(manifest: &ProjectManifest, bytes: &str, workspace_revision:
 
 #[cfg(test)]
 mod tests;
+
+pub(super) fn build_owned_reporting(
+    manifest: &ProjectManifest,
+    mut sources: Vec<SemanticWorkspaceSource>,
+    report_controls: usize,
+    builder_limit: usize,
+) -> Result<BuiltProject, crate::workspace_report::WorkspaceReportFailure> {
+    let (mut sources, law_sources, law_source_facts) = partition_law_sources(manifest, sources)?;
+    super::std_collections::authenticate_no_export_package(manifest, &sources)?;
+    super::std_mem::authenticate_no_export_package(manifest, &sources)?;
+    super::standard_dependencies::extend_sources(manifest, &mut sources)?;
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    let paths = sources
+        .iter()
+        .map(|source| source.path.clone())
+        .collect::<Vec<_>>();
+    let path_set = semantic_workspace::render_path_set(&paths)?;
+    let preflight = semantic_workspace::reporting::preflight_owned_project(
+        &path_set,
+        sources,
+        report_controls,
+        builder_limit,
+    )?;
+    finish_build(manifest, preflight, None, law_sources, law_source_facts).map_err(Into::into)
+}

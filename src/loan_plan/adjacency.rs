@@ -19,6 +19,13 @@ pub(super) struct Adjacency {
 }
 
 impl Adjacency {
+    pub(super) fn borrowed_parts(&self) -> (&[u16], &[u16], &[u16]) {
+        (
+            &self.successor_offsets,
+            &self.predecessor_offsets,
+            &self.predecessors,
+        )
+    }
     #[cfg(test)]
     pub(super) fn complete_storage_matches_for_test(&self, other: &Self) -> bool {
         self.successor_offsets == other.successor_offsets

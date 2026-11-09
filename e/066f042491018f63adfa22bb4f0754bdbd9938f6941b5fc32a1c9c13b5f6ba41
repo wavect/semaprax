@@ -1,0 +1,454 @@
+//! Independently executable old classifier, immutable identity and full Drop.
+use super::super::{sequence, VALIDATE};
+use super::*;
+use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};
+use crate::cleanup_plan::replay::ReplayBudget;
+use crate::hir::ResolvedProgram;
+use crate::test_allocation_observer::measure;
+
+fn fixture() -> ResolvedProgram {
+    super::super::super::tests::fixture()
+}
+
+fn scope<'s, 'f, 'b>(
+    work: &'s mut SkeletonWork<'f, 'b>,
+) -> Result<Validation<'s, 'f, 'b>, Diagnostic> {
+    work.budget
+        .reserve_bytes(work.function, CALL, "test actual validation scope")?;
+    let mut ledger = ClassifierLedger::empty_receiving();
+    ledger.capture_current_into();
+    Ok(Validation {
+        work,
+        ledger,
+        last: None,
+    })
+}
+fn check(
+    scope: &mut Validation<'_, '_, '_>,
+    observations: &Observations,
+) -> Result<bool, Diagnostic> {
+    pay!(scope, CHECK, "test actual validation caller");
+    scope.check(observations)
+}
+fn old(work: &mut SkeletonWork<'_, '_>, observations: &Observations) -> Result<bool, Diagnostic> {
+    work.budget.reserve_bytes(
+        work.function,
+        VALIDATE,
+        "complete HIR sequence validation caller",
+    )?;
+    super::super::sequence_only(observations, work)
+}
+fn tree(work: &mut SkeletonWork<'_, '_>, depth: usize) -> Result<Observations, Diagnostic> {
+    let mut prefix = None;
+    for _ in 0..depth {
+        work.budget.reserve_bytes(
+            work.function,
+            sequence::SHARE_CONTROLS,
+            "validation fixture sequence node receivers",
+        )?;
+        prefix = Some(sequence::node(
+            work,
+            ObservationDagKind::Seq(prefix, Vec::new()),
+        )?);
+    }
+    Ok(Observations {
+        prefix,
+        items: Vec::new(),
+    })
+}
+fn fields(
+    d: Diagnostic,
+) -> (
+    &'static str,
+    crate::diagnostic::Severity,
+    String,
+    Option<String>,
+    Option<crate::ast::Span>,
+    Option<String>,
+) {
+    (
+        d.code,
+        d.severity,
+        d.message.to_string(),
+        d.path,
+        d.span,
+        d.help,
+    )
+}
+
+#[test]
+fn exact_whole_7082_source_and_complete_old_classifier_remain_executable() {
+    use sha2::{Digest, Sha256};
+    let before = include_str!("emission.before.txt");
+    assert_eq!(before.len(), 20646);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(before.as_bytes()))
+        ),
+        "93d8038785b042f61b5d6bd100b24930d800d0ccc1ae6dfa7b9c6884bb814cc7"
+    );
+    let restored = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(
+        include_str!("../../emission.rs"));
+    let combined = restored.as_str();
+    // Exact additive flat-admission test visibility stage; the whole memo and
+    // every original source/body assertion below retain their original target.
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(combined.as_bytes()))
+        ),
+        "879722873041c2bdd8f390c91e39c14418d6d09550d5ffacd6cef9a7e6102d17"
+    );
+    let visible = "pub(in crate::cleanup_plan::replay) fn with_before<T>";
+    assert_eq!(combined.matches(visible).count(), 1);
+    let memo = combined.replacen(visible, "fn with_before<T>", 1);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(memo.as_bytes()))
+        ),
+        "32620bdd298e9c6a5df9246ec302f75ae65df486076bbc72341884015d9144b8"
+    );
+    let actual = memo.as_str();
+    let start = "pub(in crate::cleanup_plan::replay) fn sequence_only(";
+    let end = "\n#[allow(\n    unused_macros,";
+    let body = |s: &str| {
+        let a = s.find(start).unwrap();
+        let b = a + s[a..].find(end).unwrap();
+        s[a..b].to_owned()
+    };
+    assert_eq!(body(actual), body(before));
+    // The entire old emitter is retained; only the explicit precheck receiver,
+    // its moved iterator invoice, and one child registration may differ.
+    let old_loop = &before[before
+        .find("    for path in prefixes.iter().chain(suffixes.iter()) {")
+        .unwrap()
+        ..before.find("    let mut result = Vec::new();").unwrap()];
+    let new_loop = &actual[actual
+        .find("    work.budget.reserve_bytes(\n        work.function,\n        validation::CALL,")
+        .unwrap()
+        ..actual.find("    let mut result = Vec::new();").unwrap()];
+    let bank_start = before
+        .find("    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()")
+        .unwrap();
+    let bank_end = before[bank_start..]
+        .find("    + 2 * size_of::<ClassifierLedger>()")
+        .unwrap()
+        + bank_start;
+    let expected =
+        before
+            .replacen(old_loop, new_loop, 1)
+            .replacen(&before[bank_start..bank_end], "", 1)
+            + "\nmod validation;\n";
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn repeated_shared_and_equal_disjoint_roots_keep_real_logical_visit_multiplicity() {
+    let program = fixture();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+        let mut work = SkeletonWork::new(&program, function, &mut budget);
+        let a = tree(&mut work, 32).unwrap();
+        let mut b = tree(&mut work, 32).unwrap();
+        work.budget
+            .reserve_bytes(
+                function,
+                sequence::SHARE_CONTROLS,
+                "validation fixture shared Cat receivers",
+            )
+            .unwrap();
+        work.budget
+            .reserve_array::<Rc<ObservationDag>>(
+                function,
+                2,
+                "validation fixture shared Cat backing",
+            )
+            .unwrap();
+        let shared = Observations {
+            prefix: Some(
+                sequence::node(
+                    &mut work,
+                    ObservationDagKind::Cat(vec![
+                        a.prefix.as_ref().unwrap().clone(),
+                        a.prefix.as_ref().unwrap().clone(),
+                    ]),
+                )
+                .unwrap(),
+            ),
+            items: Vec::new(),
+        };
+        let before = work.budget.remaining;
+        assert!(old(&mut work, &shared).unwrap());
+        let visits = before - work.budget.remaining;
+        assert_eq!(visits, 65); // duplicate shared edges are distinct visits
+        COUNTS.with(|counts| counts.set((0, 0)));
+        let mut scope = scope(&mut work).unwrap();
+        assert!(check(&mut scope, &shared).unwrap());
+        assert_eq!(scope.last.as_ref().unwrap().visits, visits);
+        for _ in 0..8 {
+            let before = scope.work.budget.remaining;
+            assert!(check(&mut scope, &shared).unwrap());
+            assert_eq!(before - scope.work.budget.remaining, visits + 1);
+            assert!(scope.last.is_some());
+        }
+        assert!(check(&mut scope, &a).unwrap());
+        assert!(check(&mut scope, &b).unwrap());
+        assert!(!Rc::ptr_eq(
+            a.prefix.as_ref().unwrap(),
+            b.prefix.as_ref().unwrap()
+        ));
+        assert!(Rc::ptr_eq(
+            &scope.last.as_ref().unwrap().root,
+            b.prefix.as_ref().unwrap()
+        ));
+        assert!(check(&mut scope, &Observations::default()).unwrap());
+        assert!(Rc::ptr_eq(
+            &scope.last.as_ref().unwrap().root,
+            b.prefix.as_ref().unwrap()
+        ));
+        // A fixed slot deliberately misses nonadjacent equal-content roots.
+        for next in [&a, &b, &a, &b] {
+            let before = scope.work.budget.remaining;
+            assert!(check(&mut scope, next).unwrap());
+            assert_eq!(before - scope.work.budget.remaining, 33);
+        }
+        assert_eq!(COUNTS.with(std::cell::Cell::get), (7, 8));
+        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_none());
+        drop(scope);
+        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());
+    });
+}
+
+#[test]
+fn late_alt_and_every_original_node_work_cut_cannot_publish_a_success_entry() {
+    let program = fixture();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        let alt = Rc::new(ObservationDag::legacy(ObservationDagKind::Alt(Vec::new())));
+        let root = Rc::new(ObservationDag::legacy(ObservationDagKind::Seq(
+            Some(alt),
+            Vec::new(),
+        )));
+        let observations = Observations {
+            prefix: Some(root),
+            items: Vec::new(),
+        };
+        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+        let mut work = SkeletonWork::new(&program, function, &mut budget);
+        assert!(!old(&mut work, &observations).unwrap());
+        let mut scope = scope(&mut work).unwrap();
+        assert!(!check(&mut scope, &observations).unwrap());
+        assert!(scope.last.is_none());
+    });
+    for cut in 0..=9 {
+        let attempt = |prior| {
+            with_limit_usage_refusal(usize::MAX, || {
+                let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                let mut work = SkeletonWork::new(&program, function, &mut budget);
+                let observations = tree(&mut work, 9).unwrap();
+                work.budget.remaining = cut;
+                if prior {
+                    old(&mut work, &observations)
+                } else {
+                    let mut scope = scope(&mut work).unwrap();
+                    let result = check(&mut scope, &observations);
+                    assert_eq!(scope.last.is_some(), result.is_ok());
+                    result
+                }
+                .map_err(fields)
+            })
+            .0
+        };
+        let prior = attempt(true);
+        let current = attempt(false);
+        assert_eq!(prior.is_ok(), cut == 9);
+        assert_eq!(prior, current);
+        // The hit has one new real lookup work event. Give that event its
+        // distinct unit, then compare EVERY original node frontier without
+        // claiming numerical parity for the enlarged total free-work stream.
+        let hit = with_limit_usage_refusal(usize::MAX, || {
+            let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+            let mut work = SkeletonWork::new(&program, function, &mut budget);
+            let observations = tree(&mut work, 9).unwrap();
+            let mut scope = scope(&mut work).unwrap();
+            assert!(check(&mut scope, &observations).unwrap());
+            scope.work.budget.remaining = cut + 1;
+            let result = check(&mut scope, &observations).map_err(fields);
+            assert!(scope.last.is_some());
+            result
+        })
+        .0;
+        assert_eq!(prior, hit);
+    }
+}
+
+#[test]
+fn foreign_scope_keeps_original_owner_sticky_without_charging_foreign_lender() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let ((), owner_refused, _, owner_first) = with_limit_usage_refusal(usize::MAX, || {
+        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+        let mut work = SkeletonWork::new(&program, function, &mut budget);
+        let observations = tree(&mut work, 3).unwrap();
+        let mut scope = scope(&mut work).unwrap();
+        assert!(check(&mut scope, &observations).unwrap());
+        let before = scope.work.budget.remaining;
+        let (result, refused, paid, first) =
+            with_limit_usage_refusal(usize::MAX, || check(&mut scope, &observations));
+        assert_eq!(result.unwrap_err().code, "SPX-H006");
+        assert!(!refused && first.is_none());
+        assert_eq!(paid, 0);
+        assert_eq!(scope.work.budget.remaining, before);
+        assert!(scope.last.is_some());
+        // current() poisons the held owner on a foreign ACTIVE scope. Merely
+        // restoring that scope cannot revive credit or reuse its certificate.
+        assert_eq!(
+            check(&mut scope, &observations).unwrap_err().code,
+            "SPX-H006"
+        );
+        assert_eq!(scope.work.budget.remaining, before);
+        assert!(Rc::ptr_eq(
+            &scope.last.as_ref().unwrap().root,
+            observations.prefix.as_ref().unwrap()
+        ));
+        assert!(!crate::bounded_output::reserve_active_required(0));
+    });
+    assert!(owner_refused && owner_first.is_some());
+}
+
+#[test]
+fn cold_repeated_and_disjoint_actual_payers_cover_exact_short_floor_and_full_drop() {
+    let program = fixture();
+    let function = &program.functions[0];
+    for (depth, count, distinct) in [(0, 1, false), (1, 1, false), (32, 16, false), (32, 8, true)] {
+        let run = |limit, floor| {
+            with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    assert!(set_active_floor(floor));
+                    let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                    let result = (|| {
+                        let mut work =
+                            SkeletonWork::with_index(&program, function, &mut budget, None)?;
+                        let observations = tree(&mut work, depth)?;
+                        let mut scope = scope(&mut work)?;
+                        for _ in 0..count {
+                            if distinct {
+                                let next = tree(scope.work, depth)?;
+                                assert!(check(&mut scope, &next)?);
+                            } else {
+                                assert!(check(&mut scope, &observations)?);
+                            }
+                        }
+                        Ok::<(), Diagnostic>(())
+                    })();
+                    if result.is_err() {
+                        assert!(budget
+                            .reserve_bytes(function, 0, "validation sticky zero")
+                            .is_err());
+                    }
+                    drop(budget);
+                    result.map_err(|d| {
+                        let code = d.code;
+                        drop(d);
+                        code
+                    })
+                })
+            })
+        };
+        let ((result, heap), refused, paid, _) = run(usize::MAX, 0);
+        result.unwrap();
+        assert!(!refused && !heap.invalid && heap.live == 0);
+        assert_eq!(heap.allocated, heap.freed);
+        assert!(heap.allocated <= paid);
+        for (limit, floor, success) in [
+            (paid, 0, true),
+            (paid - 1, 0, false),
+            (0, 0, false),
+            (paid, paid, false),
+        ] {
+            let ((result, heap), refused, _, first) = run(limit, floor);
+            assert_eq!(result.is_ok(), success);
+            assert!(!heap.invalid && heap.live == 0);
+            assert_eq!(heap.allocated, heap.freed);
+            if !success {
+                assert!(refused && first.is_some());
+                assert_eq!(result.unwrap_err(), "SPX-H006");
+            }
+        }
+    }
+}
+
+#[test]
+fn whole_classifier_measurements_keep_cold_and_repeated_costs_separate() {
+    let program = fixture();
+    let function = &program.functions[0];
+    for (depth, count, alternating) in [
+        (0, 1, false),
+        (1, 1, false),
+        (32, 1, false),
+        (32, 64, false),
+        (32, 16, true),
+    ] {
+        let mut old_paid = 0usize;
+        for prior in [true, false] {
+            let ((result, heap), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                    let result = (|| {
+                        let mut work =
+                            SkeletonWork::with_index(&program, function, &mut budget, None)?;
+                        let observations = tree(&mut work, depth)?;
+                        let other = if alternating {
+                            Some(tree(&mut work, depth)?)
+                        } else {
+                            None
+                        };
+                        COUNTS.with(|counts| counts.set((0, 0)));
+                        if prior {
+                            for index in 0..count {
+                                let next = if index % 2 == 1 {
+                                    other.as_ref().unwrap_or(&observations)
+                                } else {
+                                    &observations
+                                };
+                                assert!(old(&mut work, next)?);
+                            }
+                        } else {
+                            let mut scope = scope(&mut work)?;
+                            for index in 0..count {
+                                let next = if index % 2 == 1 {
+                                    other.as_ref().unwrap_or(&observations)
+                                } else {
+                                    &observations
+                                };
+                                assert!(check(&mut scope, next)?);
+                            }
+                        }
+                        Ok::<(), Diagnostic>(())
+                    })();
+                    drop(budget);
+                    result
+                })
+            });
+            result.unwrap();
+            assert!(!refused && !heap.invalid && heap.live == 0);
+            assert_eq!(heap.allocated, heap.freed);
+            assert!(heap.allocated <= paid);
+            let (cold, hits) = COUNTS.with(std::cell::Cell::get);
+            if prior || depth == 0 {
+                assert_eq!((cold, hits), (0, 0));
+            } else if alternating {
+                assert_eq!((cold, hits), (count, 0));
+            } else {
+                assert_eq!((cold, hits), (1, count - 1));
+            }
+            if prior {
+                old_paid = paid;
+            }
+            eprintln!("sequence-validation depth={depth} count={count} alternating={alternating} old={prior} cold={cold} hits={hits} paid={paid} old_minus_current={} allocated={} highwater={}", old_paid as i128 - paid as i128, heap.allocated, heap.highwater);
+        }
+    }
+}

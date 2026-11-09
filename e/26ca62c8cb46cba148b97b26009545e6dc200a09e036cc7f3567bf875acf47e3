@@ -1,0 +1,69 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "current_generator_source_sha256": "23ea5c9dcdf7d2fdbc33f1f2fa2a830f18e5c7834a867e5da37641006d92b33d",
+  "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912",
+  "domains": {
+    "hir": {
+      "original_roots": 1046,
+      "current_boundary_members": 1359,
+      "current_boundary_production": 472,
+      "outside_production_still_fully_authenticated": 355,
+      "full_role_production": 827,
+      "full_role_test_only": 1428,
+      "full_raw_sha256": "e64591dfb5072488e6f93f18baf0c351583afce320313e2b6a19036c6c49a782",
+      "boundary_production_sha256": "05e7b274e31be95a9a51457a4f48c4a0fab7abec7c358e05c7e1a359a533b9da",
+      "exact_original_forbidden_tokens": [
+        "struct Resolver",
+        "impl Resolver",
+        "fn scoped_identity(",
+        "fn materialize_function_template",
+        "fn specialize_source_function",
+        "pub fn resolve(",
+        "crate::cleanup::build_inventory",
+        "crate::cleanup_plan::build_plan",
+        "std::fs",
+        "std::process",
+        "platform::"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    },
+    "projection": {
+      "original_roots": 179,
+      "current_boundary_members": 260,
+      "current_boundary_production": 95,
+      "outside_production_still_fully_authenticated": 843,
+      "full_role_production": 938,
+      "full_role_test_only": 1541,
+      "full_raw_sha256": "4e8985c0ef72eea062efdc242b2abf016d16e462d05641bc37115b2260e92927",
+      "boundary_production_sha256": "b0f4724d9dcedaef0216e29614316feebceaa8214a2d45d7108276246efdb0a7",
+      "exact_original_forbidden_tokens": [
+        "use super::*;",
+        "workspace::",
+        "std::fs",
+        "std::process",
+        "snapshot(",
+        "build_authenticated",
+        "render_graph_json",
+        "write_file",
+        "create_dir",
+        "remove_file",
+        "ACTIVE"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    }
+  },
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS"
+}

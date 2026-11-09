@@ -1,0 +1,357 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 50,
+  "expected_tests": 153,
+  "commands": [
+    {
+      "owner": "V10 codec",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v10::tests::",
+      "exact": false
+    },
+    {
+      "owner": "overlay compiled inverse",
+      "expected_tests": 2,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::",
+      "exact": false
+    },
+    {
+      "owner": "packet-local invocation context",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::packet_lookup::tests::",
+      "exact": false
+    },
+    {
+      "owner": "combined-side invocation context",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::packet_lookup::combined_side_invocation_checks_current_and_complete_prior_before_returning",
+      "exact": true
+    },
+    {
+      "owner": "MAIN99 complete old CI body",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main99f_inputs::legacy_ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source",
+      "exact": true
+    },
+    {
+      "owner": "loaded-segment composition",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests::",
+      "exact": false
+    },
+    {
+      "owner": "new paired-segment composition",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::pair_scope_tests::paired_segments::",
+      "exact": false
+    },
+    {
+      "owner": "prepared observer frontiers",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::frontiers::prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free",
+      "exact": true
+    },
+    {
+      "owner": "observer initialization",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::fresh_thread_trace_is_ready_without_prepare_and_keeps_exact_capacity",
+      "exact": true
+    },
+    {
+      "owner": "fixed HIR operation identities",
+      "expected_tests": 5,
+      "binary": "lib",
+      "filter": "hir::ids::fixed_operation_tests::",
+      "exact": false
+    },
+    {
+      "owner": "HIR lowering identities",
+      "expected_tests": 6,
+      "binary": "lib",
+      "filter": "hir::ids::lowering_identity_tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT904 physical measurement",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::real_complete_frame_layout_and_every_capacity_request_are_reported_without_248_assumption",
+      "exact": true
+    },
+    {
+      "owner": "OPT904 complete public cold sequential/nested caller measurement",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::complete_public_cold_sequential_and_nested_match_callers_report_actual_frame_and_replacement_bills",
+      "exact": true
+    },
+    {
+      "owner": "Main44 carrier predecessor custody",
+      "expected_tests": 2,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::compact_stage::source_custody_main44::",
+      "exact": false
+    },
+    {
+      "owner": "HIR/source inventory integration",
+      "expected_tests": 1,
+      "binary": "hir_module_boundaries",
+      "filter": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "exact": true
+    },
+    {
+      "owner": "Actual V10 page admission and unchanged source-boundary controls",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_literal_policy_replays_the_complete_519_metadata_inverse",
+      "exact": true
+    },
+    {
+      "owner": "Actual V10 page admission and unchanged source-boundary controls",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_current_compiled_and_archive_channels_are_required_before_history",
+      "exact": true
+    },
+    {
+      "owner": "Actual V10 page admission and unchanged source-boundary controls",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_exact_bound_compiled_physical_and_json_hostiles_are_independent",
+      "exact": true
+    },
+    {
+      "owner": "Actual V10 page admission and unchanged source-boundary controls",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_warm_data_never_skips_fresh_regular_read_eof_utf8_or_digest_refusal",
+      "exact": true
+    },
+    {
+      "owner": "Actual V10 page admission and unchanged source-boundary controls",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_complete_old_load_and_every_live_check_remain_exact",
+      "exact": true
+    },
+    {
+      "owner": "OPT785 exact held selected function identities",
+      "expected_tests": 4,
+      "binary": "lib",
+      "filter": "hir::selected_function::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT785 downstream ordinary cleanup frontier",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::validate::frontier_tests::deferred_frontier_preserves_full_ordinary_lexical_generic_and_helper_plans",
+      "exact": true
+    },
+    {
+      "owner": "OPT785 downstream owning iterator continuation",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::build::lexical_temporary::tests::owning_iterator_continue_settles_completed_string_read_without_consuming_remainder",
+      "exact": true
+    },
+    {
+      "owner": "OPT785 custom lifecycle refusal",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "codegen::native_cleanup::tests::forged_slot_lifecycle_and_transfer_type_mismatches_are_rejected",
+      "exact": true
+    },
+    {
+      "owner": "OPT898 authenticated absent call carriers",
+      "expected_tests": 8,
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT898 authenticated absent call carriers",
+      "expected_tests": 7,
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::directory::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT898 authenticated absent call carriers",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::inverse::complete_forecaster_inverse_reconstructs_entire_pre898_algorithm",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hir_representations",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_every_work_cut_retains_all_six_fields_swaps_and_malformed_preparation",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_every_new_packet_has_exact_short_zero_floor_sticky_and_drop_controls",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_refused_prefix_distinguishes_admitted_first_banks_from_completed_work",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_keep_whole_d458_owner_macros_and_independent_final_hir_loops",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_real_oracle_missing_foreign_restored_scope_keeps_ambient_unspent",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_both_complete_generations_unwind_with_full_drop_and_reached_prefix",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_match",
+      "exact": true
+    },
+    {
+      "owner": "OPT900 certified fresh shared PLAN heads",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_all_work_cuts",
+      "exact": true
+    },
+    {
+      "owner": "shared child dispatcher and refusal prefixes",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::ordinary_scan::tests::borrowed_child_append_is_exact_on_the_complete_original_corpus",
+      "exact": true
+    },
+    {
+      "owner": "shared visitor production ordering",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::function_value::paid_walk::tests::paid_production_walk_keeps_complete_old_order_roots_templates_and_presence",
+      "exact": true
+    },
+    {
+      "owner": "shared visitor budget and full Drop",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::function_value::paid_walk::tests::paid_production_walk_spill_exact_short_sticky_and_drop_are_literal",
+      "exact": true
+    },
+    {
+      "owner": "complete saved walk source reconstruction",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::function_value::paid_walk::tests::complete_old_walk_presence_and_uses_sources_remain_exact",
+      "exact": true
+    },
+    {
+      "owner": "complete prior continuation receiver and hostile/refusal/Drop controls",
+      "expected_tests": 7,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::",
+      "exact": false
+    },
+    {
+      "owner": "V11 complete V10 inverse and hostile digest/slot controls",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v11::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "expected_tests": 10,
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::",
+      "exact": false
+    },
+    {
+      "owner": "OPT912 publication witness unwind order",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop",
+      "exact": true
+    },
+    {
+      "owner": "OPT903 early HIR scratch release with complete independent constructor and Drop",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::early_release::",
+      "exact": false
+    },
+    {
+      "owner": "OPT913 authenticated funded inert move roots and complete predecessor controls",
+      "expected_tests": 9,
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 compact incoming frontiers and complete immediate-old caller controls",
+      "expected_tests": 12,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::frontier_tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 complete selected replay owner regressions",
+      "expected_tests": 19,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 boxed state ownership and receiving controls",
+      "expected_tests": 11,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::boxed_states::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 complete path replay receiver controls",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::",
+      "exact": false
+    }
+  ]
+}

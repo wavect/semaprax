@@ -369,6 +369,17 @@ class Session:
             raise Refusal('compiler output exceeds trusted observation bound')
 
     def execute(self, argv, cwd, timeout=60):
+        return self._execute_command(argv, cwd, timeout, None)
+
+    def execute_owned(self, channel, argv, cwd, timeout=60):
+        from compiler_executor_channel import CompletionChannel
+        if (type(channel) is not CompletionChannel or channel._owner is not self
+                or type(argv) is not tuple or type(cwd) is not str
+                or type(timeout) not in (int, float) or not 0 < timeout <= 60):
+            raise Refusal('compiler completion channel belongs to another session')
+        return self._execute_command(argv, cwd, timeout, channel)
+
+    def _execute_command(self, argv, cwd, timeout, channel):
         require_authority(self.authority)
         self.authority.authorize_cwd(cwd)
         if self.command is not None or not 0 < timeout <= 60:
@@ -383,16 +394,25 @@ class Session:
             'sandboxPolicy': fixed_policy(self.authority),
             'processId': process_id, 'tty': False, 'streamStdin': False,
             'streamStdoutStderr': True, 'outputBytesCap': 513, 'timeoutMs': int(timeout * 1000)}
+        ticket = None
         try:
             request_id = self.sequence + 1
+            if channel is not None:
+                ticket = channel._begin(self, argv, cwd, request_id, process_id)
             result = self.protocol.validate('command_result', self.request('command/exec', params, timeout + 5))
             if result['stdout'] != '' or result['stderr'] != '' or type(result['exitCode']) is not int:
                 raise Refusal('streamed runtime completion differs')
-            return {'request_id': request_id, 'process_id': process_id, 'exit_code': result['exitCode'],
+            observed = {'request_id': request_id, 'process_id': process_id, 'exit_code': result['exitCode'],
                 'stdout': bytes(self.command['stdout']), 'stderr': bytes(self.command['stderr']),
                 'argv': tuple(argv), 'cwd': cwd,
                 'runtime_contract_sha256': self.authority.contract_sha256}
+            if channel is None:
+                return observed
+            self.command['completion'] = observed
+            return channel._complete(self, ticket)
         except BaseException:
+            if channel is not None and ticket is not None:
+                channel._abort(self, ticket)
             # A refused observation cannot become a success by accepting proxy
             # completion or retrying. Whole private runtime is terminated below.
             self.close()

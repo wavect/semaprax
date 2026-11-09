@@ -1,0 +1,28 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 3,
+  "expected_tests": 5,
+  "commands": [
+    {
+      "owner": "OPT919 exact request settlement descendant and unwind census controls",
+      "binary": "lib",
+      "filter": "bounded_output::exclusive_debits::path_census::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT919 stale child and replaced ledger invalidate telemetry only",
+      "binary": "lib",
+      "filter": "bounded_output::exclusive_debits::path_census::owner_tests::stale_child_and_replaced_ledger_serial_invalidate_only_telemetry",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT919 actual ordinary driver source events and terminal arity",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::frontier_tests::actual_ordinary_driver_reports_bound_body_frontier_and_complete_terminal_arity",
+      "exact": true,
+      "expected_tests": 1
+    }
+  ]
+}

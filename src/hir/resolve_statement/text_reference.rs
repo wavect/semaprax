@@ -260,9 +260,9 @@ pub(in crate::hir) fn assert_canonical_iterator_reference_source() {
         .unwrap()
         .trim();
     assert_eq!(current_reference.matches("{}.arg.0").count(), 1);
-    // Renaming the longer canonical helper makes rustfmt wrap this one call.
-    // Admit exactly that layout repair before comparing the entire old body.
-    assert_eq!(current_reference.matches("    let element =\n        canonical_iterator_element(resolver, function, &call.type_arguments[0], call.span)?;").count(), 1);
+    const WRAPPED_ELEMENT_CALL: &str = "    let element =\n        canonical_iterator_element(resolver, function, &call.type_arguments[0], call.span)?;";
+    const ORIGINAL_ELEMENT_CALL: &str = "    let element = resolve_element(resolver, function, &call.type_arguments[0], call.span)?;";
+    assert_eq!(current_reference.matches(WRAPPED_ELEMENT_CALL).count(), 1);
     assert_eq!(
         current_reference
             .replacen(
@@ -270,7 +270,7 @@ pub(in crate::hir) fn assert_canonical_iterator_reference_source() {
                 "pub(super) fn reference",
                 1
             )
-            .replace("canonical_iterator_element(", "resolve_element(")
+            .replacen(WRAPPED_ELEMENT_CALL, ORIGINAL_ELEMENT_CALL, 1)
             .replace("canonical_iterator_finish(", "finish(")
             .replacen(
                 "    let element =\n        resolve_element(resolver, function, &call.type_arguments[0], call.span)?;",

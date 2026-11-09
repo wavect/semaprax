@@ -471,6 +471,10 @@ fn held_4a6eb(path: &Path, length: usize, expected: &str) -> Result<String, &'st
     if length > SOURCE_CAP {
         return Err("bound");
     }
+    #[cfg(test)]
+    if let Some(result) = historical_before_data::invocation_probe::read(path, length, expected) {
+        return result;
+    }
     let before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
     if before.file_type().is_symlink() || !before.is_file() {
         return Err("nonregular");
@@ -1086,7 +1090,6 @@ pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> Stri
 fn value_direct_before_nested_context(source: &str, expected: &str, supplied: &str) -> String {
     overlay_v2::value_direct(source, expected, supplied)
 }
-
 fn value_direct_4a6eb(source: &str, expected: &str, supplied: &str) -> String {
     let current = packet();
     if current["rows"]
@@ -1211,7 +1214,7 @@ mod clippy_stage {
         }
         packet
     }
-    fn pin(pin: &serde_json::Value) -> String {
+    pub(super) fn pin(pin: &serde_json::Value) -> String {
         held_4a6eb(
             &Path::new(env!("CARGO_MANIFEST_DIR")).join(pin["archive"].as_str().unwrap()),
             pin["length"].as_u64().unwrap() as usize,
@@ -1239,7 +1242,7 @@ mod clippy_stage {
         assert_eq!(raw, pin(expected), "complete successor archive");
         raw
     }
-    fn compiled(source: &str) -> Option<&'static str> {
+    pub(super) fn compiled(source: &str) -> Option<&'static str> {
         match source {
             "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs")),
             "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs")),
@@ -1456,7 +1459,6 @@ _=>None,
         Some(Err("foreign successor tuple"))
     }
 }
-
 #[test]
 fn complete_current_compiled_sources_precede_strict_historical_stage_acquisition() {
     let packet = packet();
@@ -1492,7 +1494,6 @@ fn complete_current_compiled_sources_precede_strict_historical_stage_acquisition
         assert!(clippy_stage::requested(source, &"0".repeat(64), compiled).is_none());
     }
 }
-
 #[test]
 fn registered_digest_reads_keep_current_history_and_each_original_file_bound() {
     packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();

@@ -247,6 +247,7 @@ pub(super) fn expression_place(
     }
 }
 
+#[cfg(test)]
 pub(super) fn clone_vec<T: Clone>(
     values: &[T],
     payer: Option<&CfgReservation>,

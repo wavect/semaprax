@@ -907,7 +907,9 @@ impl<'s, 'a> Walk<'s, 'a> {
             crate::byte_ops::GET_NAME => (
                 crate::byte_ops::GET_ID,
                 T::Nominal {
-                    declaration: crate::hir::DeclarationId::new(crate::prelude::OPTION_ID),
+                    declaration: crate::hir::DeclarationId::compiler(
+                        crate::hir::CompilerDeclaration::Option,
+                    ),
                     arguments: vec![T::U8],
                 },
             ),

@@ -27,11 +27,26 @@ JOIN='macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces
 def inventory_transport(s):
  assert s.count(JOIN)==1
  return s.replace(JOIN,'',1).replace('audit_source_join!', 'concat!')
-inv=inventory_transport((R/'tests/workspace/semantic_graph/source_inventory.rs').read_text());im=mask(inv);macros={}
-for t in re.finditer(r'macro_rules!\s+(\w+)\s*\{',im):
- end=close(im,t.end()-1,'{','}');body=inv[t.end():end-1];bm=mask(body);arms={}
- for v in re.finditer(r'\(([^)]*)\)\s*=>\s*\{',bm):arms[v[1].strip()]=body[v.end():close(bm,v.end()-1,'{','}')-1]
- macros[t[1]]=arms
+def inventory_macros(inv):
+ im=mask(inv);macros={}
+ for t in re.finditer(r'macro_rules!\s+(\w+)\s*\{',im):
+  end=close(im,t.end()-1,'{','}');body=inv[t.end():end-1];bm=mask(body);arms={}
+  for v in re.finditer(r'\(([^)]*)\)\s*=>\s*\{',bm):
+   arms[v[1].strip()]=body[v.end():close(bm,v.end()-1,'{','}')-1]
+  macros[t[1]]=arms
+ return macros
+inv=inventory_transport((R/'tests/workspace/semantic_graph/source_inventory.rs').read_text())
+hir=inventory_transport((R/'tests/hir_module_boundaries.rs').read_text())
+macros=inventory_macros(inv)
+for name,arms in inventory_macros(hir).items():
+ assert name not in macros,('ambiguous inventory macro',name)
+ macros[name]=arms
+table_paths={}
+for argument,body in macros['current_table_file'].items():
+ key=re.fullmatch(r'(p[0-9]+) \$tail:literal',argument)[1]
+ pieces=re.fullmatch(r'\s*include_str!\(concat!\(("(?:[^"\\]|\\.)*"), ("(?:[^"\\]|\\.)*"), \$tail\)\)\s*',body)
+ assert pieces,key
+ table_paths[key]=json.loads(pieces[1])+json.loads(pieces[2])
 class Expr:
  def __init__(self,s,base):self.s=s;self.i=0;self.base=base
  def skip(self):
@@ -48,7 +63,22 @@ class Expr:
   if self.s[self.i]=='"':return [{'literal':self.string()}]
   m=re.match(r'(\w+)\s*!\s*\(',self.s[self.i:]);assert m,self.s[self.i:self.i+100];self.i+=len(m[0]);n=m[1]
   if n=='include_str':
-   path=self.string();self.eat(')');return [{'path':str((self.base/path).resolve().relative_to(R))}]
+   self.skip()
+   if self.s.startswith('concat!',self.i):
+    chunks=self.expr();assert all('literal'in chunk for chunk in chunks)
+    path=''.join(chunk['literal'] for chunk in chunks)
+   else:path=self.string()
+   self.eat(')');return [{'path':str((self.base/path).resolve().relative_to(R))}]
+  if n in ('current_table_file','current_table_rows'):
+   result=[]
+   while True:
+    self.skip();token=re.match(r'p[0-9]+',self.s[self.i:]);assert token
+    self.i+=len(token[0]);prefix=table_paths[token[0]];path=prefix+self.string()
+    result.append({'path':str((self.base/path).resolve().relative_to(R))})
+    self.skip()
+    if self.s[self.i]==')':self.i+=1;return result
+    assert n=='current_table_rows'
+    self.eat(',')
   if n=='concat':
    out=[]
    while True:
@@ -57,7 +87,7 @@ class Expr:
     out+=self.expr();self.skip()
     if self.s[self.i]==',':self.i+=1
   assert n in macros,n;end=self.s.index(')',self.i);key=self.s[self.i:end].strip();self.i=end+1;return Expr(macros[n][key],self.base).expr()
-hir=inventory_transport((R/'tests/hir_module_boundaries.rs').read_text());at=hir.index('concat!(',hir.index('let validation_raw'));hir_chunks=Expr(hir[at:],R/'tests').expr()
+at=hir.index('concat!(',hir.index('let validation_raw'));hir_chunks=Expr(hir[at:],R/'tests').expr()
 projection_parts=[('semantic_graph_private_layout_owned_source_inventory',''),('semantic_graph_projection_child_source_inventory','type_rewrite'),('semantic_graph_projection_child_source_inventory','import_stub'),('semantic_graph_projection_child_source_inventory','uncached_peak'),('semantic_graph_projection_root_source_inventory','')]+[('semantic_graph_projection_child_source_inventory',x) for x in ['local_identity','call_identity','call_sites','cost','declaration_cost','identity_slots','statement_segment','defaults']]
 projection_chunks=[]
 for i,(n,k) in enumerate(projection_parts):

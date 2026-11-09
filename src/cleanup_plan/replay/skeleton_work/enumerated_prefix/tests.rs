@@ -470,7 +470,9 @@ fn whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_
                     - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<
                         true,
                     >());
-            assert_eq!(old_paid, new_paid + compact);
+            let fork_selection = ordinary_plan_history::completed_fork::emission::DISPATCH
+                + ordinary_plan_history::completed_fork::emission::COLD_FLAT_PROBE;
+            assert_eq!(old_paid + fork_selection, new_paid + compact);
             assert_eq!(old_heap.allocated, new_heap.allocated);
         } else {
             assert!(new_heap.allocated < old_heap.allocated);
@@ -934,7 +936,7 @@ fn comparison_report_current_receiver<'hir>(
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     if function.cleanup_plan.lexical_control.is_none()
-        && factored::validate_with_index_storage(
+        && factored::validate_with_deferred_index_storage(
             program,
             function,
             budget,
@@ -948,6 +950,18 @@ fn comparison_report_current_receiver<'hir>(
     let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    let mut finalized = true;
+    comparison_report_begin(budget, true);
+    let shipping_result = (|| {
+        ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);
+        finalized = false;
+        Ok(())
+    })();
+    if finalized {
+        comparison_report_end(budget);
+        return shipping_result;
+    }
+    COMPARISON_BOUNDARY_REPORT.with(|slot| *slot.borrow_mut() = None);
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     // Match the existing received reference, with no new payer/tag/flag carrier.

@@ -184,15 +184,27 @@ fn complete_original_receiver_and_exact_current_source_inverse_stay_bound() {
         "/docs/evidence/boxed-path-states-v1/catalog-receipt.json"
     )))
     .unwrap();
-    // Bind the live bundle before acquiring the complete frozen catalog input.
-    // The original digest substitutions and whole predecessor assertion follow.
-    let mut bundle = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+    let raw_bundle = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/AGENT-SKILL-BUNDLE-V1.json"
+    ));
+    let mut bundle =
+        crate::source_reflows_merge::boxed849_input("docs/AGENT-SKILL-BUNDLE-V1.json", raw_bundle);
+    // Retain the incoming main's complete source-bound catalog acquisition too.
+    let incoming_bundle = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
         "docs/AGENT-SKILL-BUNDLE-V1.json",
         "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/AGENT-SKILL-BUNDLE-V1.json"
-        )),
+        raw_bundle,
+    );
+    assert_eq!(incoming_bundle, bundle);
+    let mut drifted = raw_bundle.to_owned();
+    drifted.push(' ');
+    assert!(
+        std::panic::catch_unwind(|| crate::source_reflows_merge::boxed849_input(
+            "docs/AGENT-SKILL-BUNDLE-V1.json",
+            &drifted
+        ))
+        .is_err()
     );
     for (new, old) in [
         ("new_catalog", "old_catalog"),

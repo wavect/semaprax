@@ -1,6 +1,8 @@
 //! Authored borrowed-row loops exercise existing read carriers on all engines.
 use super::{run_wasm, DECLARATION, SEQUENCE};
 use std::sync::atomic::Ordering;
+#[path = "record_traversal/row_loan_boundaries.rs"]
+mod row_loan_boundaries;
 #[path = "selected_record_traversal.rs"]
 mod selected_record_traversal;
 

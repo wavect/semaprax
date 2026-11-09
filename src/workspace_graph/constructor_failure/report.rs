@@ -87,6 +87,7 @@ impl Owner {
     pub(super) fn control_bytes(extra: usize) -> Option<usize> {
         [
             size_of::<Self>(),
+            crate::workspace_report::site_controls(),
             size_of::<Result<Self, Setup>>(),
             size_of::<Option<Self>>(),
             size_of::<Published>(),

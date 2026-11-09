@@ -1,0 +1,38 @@
+{
+  "git_before": "21574297e02afb6f286901171f6c179bf2ccea0a",
+  "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+  "current": {
+    "length": 12727,
+    "sha256": "970c11a1df79cb10ed52ed0f0b5e41aa7d94b0f1582ebc52c0b573ef953dcf1b"
+  },
+  "target": {
+    "length": 12395,
+    "sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
+  },
+  "edits": [
+    {
+      "start": 12072,
+      "end": 12086,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 12133,
+      "end": 12147,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 12316,
+      "end": 12330,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 12398,
+      "end": 12727,
+      "after": "\n#[path = \"call_carriers_joint.rs\"]\nmod joint;\npub(super) use joint::count as count_joint;\n\npub(super) use joint::modular_census::count as count_modular;\n\n#[cfg(any())]\npub(super) use joint::modular_census::linear_loan as modular_linear_loan;\n#[cfg(any())]\npub(super) use directory::indexed_modular_loan as modular_indexed_loan;\n",
+      "before": ""
+    }
+  ]
+}

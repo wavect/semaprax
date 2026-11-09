@@ -26,7 +26,16 @@ pub(crate) enum CompilerDeclaration {
     OptionNone,
     OptionSome,
     OptionSomeValue,
+    Result,
+    ResultOk,
+    ResultOkValue,
+    ResultErr,
+    ResultErrError,
     List,
+    ListNil,
+    ListCons,
+    ListHead,
+    ListTail,
     ListStep,
     Iter,
     IterStep,
@@ -48,6 +57,8 @@ pub(crate) enum CompilerDeclaration {
     OnceMixedDrop,
     OncePairDrop,
     BytesDrop,
+    BoxDrop,
+    IterDrop,
     StringTake,
     StringDrop,
     StringMapDrop,
@@ -81,7 +92,16 @@ impl CompilerDeclaration {
             Self::OptionNone => crate::prelude::OPTION_NONE_ID,
             Self::OptionSome => crate::prelude::OPTION_SOME_ID,
             Self::OptionSomeValue => crate::prelude::OPTION_SOME_VALUE_ID,
+            Self::Result => crate::prelude::RESULT_ID,
+            Self::ResultOk => crate::prelude::RESULT_OK_ID,
+            Self::ResultOkValue => crate::prelude::RESULT_OK_VALUE_ID,
+            Self::ResultErr => crate::prelude::RESULT_ERR_ID,
+            Self::ResultErrError => crate::prelude::RESULT_ERR_ERROR_ID,
             Self::List => crate::list_ops::LIST_ID,
+            Self::ListNil => crate::list_ops::NIL_CASE_ID,
+            Self::ListCons => crate::list_ops::CONS_CASE_ID,
+            Self::ListHead => crate::list_ops::HEAD_ID,
+            Self::ListTail => crate::list_ops::TAIL_ID,
             Self::ListStep => crate::list_ops::STEP_ID,
             Self::Iter => crate::iterator_ops::ITER_ID,
             Self::IterStep => crate::iterator_ops::STEP_ID,
@@ -103,6 +123,8 @@ impl CompilerDeclaration {
             Self::OnceMixedDrop => once::MIXED_DROP_ID,
             Self::OncePairDrop => once::PAIR_DROP_ID,
             Self::BytesDrop => crate::cleanup::BYTES_DROP_LIFECYCLE_ID,
+            Self::BoxDrop => crate::cleanup::BOX_DROP_LIFECYCLE_ID,
+            Self::IterDrop => crate::cleanup::ITER_DROP_LIFECYCLE_ID,
             Self::StringDrop => crate::cleanup::STRING_DROP_LIFECYCLE_ID,
             Self::StringMapDrop => crate::string_ops::MAP_DROP_LIFECYCLE_ID,
             Self::CollectionDrop => crate::map_ops::DROP_ID,
@@ -120,3 +142,38 @@ impl CompilerDeclaration {
 // closed enum replaces that receiver; it introduces no larger call carrier.
 const _: () = assert!(std::mem::size_of::<CompilerDeclaration>() <= std::mem::size_of::<&str>());
 const _: () = assert!(std::mem::align_of::<CompilerDeclaration>() <= std::mem::align_of::<&str>());
+
+// Complete closed text dispatch for the additional warm preparation calls.
+// Payload and helper types remain owned here or by their original operation
+// module. The numeric packet cannot construct an identity or admit an operation.
+impl CompilerDeclaration {
+    pub(crate) const TEXT_CALL_CONTROLS: usize = {
+        use std::mem::size_of;
+        let branches = [
+            size_of::<crate::vec_ops::VecOp>() + crate::vec_ops::VecOp::ID_CALL_CONTROLS,
+            size_of::<crate::box_ops::BoxOp>() + crate::box_ops::BoxOp::ID_CALL_CONTROLS,
+            size_of::<crate::stdin_stream_ops::PureOp>()
+                + crate::stdin_stream_ops::PureOp::ID_CALL_CONTROLS,
+            size_of::<crate::str_ops::StrOp>() + crate::str_ops::StrOp::ID_CALL_CONTROLS,
+            size_of::<crate::byte_ops::ByteOp>() + crate::byte_ops::ByteOp::ID_CALL_CONTROLS,
+            size_of::<crate::host_io_ops::HostIoOp>()
+                + crate::host_io_ops::HostIoOp::ID_CALL_CONTROLS,
+            size_of::<crate::map_ops::MapOp>() + crate::map_ops::MapOp::ID_CALL_CONTROLS,
+            size_of::<crate::list_ops::ListOp>() + crate::list_ops::ListOp::ID_CALL_CONTROLS,
+            size_of::<crate::iterator_ops::IteratorOp>()
+                + crate::iterator_ops::IteratorOp::ID_CALL_CONTROLS,
+            size_of::<ResolvedHostCommandOperation>() + crate::command_io_ops::ID_CALL_CONTROLS,
+        ];
+        let mut maximum = 0;
+        let mut index = 0;
+        while index < branches.len() {
+            if branches[index] > maximum {
+                maximum = branches[index];
+            }
+            index += 1;
+        }
+        4 * size_of::<Self>() // copied text(self) actual/formal and match sum
+            + 2 * size_of::<&'static str>() // text return/as_str arm receiver
+            + maximum // mutually exclusive payload binding and project helper
+    };
+}

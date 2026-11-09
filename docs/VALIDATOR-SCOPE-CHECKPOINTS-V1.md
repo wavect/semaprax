@@ -162,3 +162,82 @@ following the existing expression depth-oracle convention. All original bodies,
 fixtures, diagnostic and identity assertions remain. This is test-oracle stack
 provisioning only; production admission depth, stack behavior and support claims
 are unchanged and still require independent qualification.
+
+## Ordered moved-place output (#936)
+
+Conditional and branch joins may replace only the temporary owned moved-key
+set with two independently ordered borrowed map cursors. Every missing branch
+state is Available; equal keys consume both inputs, each other step consumes
+one, and each non-Available result clones its retained output path once. This
+preserves the original lexicographic final map and Availability::join.
+
+The new root/count/arithmetic/iterator/output/clone/insert carriers are prepaid
+before formation. The distinct join-output tariff retains final map nodes and
+the original conservative path payload upper. Only the physically absent
+temporary key-set nodes are omitted; no aggregate old debit is subtracted.
+The availability-copy moved() tariff remains byte-for-byte unchanged, as do
+definitely-partial candidate/prefix builders, loan unions, scope COW bindings
+and commit/drop ordering. Inputs remain immutable through full result staging.
+
+The complete immediate paid join functions and original generic producer stay
+independently executable under a panic-safe test-only caller selection. Exact
+source/inverse, state/empty/interleaved/prefix, full scope/full HIR caller and
+exact/short/zero/floor/sticky/Drop controls are authored only. Strict many-field
+allocation AND invoice gates must pass; a paid one-field cold loss remains
+visible. No measured gain, capacity rebate or application recovery is claimed
+by this source-only implementation.
+
+## Terminal source-move roots (#939)
+
+An exact `Place` root runs the complete original terminal operation directly
+inside the existing funded root-kind match. It moves the caller scope into one
+local `Owned` root before lookup, retains full place/type/resource/availability
+and overlapping-loan checks in their original order, and restores that root
+only on success. Errors drop the local root and leave the caller empty, exactly
+as the previous directory receiver did. Nonterminal roots and the legacy map
+receiver retain the entire old walker and all original growth payments.
+
+This removes the two actual initial source-move directories; it introduces no
+scratch cache, loan owner, callback, helper boundary or additional reservation
+primitive. Existing selector and semantic-operation fees stay unchanged. The
+whole immediate producer, older inert-root producer and old owned-map receiver
+remain independently executable; exact current source plus all new children
+are bound before the original source gate acquires its named old stage.
+Authored controls require strict single/repeated and complete many-owned-argument
+HIR allocation/invoice gains, unchanged tiny inert invoices, semantic/late-error
+and failed-publication equality, exact/short/zero/floor/sticky boundaries and
+complete Drop. No compiler, runtime, application fit, peak or RSS claim is made
+by this source implementation.
+
+## Retained partial-candidate output (source-only successor)
+
+The bounded alternative to the four-way prefix-stream proposal retains the
+ENTIRE original owned candidate builder and generic oracle. It changes only
+the final consuming filter/collect into ascending BTreeSet::retain with the
+same two left-to-right Availability::Moved predicates and short circuit. The
+first candidate directory, every duplicate/rejected prefix clone and all
+original candidate work remain. This is removal of the second collected tree
+and its FromIterator staging, not a zero-directory prefix stream.
+
+The existing first positive join CONTROL gateway additionally prepays the
+retain receiver actual/formal pair, explicit two-reference closure environment
+actual/formal pair, complete returned/receiving set and unit-return pair. The
+unchanged callback loans and predicates retain their original ABI. No new
+per-prefix payment, scalar selector or gateway exists. The original second
+gateway and all moved-map, loan, final survivor payload and COW terms remain.
+The third gateway directly derives one candidate node upper per original
+visited prefix instead of two; it never subtracts a virtual debit or refunds
+already reserved backing. Full immediate pre-retain paid conditional/branch
+receivers remain executable independently of the older #936 saved controls.
+
+Retain and collect can leave differently packed trees. Complete owning tests
+therefore include successive joins, retained snapshots and later COW mutation
+through Drop, as well as realistic depth-one-to-three scopes and a real
+many-field HIR caller. Empty/all-reject and small cold outcomes are reported
+without a universal gain assertion. All original state/error/early-skip/no-op
+and publication order is retained. Production predicates are pure; arbitrary
+injected predicate-panic global key destruction order is not promised equal to
+collect's separated output/unvisited-input owners. Full deallocation, immutable
+inputs and no failed publication remain required. This proposal has only parse
+review; tests, complete invoices/allocation tuples and application owners are
+unrun. It establishes no application fit, #937 closure or measured efficiency.

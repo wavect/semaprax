@@ -10,7 +10,6 @@ pub(super) fn flat_delta(expected: &[SkeletonPath]) -> (usize, usize) {
     let rounds: usize = paths.map(|p| p.observations.items.len() + 1).sum();
     (PAYMENT_HEADER + retained * count, removed * rounds)
 }
-
 pub(super) fn tail_delta(
     row: &pair_scope_census::Row,
     expected: &[SkeletonPath],
@@ -73,6 +72,7 @@ fn observe_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
@@ -831,9 +831,10 @@ fn pair_census_refused_prefix_keeps_original_failure_and_never_claims_full_compa
 
 // Complete-success equation only. Refusal controls use reached real frontiers.
 pub(super) fn fused_removed(row: &pair_scope_census::Row) -> usize {
+    let old = super::loaded_segment_composition_tests::complete_immediate438_invoice_counts(row);
     size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>() * row.rounds
         + 2 * size_of::<Option<&SkeletonObservation>>()
-            * (row.value_steps
+            * (old.value_steps
                 + row.certified_bases
                 + 2 * row.identity_observations
                 + 4 * row.shared_boundary_complete
@@ -849,6 +850,7 @@ fn observe_886_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);

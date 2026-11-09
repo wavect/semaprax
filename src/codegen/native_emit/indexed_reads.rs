@@ -1,7 +1,7 @@
 //! Native lowering shared by total byte-slice and borrowed-text reads.
 use super::{backend_error, c_case_symbol, c_field_symbol, CEmitter, COutput};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationId, ResolvedType};
+use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedType};
 
 impl<O: COutput> CEmitter<'_, O> {
     pub(super) fn emit_option_byte_read(
@@ -13,9 +13,9 @@ impl<O: COutput> CEmitter<'_, O> {
         temporary: &str,
     ) -> Result<(), Diagnostic> {
         let layout = self.variant_layout(return_type)?;
-        let none_id = DeclarationId::new(crate::prelude::OPTION_NONE_ID);
-        let some_id = DeclarationId::new(crate::prelude::OPTION_SOME_ID);
-        let value_id = DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID);
+        let none_id = DeclarationId::compiler(CompilerDeclaration::OptionNone);
+        let some_id = DeclarationId::compiler(CompilerDeclaration::OptionSome);
+        let value_id = DeclarationId::compiler(CompilerDeclaration::OptionSomeValue);
         let none = layout
             .case(&none_id)
             .ok_or_else(|| backend_error("Option<u8> layout has no compiler-owned None case"))?;

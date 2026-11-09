@@ -15,10 +15,112 @@ def bounded(path,length,digest):
   assert hashlib.sha256(b).hexdigest()==digest;return b
  finally:os.close(fd)
 _CONFIG_PATH=R/'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
-_CONFIG_LENGTH=194553
-_CONFIG_SHA256='fec7ae6ba29ed1f561e6feb59b58a051f9a07cdeeccbda108dded37694510309'
+_CONFIG_LENGTH=261955
+_CONFIG_SHA256='ce4a2dbb2534bc83c28b0de73c2e82f5c8539df51d54f8bcf5e5583417c905ca'
 _CONFIG_RAW=bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)
-CONFIG=json.loads(_CONFIG_RAW)
+# Closed field-only transport. Legacy list semantics and every other CONFIG value remain unchanged.
+_CLOSED_SOURCE_SCHEMA='semaprax.closed-prior-sources.prefixes.v1'
+_CLOSED_SOURCE_PREFIXES=(('R','src/cleanup_plan/replay/'),('W','src/workspace_graph/'),('H','src/hir/'),('D','docs/evidence/'),('T','tests/'),('N','crates/semaprax-native-rust-interop-builder/'),('S','src/source_reflows/'),('M','src/source_reflows_merge/'))
+def _closed_source_json(value):
+ return json.dumps(value,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')
+def _closed_source_parts(value):
+ assert isinstance(value,str) and value and '\\' not in value and '\x00' not in value
+ assert not value.startswith('/') and all(x not in ('','.','..') for x in value.split('/'))
+ value.encode('utf-8')
+def _decode_configuration_v1(value):
+ field=value['closed_prior_sources']
+ if isinstance(field,list):return value # Entire original legacy reader remains the default.
+ assert isinstance(field,dict) and set(field)=={'schema','sources'} and field['schema']==_CLOSED_SOURCE_SCHEMA
+ assert len(_closed_source_json(value))+1<=262144
+ sources=field['sources'];assert isinstance(sources,list)
+ expanded_size=2+max(0,len(sources)-1)
+ for source in sources:
+  assert isinstance(source,str)
+  if ':' in source:
+   assert len(source)>=3 and source[1]==':' and source.count(':')==1
+   prefix=next((p for code,p in _CLOSED_SOURCE_PREFIXES if code==source[0]),None);assert prefix is not None
+   _closed_source_parts(source[2:])
+   # Prefixes are pairwise disjoint ASCII directory prefixes; every eligible path has one spelling.
+   expanded_size+=len(_closed_source_json(source))+len(prefix.encode('utf-8'))-2
+  else:
+   _closed_source_parts(source)
+   assert not any(source.startswith(prefix) for _,prefix in _CLOSED_SOURCE_PREFIXES),('noncanonical closed source',source)
+   expanded_size+=len(_closed_source_json(source))
+ # Complete expanded canonical CONFIG budget, including all opaque fields and final newline.
+ # No expanded path is joined or cloned before the whole bound is established.
+ assert len(_closed_source_json(value))-len(_closed_source_json(field))+expanded_size+1<=9753094
+ decoded=[]
+ for source in sources:
+  if ':' in source:
+   prefix=next(p for code,p in _CLOSED_SOURCE_PREFIXES if code==source[0]);decoded.append(prefix+source[2:])
+  else:decoded.append(source)
+ result=dict(value);result['closed_prior_sources']=decoded
+ return result
+def _encode_configuration_v1(value):
+ sources=value['closed_prior_sources'];assert isinstance(sources,list)
+ assert len(_closed_source_json(value))+1<=9753094
+ encoded=[]
+ for source in sources:
+  assert isinstance(source,str)
+  encoded.append(next((code+':'+source[len(prefix):] for code,prefix in _CLOSED_SOURCE_PREFIXES if source.startswith(prefix)),source))
+ result=dict(value);result['closed_prior_sources']={'schema':_CLOSED_SOURCE_SCHEMA,'sources':encoded}
+ assert len(_closed_source_json(result))+1<=262144
+ assert _decode_configuration(result)==value
+ return result
+
+# Version two extends only the closed allowlist field; v1 canonical spellings
+# and the complete legacy list reader remain separately executable above.
+_CLOSED_SOURCE_SCHEMA_V2='semaprax.closed-prior-sources.prefixes.v2'
+_CLOSED_SOURCE_PREFIXES_V2=_CLOSED_SOURCE_PREFIXES+(('L', 'src/loan_plan/'), ('V', 'src/source_verify/'), ('B', 'src/bounded_output/'), ('A', 'src/ast/program_source/'), ('P', 'src/project/'), ('C', 'src/loop_calls/'), ('F', 'src/cleanup_plan/renewal_profile/'), ('G', 'src/codegen/'))
+def _decode_configuration_v2(value):
+ field=value['closed_prior_sources']
+ if isinstance(field,list):return value # Entire original legacy reader remains the default.
+ assert isinstance(field,dict) and set(field)=={'schema','sources'} and field['schema']==_CLOSED_SOURCE_SCHEMA_V2
+ assert len(_closed_source_json(value))+1<=262144
+ sources=field['sources'];assert isinstance(sources,list)
+ expanded_size=2+max(0,len(sources)-1)
+ for source in sources:
+  assert isinstance(source,str)
+  if ':' in source:
+   assert len(source)>=3 and source[1]==':' and source.count(':')==1
+   prefix=next((p for code,p in _CLOSED_SOURCE_PREFIXES_V2 if code==source[0]),None);assert prefix is not None
+   _closed_source_parts(source[2:])
+   # Prefixes are pairwise disjoint ASCII directory prefixes; every eligible path has one spelling.
+   expanded_size+=len(_closed_source_json(source))+len(prefix.encode('utf-8'))-2
+  else:
+   _closed_source_parts(source)
+   assert not any(source.startswith(prefix) for _,prefix in _CLOSED_SOURCE_PREFIXES_V2),('noncanonical closed source',source)
+   expanded_size+=len(_closed_source_json(source))
+ # Complete expanded canonical CONFIG budget, including all opaque fields and final newline.
+ # No expanded path is joined or cloned before the whole bound is established.
+ assert len(_closed_source_json(value))-len(_closed_source_json(field))+expanded_size+1<=9753094
+ decoded=[]
+ for source in sources:
+  if ':' in source:
+   prefix=next(p for code,p in _CLOSED_SOURCE_PREFIXES_V2 if code==source[0]);decoded.append(prefix+source[2:])
+  else:decoded.append(source)
+ result=dict(value);result['closed_prior_sources']=decoded
+ return result
+def _encode_configuration_v2(value):
+ sources=value['closed_prior_sources'];assert isinstance(sources,list)
+ assert len(_closed_source_json(value))+1<=9753094
+ encoded=[]
+ for source in sources:
+  assert isinstance(source,str)
+  encoded.append(next((code+':'+source[len(prefix):] for code,prefix in _CLOSED_SOURCE_PREFIXES_V2 if source.startswith(prefix)),source))
+ result=dict(value);result['closed_prior_sources']={'schema':_CLOSED_SOURCE_SCHEMA_V2,'sources':encoded}
+ assert len(_closed_source_json(result))+1<=262144
+ assert _decode_configuration_v2(result)==value
+ return result
+def _decode_configuration(value):
+ field=value['closed_prior_sources']
+ if isinstance(field,dict) and field.get('schema')==_CLOSED_SOURCE_SCHEMA_V2:
+  return _decode_configuration_v2(value)
+ return _decode_configuration_v1(value)
+def _encode_configuration(value):
+ return _encode_configuration_v2(value)
+
+CONFIG=_decode_configuration(json.loads(_CONFIG_RAW))
 def _configuration_current():
  assert bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)==_CONFIG_RAW
 
@@ -72,13 +174,13 @@ _OVERLAY_RAW = None
 def _overlay():
  global _OVERLAY_NS, _OVERLAY_RAW
  _configuration_current()
- program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py', 65063, 'a058f80dbbf1e2629abd22951b7dd4aac25a748beeb5d562e7085c1558fbedf1')
+ program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py',64436,'78a228d998f746b405d31aa451f35d539fc0f53c2d611227e79bfe9ec88f4cfd')
  assert len(program)<=65536
  if _OVERLAY_NS is None:
   _OVERLAY_NS={'__file__':str(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py')}
   exec(compile(program,_OVERLAY_NS['__file__'],'exec'),_OVERLAY_NS);_OVERLAY_RAW=program
  assert program==_OVERLAY_RAW
- return _OVERLAY_NS['Overlay'](R,bounded,read,_configuration_current,packet_before_overlay,_successor_rows)
+ return _OVERLAY_NS['Overlay'](R,bounded,read,_configuration_current,packet_before_overlay,_successor_rows,lambda source: CONFIG['modules'][source])
 def packet():
  return _overlay().compose(packet_before_overlay())
 
@@ -169,8 +271,14 @@ def authenticate_current(path,supplied):
  t=CONFIG['table'];raw=bounded(R/t['path'],t['length'],t['sha256']);prior=read(t['prior']);expected=prior.decode().splitlines()
  for x in t['insertions']:assert x['path']not in expected;expected.insert(x['at'],x['path'])
  assert raw==('\n'.join(expected)+'\n').encode()and len(expected)==len(set(expected))==t['rows']
+ finite_distinct_owners={('tests/hir_module_boundaries.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs'): (106791, 144054), ('tests/hir_module_boundaries.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs'): (106875, 144138), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_v2.rs'): (23084, 152948), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs'): (15407, 179950), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs'): (15516, 180067), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_fragments_v3.rs'): (22918, 180450), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/call_carriers.rs'): (23365, 251919), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs'): (17290, 181156), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs'): (22038, 182174), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs'): (17147, 182669), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs'): (21924, 183677), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs'): (16991, 183800), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs'): (21473, 184200), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs'): (21698, 184313), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs'): (16817, 185061), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs'): (16631, 185243), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/bounded_output/stage_debits/route_debits/json_codec_probe.rs'): (11761, 185437), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs'): (21808, 187579), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs'): (16475, 188319), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs'): (15623, 188483), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs'): (15791, 188659), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs'): (16138, 188837), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs'): (16306, 189013), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_compiled.rs'): (22841, 153019), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs'): (15166, 154230), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs'): (15054, 154352), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs'): (15961, 154708), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/boxed_inputs.rs'): (22778, 196379), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/call_carriers_joint.rs'): (23444, 251998), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs'): (22999, 247312), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs'): (24057, 247494), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs'): (24158, 248303), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs'): (22228, 244542), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs'): (22551, 244741), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/path_join/frontier_tests/custody.rs'): (22146, 245756), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/continuation_storage.rs'): (20618, 33665), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/continuation_storage/reached.rs'): (20864, 257456), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/continuation_storage/reached_tests.rs'): (20942, 257619), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/initial_report/build.rs'): (162146, 194880), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/retained_scratch.rs'): (23618, 248954), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903.rs'): (23700, 249524), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/modular_projection.rs'): (23796, 250353), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs'): (23927, 250484), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/uncached_peak/retained_scratch_tests.rs'): (24336, 261511), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/diagnostics/borrowed_help_tests.rs'): (23288, 238827), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/factored/oracle_order.rs'): (21026, 53149), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/source_reflows_merge/ordinary_plan_inputs.rs'): (23155, 49069), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/identity_prebound_tests.rs'): (23529, 147620), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/workspace_graph/expected_projection/uncached_peak.rs'): (24257, 261432), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs'): (24692, 50394), ('tests/workspace/semantic_graph/source_inventory.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs'): (24779, 50481), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_v2.rs'): (46262, 106256), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs'): (39298, 126490), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs'): (39416, 126616), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_fragments_v3.rs'): (46078, 127035), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/call_carriers.rs'): (46499, 127393), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs'): (41289, 128598), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs'): (45108, 133237), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs'): (41137, 133768), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs'): (44985, 134848), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs'): (40972, 134980), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs'): (44498, 135407), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs'): (44741, 135529), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs'): (40789, 136331), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs'): (40594, 136522), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/bounded_output/stage_debits/route_debits/json_codec_probe.rs'): (38824, 137018), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs'): (44860, 139322), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs'): (40429, 140116), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs'): (39532, 140289), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs'): (39709, 140474), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs'): (40074, 140661), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs'): (40251, 140846), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_compiled.rs'): (45992, 106336), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs'): (39040, 107664), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs'): (38920, 107795), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs'): (39888, 108178), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_pins_v10.rs'): (54098, 143272), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/boxed_inputs.rs'): (45920, 74594), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/call_carriers_joint.rs'): (46587, 127481), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs'): (46168, 62184), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs'): (47254, 62384), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs'): (47364, 63265), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs'): (45316, 59144), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs'): (45666, 59361), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/path_join/frontier_tests/custody.rs'): (45225, 60484), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/hir.rs'): (153206, 187787), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/retained_scratch.rs'): (46779, 129445), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903.rs'): (46870, 130239), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/modular_projection.rs'): (46975, 131131), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs'): (47115, 131271), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/uncached_peak/retained_scratch_tests.rs'): (47560, 146542), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/diagnostics/borrowed_help_tests.rs'): (46413, 130058), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/workspace_graph/expected_projection/uncached_peak.rs'): (47472, 146454), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs'): (47952, 231813), ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs', 'src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs'): (48048, 231909)}
  for source in CONFIG['modules']:
-  assert actual.count('include_str!("'+p['base']+source+'")')==1,('required/max-one literal owner',path,source)
+  literal='include_str!("'+p['base']+source+'")'
+  if (path,source) in finite_distinct_owners:
+   expected=finite_distinct_owners[path,source]
+   assert isinstance(expected,tuple)and len(expected)==2,('exact distinct-owner offsets',path,source)
+   assert actual.count(literal)==len(expected)and all(actual.startswith(literal,at)for at in expected),('exact distinct-owner literals',path,source,expected)
+  else:assert actual.count(literal)==1,('required/max-one literal owner',path,source)
  owner=CONFIG['workspace_owner'];latest_source(owner['path'],owner['length'],owner['sha256'])
  return actual
 

@@ -223,6 +223,10 @@ pub(super) fn validate_paid(
         "selected structural driver call receiving",
         structural_control::selected::validate_reachable_acyclic_cfg(function, budget)
     )?;
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(
+        crate::bounded_output::exclusive_debits::path_census::Family::Selected,
+    );
     crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
         budget,
         function,
@@ -233,6 +237,10 @@ pub(super) fn validate_paid(
             program, function, &storage, &leaves, budget, None, None
         )
     )?;
+    #[cfg(feature = "unstable-workflow-profiling")]
+    path_census.success();
+    #[cfg(feature = "unstable-workflow-profiling")]
+    drop(path_census);
     match factored::compare_with_index(program, function, budget, None)? {
         Some(true) => Ok(()),
         Some(false) => Err(permit.refuse(

@@ -28,7 +28,37 @@ struct Record {
     authority_request: bool,
     values: [usize; VALUES],
 }
+// A dedicated latest-live-pass buffer prevents the diagnostic ring's bounded
+// history eviction from losing the actual refusing module association. Like the
+// ring, its backing is acquired by Report::prepare before compiler observation.
+#[derive(Clone, Copy)]
+struct LiveModule {
+    path: [u8; PATH],
+    len: Option<usize>,
+    full: Option<Record>,
+    retained: Option<Record>,
+    formula: Option<[usize; 9]>,
+    full_terms: Option<Record>,
+    retained_terms: Option<Record>,
+}
+impl Default for LiveModule {
+    fn default() -> Self {
+        Self {
+            path: [0; PATH],
+            len: None,
+            full: None,
+            retained: None,
+            formula: None,
+            full_terms: None,
+            retained_terms: None,
+        }
+    }
+}
 struct State {
+    live_modules: Vec<LiveModule>,
+    live_pass: Option<(u8, usize)>,
+    live_expected: usize,
+    live_attempt: Option<[usize; 7]>,
     entries: Vec<Option<Record>>,
     count: usize,
     oversized_paths: usize,
@@ -41,6 +71,10 @@ struct State {
 impl State {
     const fn new() -> Self {
         Self {
+            live_modules: Vec::new(),
+            live_pass: None,
+            live_expected: 0,
+            live_attempt: None,
             entries: Vec::new(),
             count: 0,
             oversized_paths: 0,
@@ -111,6 +145,44 @@ pub(crate) fn authority_index(
     ]);
     capture(path, 0, false, false, Kind::Authority, values);
 }
+/// Exact current selected HIR terms, supplementing the historical 19 fields.
+pub(crate) fn record_live_hir_terms(path: &str, include_imports: bool, terms: [usize; 7]) {
+    if !ACTIVE.with(Cell::get) || path.len() > PATH {
+        return;
+    }
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+        if state.live_pass != state.current_pass || !state.current_pass.is_some_and(|p| p.0 == 6) {
+            return;
+        }
+        let Some(index) = state.current_module else {
+            return;
+        };
+        let mut row = Record {
+            path: [0; PATH],
+            len: path.len(),
+            mode: 6,
+            pass: state.current_pass,
+            module: Some(index),
+            global: false,
+            step: false,
+            semantic: false,
+            include_imports,
+            legacy_components: false,
+            authority_request: false,
+            values: [0; VALUES],
+        };
+        row.path[..path.len()].copy_from_slice(path.as_bytes());
+        row.values[..7].copy_from_slice(&terms);
+        if let Some(module) = state.live_modules.get_mut(index) {
+            if include_imports {
+                module.full_terms = Some(row);
+            } else {
+                module.retained_terms = Some(row);
+            }
+        }
+    });
+}
 fn capture(
     path: &str,
     mode: u8,
@@ -140,6 +212,22 @@ fn capture(
             values,
         };
         stored.path[..path.len()].copy_from_slice(path.as_bytes());
+        if matches!(kind, Kind::Component)
+            && mode == 6
+            && state.live_pass == stored.pass
+            && stored.pass.is_some_and(|pass| pass.0 == 6)
+        {
+            if let Some(module) = stored
+                .module
+                .and_then(|index| state.live_modules.get_mut(index))
+            {
+                if include_imports {
+                    module.full = Some(stored);
+                } else {
+                    module.retained = Some(stored);
+                }
+            }
+        }
         let index = state.count % SLOTS;
         state.entries[index] = Some(stored);
         state.count += 1;
@@ -181,6 +269,37 @@ pub(crate) fn begin_pass(mode: u8) -> Pass {
     }
 }
 impl Pass {
+    /// Only the actual uncached layout calls this, within its original pass.
+    pub(crate) fn live_layout(&self, expected: usize) {
+        if self.active {
+            STATE.with(|state| {
+                let mut state = state.borrow_mut();
+                state.live_modules.fill(LiveModule::default());
+                state.live_pass = state.current_pass;
+                state.live_expected = expected;
+                state.live_attempt = None;
+            });
+        }
+    }
+    pub(crate) fn live_formula(&self, index: usize, path: &str, values: [usize; 9]) {
+        if self.active {
+            STATE.with(|state| {
+                if let Some(module) = state.borrow_mut().live_modules.get_mut(index) {
+                    module.formula = Some(values);
+                    if path.len() <= PATH {
+                        module.path[..path.len()].copy_from_slice(path.as_bytes());
+                        module.len = Some(path.len());
+                    }
+                }
+            });
+        }
+    }
+    /// Exact live inputs immediately before checked_usage; no bound is rerun.
+    pub(crate) fn live_attempt(&self, values: [usize; 7]) {
+        if self.active {
+            STATE.with(|state| state.borrow_mut().live_attempt = Some(values));
+        }
+    }
     pub(crate) fn module(&self, index: usize) {
         if self.active {
             STATE.with(|state| state.borrow_mut().current_module = Some(index));
@@ -261,6 +380,13 @@ fn prepare() {
         let mut state = s.borrow_mut();
         state.entries.resize(SLOTS, None);
         state.entries.fill(None);
+        state
+            .live_modules
+            .resize(crate::workspace_graph::MAX_FILES, LiveModule::default());
+        state.live_modules.fill(LiveModule::default());
+        state.live_pass = None;
+        state.live_expected = 0;
+        state.live_attempt = None;
         state.count = 0;
         state.oversized_paths = 0;
         state.forecasts = [0; 8];
@@ -327,12 +453,130 @@ fn write_row(output: &mut impl Write, value: serde_json::Value) {
     let _ = serde_json::to_writer(&mut *output, &value);
     let _ = output.write_all(b"\n");
 }
+fn write_live_precharge(
+    output: &mut impl Write,
+    application: &str,
+    state: &State,
+    attempt: [usize; 7],
+) {
+    let [index, ordinal, retained, full, kept, limit, resolving] = attempt;
+    let additional = if resolving != 0 { full } else { kept };
+    let complete = state.live_expected <= state.live_modules.len()
+        && state.live_modules[..state.live_expected]
+            .iter()
+            .all(|module| {
+                let (Some(formula), Some(len), Some(full), Some(retained)) = (
+                    module.formula,
+                    module.len,
+                    module.full_terms,
+                    module.retained_terms,
+                ) else {
+                    return false;
+                };
+                [
+                    module.full,
+                    module.retained,
+                    module.full_terms,
+                    module.retained_terms,
+                ]
+                .iter()
+                .all(|row| row.is_some_and(|row| row.path[..row.len] == module.path[..len]))
+                    && full.values[..6]
+                        .iter()
+                        .try_fold(0usize, |n, v| n.checked_add(*v))
+                        == Some(formula[2])
+                    && retained.values[..6]
+                        .iter()
+                        .try_fold(0usize, |n, v| n.checked_add(*v))
+                        == Some(formula[3])
+                    && full.values[6] == formula[2]
+                    && retained.values[6] == formula[3]
+                    && formula[2].checked_add(formula[8]) == Some(formula[0])
+                    && formula[3]
+                        .checked_sub(formula[4])
+                        .and_then(|n| n.checked_add(formula[8]))
+                        == Some(formula[1])
+            });
+    write_row(
+        output,
+        serde_json::json!({"schema":"semaprax.forecast-live-precharge.v1",
+        "application":application,"pass_id":state.live_pass.map(|pass|pass.1),
+        "scope":"last attempted precharge of the actual captured mode6 pass; not reconstructed, allocations or application admission",
+        "module_index":index,"sorted_step":ordinal,"retained_before":retained,
+        "full_cost":full,"retained_cost":kept,"phase":if resolving!=0 {"resolve"} else {"retain"},
+        "additional":additional,"limit":limit,"total":retained.checked_add(additional),
+        "would_refuse":retained.checked_add(additional).is_none_or(|total|total>limit),
+        "expected_modules":state.live_expected,"complete_live_components":complete,
+        "observer_backing":"separate MAX_FILES-bounded latest-pass buffer prepared before fixtures; no collection allocation"}),
+    );
+    for (index, module) in state
+        .live_modules
+        .iter()
+        .take(state.live_expected)
+        .enumerate()
+    {
+        let Some(formula) = module.formula else {
+            continue;
+        };
+        let path = module
+            .len
+            .and_then(|len| std::str::from_utf8(&module.path[..len]).ok());
+        let full_path = module
+            .full
+            .as_ref()
+            .and_then(|row| std::str::from_utf8(&row.path[..row.len]).ok());
+        let retained_path = module
+            .retained
+            .as_ref()
+            .and_then(|row| std::str::from_utf8(&row.path[..row.len]).ok());
+        let terms_match = |row: Option<Record>| {
+            row.is_some_and(|row| {
+                module
+                    .len
+                    .is_some_and(|len| row.path[..row.len] == module.path[..len])
+            })
+        };
+        let terms_reconcile = |row: Option<Record>| {
+            row.is_some_and(|row| {
+                row.values[..6]
+                    .iter()
+                    .try_fold(0usize, |sum, n| sum.checked_add(*n))
+                    == Some(row.values[6])
+            })
+        };
+        write_row(
+            output,
+            serde_json::json!({"schema":"semaprax.forecast-live-module.v1",
+            "application":application,"pass_id":state.live_pass.map(|pass|pass.1),"module_index":index,"path":path,
+            "full_cost":formula[0],"retained_cost":formula[1],"full_hir":formula[2],"retained_hir_before_scratch":formula[3],
+            "retired_scratch_bytes":formula[4],"covered_expressions":formula[5],"maximum_covered_function":formula[6],
+            "covered_functions":formula[7],"receiving":formula[8],
+            "full_reconciles":formula[2].checked_add(formula[8])==Some(formula[0]),
+            "retained_reconciles":formula[3].checked_sub(formula[4]).and_then(|n|n.checked_add(formula[8]))==Some(formula[1]),
+            "component_order":"raw_total,raw_strings,raw_exact_expressions,raw_literal_absence,runtime_total,runtime_strings,runtime_exact_expressions,structure_input,string_input,fixed_before,fixed_after,identity_occurrence,identity_carrier,retained_clone_and_hir,generic_instances,transient_import_clone,original_mode7_fixed,prelude_hir,hir_upper",
+            "actual_full_path":full_path,"actual_retained_path":retained_path,
+            "paths_match_actual_module":path.is_some() && path==full_path && path==retained_path,
+            "actual_full_components":module.full.map(|row|row.values),
+            "actual_retained_components":module.retained.map(|row|row.values),
+            "historical_component_equations_valid":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),
+            "hir_term_order":"fixed_upper,call_proof,shared_callee_proof,prelude_hir,identity_carrier,identity_occurrence,hir_upper",
+            "actual_full_hir_terms":module.full_terms.map(|row|row.values[..7].to_vec()),
+            "actual_retained_hir_terms":module.retained_terms.map(|row|row.values[..7].to_vec()),
+            "hir_term_paths_match":terms_match(module.full_terms) && terms_match(module.retained_terms),
+            "hir_term_equations_valid":terms_reconcile(module.full_terms) && terms_reconcile(module.retained_terms),
+            "hir_terms_match_returned_costs":module.full_terms.is_some_and(|row|row.values[6]==formula[2]) && module.retained_terms.is_some_and(|row|row.values[6]==formula[3])}),
+        );
+    }
+}
 fn write_observation(output: &mut impl Write, application: &str, strict: bool) {
     let _ = STATE.try_with(|state| {
         let Ok(state) = state.try_borrow() else {
             write_row(output, serde_json::json!({"schema":"semaprax.forecast-observation.v1","application":application,"reconciliation_error":true,"complete_records":false}));
             return;
         };
+        if let Some(attempt) = state.live_attempt {
+            write_live_precharge(output, application, &state, attempt);
+        }
         let errors = state.entries.iter().flatten().filter(|item|
             (!item.global && !item.step && !item.authority_request && !record_reconciles(item))
                 || (item.authority_request && item.values[0].checked_mul(item.values[1]) != Some(item.values[2]))
@@ -669,5 +913,71 @@ mod tests {
                 assert!(state.current_pass.is_none());
             });
         }
+    }
+    #[test]
+    fn live_precharge_survives_history_eviction_and_excludes_reconstruction() {
+        let report = Report::prepare("live-precharge-contract");
+        let capture = report.capture();
+        let (_, metrics) = crate::test_allocation_observer::measure(|| {
+            let pass = begin_pass(6);
+            pass.live_layout(1);
+            pass.module(0);
+            let mut components = [0; VALUES];
+            components[10] = 1;
+            components[11] = 6;
+            components[12] = 5;
+            components[17] = 4;
+            components[18] = 21;
+            components[13] = 21;
+            for imports in [true, false] {
+                record_live_hir_terms("actual/doc.spx", imports, [1, 2, 3, 4, 5, 6, 21]);
+                record_components("actual/doc.spx", 6, false, imports, components);
+            }
+            pass.live_formula(0, "actual/doc.spx", [31, 26, 21, 21, 5, 1, 1, 1, 10]);
+            pass.live_attempt([0, 9, 62_580_563, 6_125_249, 5_000_000, 1 << 26, 1]);
+            // The old bounded record ring intentionally loses its prefix.
+            // A differently-modeled nested observation is not the live module.
+            for _ in 0..SLOTS + 1 {
+                record_components("other-mode", 5, false, false, [0; VALUES]);
+            }
+        });
+        assert!(!metrics.invalid);
+        assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));
+        drop(capture);
+        // This models the existing failure-only reconstruction after the live
+        // Capture has ended. It cannot replace the captured refusing formula.
+        let reconstructed = begin_pass(6);
+        reconstructed.live_layout(1);
+        reconstructed.module(0);
+        reconstructed.live_formula(0, "reconstructed", [0; 9]);
+        reconstructed.live_attempt([0; 7]);
+        record_live_hir_terms("reconstructed", true, [0; 7]);
+        record_components("reconstructed", 6, false, true, [0; VALUES]);
+        drop(reconstructed);
+        let mut output = Vec::new();
+        write_observation(&mut output, "live-precharge-contract", false);
+        let rows = output
+            .split(|byte| *byte == b'\n')
+            .filter(|line| !line.is_empty())
+            .map(|line| serde_json::from_slice::<serde_json::Value>(line).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(rows[0]["schema"], "semaprax.forecast-live-precharge.v1");
+        assert_eq!(rows[0]["retained_before"], 62_580_563);
+        assert_eq!(rows[0]["full_cost"], 6_125_249);
+        assert_eq!(rows[0]["phase"], "resolve");
+        assert_eq!(rows[0]["would_refuse"], true);
+        assert_eq!(rows[0]["complete_live_components"], true);
+        assert_eq!(rows[1]["path"], "actual/doc.spx");
+        assert_eq!(rows[1]["paths_match_actual_module"], true);
+        assert_eq!(rows[1]["hir_term_paths_match"], true);
+        assert_eq!(rows[1]["hir_term_equations_valid"], true);
+        assert_eq!(rows[1]["hir_terms_match_returned_costs"], true);
+        assert_eq!(rows[1]["full_reconciles"], true);
+        assert_eq!(rows[1]["retained_reconciles"], true);
+        assert_eq!(
+            rows[2]["complete_records"], false,
+            "old lost-ring control unchanged"
+        );
+        drop(report);
     }
 }

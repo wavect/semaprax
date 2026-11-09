@@ -252,13 +252,14 @@ pub(in crate::workspace_graph) fn text_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_text_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_text_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     // The authenticated Project command adapter owns the full declared
     // capability inventory, including adapter effects unused by its body.
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
@@ -272,13 +273,14 @@ pub(in crate::workspace_graph) fn data_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_data_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_data_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())
@@ -306,13 +308,14 @@ pub(in crate::workspace_graph) fn record_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_record_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_record_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())
@@ -324,13 +327,14 @@ pub(in crate::workspace_graph) fn owned_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_owned_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_owned_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())
@@ -342,13 +346,14 @@ pub(in crate::workspace_graph) fn collection_record_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_collection_record_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_collection_record_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())
@@ -360,13 +365,14 @@ pub(in crate::workspace_graph) fn nested_outcome_command_program(
     program: &mut hir::ResolvedProgram,
     command: &str,
 ) -> Result<(), crate::diagnostic::Diagnostic> {
-    let command = hir::DeclarationId::new(command);
-    hir::validate_stream_nested_outcome_program(program, Some(&command))?;
+    let command = program.selected_function_id(command);
+    hir::validate_stream_nested_outcome_program(program, Some(command.as_ref()))?;
     crate::command_io_ops::validate_operation_profile(
         program,
-        &command,
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )?;
+    drop(command);
     program.permits = crate::project::PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
         .iter()
         .map(|effect| (*effect).to_owned())

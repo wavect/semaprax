@@ -20,6 +20,10 @@ use super::{
     HIR_STRUCTURE_EXPANSION_FACTOR, MAX_DEPENDENCY_DEPTH,
 };
 
+#[cfg(test)]
+#[path = "expected_projection/shared_local_callees/before_projection.rs"]
+mod before_shared_local_projection;
+
 #[path = "expected_projection/borrowed_imports.rs"]
 pub(in crate::workspace_graph) mod borrowed_imports;
 #[path = "expected_projection/borrowed_leaf.rs"]
@@ -57,6 +61,9 @@ mod prelude_forecast;
     reason = "complete independent prelude-forecast reference includes its original construction receivers"
 )]
 mod prelude_forecast_original;
+mod retained_scratch;
+#[path = "expected_projection/shared_local_callees.rs"]
+mod shared_local_callees;
 // CORE_PROOF_RECEIVERS_BEGIN
 #[cfg(test)]
 #[path = "expected_projection/borrowed_imports_original.rs"]
@@ -76,6 +83,13 @@ pub(super) mod private_layout;
 pub(in crate::workspace_graph) use held_projection::{
     synthetic_builder_bytes_scoped_with_retention_with_registry, synthetic_program_with_registry,
 };
+#[cfg(test)]
+#[path = "expected_projection/uncached_peak_before.rs"]
+#[allow(
+    dead_code,
+    reason = "whole independent pre-903 uncached forecasting generation"
+)]
+mod before_uncached_peak;
 #[path = "expected_projection/field_unique.rs"]
 mod field_unique;
 #[path = "expected_projection/record_traversal.rs"]
@@ -134,6 +148,7 @@ pub(super) struct SyntheticBuilderCosts {
     pub(super) runtime: usize,
     retained_hir: usize,
     synthetic_ast: usize,
+    retained_scratch: retained_scratch::Counts,
 }
 pub(super) fn synthetic_builder_bytes(
     program: &Program,

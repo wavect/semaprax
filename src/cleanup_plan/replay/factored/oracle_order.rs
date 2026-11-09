@@ -4,7 +4,6 @@
 //! is charged before it runs; scratch growth is reserved before it happens.
 //! The ordinary derived `Ord` and the borrowed `Key` stay untouched.
 use super::*;
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 macro_rules! decide {
@@ -34,16 +33,30 @@ fn text(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
+    compare_text::<false>(a, b, function, budget)
+}
+
+fn compare_text<const SHARED: bool>(
+    a: &str,
+    b: &str,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    budget.charge(function, 1, "oracle identity byte or end")?;
+    // A shared immutable slice has the same bytes and the same length.
+    if SHARED && std::ptr::eq(a, b) {
+        return Ok(Ordering::Equal);
+    }
     let mut a = a.bytes();
     let mut b = b.bytes();
     loop {
-        budget.charge(function, 1, "oracle identity byte or end")?;
         match (a.next(), b.next()) {
             (None, None) => return Ok(Ordering::Equal),
             (None, Some(_)) => return Ok(Ordering::Less),
             (Some(_), None) => return Ok(Ordering::Greater),
             (Some(x), Some(y)) => decide!(x.cmp(&y)),
         }
+        budget.charge(function, 1, "oracle identity byte or end")?;
     }
 }
 
@@ -613,6 +626,15 @@ pub(super) fn observation(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
+    observation_order::<false>(a, b, function, budget)
+}
+
+fn observation_order<const SHARED: bool>(
+    a: &SkeletonObservation,
+    b: &SkeletonObservation,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
     use SkeletonObservation as O;
     budget.charge(function, 1, "oracle observation kind")?;
     decide!(ordinal(a).cmp(&ordinal(b)));
@@ -627,7 +649,12 @@ pub(super) fn observation(
                 binding: yb,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             place(xb, yb, function, budget)
         }
         (
@@ -640,7 +667,12 @@ pub(super) fn observation(
                 destination: yd,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             place(xd, yd, function, budget)
         }
         (
@@ -655,7 +687,12 @@ pub(super) fn observation(
                 destination: yd,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             decide!(place(xs, ys, function, budget)?);
             place(xd, yd, function, budget)
         }
@@ -669,7 +706,12 @@ pub(super) fn observation(
                 arguments: ya,
             },
         ) => {
-            decide!(text(xc.as_str(), yc.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xc.as_str(),
+                yc.as_str(),
+                function,
+                budget
+            )?);
             arguments(xa, ya, function, budget)
         }
         (
@@ -682,7 +724,12 @@ pub(super) fn observation(
                 value: yv,
             },
         ) => {
-            decide!(text(xe.as_str(), ye.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xe.as_str(),
+                ye.as_str(),
+                function,
+                budget
+            )?);
             scalar(xv, yv, function, budget, "oracle boolean value")
         }
         (
@@ -697,8 +744,18 @@ pub(super) fn observation(
                 matches: ym,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
-            decide!(text(xc.as_str(), yc.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
+            decide!(compare_text::<SHARED>(
+                xc.as_str(),
+                yc.as_str(),
+                function,
+                budget
+            )?);
             scalar(xm, ym, function, budget, "oracle variant match flag")
         }
         (
@@ -713,7 +770,12 @@ pub(super) fn observation(
                 selected: yv,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
             decide!(scalar(xa, ya, function, budget, "oracle arm ordinal")?);
             scalar(xv, yv, function, budget, "oracle arm selected flag")
         }
@@ -727,7 +789,7 @@ pub(super) fn observation(
                 success: yv,
             },
         ) => {
-            decide!(text(
+            decide!(compare_text::<SHARED>(
                 xs.expression.as_str(),
                 ys.expression.as_str(),
                 function,
@@ -755,7 +817,12 @@ pub(super) fn observation(
                 target: yt,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
             decide!(scalar(
                 xk,
                 yk,
@@ -789,15 +856,232 @@ pub(super) fn label(
     }
 }
 
-fn items<I: Borrow<SkeletonObservation>>(
-    a: &[I],
-    b: &[I],
+// This bank covers only the newly introduced comparison operation. A miss
+// still executes the complete original observation comparison below.
+// Fixed source-level ABI packet: Rc comparison actual/formal loans and
+// booleans, plus the surviving block result/local and receiving match. Both
+// function argument tuples are absent; no inner/helper payment is credited.
+const FLAT_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+const BEFORE_BYTE_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+#[cfg(test)]
+const BEFORE_LEXICAL_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 4 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+
+// The original first iterator member/work frontier is retained below. Its
+// successful work payment precedes this once-only entry; no new mutable flag,
+// failure owner, or caller-paid global budget field is initialized before it.
+// At most one compact failure exits this invocation. Its conversion consumes
+// this bank once; all unused entry/tail controls remain charged on early exit.
+const FLAT_IDENTITY_ENTRY: usize = {
+    use std::mem::size_of;
+    type Item = Rc<SkeletonObservation>;
+    type Iter = std::slice::Iter<'static, Item>;
+    type Pairs = std::iter::Zip<Iter, Iter>;
+    // Entry payment actual/formal arguments and complete return/receiver.
+    2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
+        // The one ByteFailure::into_diagnostic terminal conversion, plus a
+        // possible preceding ByteFailure::from_budget conversion inside the
+        // compact producer. Both actual/formal and return/receiving families
+        // are prepaid even on a path where only the terminal conversion runs.
+        // No callback/authority assumption or unused refusal text funds them.
+        + 4 * size_of::<physical_budget::ByteFailure>()
+        + 4 * size_of::<Diagnostic>()
+        // Two tail Index receivers, results and iter() receiver pairs.
+        + 12 * size_of::<&[Item]>()
+        + 4 * size_of::<std::ops::RangeFrom<usize>>()
+        // Two iter() return/receivers plus zip actual/formal iterator values.
+        + 8 * size_of::<Iter>()
+        // zip result/receiver, IntoIterator actual/formal and result/receiver.
+        + 6 * size_of::<Pairs>()
+};
+
+#[cfg(test)]
+macro_rules! before_lexical_identity_items {
+    ($a:ident, $b:ident, $function:ident, $budget:ident) => {{
+        // This is the original first zip/next/Some member binding. In particular,
+        // zero work still refuses at the original member before any new byte bank.
+        if let Some((x, y)) = $a.iter().zip($b).next() {
+            $budget.charge($function, 1, "oracle flat observation member")?;
+            $budget.reserve_bytes($function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+            physical_budget::compact_try!($budget.reserve_compact_bytes(
+                $function,
+                BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers",
+            ));
+            physical_budget::compact_try!($budget.charge_compact(
+                $function,
+                1,
+                "oracle flat observation identity"
+            ));
+            if Rc::ptr_eq(x, y) {
+            } else {
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+            // Both first elements existed above. All new slices, ranges, iterator
+            // returns and IntoIterator moves are now prepaid; no length is repaired.
+            for (x, y) in $a[1..].iter().zip($b[1..].iter()) {
+                $budget.charge($function, 1, "oracle flat observation member")?;
+                physical_budget::compact_try!($budget.reserve_compact_bytes(
+                    $function,
+                    BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                    "oracle flat identity receivers",
+                ));
+                physical_budget::compact_try!($budget.charge_compact(
+                    $function,
+                    1,
+                    "oracle flat observation identity"
+                ));
+                if Rc::ptr_eq(x, y) {
+                    continue;
+                }
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+        }
+        $budget.charge($function, 1, "oracle flat observation length")?;
+        Ok($a.len().cmp(&$b.len()))
+    }};
+}
+
+// OPT950: fixed-positive lexical byte producer. No budget/function/phase/byte
+// aliases, forwarding tuple or closure is formed. Every failure joins the
+// shared observer completion before the original compact diagnostic conversion.
+macro_rules! reserve_flat_identity {
+    ($budget:ident, $function:ident) => {{
+        let ticket = crate::cleanup_plan::replay::merge_census::before(
+            $budget, $function, $crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS, "oracle flat identity receivers",
+        );
+        let result = 'reservation: {
+            match $budget.prepare_builder($function) {
+                Ok(()) => (),
+                Err(error) => break 'reservation Err(physical_budget::ByteFailure::from_budget(error)),
+            };
+            let accepted = match $budget.payer {
+                AllocationPayer::LegacyUnobserved => true,
+                AllocationPayer::ActiveBuilder => {
+                    !$budget.refusal_spent
+                        && !crate::bounded_output::active_refused()
+                        && crate::bounded_output::reserve_active_required($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS)
+                }
+                AllocationPayer::Oracle(lease) => {
+                    !$budget.refusal_spent && !lease.refused()
+                        && lease.charge($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS).is_ok()
+                }
+                AllocationPayer::SelectedReservation => $budget
+                    .physical.as_deref_mut().expect("selected reservation payer")
+                    .reserve($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS).is_ok(),
+            };
+            if accepted {
+                Ok(())
+            } else {
+                Err($budget.compact_refusal(
+                    $function, "cleanup replay physical reservation exhausted during ",
+                    "oracle flat identity receivers",
+                ))
+            }
+        };
+        crate::cleanup_plan::replay::merge_census::after(ticket, $budget, $function, result.is_ok());
+        physical_budget::compact_try!(result);
+    }};
+}
+
+fn before_byte_items(
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
-    for (x, y) in a.iter().zip(b) {
+    #[cfg(test)]
+    if flat_identity_tests::lexical_before_selected() {
+        return before_lexical_identity_items!(a, b, function, budget);
+    }
+    // This is the original first zip/next/Some member binding. In particular,
+    // zero work still refuses at the original member before any new byte bank.
+    if let Some((x, y)) = a.iter().zip(b).next() {
         budget.charge(function, 1, "oracle flat observation member")?;
-        decide!(observation(x.borrow(), y.borrow(), function, budget)?);
+        budget.reserve_bytes(function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+        physical_budget::compact_try!(budget.reserve_compact_bytes(
+            function,
+            BEFORE_BYTE_IDENTITY_RECEIVERS,
+            "oracle flat identity receivers",
+        ));
+        physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
+        if Rc::ptr_eq(x, y) {
+        } else {
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+        // Both first elements existed above. All new slices, ranges, iterator
+        // returns and IntoIterator moves are now prepaid; no length is repaired.
+        for (x, y) in a[1..].iter().zip(b[1..].iter()) {
+            budget.charge(function, 1, "oracle flat observation member")?;
+            physical_budget::compact_try!(budget.reserve_compact_bytes(
+                function,
+                BEFORE_BYTE_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers",
+            ));
+            physical_budget::charge_flat_identity!(
+                budget,
+                function,
+                std::panic::Location::caller()
+            );
+            if Rc::ptr_eq(x, y) {
+                continue;
+            }
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+    }
+    budget.charge(function, 1, "oracle flat observation length")?;
+    Ok(a.len().cmp(&b.len()))
+}
+
+fn items(
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    // This is the original first zip/next/Some member binding. In particular,
+    // zero work still refuses at the original member before any new byte bank.
+    if let Some((x, y)) = a.iter().zip(b).next() {
+        budget.charge(function, 1, "oracle flat observation member")?;
+        budget.reserve_bytes(function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+        reserve_flat_identity!(budget, function);
+        physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
+        if Rc::ptr_eq(x, y) {
+        } else {
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+        // Both first elements existed above. All new slices, ranges, iterator
+        // returns and IntoIterator moves are now prepaid; no length is repaired.
+        for (x, y) in a[1..].iter().zip(b[1..].iter()) {
+            budget.charge(function, 1, "oracle flat observation member")?;
+            reserve_flat_identity!(budget, function);
+            physical_budget::charge_flat_identity!(
+                budget,
+                function,
+                std::panic::Location::caller()
+            );
+            if Rc::ptr_eq(x, y) {
+                continue;
+            }
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
     }
     budget.charge(function, 1, "oracle flat observation length")?;
     Ok(a.len().cmp(&b.len()))
@@ -822,7 +1106,19 @@ fn observations(
         budget,
         "oracle observation prefix identity"
     )?);
-    items(ai, bi, function, budget)
+    // Sorting repeatedly compares the same paths. Stream the complete
+    // observations without buying an identity receiver for each member.
+    for (x, y) in ai.iter().zip(bi) {
+        budget.charge(function, 1, "oracle flat observation member")?;
+        decide!(observation_order::<true>(
+            x.as_ref(),
+            y.as_ref(),
+            function,
+            budget,
+        )?);
+    }
+    budget.charge(function, 1, "oracle flat observation length")?;
+    Ok(ai.len().cmp(&bi.len()))
 }
 
 pub(super) fn path(
@@ -899,3 +1195,12 @@ fn sift(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Complete independently executable original Oracle order."
+)]
+mod before_flat_identity;
+#[cfg(test)]
+mod flat_identity_tests;

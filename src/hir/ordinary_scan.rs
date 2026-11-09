@@ -86,6 +86,14 @@ pub(super) fn children<'a>(
     expression: &'a ResolvedExpr,
     push: &mut impl FnMut(&'a ResolvedExpr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
+    children_with(expression, push)
+}
+
+#[inline(never)]
+fn children_with<'a>(
+    expression: &'a ResolvedExpr,
+    push: &mut dyn FnMut(&'a ResolvedExpr) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
     match &expression.kind {
         ResolvedExprKind::Closure { captures, .. } => {
             for child in captures.iter().rev().map(|capture| &capture.value) {

@@ -2,6 +2,7 @@
 use crate::source_reflows::historical_project_entry;
 #[path = "source_reflows_merge/constructor_stage.rs"]
 mod constructor_stage;
+use constructor_stage::initial845_ledger_entry;
 #[path = "source_reflows_merge/joined_custody.rs"]
 mod joined_custody;
 #[path = "source_reflows_merge/prefix_custody.rs"]
@@ -21,7 +22,7 @@ mod runtime_json;
 pub(crate) use runtime_json::{receiver_fixture, receiver_fixture_source_before, ReceiverFixture};
 // The final compositor authenticates its raw view at this independent owner front.
 pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
-    let compile_fixed = compile_fixture_input(source, current);
+    let compile_fixed = metadata_json::boxed_inputs::input(source, current);
     let current = compile_fixed.as_str();
     let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
     let current = qualified.as_str();
@@ -140,8 +141,13 @@ fn post21_input(source: &str, current: &str) -> String {
 }
 // Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 pub(crate) fn project_before(source: &str, expected: &str, current: &str) -> String {
+    if let Some(entry) = constructor_stage::held_projection_entry(source, expected, current) {
+        return entry;
+    }
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
     let current = legacy.as_ref();
+    let probes = phase_probe_stage(source, expected, current);
+    let current = probes.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.
     let restored_receiving_stage = source
         == "src/workspace_graph/constructor_failure/receiving/before.rs"
@@ -397,6 +403,8 @@ pub(crate) fn receiver_fixture_entry(
     entry
 }
 pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let entry = if domain == "lexical832" {
         receiver_fixture_entry(ReceiverFixture::LexicalOperands, source, current)
     } else {
@@ -565,6 +573,11 @@ fn before_setup825(source: &str, current: &str) -> String {
 }
 // Preserve the complete immutable typed825 runtime manifest's own exact domain.
 pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
+    constructor_stage::report947_run(source, current, |current| {
+        setup_typed_input_pre947(source, current)
+    })
+}
+fn setup_typed_input_pre947(source: &str, current: &str) -> String {
     let typed_entry = match source {
         "src/workspace_graph/expected_projection/defaults/typed.rs" => {
             constructor825_compiled_entry(
@@ -658,6 +671,8 @@ pub(crate) fn retained833_input(source: &str, current: &str) -> String {
 }
 // Latest MAIN source enters the immutable combined833/841 checkpoint first.
 fn before_main66517(source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let previous = before_retry_guard(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F54, source, current)
@@ -727,6 +742,11 @@ pub(crate) fn compact844_input(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F67, source, &current)
 }
 pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {
+    constructor_stage::report947_run(source, current, |current| {
+        diagnostic846_input_pre947(source, current)
+    })
+}
+fn diagnostic846_input_pre947(source: &str, current: &str) -> String {
     let entry;
     let current = if source == "src/diagnostic.rs" {
         entry = historical_project_entry(
@@ -818,6 +838,11 @@ fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
 }
 // Direct845 owners authenticate independently from inherited source guards.
 pub(crate) fn initial845_input(source: &str, current: &str) -> String {
+    constructor_stage::report947_run(source, current, |current| {
+        initial845_input_pre947(source, current)
+    })
+}
+fn initial845_input_pre947(source: &str, current: &str) -> String {
     let acquired = initial845_current_owner_before(source, current);
     let current = acquired.as_deref().unwrap_or(current);
     let ledger_entry = initial845_ledger_entry(source, current);
@@ -1163,7 +1188,7 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
 }
 #[path = "source_reflows_merge/main44_custody.rs"]
 mod main44_custody;
-pub(crate) use main44_custody::Fixture as Main44Fixture;
+pub(crate) use main44_custody::{before_phase_probes, phase_probe_stage, Fixture as Main44Fixture};
 pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String {
     runtime_json::main44_metadata(fixture)
 }
@@ -1215,22 +1240,17 @@ pub(crate) fn ordinary_plan_history_root_checkpoint(
 ) -> String {
     ordinary_plan_inputs::original_root_checkpoint(current, compiled_before)
 }
-#[path = "source_reflows_merge/main_c883_inputs.rs"]
-pub(crate) mod main_c883_inputs;
-
 #[path = "source_reflows_merge/main99f_inputs.rs"]
 pub(crate) mod main99f_inputs;
-
+#[path = "source_reflows_merge/main_c883_inputs.rs"]
+pub(crate) mod main_c883_inputs;
 #[path = "source_reflows_merge/main_e177_inputs.rs"]
 pub(crate) mod main_e177_inputs;
-
 // Distinct complete final-batch views precede both frozen parent readers.
-#[path = "source_reflows_merge/next_big_batch_inputs.rs"]
-pub(crate) mod next_big_batch_inputs;
-
 #[path = "source_reflows_merge/main_e177_final_inputs.rs"]
 pub(crate) mod main_e177_final_inputs;
-
+#[path = "source_reflows_merge/next_big_batch_inputs.rs"]
+pub(crate) mod next_big_batch_inputs;
 #[test]
 fn merge_projection_selects_only_the_requested_complete_current_view() {
     let source = "src/cleanup_plan/replay/allocation/oracle.rs";
@@ -1261,7 +1281,6 @@ fn merge_projection_selects_only_the_requested_complete_current_view() {
     foreign[0]["current_sha256"] = "0".repeat(64).into();
     assert!(std::panic::catch_unwind(|| project(&foreign.to_string(), source, &current)).is_err());
 }
-
 pub(crate) fn complete_receiver_followup(source: &str) -> String {
     runtime_json::complete_receiver_followup(source)
 }
@@ -1310,7 +1329,7 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
     };
     let current = typed_before.as_deref().unwrap_or(current);
     let (compiled, length, current_sha, edits): (&str, usize, &str, &[(&str, &str)]) = match (source, expected) {
-        ("src/workspace_graph/constructor_failure/report.rs", "fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84") => (include_str!("workspace_graph/constructor_failure/report.rs"), 10609, "a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662", &[
+        ("src/workspace_graph/constructor_failure/report.rs", "fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84") => (constructor_stage::report947_compiled("src/workspace_graph/constructor_failure/report.rs", include_str!("workspace_graph/constructor_failure/report.rs")), 10609, "a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662", &[
             ("        // Reserve the full width of the captured usize maximum. Otherwise the\n        // same successful construction acquires different report backing at\n        // each decimal limit boundary, so its exact minimum changes its bill.\n        // Rendering below still uses the actual maximum and original help.\n        let message_len = counted(|out| message(out, usize::MAX))?;\n        let base_len = counted(|out| write!(out, \"{}\", BorrowedBuilderHelp(usize::MAX)))?;\n", "        let message_len = counted(|out| message(out, maximum))?;\n        let base_len = counted(|out| write!(out, \"{}\", BorrowedBuilderHelp(maximum)))?;\n"),
         ]),
         ("src/workspace_graph/constructor_failure/receiving/before.rs", "6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1") => (include_str!("workspace_graph/constructor_failure/receiving/before.rs"), 14616, "a43797702bc674b8764a7b5533059e49c0eb1272006d38aaf22538bf8334254b", &[
@@ -1373,7 +1392,10 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
 fn constructor825_attempt_before(current: &str) -> String {
     assert_eq!(
         current,
-        include_str!("workspace_graph/constructor_failure/attempt.rs")
+        constructor_stage::report947_compiled(
+            "src/workspace_graph/constructor_failure/attempt.rs",
+            include_str!("workspace_graph/constructor_failure/attempt.rs")
+        )
     );
     assert_eq!(current.len(), 4136);
     assert_eq!(
@@ -1400,7 +1422,7 @@ fn initial845_current_owner_before(source: &str, current: &str) -> Option<String
             ("        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::refusal(budget, length);\n", ""),
             ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    exclusive_debits::debit(budget, length);\n", ""),
         ]),
-        "src/workspace_graph/initial_report/build.rs" => (normalized.as_deref().unwrap_or(include_str!("workspace_graph/initial_report/build.rs")), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
+        "src/workspace_graph/initial_report/build.rs" => (normalized.as_deref().unwrap_or(constructor_stage::report947_compiled("src/workspace_graph/initial_report/build.rs", include_str!("workspace_graph/initial_report/build.rs"))), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
             ("                #[cfg(feature = \"unstable-workflow-profiling\")]\n                let mut exclusive = crate::bounded_output::exclusive_debits::attempt(\n                    resolve_builder_bytes,\n                    layouts.receipt(),\n                    fallback_mode,\n                );\n                let result = constructor_failure::attempt::run(active_builder_limit(), || {\n", "                constructor_failure::attempt::run(active_builder_limit(), || {\n"),
             ("                });\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                exclusive.complete(result.observation_succeeded());\n                result\n", "                })\n"),
         ]),
@@ -1428,36 +1450,6 @@ fn initial845_current_owner_before(source: &str, current: &str) -> Option<String
     assert_eq!(before.len(), old_length);
     assert_eq!(source_sha(&before), old_sha);
     Some(before)
-}
-
-// Closed complete legacy ledger ENTRY after the authentic current #908 inverse.
-fn initial845_ledger_entry(source: &str, current: &str) -> Option<String> {
-    if source != "src/bounded_output.rs" {
-        return None;
-    }
-    assert_eq!(current.len(), 51963);
-    assert_eq!(
-        source_sha(current),
-        "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a"
-    );
-    let mut entry = current.to_owned();
-    for &(new, old) in &[
-        ("pub(crate) mod cfg_reservation;\npub(crate) mod format_acceptance;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n", "pub(crate) mod format_acceptance;\npub(crate) mod cfg_reservation;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n"),
-        ("            ACTIVE.with(|active| {\n                active.replace(previous.clone());\n            });\n            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::workflow_profile::plan_comparison::observe_ledger_transition();\n            if let Some(parent) = previous {\n                if !reserve(Some(&parent), consumed) {\n                    record_refusal(&parent, consumed);\n", "            ACTIVE.with(|active| {\n                active.replace(previous.clone());\n            });\n            if let Some(parent) = previous {\n                if !reserve(Some(&parent), consumed) {\n                    record_refusal(&parent, consumed);\n"),
-        ("        stage: Cell::new(None),\n    });\n    let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::workflow_profile::plan_comparison::observe_ledger_transition();\n    let restore = Restore {\n        previous,\n        current: Rc::clone(&budget),\n", "        stage: Cell::new(None),\n    });\n    let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));\n    let restore = Restore {\n        previous,\n        current: Rc::clone(&budget),\n"),
-        ("    stage: ReservationStage,\n    operation: impl FnOnce() -> T,\n) -> T {\n    #[cfg(test)]\n    let _allocation_phase = crate::test_allocation_observer::phase_guard(stage);\n    let restore = reservation_stage_guard(stage);\n    let value = operation();\n    drop(restore);\n", "    stage: ReservationStage,\n    operation: impl FnOnce() -> T,\n) -> T {\n    let restore = reservation_stage_guard(stage);\n    let value = operation();\n    drop(restore);\n"),
-        ("    if let Some(budget) = active() {\n        budget.floor.set(0);\n    }\n}\n\n// Read-only feature evidence; no ledger reference or reservation authority escapes.\n#[cfg(feature = \"unstable-workflow-profiling\")]\npub(crate) fn active_ledger_snapshot()\n-> Option<crate::workflow_profile::plan_comparison::LedgerSnapshot> {\n    ACTIVE.with(|active| {\n        let active = active.try_borrow().ok()?;\n        let budget = active.as_ref()?;\n        crate::workflow_profile::plan_comparison::LedgerSnapshot::observe(\n            Rc::as_ptr(budget) as usize,\n            budget.remaining.get(),\n        )\n    })\n}\n\npub(crate) fn active_remaining() -> Option<usize> {\n", "    if let Some(budget) = active() {\n        budget.floor.set(0);\n    }\n}\n\npub(crate) fn active_remaining() -> Option<usize> {\n"),
-        ("        );\n    }\n}\n\n/// Keep the original clone's text debit and refusal/floor selection while\n/// borrowing its immutable input instead of allocating a temporary String.\n/// The caller must hold that input through the returned view. This grants no\n/// heap backing or authority and retains the original clone tariff unchanged.\npub(crate) fn borrowed_clone_view(value: &str) -> &str {\n    let budget = active();\n    if !reserve(budget.as_deref(), value.len()) {\n        return \"\";\n    }\n    value\n}\n\n// Same input, budget owner, reserve receiver and bool as budgeted_clone. Its\n// old String result slot covers this replacement borrowed-text result; no\n// unused bytes are credited and no heap-carrier allowance is borrowed.\nconst _: () = {\n    assert!(std::mem::size_of::<&str>() <= std::mem::size_of::<String>());\n    assert!(std::mem::align_of::<&str>() <= std::mem::align_of::<String>());\n};\n", "        );\n    }\n}\n"),
-] {
-        assert_eq!(entry.matches(new).count(), 1, "unique complete legacy ledger ENTRY hunk");
-        entry = entry.replacen(new, old, 1);
-    }
-    assert_eq!(entry.len(), 50190);
-    assert_eq!(
-        source_sha(&entry),
-        "d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5"
-    );
-    Some(entry)
 }
 
 // Fixed complete original #845 owner inputs; all historical pipelines remain intact.

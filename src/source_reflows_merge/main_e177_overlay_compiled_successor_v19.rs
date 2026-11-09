@@ -315,14 +315,73 @@ pub(super) fn authenticate_using(
 
 pub(super) const SCHEMA_V20: &str = "semaprax.finite-source-overlay-page.v20";
 pub(super) const SCHEMA_V21: &str = "semaprax.finite-source-overlay-page.v21";
+pub(super) const SCHEMA_V22: &str = "semaprax.finite-source-overlay-page.v22";
 const V21_OUTPUT_CAP: usize = 524_288;
 
+fn is_compressed(page: &Value) -> bool {
+    matches!(page["schema"].as_str(), Some(SCHEMA_V21 | SCHEMA_V22))
+}
+
+const BASE85_ALPHABET: &[u8; 85] =
+    b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
+
+fn decode_base85(encoded: &str) -> Result<Vec<u8>, &'static str> {
+    const INVALID: &str = "v22 canonical base85";
+    let remainder = encoded.len() % 5;
+    if remainder == 1 {
+        return Err(INVALID);
+    }
+
+    let mut digits = [u8::MAX; 256];
+    for (digit, symbol) in BASE85_ALPHABET.iter().enumerate() {
+        digits[usize::from(*symbol)] = digit as u8;
+    }
+
+    let mut decoded = Vec::with_capacity(encoded.len() / 5 * 4 + remainder.saturating_sub(1));
+    for chunk in encoded.as_bytes().chunks(5) {
+        let mut value = 0u32;
+        for symbol in chunk.iter().copied().chain(std::iter::repeat_n(b'~', 5 - chunk.len())) {
+            let digit = digits[usize::from(symbol)];
+            if digit == u8::MAX {
+                return Err(INVALID);
+            }
+            value = value.checked_mul(85)
+                .and_then(|value| value.checked_add(u32::from(digit)))
+                .ok_or(INVALID)?;
+        }
+
+        let bytes = value.to_be_bytes();
+        let width = chunk.len() - 1;
+        if width < 4 {
+            // A short group encodes the original bytes followed by zero
+            // padding. Reject alternate encodings of the same decoded bytes.
+            let mut padded = [0; 4];
+            padded[..width].copy_from_slice(&bytes[..width]);
+            let canonical = base85_digits(u32::from_be_bytes(padded));
+            if chunk != &canonical[..chunk.len()] {
+                return Err(INVALID);
+            }
+        }
+        decoded.extend_from_slice(&bytes[..width]);
+    }
+    Ok(decoded)
+}
+
+fn base85_digits(mut value: u32) -> [u8; 5] {
+    let mut encoded = [0; 5];
+    for digit in encoded.iter_mut().rev() {
+        *digit = BASE85_ALPHABET[(value % 85) as usize];
+        value /= 85;
+    }
+    encoded
+}
+
 pub(super) fn is_successor20(page: &Value) -> bool {
-    matches!(page["schema"].as_str(), Some(SCHEMA_V20 | SCHEMA_V21))
+    matches!(page["schema"].as_str(), Some(SCHEMA_V20 | SCHEMA_V21 | SCHEMA_V22))
 }
 
 pub(super) fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'static str> {
-    if page["schema"] != SCHEMA_V21 {
+    if !is_compressed(page) {
         return Ok((Cow::Borrowed(page), PAGE_CAP));
     }
     use base64::Engine as _;
@@ -339,12 +398,17 @@ pub(super) fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'stati
         .filter(|n| (1..=V21_OUTPUT_CAP).contains(n))
         .ok_or("v21 output bound")?;
     let encoded = page["payload"].as_str().ok_or("v21 payload type")?;
-    let engine = base64::engine::general_purpose::STANDARD;
-    let compressed = engine.decode(encoded).map_err(|_| "v21 canonical base64")?;
-    require!(
-        engine.encode(&compressed) == encoded,
-        "v21 canonical base64"
-    );
+    let compressed = if page["schema"] == SCHEMA_V22 {
+        decode_base85(encoded)?
+    } else {
+        let engine = base64::engine::general_purpose::STANDARD;
+        let compressed = engine.decode(encoded).map_err(|_| "v21 canonical base64")?;
+        require!(
+            engine.encode(&compressed) == encoded,
+            "v21 canonical base64"
+        );
+        compressed
+    };
     let mut raw = vec![0; length + 1];
     let mut decoder = Decompress::new(true);
     let status = decoder

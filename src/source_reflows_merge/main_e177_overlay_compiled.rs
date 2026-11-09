@@ -423,20 +423,6 @@ mod tests {
             "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
             "src/cleanup_plan/replay/physical_budget/authentication.rs",
             "src/source_reflows_merge/final_ready_inputs/projection_publication.rs",
-            "src/workspace_graph/expected_projection/identity_prebound_tests.rs",
-            "docs/evidence/prelude-forecast-286/exact-source-inverses.json",
-            "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs",
-            "src/workspace_graph/diagnostics/borrowed_help_tests.rs",
-            "docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json",
-            "src/workspace_graph/expected_projection/call_sites.rs",
-            "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md",
-            "docs/evidence/borrowed-refusal-help-824/default-message-20261025.json",
-            "docs/evidence/compact-replay-h006-transport-20261025/source-coverage-followup.json",
-            "docs/evidence/finite-source-overlay-v2-20261018/README.md",
-            "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
-            "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
-            "src/cleanup_plan/replay/owned_suffix/tests.rs",
-            "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
             "src/cleanup_plan/replay/factored/strategy/compact_receiving.rs",
             "src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs",
             "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs",
@@ -520,7 +506,7 @@ mod tests {
             "src/workspace_graph/loan_retention/overlap_tests.rs",
         ] {
             let declaration = format!("    {source:?},\n");
-            assert_eq!(current_scope_root.matches(&declaration).count(), 1);
+            assert_eq!(current_scope_root.matches(&declaration).count(), 1, "{source}");
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         // Retain the exact prior comment-restoration controls after restoring

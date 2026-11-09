@@ -1490,18 +1490,24 @@ def encode_v20(page,compiled_successor,transport_cap=PAGE_CAP):
 # V21 compresses the complete canonical V20 transport. The physical page
 # cap is unchanged and the decompressor has a separate finite output bound.
 V21_SCHEMA = 'semaprax.finite-source-overlay-page.v21'
+V22_SCHEMA = 'semaprax.finite-source-overlay-page.v22'
+COMPRESSED_SCHEMAS = (V21_SCHEMA,V22_SCHEMA)
 V21_OUTPUT_CAP = 524288
 
-def expand_v21(page):
+def expand_compressed_page(page):
  import zlib
- assert keys(page, ('schema','length','sha256','payload')) and page['schema']==V21_SCHEMA, 'v21 closed envelope'
+ assert keys(page, ('schema','length','sha256','payload')) and page['schema'] in COMPRESSED_SCHEMAS, 'compressed closed envelope'
  assert len(canonical(page))<=PAGE_CAP, 'v21 same one-page cap'
  length=page['length']
  assert type(length) is int and 0<length<=V21_OUTPUT_CAP, 'v21 output bound'
  encoded=page['payload']
  assert type(encoded) is str, 'v21 payload type'
- compressed=base64.b64decode(encoded,validate=True)
- assert base64.b64encode(compressed).decode()==encoded, 'v21 canonical base64'
+ if page['schema']==V21_SCHEMA:
+  compressed=base64.b64decode(encoded,validate=True)
+  assert base64.b64encode(compressed).decode()==encoded, 'v21 canonical base64'
+ else:
+  compressed=base64.b85decode(encoded)
+  assert base64.b85encode(compressed).decode()==encoded, 'v22 canonical base85'
  stream=zlib.decompressobj()
  raw=stream.decompress(compressed,length+1)
  assert stream.eof and not stream.unused_data and not stream.unconsumed_tail, 'v21 complete single stream'
@@ -1510,14 +1516,16 @@ def expand_v21(page):
  assert value.get('schema')==V20_SCHEMA, 'v21 complete v20 page'
  return value
 
-def encode_v21(page):
+def encode_compressed_page(page,schema=V22_SCHEMA):
  import zlib
  assert page.get('schema')==V20_SCHEMA, 'v21 complete v20 page'
  raw=canonical(page)
  assert len(raw)<=V21_OUTPUT_CAP, 'v21 output bound'
- result=dict(schema=V21_SCHEMA,length=len(raw),sha256=H(raw),
-             payload=base64.b64encode(zlib.compress(raw,9)).decode())
- assert expand_v21(result)==page, 'v21 ENTIRE v20 inverse'
+ assert schema in COMPRESSED_SCHEMAS, 'closed compression schema'
+ encode=base64.b64encode if schema==V21_SCHEMA else base64.b85encode
+ result=dict(schema=schema,length=len(raw),sha256=H(raw),
+             payload=encode(zlib.compress(raw,9)).decode())
+ assert expand_compressed_page(result)==page, 'ENTIRE compressed v20 inverse'
  return result
 
 # Main also published two named-view envelopes under V12 and V13. Select

@@ -346,7 +346,7 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     """Refresh the V21 transport while keeping both historical input sets."""
     ov = guard['_OVERLAY_NS']
     original = ov['compose_values'](before, policy, wire)
-    logical = ov['expand_v21'](wire)
+    logical = ov['expand_compressed_page'](wire)
     successor = ov['_v20_successor'](logical, ov['V21_OUTPUT_CAP'])
     rows = {row['source']: copy.deepcopy(row) for row in original['rows']}
     base = {row['source']: row for row in before['rows']}
@@ -451,7 +451,7 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     cap = ov['V21_OUTPUT_CAP']
     v12 = ov['encode_v12_view_labels'](v11, cap)
     v20 = ov['encode_v20'](ov['encode_v20_compact_inner'](v12, cap), successor, cap)
-    page = ov['canonical'](ov['encode_v21'](v20))
+    page = ov['canonical'](ov['encode_compressed_page'](v20))
     policy['page'] = dict(path=PAGE, length=len(page), sha256=sha(page))
     policy_bytes = ov['canonical'](policy)
     assert len(policy_bytes) <= ov['PAGE_CAP']
@@ -515,7 +515,7 @@ def refresh_overlay(repo, label, admit=()):
         'overlay_page.py POLICY pin is already stale; fix it before refreshing'
     policy, wire = ov['parse'](policy_raw), ov['parse'](page_raw)
     assert policy['page']['length'] == len(page_raw) and policy['page']['sha256'] == sha(page_raw)
-    if wire['schema'] == ov.get('V21_SCHEMA'):
+    if wire['schema'] in ov['COMPRESSED_SCHEMAS']:
         return refresh_overlay_v21(repo, guard, before, policy, wire, label, admit)
     assert wire['schema'] in (ov['V11_SCHEMA'], ov['V12_SCHEMA'], ov['V13_SCHEMA']), 'known packed wire'
     wire_schema = wire['schema']

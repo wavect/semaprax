@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1700677, 'sha256': 'b38d4febb0e795f2fbd208c24ee1d04b99cd1e9a5ec6b3282e4af4bdc4e005d8'}
+_FRONT_PIN = {'length': 1700735, 'sha256': '69405446839d8aa65862076b5fe6c7481ca4002b50788a9a887247a1ba3e7000'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -782,9 +782,9 @@ class TypedFragmentReferences(unittest.TestCase):
 
     def test_current_real_page_keeps_entire_v15_preimage(self):
         current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
-        if current['schema']==codec.V21_SCHEMA:
-            logical=codec.expand_v21(current)
-            self.assertEqual(codec.encode_v21(logical),current)
+        if current['schema'] in codec.COMPRESSED_SCHEMAS:
+            logical=codec.expand_compressed_page(current)
+            self.assertEqual(codec.encode_compressed_page(logical,current['schema']),current)
             cap=codec.V21_OUTPUT_CAP
             codec._v20_successor(logical,cap)
             compact=logical['page']
@@ -1167,8 +1167,8 @@ class CompactDictionaryV20(unittest.TestCase):
     @staticmethod
     def current():
         outer=codec.parse((Path(__file__).parent/'page.json').read_bytes())
-        if outer['schema']==codec.V21_SCHEMA:
-            codec.expand_v21(outer)
+        if outer['schema'] in codec.COMPRESSED_SCHEMAS:
+            codec.expand_compressed_page(outer)
             prior='5a2793a4da2c6447a9b2942148de346b0b5750e06207efe23477c05408f78944'
             outer=codec.parse(_pin_bytes(_source_bytes('e/'+prior),dict(length=261257,sha256=prior)))
         if outer['schema']==codec.V20_SCHEMA:

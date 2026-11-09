@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=211089
-POLICY_SHA256='35f1dd8074b771b03d26c90371f5e0fc4c261660b1603108ede51ae752364248'
+POLICY_SHA256='0f4565c0f17f7f9d7e21f7bf6b6dc0078d6f19fa69901b8f6c547ec9335576f8'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -322,7 +322,7 @@ def _load_fixed_codecs():
  import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=77783
+ length=78242
  fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
  try:
   info=os.fstat(fd)
@@ -332,7 +332,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='49266b84773c7450bce7858f10e4073e2bd6eb898d24f5515c14cff34f137dc4', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='b78eb876b690d42d5fec6ab2fd5d12ac118c7b9fcff9ee79691b85cf0fff0bae', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()
@@ -412,7 +412,7 @@ def encode_v10_pins(before,policy,page):
 
 
 def compose_values(before, policy, page):
- if page['schema']==V21_SCHEMA:return compose_v20(before,policy,expand_v21(page),V21_OUTPUT_CAP)
+ if page['schema'] in COMPRESSED_SCHEMAS:return compose_v20(before,policy,expand_compressed_page(page),V21_OUTPUT_CAP)
  if page['schema'] in (V12_SCHEMA,V13_SCHEMA) and keys(page,('schema','names','digests','page')):return compose_named_view_page(before,policy,page)
  if page['schema']==V20_SCHEMA:return compose_v20(before,policy,page)
  if page['schema']==V19_SCHEMA:return compose_v19(before,policy,page)
@@ -498,14 +498,14 @@ class Overlay:
   return policy,page
  def load_current(self):
   policy,page=self.load()
-  if page['schema']==V21_SCHEMA:authenticate_v20_registration(self,expand_v21(page),V21_OUTPUT_CAP)
+  if page['schema'] in COMPRESSED_SCHEMAS:authenticate_v20_registration(self,expand_compressed_page(page),V21_OUTPUT_CAP)
   if page['schema']==V20_SCHEMA:authenticate_v20_registration(self,page)
   if page['schema']==V19_SCHEMA:authenticate_v19_registration(self,page)
   return policy,page
  def compose(self, before):
   global _V21_COMPOSITION
   policy,page=self.load_current()
-  if page['schema']!=V21_SCHEMA:return compose_values(before,policy,page)
+  if page['schema'] not in COMPRESSED_SCHEMAS:return compose_values(before,policy,page)
   # Each call authenticates the complete policy/page and both current
   # registration sources first. Only the pure composition is shared.
   key=(canonical(before),POLICY_SHA256,policy['page']['sha256'])

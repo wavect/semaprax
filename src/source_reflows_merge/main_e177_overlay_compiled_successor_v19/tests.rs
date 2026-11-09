@@ -416,7 +416,7 @@ fn actual20() -> (Value, Value, Value) {
     if page["schema"] == SCHEMA_V20 {
         return (before, policy, (*page).clone());
     }
-    assert_eq!(page["schema"], SCHEMA_V21);
+    assert!(is_compressed(&page));
     compose20(before.clone(), &policy, &page).unwrap();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let sealed = |length, sha| {
@@ -742,7 +742,7 @@ fn v20_entire_authority_hostile_corpus_and_warm_injected_reader_stay_fail_closed
         stale["compiled_successor"] = entry.into_owned();
         stale["compiled_successor"]["current"]["sha256"] = "0".repeat(64).into();
         stale["compiled_successor"]["current"]["archive"] = format!("e/{}", "0".repeat(64)).into();
-        let stale = if page["schema"] == SCHEMA_V21 {
+        let stale = if is_compressed(&page) {
             compressed_fixture20(&stale)
         } else {
             stale
@@ -820,19 +820,55 @@ fn compressed_overlay_keeps_both_whole_histories_and_refuses_damaged_streams() {
     assert_eq!(inverse, before);
 
     let engine = base64::engine::general_purpose::STANDARD;
-    let mut compressed = engine.decode(wire["payload"].as_str().unwrap()).unwrap();
+    let payload = wire["payload"].as_str().unwrap();
+    let base85 = wire["schema"] == SCHEMA_V22;
+    let mut compressed = if base85 {
+        decode_base85(payload).unwrap()
+    } else {
+        engine.decode(payload).unwrap()
+    };
     compressed.push(0);
+    let damaged = if base85 {
+        let mut encoded = Vec::new();
+        for chunk in compressed.chunks(4) {
+            let mut bytes = [0; 4];
+            bytes[..chunk.len()].copy_from_slice(chunk);
+            let digits = base85_digits(u32::from_be_bytes(bytes));
+            encoded.extend_from_slice(&digits[..chunk.len() + 1]);
+        }
+        String::from_utf8(encoded).unwrap()
+    } else {
+        engine.encode(compressed)
+    };
     for (key, value) in [
         ("length", 0.into()),
         ("length", (V21_OUTPUT_CAP + 1).into()),
         ("length", (canonical(&logical).len() - 1).into()),
         ("sha256", "0".repeat(64).into()),
-        ("payload", engine.encode(compressed).into()),
-        ("payload", "AAAA!".into()),
+        ("payload", damaged.into()),
+        ("payload", "AAAA\"".into()),
         ("unknown", true.into()),
     ] {
         let mut bad = (*wire).clone();
         bad[key] = value;
         assert!(compose20(before.clone(), &policy, &bad).is_err(), "{key}");
+    }
+}
+
+
+#[test]
+fn base85_enforces_canonical_groups_and_tails() {
+    for (encoded, bytes) in [
+        ("", &[][..]),
+        ("00", &[0][..]),
+        ("000", &[0, 0][..]),
+        ("0000", &[0, 0, 0][..]),
+        ("00000", &[0, 0, 0, 0][..]),
+        ("|NsC0", &[255, 255, 255, 255][..]),
+    ] {
+        assert_eq!(decode_base85(encoded).unwrap(), bytes);
+    }
+    for encoded in ["0", "01", "0001", "~~~~~", "00/00", "0 000"] {
+        assert!(decode_base85(encoded).is_err(), "{encoded}");
     }
 }

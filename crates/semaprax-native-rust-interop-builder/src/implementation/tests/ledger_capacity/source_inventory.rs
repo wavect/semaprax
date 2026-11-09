@@ -1,3 +1,4 @@
+// The FINAL source checker authenticates this complete inventory at 1,500 lines.
 #[rustfmt::skip]
 macro_rules! native_family_source { (owner1) => { include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs") }; (owner2) => { include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs") }; (owner4) => { include_str!("../../../../../src/hir/inspection/paid_nul.rs") }; (owner5) => { include_str!("../../../../../src/hir/inspection/paid_nul/pending.rs") }; (owner6) => { include_str!("../../../../../src/hir/inspection/paid_nul/tests.rs") }; }
 #[rustfmt::skip]

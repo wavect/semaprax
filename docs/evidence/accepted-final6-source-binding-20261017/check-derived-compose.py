@@ -137,7 +137,9 @@ class Controls(unittest.TestCase):
             if isinstance(node, ast.FunctionDef) and node.name == 'bounded'))
         self.assertEqual(actual, expected)
         calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
-                 and isinstance(node.func, ast.Name) and node.func.id == 'bounded']
+                 and isinstance(node.func, ast.Name) and node.func.id == 'bounded'
+                 and len(node.args) == 3
+                 and all(isinstance(arg, ast.Constant) for arg in node.args[1:])]
         pins = [(ast.literal_eval(node.args[1]), ast.literal_eval(node.args[2]))
                 for node in calls]
         self.assertIn((len(helper), hashlib.sha256(helper).hexdigest()), pins)
@@ -202,6 +204,34 @@ class Controls(unittest.TestCase):
         returned['rows'][0]['unknown_foreign_field'] = {'entire': ['mutation']}
         self.assertEqual(guard['packet'](), before)
 
+    def test_named_view_revalidation_precedes_original_publication(self):
+        tree = ast.parse((D / 'check-source.py').read_text())
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                        and node.name == '_bind_final_publication')
+        bind = {}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), '<publication>', 'exec'), bind)
+        source = (
+            "def publish(b, git, a):\n"
+            " assert git('rev-parse','HEAD').decode().strip()==a.expected_head\n"
+            " result='complete'\n"
+            " return result\n"
+        )
+        bound = bind['_bind_final_publication'](source)
+        exec(bound, bind)
+        from types import SimpleNamespace
+        head = SimpleNamespace(expected_head='expected')
+        finish = []
+        binder = SimpleNamespace(finish_named_views=lambda: finish.append('verified'))
+        self.assertEqual(bind['publish'](binder, lambda *_: b'expected', head), 'complete')
+        self.assertEqual(finish, ['verified'])
+
+        def reject_late_mutation():
+            raise AssertionError('source drift')
+
+        binder.finish_named_views = reject_late_mutation
+        with self.assertRaisesRegex(AssertionError, 'source drift'):
+            bind['publish'](binder, lambda *_: b'expected', head)
+
     def test_fresh_physical_authentication_precedes_every_cache_hit(self):
         bounded = reader()
         with tempfile.TemporaryDirectory(prefix='opt923-', dir='/Volumes/Semaprax/runtime-tmp') as tmp:
@@ -219,11 +249,15 @@ class Controls(unittest.TestCase):
                     reads.append('load')
                     raw = bounded(path, len(data), digest)
                     return namespace['compose_values'](json.loads(raw), {}, {})
-            def overlay():
-                reads.append('program')
-                bounded(path, len(data), digest)
-                return Owner()
-            guard = {'_overlay': overlay, '_OVERLAY_NS': namespace}
+            guard = dict(reads=reads, bounded=bounded, path=path, data=data,
+                         digest=digest, Owner=Owner, _OVERLAY_NS=namespace)
+            exec(compile(
+                "def _overlay():\n"
+                "    reads.append('program')\n"
+                "    bounded(path, len(data), digest)\n"
+                "    return Owner()\n",
+                '<test-guard>', 'exec',
+            ), guard)
             install(guard)
             for _ in range(2):
                 self.assertEqual(guard['_overlay']().compose(), [{'value': 1}, {}, {}])
@@ -247,8 +281,15 @@ class Controls(unittest.TestCase):
 
 def guard_namespace():
     path = R / 'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
-    raw = path.read_bytes()
-    assert len(raw) == 19144 and hashlib.sha256(raw).hexdigest() == 'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3'
+    wrapper = ast.parse((D / 'check-source.py').read_text())
+    binding = next(node for node in wrapper.body
+                   if isinstance(node, ast.Assign) and len(node.targets) == 1
+                   and isinstance(node.targets[0], ast.Name)
+                   and node.targets[0].id == 'current_binding')
+    call = ast.parse(ast.literal_eval(binding.value)).body[0].value
+    assert isinstance(call, ast.Call) and call.func.id == 'bounded'
+    length, digest = map(ast.literal_eval, call.args[1:])
+    raw = reader()(path, length, digest)
     guard = {'__file__': str(path), '_AUTHENTICATED_PROGRAM': raw}
     exec(compile(raw, str(path), 'exec'), guard)
     return guard

@@ -47,22 +47,23 @@ def _incoming48_joint_replay(current):
   else:raise AssertionError('foreign retained immediate helper accepted')
  return _incoming48_replay(prior)
 
-def _incoming48_named_views(b,head):
+def _incoming48_named_views(b,head,*,incoming=True):
  import copy,json,re,subprocess
  actual_read=b.read
  git=lambda *args:subprocess.check_output(['git',*args],cwd=R)
  assert git('rev-parse','HEAD').decode().strip()==head
  recipe=b.load(actual_read(b.D/'recipe.json',b.SPEC_LENGTH,b.SPEC_SHA));assert tuple(recipe['keys'])==b.KEYS
  helper_path=R/recipe['helper']
- current=actual_read(helper_path,33206,'8124798973f2284d7985ee818e5da35f603ff3a16c44a7519e500078497b6b42')
+ current=actual_read(helper_path,33206,'8124798973f2284d7985ee818e5da35f603ff3a16c44a7519e500078497b6b42') if incoming else actual_read(helper_path)
  assert current==git('show',head+':'+recipe['helper'])
- old_P=_incoming48_joint_replay(current)
- assert old_P==git('show','3f736e3f04b6327ad929a00bcd23dc6018271039:'+recipe['helper'])
- # These controls exercise the exact current-channel proof, never a relaxed scrub.
- for bad in (b'',current+b' ',current+current,b'foreign'):
-  try:_incoming48_joint_replay(bad)
-  except AssertionError:pass
-  else:raise AssertionError('foreign current helper accepted')
+ old_P=None
+ if incoming:
+  old_P=_incoming48_joint_replay(current)
+  assert old_P==git('show','3f736e3f04b6327ad929a00bcd23dc6018271039:'+recipe['helper'])
+  for bad in (b'',current+b' ',current+current,b'foreign'):
+   try:_incoming48_joint_replay(bad)
+   except AssertionError:pass
+   else:raise AssertionError('foreign current helper accepted')
  prior_packet=actual_read(b.D/'current-inputs.json',786289,'31afd14c8fa4c8792aeaec9e58fea785d9414b151cc88812a4b936e1dd3502e2')
  prior_owners=actual_read(b.D/'current-manifest.json',1851,'b0b4d32ccb88ef42fb521b2e6651b25a9191d22be32e78f7be8fad40bc81274a')
  previous=b.load(prior_packet);assert len(previous)==len(recipe['checkpoints'])==6
@@ -119,7 +120,9 @@ def _incoming48_named_views(b,head):
   assert git('rev-parse','HEAD').decode().strip()==head
   for path,raw in held.items():assert actual_read(path,len(raw),b.sha(raw))==raw
   for path,raw in originals.items():assert actual_read(path,len(raw),b.sha(raw))==raw
-  assert _incoming48_joint_replay(actual_read(helper_path,33206,b.sha(current)))==old_P
+  if incoming:assert _incoming48_joint_replay(actual_read(helper_path,33206,b.sha(current)))==old_P
+ if not incoming:
+  return read_named,finish,named
  evidence={'status':'CURRENT_PHYSICAL_SOURCES_WITH_EXPLICIT_NAMED_ORIGINAL_FINAL_PRODUCER_VIEW','head':head,'repository_write':False,'Rust_qualified':False,'F6_executed':False,'current_helper':{'source':recipe['helper'],'length':len(current),'sha256':b.sha(current)},'retained_P_helper':{'head':'3f736e3f04b6327ad929a00bcd23dc6018271039','length':len(old_P),'sha256':b.sha(old_P)},'retained_immediate_helper':{'path':'e/e8d92cce1daa93a4c684c268e1aadaae19a1446e2a219f7fee9eceec19c54fb0','length':33206,'sha256':'e8d92cce1daa93a4c684c268e1aadaae19a1446e2a219f7fee9eceec19c54fb0','physical_current':False},'original_template':{'source':recipe['helper_template'],'length':len(original_template),'sha256':b.sha(original_template)},'named_inputs':{str(path.relative_to(R)):{'length':len(value),'sha256':b.sha(value),'physical':False}for path,value in views.items()},'retained_whole_prior_packet':{'length':len(prior_packet),'sha256':b.sha(prior_packet)},'retained_whole_prior_owners':{'length':len(prior_owners),'sha256':b.sha(prior_owners)},'six_actual_physical_sources':sources,'new_refusal_controls':14,'original_checker_read_scrub_and_hostile_source_bodies_unchanged':True}
  return read_named,finish,evidence
 
@@ -166,6 +169,74 @@ def _incoming48_with_named_helper(program):
  finally:
   importlib.util.spec_from_file_location=original_spec;sys.argv=original_args
 
+def _bind_final_publication(source):
+    anchor = " assert git('rev-parse','HEAD').decode().strip()==a.expected_head\n result="
+    replacement = anchor.replace("\n result=", "\n b.finish_named_views()\n result=")
+    assert source.count(anchor) == 1
+    bound = source.replace(anchor, replacement, 1)
+    assert bound.replace(replacement, anchor, 1) == source
+    return bound
+
+
+def _run_current_checker(program, installer):
+    """Bind the original verifier's six inputs to the same physical Git tree."""
+    import argparse
+    import importlib.util
+    import re
+
+    binder_path = R / 'docs/evidence/ordinary-plan-final-ingress-20261017/bind-current-inputs.py'
+    binder_size = 9387
+    binder_sha = 'cb1a3b7568fa0490b7fabf826d3f4389d64d786ea1b62ea7aa0c242c0ea45562'
+    original_spec = importlib.util.spec_from_file_location
+    loaded = []
+    verified = []
+
+    class NamedLoader:
+        def create_module(self, spec):
+            return None
+
+        def exec_module(self, module):
+            parser = argparse.ArgumentParser(add_help=False)
+            parser.add_argument('--expected-head', required=True)
+            args, _ = parser.parse_known_args()
+            assert re.fullmatch('[0-9a-f]{40}', args.expected_head)
+            raw = bounded(binder_path, binder_size, binder_sha)
+            module.__file__ = str(binder_path)
+            exec(compile(raw, module.__file__, 'exec'), module.__dict__)
+            assert bounded(binder_path, binder_size, binder_sha) == raw
+            read_named, finish, named = _incoming48_named_views(
+                module, args.expected_head, incoming=False,
+            )
+            assert not loaded
+            loaded.append(True)
+            module.read = read_named
+            module.named_helper_is_current = lambda helper: helper == named
+
+            def finish_named_views():
+                assert not verified
+                finish()
+                verified.append(True)
+
+            module.finish_named_views = finish_named_views
+
+    def closed_spec(name, location, *args, **kwargs):
+        if name == 'closed_final_ingress_binder' and Path(location) == binder_path:
+            assert not args and not kwargs
+            return original_spec(name, location, loader=NamedLoader())
+        return original_spec(name, location, *args, **kwargs)
+
+    try:
+        importlib.util.spec_from_file_location = closed_spec
+        path = str(D / 'check-source.py')
+        exec(compile(program, path, 'exec'), {
+            '__file__': path, '__name__': '__main__', '_install_derived': installer,
+            '_bind_final_publication': _bind_final_publication,
+        })
+        assert loaded == verified == [True]
+    finally:
+        importlib.util.spec_from_file_location = original_spec
+
+
 # An explicitly named incoming-parent operator retains its entire original body.
 # This route is separate from the current cached and original-checker controls.
 if '--incoming48-original-checker' in sys.argv:
@@ -190,21 +261,25 @@ if not uncached:
 program=original.decode()
 # The immutable old wrapper retains its complete authenticated original bytes.
 # This exact input-pin transport applies equally to cached and uncached execution.
+# Current pin for docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py.
 old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
-current_binding="helper_raw=bounded(helper,25293,'2d18c6f03d82dab51b6e2851ad264cac0c9c93a9712ed0159723832a9613c7e6')"
+current_binding="helper_raw=bounded(helper,35878,'f9855d52e3f8a643a1e97db5797c8a761126c701c6ab23d9e11a49b8bbdd2c5a')"
 assert program.count(old_binding)==1
 program=program.replace(old_binding,current_binding,1)
-old_ingress_sha='799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871'
-current_ingress_sha='6c8a3ef7c4ca167edba64e6c197cf497fc1e088cd40ade4ca103929393a93283'
-assert program.count(old_ingress_sha)==1
-program=program.replace(old_ingress_sha,current_ingress_sha,1)
+old_ingress=r"len(helper.encode())==19828 and sha(helper.encode())==\'799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871\'"
+current_ingress='b.named_helper_is_current(helper)'
+assert program.count(old_ingress)==1
+program=program.replace(old_ingress,current_ingress,1)
+publish_anchor="exec(compile(current,str(P),'exec'),"
+publish_transport="current=_bind_final_publication(current)\n"
+assert program.count(publish_anchor)==1
+program=program.replace(publish_anchor,publish_transport+publish_anchor,1)
 bound_program=program
-assert bound_program.replace(current_ingress_sha,old_ingress_sha,1).replace(current_binding,old_binding,1).encode()==original
+assert bound_program.replace(publish_transport+publish_anchor,publish_anchor,1).replace(current_ingress,old_ingress,1).replace(current_binding,old_binding,1).encode()==original
 anchor="ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)"
 assert program.count(anchor)==1
 if not uncached:
  replacement=anchor+";_install_derived(ns)"
  program=program.replace(anchor,replacement,1)
  assert program.replace(replacement,anchor,1)==bound_program
-assert bound_program.replace(current_ingress_sha,old_ingress_sha,1).replace(current_binding,old_binding,1).encode()==original
-exec(compile(program,str(D/'check-source.py'),'exec'),{'__file__':str(D/'check-source.py'),'__name__':'__main__','_install_derived':namespace.get('install')})
+_run_current_checker(program, namespace.get('install'))

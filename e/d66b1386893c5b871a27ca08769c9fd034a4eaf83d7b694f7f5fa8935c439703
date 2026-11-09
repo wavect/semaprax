@@ -1,0 +1,86 @@
+{
+  "src/cleanup_plan/replay/factored/oracle_order.rs": {
+    "current_length": 32306,
+    "current_sha256": "b7447591bb3513b3f6efd51a054d8c058941b131c038ff0698d5fa7602a4d0a1",
+    "before_length": 31188,
+    "before_sha256": "a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011",
+    "before_fixture": "src__cleanup_plan__replay__factored__oracle_order.rs.txt"
+  },
+  "src/cleanup_plan/replay/factored/oracle_order/tests.rs": {
+    "current_length": 21616,
+    "current_sha256": "bd69a7c25d0b254fe038507e0cdd8f238e6142571a547bad24f3c4aa50f7bbdc",
+    "before_length": 21616,
+    "before_sha256": "bd69a7c25d0b254fe038507e0cdd8f238e6142571a547bad24f3c4aa50f7bbdc",
+    "before_fixture": "src__cleanup_plan__replay__factored__oracle_order__tests.rs.txt"
+  },
+  "src/cleanup_plan/replay/factored/oracle_order/before_flat_identity.rs": {
+    "current_length": 31174,
+    "current_sha256": "9f5d603e36fe650ad7cf84c9832290df5c0ad6c5974371a7195e9cf4c560b444",
+    "before_length": 0,
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before_fixture": null
+  },
+  "src/cleanup_plan/replay/factored/oracle_order/flat_identity_tests.rs": {
+    "current_length": 13160,
+    "current_sha256": "6939ce58e1328315636c976c70a9087cafb266274470e400697ef20410317b33",
+    "before_length": 0,
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before_fixture": null
+  },
+  "src/cleanup_plan/replay/continuation_storage.rs": {
+    "current_length": 23787,
+    "current_sha256": "fd968b960e26c6b8d609f0b1c172d814eb022b34ecf476c2a9fe8a8e0db6fcd1",
+    "before_length": 23067,
+    "before_sha256": "531716f8be3d3a7c3d3b1395a4d4e3474c33e807fc5e47428392c41a971e745b",
+    "before_fixture": "src__cleanup_plan__replay__continuation_storage.rs.txt"
+  },
+  "src/cleanup_plan/replay/continuation_storage/oracle_reached.rs": {
+    "current_length": 5529,
+    "current_sha256": "923c2ee51354e1f44da9805d51c4a2768d591dab529895abc2c93b08484ec368",
+    "before_length": 0,
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before_fixture": null
+  },
+  "src/cleanup_plan/replay/continuation_storage/oracle_reached_tests.rs": {
+    "current_length": 11566,
+    "current_sha256": "2bac4125c2f9b2c4d6a1869d4e60d3177c1906bffdcbcef9269b48a40649e145",
+    "before_length": 0,
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before_fixture": null
+  },
+  "src/cleanup_plan/replay/continuation_storage/reached.rs": {
+    "current_length": 6548,
+    "current_sha256": "d8c98f2a9a41aaa5a03ff2c9d6bf6b7476f7f77ecdc548958b45386fa7c4238a",
+    "before_length": 6399,
+    "before_sha256": "bf60981f88a31c20b7151d010bc1360461048573b9164e00dd8c9124305d9278",
+    "before_fixture": "src__cleanup_plan__replay__continuation_storage__reached.rs.txt"
+  },
+  "src/cleanup_plan/replay/continuation_storage/reached_tests.rs": {
+    "current_length": 20538,
+    "current_sha256": "5636a96a1d98a0e7ea08d0a963fbdb7a2671a638137f6dbd88c6d76d6c9c30e2",
+    "before_length": 19239,
+    "before_sha256": "ee9bebd2537779b373c67a2e16334664cb13d594ef97761d3f987257c1f4c101",
+    "before_fixture": "src__cleanup_plan__replay__continuation_storage__reached_tests.rs.txt"
+  },
+  "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
+    "current_length": 44831,
+    "current_sha256": "994117cf20c54364361e2ad647d7d39facd7ed6d568ff77cfbc9773c1662b400",
+    "before_length": 42710,
+    "before_sha256": "3d68e87d1e68adabab772808f670ca189f7b3f776dfc2b54cf612b8c6d2f029b",
+    "before_fixture": "src__cleanup_plan__replay__path_join__frontier_tests__custody.rs.txt"
+  },
+  "docs/SCOPED-REPLAY-ORACLE-ACCOUNT-V1.md": {
+    "current_length": 11037,
+    "current_sha256": "1b572ecd55e4eb7a184fe90f49131d2af1e74470026b075d970f6a417cb89176",
+    "before_length": 8304,
+    "before_sha256": "8f8af8a425bf08390ac15bed18ffb654aaa2bc1475d35d2a132611dc95f4d8f0",
+    "before_fixture": "docs__SCOPED-REPLAY-ORACLE-ACCOUNT-V1.md.txt"
+  },
+  "docs/REPLAY-CONTINUATION-STORAGE-V1.md": {
+    "current_length": 2838,
+    "current_sha256": "19d08bba9dcbadceb311daf9a51aea8971f299187924f6589c8a3fce27f9ebc7",
+    "before_length": 1883,
+    "before_sha256": "a3aec053053df5a0141609750bbc84a6d3f59acaf6829de3d1c03ba7731c203c",
+    "before_fixture": "docs__REPLAY-CONTINUATION-STORAGE-V1.md.txt"
+  }
+}

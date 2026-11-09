@@ -7,10 +7,17 @@ use crate::ast::{
 };
 use std::collections::BTreeMap;
 
+#[path = "call_carriers/closed_roots.rs"]
+mod closed_roots;
+
 #[derive(Default)]
 pub(super) struct Proof {
     pub(super) roots: usize,
     pub(super) bytes: usize,
+    pub(super) retained: super::retained_scratch::Counts,
+    // Reused by the already executing modular traversal, not another walker.
+    pub(super) current_retained: u16,
+    pub(super) retention_closed: bool,
 }
 impl Proof {
     fn charge<T>(&mut self, value: &T) {
@@ -29,17 +36,71 @@ struct Names<'a> {
     len: usize,
 }
 impl<'a> Names<'a> {
+    // Count0..128 needs8 bits. The same already-owned usize also holds a
+    // conservative byte-length residue set; no new field/backing is retained.
+    const COUNT_BITS: usize = u8::BITS as usize;
+    const COUNT_MASK: usize = u8::MAX as usize;
+    const FILTER_BITS: usize = {
+        assert!(usize::BITS > u8::BITS);
+        usize::BITS as usize - Self::COUNT_BITS
+    };
     fn insert(&mut self, name: &'a str, proof: &mut Proof) -> bool {
+        #[cfg(test)]
+        if tests::before_names_selected() {
+            return tests::names_before_insert!(self, name, proof);
+        }
         proof.charge(&(&*self, name));
-        if self.len == self.entries.len() {
+        // Scalar bank40: count mask3, capacity comparison3, str length2,
+        // residue3, shift-add3, shift3, index2, packed OR3/NOT2/AND3,
+        // count-add3/final OR3, and four retained/publication scalars.
+        // Two fat loans fund str::len actual/formal. Array len and IndexMut
+        // each own actual/formal loans, the returned slot loan, and Some
+        // producer/receiver values. Four booleans fund comparison/publication
+        // including early refusal. All roles are prepaid before formation;
+        // the unchanged Names layout and all128 slots stay fully paid.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 40],
+            [&str; 2],
+            [bool; 4],
+            [&mut [Option<&str>; 128]; 2],
+            &mut Option<&str>,
+            [Option<&str>; 2],
+            [&[Option<&str>; 128]; 2],
+        )>());
+        let count = self.len & Self::COUNT_MASK;
+        if count == self.entries.len() {
             return false;
         }
-        self.entries[self.len] = Some(name);
-        self.len += 1;
+        let residue = name.len() % Self::FILTER_BITS;
+        let bit = 1usize << (Self::COUNT_BITS + residue);
+        self.entries[count] = Some(name);
+        self.len = ((self.len | bit) & !Self::COUNT_MASK) | (count + 1);
         true
     }
     fn contains(&self, name: &str, proof: &mut Proof) -> bool {
+        #[cfg(test)]
+        if tests::before_names_selected() {
+            tests::names_before_contains!(self, name, proof);
+        }
         proof.charge(&(self, name));
+        // This is a negative filter only. Collisions always execute the full
+        // original string scan; no bit or source spelling grants equality.
+        // Scalar bank24: mask3, length2, remainder3, add3, shift3,
+        // bit-test3, zero comparison3, three retained scalars and zero.
+        // Two fat loans fund str::len actual/formal, four booleans cover
+        // the new comparison and branch/publication roles. Existing scan
+        // cursor/index/Option/string-equality banks remain reached in full.
+        proof.bytes =
+            proof
+                .bytes
+                .saturating_add(std::mem::size_of::<([usize; 24], [&str; 2], [bool; 4])>());
+        let count = self.len & Self::COUNT_MASK;
+        let residue = name.len() % Self::FILTER_BITS;
+        let bit = 1usize << (Self::COUNT_BITS + residue);
+        if self.len & bit == 0 {
+            proof.charge(&false);
+            return false;
+        }
         // One scalar cursor. No iterator, closure environment, Some(name)
         // construction or Option equality pipeline is formed by this search.
         proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());
@@ -50,7 +111,7 @@ impl<'a> Names<'a> {
             proof.bytes = proof
                 .bytes
                 .saturating_add(2 * std::mem::size_of::<usize>() + std::mem::size_of::<bool>());
-            if index == self.len {
+            if index == count {
                 proof.charge(&false);
                 return false;
             }
@@ -78,7 +139,6 @@ impl<'a> Names<'a> {
             index += 1;
         }
     }
-
     fn pattern(&mut self, pattern: &'a MatchPattern, depth: usize, proof: &mut Proof) -> bool {
         proof.charge(&(&*self, pattern, depth));
         if depth == 128 {
@@ -200,30 +260,236 @@ fn target(
     admitted
 }
 
+#[cfg(test)]
+macro_rules! before_scratch_body {
+    ($program:ident, $authored:ident, $imports:ident) => {{
+        let mut proof = Proof::default();
+        proof.charge(&($program, $authored, $imports));
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());
+        for function in &$program.functions {
+            proof.charge(&function);
+            // Generic owner bodies can be materialized repeatedly; no discount.
+            if !function.type_parameters.is_empty() {
+                continue;
+            }
+            let mut names = Names {
+                entries: [None; 128],
+                len: 0,
+            };
+            proof.charge(&names);
+            let mut complete = function.params.iter().all(|p| {
+                proof.charge(&p);
+                names.insert(&p.name, &mut proof)
+            });
+            for root in call_identity::roots(function) {
+                // Fixed walker scratch is retained for this complete pass, including
+                // failed proofs. Each visited formal/reference is charged too.
+                proof.bytes = proof
+                    .bytes
+                    .saturating_add(std::mem::size_of::<[Option<(&Expr, usize)>; 129]>());
+                complete &= call_identity::walk(root, &mut |expression| {
+                    proof.charge(&expression);
+                    match &expression.kind {
+                        ExprKind::Block { statements, .. } => statements.iter().all(|s| match s {
+                            Statement::Let { name, .. } | Statement::Assign { name, .. } => {
+                                names.insert(name, &mut proof)
+                            }
+                            Statement::For { item, .. } | Statement::ForOwn { item, .. } => {
+                                names.insert(item, &mut proof)
+                            }
+                            Statement::ForBorrow { item, index, .. } => {
+                                names.insert(item, &mut proof)
+                                    && index
+                                        .as_ref()
+                                        .is_none_or(|i| names.insert(&i.name, &mut proof))
+                            }
+                            _ => true,
+                        }),
+                        ExprKind::Closure { params, .. } => params.iter().all(|p| {
+                            proof.charge(&p);
+                            names.insert(&p.name, &mut proof)
+                        }),
+                        ExprKind::Match { arms, .. } => arms
+                            .iter()
+                            .all(|a| names.pattern(&a.pattern, 0, &mut proof)),
+                        _ => true,
+                    }
+                });
+            }
+            proof.charge(&complete);
+            if !complete {
+                continue;
+            }
+            let before = proof.roots;
+            proof.charge(&before);
+            for root in call_identity::roots(function) {
+                if !visit(
+                    root, false, true, 0, &names, $program, $authored, $imports, &mut proof,
+                ) {
+                    proof.roots = before;
+                    break;
+                }
+            }
+        }
+        proof
+    }};
+}
+
+#[cfg(test)]
+#[rustfmt::skip]
+macro_rules! before_closed_roots_body {
+    ($program:ident,$authored:ident,$imports:ident) => {{
+    #[cfg(test)]
+    if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
+        return before_scratch_body!($program, $authored, $imports);
+    }
+    let mut proof = Proof::default();
+    proof.charge(&($program, $authored, $imports));
+    proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());
+    // The complete array/aggregate is constructed once in this invocation.
+    // Its immutable Program loans can outlive a function iteration; only the
+    // packed active prefix is read, so stale tail slots grant no name authority.
+    proof.bytes = proof.bytes.saturating_add(
+        std::mem::size_of::<Names<'_>>()
+            + std::mem::size_of::<&mut Proof>()
+            + std::mem::size_of::<&Names<'_>>(),
+    );
+    let mut names = Names {
+        entries: [None; 128],
+        len: 0,
+    };
+    for function in &$program.functions {
+        proof.charge(&function);
+        // Generic owner bodies can be materialized repeatedly; no discount.
+        if !function.type_parameters.is_empty() {
+            continue;
+        }
+        // Reset scalar/actual-formal mutable and shared scope loans are paid
+        // before the first write. All existing per-node visit/insert/contains
+        // invoices remain complete; no old aggregate credit survives here.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 4],
+            [&mut Names<'_>; 2],
+            [&Names<'_>; 2],
+            [bool; 2],
+        )>());
+        names.len = 0;
+        let mut complete = function.params.iter().all(|p| {
+            proof.charge(&p);
+            names.insert(&p.name, &mut proof)
+        });
+        for root in call_identity::roots(function) {
+            // Fixed walker scratch is retained for this complete pass, including
+            // failed proofs. Each visited formal/reference is charged too.
+            proof.bytes = proof
+                .bytes
+                .saturating_add(std::mem::size_of::<[Option<(&Expr, usize)>; 129]>());
+            complete &= call_identity::walk(root, &mut |expression| {
+                proof.charge(&expression);
+                match &expression.kind {
+                    ExprKind::Block { statements, .. } => statements.iter().all(|s| match s {
+                        Statement::Let { name, .. } | Statement::Assign { name, .. } => {
+                            names.insert(name, &mut proof)
+                        }
+                        Statement::For { item, .. } | Statement::ForOwn { item, .. } => {
+                            names.insert(item, &mut proof)
+                        }
+                        Statement::ForBorrow { item, index, .. } => {
+                            names.insert(item, &mut proof)
+                                && index
+                                    .as_ref()
+                                    .is_none_or(|i| names.insert(&i.name, &mut proof))
+                        }
+                        _ => true,
+                    }),
+                    ExprKind::Closure { params, .. } => params.iter().all(|p| {
+                        proof.charge(&p);
+                        names.insert(&p.name, &mut proof)
+                    }),
+                    ExprKind::Match { arms, .. } => arms
+                        .iter()
+                        .all(|a| names.pattern(&a.pattern, 0, &mut proof)),
+                    _ => true,
+                }
+            });
+        }
+        proof.charge(&complete);
+        if !complete {
+            continue;
+        }
+        let before = proof.roots;
+        proof.charge(&before);
+        for root in call_identity::roots(function) {
+            if !visit(
+                root, false, true, 0, &names, $program, $authored, $imports, &mut proof,
+            ) {
+                proof.roots = before;
+                break;
+            }
+        }
+    }
+    proof
+    }};
+}
+
 fn count_linear(
     program: &Program,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     imports: bool,
 ) -> Proof {
+    #[cfg(test)]
+    if crate::workspace_graph::expected_projection::call_carriers::closed_roots::before_selected() {
+        return before_closed_roots_body!(program,authored,imports);
+    }
+
+    #[cfg(test)]
+    if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
+        return before_scratch_body!(program, authored, imports);
+    }
     let mut proof = Proof::default();
     proof.charge(&(program, authored, imports));
     proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());
+    // The complete array/aggregate is constructed once in this invocation.
+    // Its immutable Program loans can outlive a function iteration; only the
+    // packed active prefix is read, so stale tail slots grant no name authority.
+    proof.bytes = proof.bytes.saturating_add(
+        std::mem::size_of::<Names<'_>>()
+            + std::mem::size_of::<&mut Proof>()
+            + std::mem::size_of::<&Names<'_>>(),
+    );
+    let mut names = Names {
+        entries: [None; 128],
+        len: 0,
+    };
     for function in &program.functions {
         proof.charge(&function);
         // Generic owner bodies can be materialized repeatedly; no discount.
         if !function.type_parameters.is_empty() {
             continue;
         }
-        let mut names = Names {
-            entries: [None; 128],
-            len: 0,
-        };
-        proof.charge(&names);
+        // Reset scalar/actual-formal mutable and shared scope loans are paid
+        // before the first write. All existing per-node visit/insert/contains
+        // invoices remain complete; no old aggregate credit survives here.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 4],
+            [&mut Names<'_>; 2],
+            [&Names<'_>; 2],
+            [bool; 2],
+        )>());
+        names.len = 0;
         let mut complete = function.params.iter().all(|p| {
             proof.charge(&p);
             names.insert(&p.name, &mut proof)
         });
         for root in call_identity::roots(function) {
+            // New selector actual/formal/return and every bounded branch role
+            // are paid before the helper arguments or predicates are formed.
+            proof.bytes = proof.bytes.saturating_add(
+                crate::workspace_graph::expected_projection::call_carriers::closed_roots::SELECTOR,
+            );
+            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(root, &mut proof) {
+                continue;
+            }
             // Fixed walker scratch is retained for this complete pass, including
             // failed proofs. Each visited formal/reference is charged too.
             proof.bytes = proof
@@ -355,3 +621,19 @@ pub(super) use directory::count;
 #[cfg(test)]
 #[path = "call_carriers_before_directory.rs"]
 mod before_directory;
+
+#[path = "call_carriers_joint.rs"]
+mod joint;
+pub(super) use joint::count as count_joint;
+
+pub(super) use joint::modular_census::count as count_modular;
+
+#[cfg(test)]
+pub(super) use directory::indexed_modular_loan as modular_indexed_loan;
+#[cfg(test)]
+pub(super) use joint::modular_census::linear_loan as modular_linear_loan;
+
+#[cfg(test)]
+pub(super) fn before_scratch_selected() -> bool {
+    tests::scratch_before_selected()
+}

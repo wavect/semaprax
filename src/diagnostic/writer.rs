@@ -2,6 +2,7 @@
 //! Bounded logical output keeps the complete legacy JSON formatting route.
 use super::Diagnostic;
 use std::fmt;
+use std::fmt::Write as _;
 use std::io;
 
 impl Diagnostic {
@@ -53,7 +54,7 @@ impl Diagnostic {
     }
 }
 
-fn quoted(output: &mut (impl fmt::Write + ?Sized), value: &str) -> fmt::Result {
+pub(crate) fn quoted(output: &mut (impl fmt::Write + ?Sized), value: &str) -> fmt::Result {
     output.write_char('"')?;
     for character in value.chars() {
         match character {
@@ -117,3 +118,70 @@ impl<W: io::Write + ?Sized> fmt::Write for IoWriter<'_, W> {
 
 #[cfg(test)]
 mod tests;
+
+impl Diagnostic {
+    pub(crate) fn write_json_with_help(
+        &self,
+        output: &mut (impl fmt::Write + ?Sized),
+        help: &impl fmt::Display,
+    ) -> fmt::Result {
+        output.write_str("{\"code\":")?;
+        quoted(output, self.code)?;
+        output.write_str(",\"severity\":")?;
+        quoted(output, self.severity.as_str())?;
+        output.write_str(",\"message\":")?;
+        quoted(output, &self.message)?;
+        output.write_str(",\"path\":")?;
+        match &self.path {
+            Some(path) => quoted(output, path)?,
+            None => output.write_str("null")?,
+        }
+        output.write_str(",\"location\":")?;
+        match self.span {
+            Some(span) => write!(
+                output,
+                "{{\"line\":{},\"column\":{},\"start\":{},\"end\":{}}}",
+                span.line, span.column, span.start, span.end
+            )?,
+            None => output.write_str("null")?,
+        }
+        output.write_str(",\"help\":")?;
+        output.write_char('"')?;
+        let mut escaped = Escaped(output);
+        write!(&mut escaped, "{help}")?;
+        output.write_char('"')?;
+        output.write_char('}')
+    }
+}
+
+struct Escaped<'a, W: fmt::Write + ?Sized>(&'a mut W);
+impl<W: fmt::Write + ?Sized> fmt::Write for Escaped<'_, W> {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        for character in value.chars() {
+            match character {
+                '"' => self.0.write_str("\\\"")?,
+                '\\' => self.0.write_str("\\\\")?,
+                '\n' => self.0.write_str("\\n")?,
+                '\r' => self.0.write_str("\\r")?,
+                '\t' => self.0.write_str("\\t")?,
+                value if value.is_control() => write!(self.0, "\\u{:04x}", value as u32)?,
+                value => self.0.write_char(value)?,
+            }
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn reservation_site_controls() -> usize {
+    use std::mem::size_of;
+    size_of::<Escaped<'_, dyn fmt::Write>>()
+        + 2 * size_of::<&mut Escaped<'_, dyn fmt::Write>>()
+        + 2 * size_of::<&mut dyn fmt::Write>()
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<std::str::Chars<'_>>()
+        + size_of::<Option<char>>()
+        + 2 * size_of::<char>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<fmt::Arguments<'_>>()
+        + 2 * size_of::<fmt::Result>()
+}

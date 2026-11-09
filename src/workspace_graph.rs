@@ -1206,6 +1206,10 @@ impl WorkspaceGraphBuild {
         profile: crate::project::ProjectProfile,
         dependency_anchors: bool,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "workspace_graph::linked_project_program",
+        );
         if profile.is_owned_api() {
             let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
             self.attach_project_agents(&mut linked)?;
@@ -3876,6 +3880,34 @@ pub(crate) fn build_owned_retaining_sources_with_frontend_limit<E: initial_repor
     retain_operation_programs: bool,
     frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), E> {
+    build_owned_retaining_sources_with_report_controls(
+        sources,
+        builder_limit,
+        change_builder_limit,
+        retain_operation_programs,
+        frontend,
+        const {
+            use std::mem::size_of;
+            size_of::<Result<(WorkspaceGraphBuild, current_source::SourceFacts), E>>()
+                + size_of::<Result<(WorkspaceGraphBuild, current_source::SourceFacts), E>>()
+                + 2 * size_of::<Vec<WorkspaceSource>>()
+                + 2 * size_of::<usize>() // builder limit
+                + 2 * size_of::<Option<usize>>() // change limit
+                + 2 * size_of::<bool>()
+                + 2 * size_of::<Option<&mut crate::project::incremental::FrontendPass>>()
+                + 2 * size_of::<usize>() // report-controls actual/formal
+        },
+    )
+}
+
+pub(crate) fn build_owned_retaining_sources_with_report_controls<E: initial_report::Policy>(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+    change_builder_limit: Option<usize>,
+    retain_operation_programs: bool,
+    frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    report_controls: usize,
+) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), E> {
     assert!(
         builder_limit <= MAX_BUILDER_BYTES,
         "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
@@ -3900,6 +3932,7 @@ pub(crate) fn build_owned_retaining_sources_with_frontend_limit<E: initial_repor
         change_builder_limit,
         retain_operation_programs,
         frontend,
+        report_controls,
     );
     drop(restore);
     result
@@ -3949,6 +3982,10 @@ fn build_resolved_core_current(
     layouts: &expected_projection::private_layout::registry::LayoutRegistry<'_>,
     compact_order: Option<&[usize]>,
 ) -> Result<ResolvedCore, constructor_failure::receiving::CoreFailure> {
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "workspace_graph::build_resolved_core_current",
+    );
     #[cfg(test)]
     let _component = constructor_failure::typed::before_function_alias_core::observe_component(
         programs,

@@ -9,8 +9,7 @@ const DEPTH: usize = 513;
 const WORK: usize = 1_048_576;
 
 pub(super) fn first(caller: &Program) -> Result<u64, Vec<Diagnostic>> {
-    if !caller.interfaces.is_empty()
-        || !caller.protocols.is_empty()
+    if !caller.protocols.is_empty()
         || !caller.implementations.is_empty()
         || !caller.session_protocols.is_empty()
         || !caller.agents.is_empty()
@@ -33,6 +32,11 @@ pub(super) fn first(caller: &Program) -> Result<u64, Vec<Diagnostic>> {
     }
     for name in &caller.permits {
         census.name(name)?;
+    }
+    if !caller.interfaces.is_empty() {
+        // Pay the new receiving boundary before forming its borrowed arguments.
+        reserve_builder_structure(interface_census::CALL)?;
+        interface_census::scan(&mut census, caller)?;
     }
     for declaration in &caller.types {
         census.name(&declaration.name)?;
@@ -101,8 +105,7 @@ pub(super) fn first_reusing<'a>(
     held: &mut Option<Census<'a>>,
     work: &mut usize,
 ) -> Result<u64, Vec<Diagnostic>> {
-    if !caller.interfaces.is_empty()
-        || !caller.protocols.is_empty()
+    if !caller.protocols.is_empty()
         || !caller.implementations.is_empty()
         || !caller.session_protocols.is_empty()
         || !caller.agents.is_empty()
@@ -139,6 +142,11 @@ pub(super) fn first_reusing<'a>(
     }
     for name in &caller.permits {
         census.name(name)?;
+    }
+    if !caller.interfaces.is_empty() {
+        // Pay the new receiving boundary before forming its borrowed arguments.
+        reserve_builder_structure(interface_census::CALL)?;
+        interface_census::scan(&mut *census, caller)?;
     }
     for declaration in &caller.types {
         census.name(&declaration.name)?;
@@ -216,8 +224,7 @@ pub(super) fn first_owned<'a>(
     held: &mut Option<Census<'a>>,
     work: &mut usize,
 ) -> Result<u64, Vec<Diagnostic>> {
-    if !caller.interfaces.is_empty()
-        || !caller.protocols.is_empty()
+    if !caller.protocols.is_empty()
         || !caller.implementations.is_empty()
         || !caller.session_protocols.is_empty()
         || !caller.agents.is_empty()
@@ -262,6 +269,11 @@ pub(super) fn first_owned<'a>(
     }
     for name in &caller.permits {
         census.name(name)?;
+    }
+    if !caller.interfaces.is_empty() {
+        // Pay the new receiving boundary before forming its borrowed arguments.
+        reserve_builder_structure(interface_census::CALL)?;
+        interface_census::scan(&mut *census, caller)?;
     }
     for declaration in &caller.types {
         census.name(&declaration.name)?;
@@ -677,3 +689,11 @@ impl Census<'_> {
         )
     }
 }
+
+#[path = "names/interface_census.rs"]
+mod interface_census;
+#[cfg(test)]
+#[path = "names/interface_tests.rs"]
+mod interface_tests;
+#[cfg(test)]
+pub(super) use interface_tests::before_source as before_interface_source;

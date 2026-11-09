@@ -471,6 +471,8 @@ fn held_4a6eb(path: &Path, length: usize, expected: &str) -> Result<String, &'st
     if length > SOURCE_CAP {
         return Err("bound");
     }
+    #[cfg(test)]
+    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }
     let before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
     if before.file_type().is_symlink() || !before.is_file() {
         return Err("nonregular");
@@ -1211,7 +1213,7 @@ mod clippy_stage {
         }
         packet
     }
-    fn pin(pin: &serde_json::Value) -> String {
+    pub(super) fn pin(pin: &serde_json::Value) -> String {
         held_4a6eb(
             &Path::new(env!("CARGO_MANIFEST_DIR")).join(pin["archive"].as_str().unwrap()),
             pin["length"].as_u64().unwrap() as usize,
@@ -1239,7 +1241,7 @@ mod clippy_stage {
         assert_eq!(raw, pin(expected), "complete successor archive");
         raw
     }
-    fn compiled(source: &str) -> Option<&'static str> {
+    pub(super) fn compiled(source: &str) -> Option<&'static str> {
         match source {
             "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs")),
             "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs")),

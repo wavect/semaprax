@@ -1,6 +1,6 @@
 //! Exact operation and child facts used by independent cleanup replay.
 use super::*;
-mod arena;
+pub(super) mod arena;
 #[cfg(test)]
 mod borrowed;
 mod capacity;

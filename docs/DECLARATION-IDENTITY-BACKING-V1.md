@@ -41,10 +41,59 @@ remain separate; unchanged outer Diagnostic rendering is not claimed funded. The
 private static representation is not serialized, so a decode returns ordinary
 shared text without transferring compiler authority.
 
+Ordinary stream-command receivers borrow the exact matching function identity already held by their resolved program. Missing selections retain the legacy detached constructor and pass through the original admission checks and diagnostic order. This reuse grants no command authority. Record-invariant presence probes borrow the existing index key instead of constructing a suffixed identity. Closed list, iterator, Option, Result and cleanup spellings use compiler tags; source-authored equal text remains shared. Current-head executable and application qualification remains pending.
+
 Graph set lookup/removal borrows str keys directly. Existing source association,
 canonical replay, cache equality, failure priority, ceilings and forecasts are
 unchanged. Shared clones allocate no identity payload; existing conservative clone
 forecasts remain until a separate owner proves a reduction.
+
+## Authenticated local callee forecast
+
+The final uncached mode-six source forecast has a separate short-lived local
+callee certificate. This source batch requires executable qualification. It
+does not treat the historical sixteen-copy envelope as sixteen actual
+allocations, and establishes no application fit, net gain, RSS or speed claim.
+
+The constructor proof has eight independently checked consumers:
+
+| Consumer | Local ordinary callee representation |
+| --- | --- |
+| HIR expression | `resolve_expr` clones the held `DeclarationIndex::function_id`, moves it through `FinishCall`, then stores that same shared `DeclarationId`. |
+| Declaration index | Function-name and declaration entries retain held identity clones once per declaration; the call adds no declaration text owner. |
+| Type index | Nonnominal signatures add no callee type declaration; every nominal/result/cleanup slot remains charged. |
+| Call index | `PersistentCallIndex` clones the callee into its sites and forward/reverse sets. Its separately owned expression-identity string remains charged. |
+| Validation sets | Call verification borrows the held declaration/signature; all checks, diagnostic construction and work remain required. |
+| Cleanup inventory | A call traverses arguments; inventory owns its original expression/caller/field identities, not fresh local callee text. |
+| Cleanup plan | `finish_call` clones the callee into `StatusProducer::PropagatedCall`; it does not reconstruct its text. |
+| Retained call edges | Workspace call edges and independent call-site text reconstruction select authored function imports. The certificate excludes every imported alias; graph call-set entries clone `DeclarationId`. |
+
+Serialized text is independent. `graph::render_graph_json` also constructs a
+fresh local-callee `BTreeSet<String>`; quoted output's `CappedString` payer does
+not pay that temporary set. The final uncached retained-output core stores
+`WorkspaceModule` without invoking this serializer. The separate
+`workspace_graph/source_callables.rs` route invokes `graph::to_hir_json` only
+after charging `synthetic_builder_bytes`' unchanged mode-zero full prebound.
+That route, graph temporaries, bounded writes, output limits and every
+cache/serialization allowance receive no discount. Modes zero through five and cached mode seven keep
+their complete predecessor formula. Mode six removes only certified authored
+local callee slots before the unchanged sixteen factor. It retains declaration
+construction backing, every inline/Arc carrier, fresh expression identities,
+BASE's three allowances, all string terms and all imported/default/generic
+expansions. The independent whole predecessor projection remains compiled.
+
+The certificate borrows the exact source program, provider slice, authored
+index and its paid invoice owner, and authenticates the current builder ledger
+before each use. A distinct source copy, provider/index or lender cannot reuse
+it. Each target must be the exact explicit monomorphic local function under
+the same module/path/identity; source equality is not pointer authority.
+Lexical bindings shadow local functions. Prelude, interface, imported,
+generic and nominal dispatch, closures, patterns, traversal lowerings and
+unfamiliar AST shapes retain their old allowance. Bounded proof-work exhaustion
+discards its count; physical refusal remains sticky. Preparation, directory
+backing, receivers and teardown keep their complete new invoice even when
+zero calls qualify. Cold losses and whole-caller deltas require actual owning
+measurements, not subtraction of a source-derived expression alone.
 
 ## Ordinary empty-renewal branch clone
 

@@ -42,10 +42,16 @@ mod compact_nodes;
 pub(super) mod copy_regions;
 mod dag_memo;
 #[cfg(test)]
+mod early_release;
+#[cfg(test)]
 mod instrumentation;
 // Retired from production; see compare_with_index_storage.
 #[cfg(test)]
 mod paired;
+#[cfg(test)]
+pub(super) use paired::tests::{
+    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,
+};
 mod storage;
 #[cfg(test)]
 use canonical_before::Receiver as Canonicalizer;
@@ -57,6 +63,70 @@ const FACTORED_PATH_THRESHOLD: usize = 256;
 // Preserve the original broad factored domain and every original small-function
 // enumeration cross-check. Earlier selection is only a representation choice.
 const ENUMERATION_CROSS_CHECK_THRESHOLD: usize = 4_096;
+
+// Both ordinary builder strategies live with the paid comparison owner.
+pub(super) use paired::{fitting_comparison_selected_paid, FITTING_SELECTOR_CONTROLS};
+use paired::{selected_builder_paid, BUILDER_SELECTOR_CONTROLS};
+
+// The cold request replaces the old builder-selector request. It retains that
+// gateway's actual/formal packet and Diagnostic result pair. Only the lexical
+// threshold and surviving nonselection roles are initialized after payment.
+const COLD_BUILDER_THRESHOLD_CONTROLS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
+        + 4 * size_of::<usize>() // two path/threshold primitive operand pairs
+        + 4 * size_of::<bool>() // comparison expression/receiving pairs
+        + 2 * size_of::<bool>() // lazy conjunction expression/branch receiver
+        + 2 * size_of::<bool>() // false initializer/selected receiving slot
+        + 2 * size_of::<bool>() // later !selected operand/result
+};
+// Hot paths keep the entire old bank and pay this genuinely additional warm
+// reservation traversal. The first request has already prepared this exact
+// function's refusal backing; no new backing or clone-cursor credit is taken.
+const HOT_BUILDER_THRESHOLD_GATE_CONTROLS: usize = {
+    use std::mem::size_of;
+    ReplayBudget::WARM_PREPARE_CONTROLS
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction)>() // prepare actual/formal
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>() // extra reserve return/receiver
+        + 2 * size_of::<&ReplayBudget>() + 2 * size_of::<AllocationPayer>()
+        + 2 * size_of::<bool>() // pays_builder wrapper and returned predicate
+        + 2 * size_of::<bool>() // !pays_builder expression/branch
+        + 2 * size_of::<&ReplayBudget>() + 2 * size_of::<AllocationPayer>()
+        + 2 * size_of::<bool>() // builder_refused wrapper return/receiver
+        + 2 * paired::ACTIVE_REFUSAL_CONTROLS // prepare and reservation active probes
+        + 4 * size_of::<bool>() // prepare refusal operand and lazy branch
+        + 2 * size_of::<AllocationPayer>() // reservation payer match sum/receiver
+        + 6 * size_of::<bool>() // !spent and two lazy conjunction receiving pairs
+        + 2 * size_of::<bool>() // !active_refused expression/receiving pair
+        + 2 * size_of::<bool>() // accepted binding and final branch discriminator
+        + 2 * size_of::<usize>() + 2 * size_of::<bool>() // byte-zero primitive branch
+        + 2 * size_of::<usize>() + 2 * size_of::<bool>() // required reservation ABI
+};
+// Restricted lexical operands introduce no forwarding callee or temporary
+// ReplayBudget on the cold branch. Hot dispatch retains the original call.
+macro_rules! ordinary_builder_selected {
+    ($function:ident, $cfg_paths:ident, $semantic_paths:ident, $budget:ident) => {{
+        $budget.reserve_bytes(
+            $function, COLD_BUILDER_THRESHOLD_CONTROLS,
+            "ordinary builder cold threshold receivers",
+        )?;
+        if $cfg_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD
+            && $semantic_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD
+        {
+            false
+        } else {
+            $budget.reserve_bytes(
+                $function, BUILDER_SELECTOR_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS,
+                "ordinary builder representation selector receivers",
+            )?;
+            selected_builder_paid(
+                $function, $cfg_paths, $semantic_paths, &mut ReplayBudget::new(),
+            )?
+        }
+    }};
+}
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
@@ -82,29 +152,6 @@ fn representation_candidate(
         || (plan.slots.is_empty()
             && plan.entry_state.live_owned_parameters.is_empty()
             && plan.entry_state.conditional_owned_parameters.is_empty())
-}
-
-// The synchronous paid comparator changes the ordinary representation cost.
-// This threshold is not an admission limit. Selected/reference payers retain
-// their complete original selector and canonical comparison routes below.
-const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
-
-fn selected_builder_paid(
-    function: &ResolvedFunction,
-    cfg_paths: usize,
-    semantic_paths: usize,
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    if cfg_paths <= BUILDER_FACTORED_PATH_THRESHOLD
-        && semantic_paths <= BUILDER_FACTORED_PATH_THRESHOLD
-    {
-        return Ok(false);
-    }
-    match structural_control::validate_ordinary_cfg(function, budget) {
-        Ok(()) => Ok(true),
-        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
-        Err(_) => Ok(false),
-    }
 }
 
 /// Semantic nonselection remains false; a physical scratch refusal is sticky
@@ -173,17 +220,12 @@ pub(super) fn validate_with_index_storage<'hir>(
     );
     let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
     let semantic_paths = hir_terminal_path_bound(function)?;
-    let selected = if let ReplayBudget {
+    let mut selected = if let ReplayBudget {
         payer: AllocationPayer::ActiveBuilder,
         ..
     } = budget
     {
-        selected_builder_paid(
-            function,
-            cfg_paths,
-            semantic_paths,
-            &mut ReplayBudget::new(),
-        )?
+        ordinary_builder_selected!(function, cfg_paths, semantic_paths, budget)
     } else {
         selected_paid(
             function,
@@ -192,6 +234,25 @@ pub(super) fn validate_with_index_storage<'hir>(
             &mut ReplayBudget::new(),
         )?
     };
+    // Only ordinary builders evaluate this nonselection guard. Its two bool
+    // roles are prepaid by the small threshold bank on cold and hot paths;
+    // hot dispatch additionally retains the entire preceding selector bank.
+    if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        if !selected {
+            // Every fitting header read follows payment of its own bank.
+            budget.reserve_bytes(
+                function,
+                FITTING_SELECTOR_CONTROLS,
+                "fitting factored comparison selector receivers",
+            )?;
+            selected =
+                fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;
+        }
+    }
     #[cfg(test)]
     let continuations = {
         let mut continuations = continuations;
@@ -382,6 +443,10 @@ fn compare_with_index_storage<'hir>(
     let _paid_phase =
         budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);
 
+    #[cfg(test)]
+    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::factored::comparison_complete",
+    );
     let built = build_comparison(program, function, budget, helpers, continuations)?;
     // The paired weighted proof (93877b333) is no longer a production route:
     // it ran only for the ActiveBuilder payer and debited its own traversal
@@ -463,14 +528,41 @@ fn compare_with_index_storage<'hir>(
         #[cfg(test)]
         let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
         budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+        #[cfg(test)]
+        let hir_phase =
+            crate::test_allocation_observer::function_phase_guard("factored::canonical_hir_root");
         let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {
             return Ok(None);
         };
+        #[cfg(test)]
+        drop(hir_phase);
+        if let ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            ..
+        } = budget
+        {
+            budget.reserve_bytes(
+                function,
+                canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,
+                "factored HIR-private release call receiving",
+            )?;
+            canonical.release_hir_storage(function, budget, hir_root, plan_root)?;
+        } else {
+            budget.reserve_bytes(
+                function,
+                canonical_shared::inline_singleton::hir_last_use::CALL,
+                "factored HIR-private release call receiving",
+            )?;
+            canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+        }
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
         #[cfg(test)]
         let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
         budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+        #[cfg(test)]
+        let _plan_phase =
+            crate::test_allocation_observer::function_phase_guard("factored::canonical_plan_root");
         let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)?
         else {
             return Ok(None);
@@ -493,6 +585,9 @@ fn compare_with_index_storage<'hir>(
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+    #[cfg(test)]
+    let hir_phase =
+        crate::test_allocation_observer::function_phase_guard("factored::canonical_hir_root");
     let Some(hir) = canonical_id(
         &mut canonical,
         function,
@@ -504,10 +599,34 @@ fn compare_with_index_storage<'hir>(
         return Ok(None);
     };
     #[cfg(test)]
+    drop(hir_phase);
+    if let ReplayBudget {
+        payer: AllocationPayer::LegacyUnobserved,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_storage(function, budget, hir_root, plan_root)?;
+    } else {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+    }
+    #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+    #[cfg(test)]
+    let _plan_phase =
+        crate::test_allocation_observer::function_phase_guard("factored::canonical_plan_root");
     let Some(plan) = canonical_id(
         &mut canonical,
         function,
@@ -550,6 +669,10 @@ fn build_comparison<'hir>(
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::ReplayFactoredConstruction,
     );
+    #[cfg(test)]
+    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::factored::build_comparison",
+    );
     // Both independent constructors debit skeleton helpers as well as ordinary
     // constructors. Keep one active allowance through the HIR walk AND plan
     // automaton construction; the held program reservation belongs to other
@@ -563,6 +686,10 @@ fn build_comparison<'hir>(
         budget.merge_paths = true;
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FactoredHIR);
+        #[cfg(test)]
+        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_hir_paths",
+        );
         let hir_paths = hir_skeleton_paths_with_index_storage(
             program,
             function,
@@ -578,9 +705,15 @@ fn build_comparison<'hir>(
             "HIR skeleton",
             hir_paths.as_ref().map(|paths| paths.as_slice()).ok(),
         );
+        #[cfg(test)]
+        drop(hir_allocation_phase);
         let hir_paths = hir_paths?;
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::HIRAutomaton);
+        #[cfg(test)]
+        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_hir_automaton",
+        );
         let mut automaton = Automaton::default();
         let sink = automaton.node(function, budget)?;
         let success = automaton.end(function, budget, sink, SkeletonTerminal::Success)?;
@@ -605,8 +738,34 @@ fn build_comparison<'hir>(
         }
         #[cfg(test)]
         instrumentation::phase(function, budget, "HIR automaton", None);
+        // Automaton labels now own every retained observation. Each explicit
+        // release pays its argument/formal and reservation-result transport.
+        #[cfg(test)]
+        early_release::frontier(0, budget);
+        budget.reserve_array::<(dag_memo::Memo, dag_memo::Memo, Result<(), Diagnostic>)>(
+            function,
+            1,
+            "factored DAG memo release transport",
+        )?;
+        drop(memo);
+        #[cfg(test)]
+        early_release::frontier(1, budget);
+        budget.reserve_array::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>(
+            function,
+            1,
+            "factored HIR paths release transport",
+        )?;
+        drop(hir_paths);
+        #[cfg(test)]
+        early_release::frontier(2, budget);
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PLANAutomaton);
+        #[cfg(test)]
+        drop(automaton_allocation_phase);
+        #[cfg(test)]
+        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_plan_automaton",
+        );
         let plan_root = automaton.add_plan(function, success, failure, latch, budget)?;
         #[cfg(test)]
         instrumentation::phase(function, budget, "plan automaton", None);
@@ -1206,18 +1365,40 @@ fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedF
     #[cfg(feature = "unstable-workflow-profiling")]
     let paid_enumeration = enumerating
         .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);
+    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::crosscheck::enumerated_hir_plan",
+    );
     let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
         let mut plan = plan_skeleton_paths(function, &mut enumerating)?;
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
-        hir.sort();
-        plan.sort();
-        Ok(hir == plan)
+        if ordinary_plan_history::completed_fork::emission::before_selected() {
+            hir.sort();
+            plan.sort();
+            Ok(hir == plan)
+        } else {
+            enumerating.reserve_bytes(
+                function,
+                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "factored cross-check complete enumerated content receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;
+            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {
+                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;
+            } else {
+                plan.sort();
+            }
+            skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)
+        }
     });
+    drop(enumeration_phase);
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     #[cfg(feature = "unstable-workflow-profiling")]
     drop(paid_enumeration);
     if let Ok(true) = enumerated {
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::crosscheck::factored_compare",
+        );
         let mut factored = ReplayBudget::with_skeleton_limit(0);
         #[cfg(feature = "unstable-workflow-profiling")]
         let _paid_crosscheck = factored
@@ -1372,4 +1553,7 @@ pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;
 pub(crate) use canonical_shared::lexical_successors::census::Scope as SuccessorAppCensus;
 
 #[cfg(test)]
-mod moderate_tests;
+pub(super) mod moderate_tests;
+
+#[cfg(test)]
+mod hir_memo_release_tests;

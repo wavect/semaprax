@@ -5,6 +5,7 @@ mod prefix;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay::expression_facts) use prefix::compact::NARROWED_SAVING as NARROWED_LOOKUP_SAVING;
 pub(super) mod retained;
+pub(in crate::cleanup_plan::replay) mod invocation;
 const NIL: usize = usize::MAX;
 struct Node<'hir> {
     key: ExpressionId,

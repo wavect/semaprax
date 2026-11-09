@@ -92,7 +92,9 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         } else {
             None
         };
+        budget.reserve_bytes(function, super::query_proof::HEADER, "skeleton query neutral slot receivers")?;
         Ok(Self {
+            queries: super::query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,

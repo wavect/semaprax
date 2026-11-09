@@ -2,6 +2,9 @@
 //! Fixed-capacity backing is prepared by explicit Capture::begin, outside the
 //! compiler's allocation ledger. Inactive callbacks never allocate. No timings,
 //! allocations, admission decisions, or default-shipping performance are measured.
+pub use crate::bounded_output::exclusive_debits::path_census::{
+    Row as PathFamilyCensus, EVENTS as PATH_EVENTS, LABELS as PATH_FAMILIES,
+};
 pub use crate::bounded_output::exclusive_debits::{
     Algorithm as CoreDebitAlgorithm, Attempt as CoreDebitAttempt, Operation as CoreDebitOperation,
     Outcome as CoreDebitOutcome, Refusal as CoreDebitRefusal, Report as ResolvedCoreDebits,
@@ -126,8 +129,12 @@ pub enum Site {
     FinalSharedAdmitted,
     FinalStepAdmitted,
     FinalTailAdmitted,
+    // Appended: historical Numeric* indices and their meaning are unchanged.
+    ScalarCaptureAdmitted,
+    ScalarTurnAdmitted,
+    ScalarPublishAdmitted,
 }
-const SITES: usize = 56;
+const SITES: usize = 59;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Counts {
     pub events: [u64; SITES],

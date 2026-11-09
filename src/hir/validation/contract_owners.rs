@@ -51,6 +51,7 @@ impl super::HirValidator<'_> {
     ) -> Result<(), crate::diagnostic::Diagnostic> {
         self.validate_contracts_baseline(execution, contracts, outer, phase)
     }
+    #[cfg(test)]
     pub(super) fn validate_contracts_persistent(
         &mut self,
         execution: &super::FunctionExecutionId,

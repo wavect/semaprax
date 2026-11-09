@@ -265,3 +265,38 @@ fn ordinary_default_retains_flat_verifier_and_candidate_selection_is_scoped() {
         assert!(!select(function, &mut normal).unwrap());
     });
 }
+
+#[test]
+fn unobserved_complete_comparison_allocates_validated_history_links() {
+    let program = program();
+    let function = &program.functions[0];
+    let mut old = budget(&program, function);
+    assert_eq!(old.payer, AllocationPayer::LegacyUnobserved);
+    let mut expected = before::produce(function, &mut old).unwrap();
+    expected.sort();
+    let mut public = budget(&program, function);
+    let actual = produce(function, &mut public).unwrap();
+    assert!(actual.max_depth > 1, "exercise chained history segments");
+    assert!(actual.paths.len() > 1, "exercise both sort cursors");
+    assert_eq!(public.skeleton_spent, old.skeleton_spent);
+    compare(function, &mut public, actual, &expected).unwrap();
+}
+
+#[test]
+fn unobserved_history_backing_keeps_depth_validation_fail_closed() {
+    let program = program();
+    let function = &program.functions[0];
+    for corrupted_depth in [0, usize::MAX] {
+        let mut old = budget(&program, function);
+        let mut expected = before::produce(function, &mut old).unwrap();
+        expected.sort();
+        let mut public = budget(&program, function);
+        assert_eq!(public.payer, AllocationPayer::LegacyUnobserved);
+        let mut actual = produce(function, &mut public).unwrap();
+        assert!(!actual.arena.is_empty());
+        actual.arena[0].depth = corrupted_depth;
+        let error = compare(function, &mut public, actual, &expected).unwrap_err();
+        assert_eq!(error.code, "SPX-H006");
+        assert!(error.message.ends_with("ordinary plan history depth is invalid"));
+    }
+}

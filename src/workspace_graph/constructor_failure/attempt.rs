@@ -10,12 +10,58 @@ pub(in crate::workspace_graph) struct Attempt<T> {
     result: Result<T, CoreFailure>,
     publication: Option<Result<Published, Unpublished>>,
 }
+// This named private helper observes the concrete closure type without changing
+// run::<T>'s original public-in-module generic call shape. Its borrowed argument
+// and returned bank have their own explicit actual/formal and return/receiver
+// roles; no dyn closure or guessed conservative reference is substituted.
+fn forwarding_controls<T, F>(_: &F) -> usize {
+    // Const evaluation creates no runtime array, iterator, checked-add receiver,
+    // or callback. Overflow still propagates into the existing arithmetic refusal.
+    const {
+        let rows = [
+            size_of::<F>(),          // moved actual operation into the new callee
+            size_of::<F>(),          // run_with_report_controls formal operation
+            size_of::<Attempt<T>>(), // new callee's returned Attempt
+            size_of::<Attempt<T>>(), // run's forwarding return
+            size_of::<&F>(),         // this census helper's actual borrowed argument
+            size_of::<&F>(),         // this census helper's formal borrowed argument
+            size_of::<usize>(),      // this census helper's returned bank
+            size_of::<usize>(),      // run's receiving bank local
+            size_of::<usize>(),      // forwarded maximum actual argument
+            size_of::<usize>(),      // new callee's maximum formal argument
+            size_of::<usize>(),      // forwarded extra-controls actual argument
+            size_of::<usize>(),      // new callee's extra-controls formal argument
+        ];
+        let mut total = 0usize;
+        let mut index = 0;
+        while index < rows.len() {
+            total = match total.checked_add(rows[index]) {
+                Some(total) => total,
+                None => {
+                    total = usize::MAX;
+                    break;
+                }
+            };
+            index += 1;
+        }
+        total
+    }
+}
 pub(in crate::workspace_graph) fn run<T>(
     maximum: usize,
     operation: impl FnOnce() -> Result<T, CoreFailure>,
 ) -> Attempt<T> {
+    let forwarding = forwarding_controls::<T, _>(&operation);
+    run_with_report_controls(maximum, forwarding, operation)
+}
+pub(in crate::workspace_graph) fn run_with_report_controls<T>(
+    maximum: usize,
+    report_controls: usize,
+    operation: impl FnOnce() -> Result<T, CoreFailure>,
+) -> Attempt<T> {
     let controls = size_of::<Attempt<T>>()
-        .checked_add(size_of::<Result<T, CoreFailure>>())
+        .checked_add(report_controls)
+        .and_then(|bytes| bytes.checked_add(size_of::<Result<T, CoreFailure>>()))
         .and_then(|bytes| {
             bytes.checked_add(size_of::<(Result<T, CoreFailure>, Option<Vec<Diagnostic>>)>())
         })

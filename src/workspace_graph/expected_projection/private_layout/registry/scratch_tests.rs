@@ -377,7 +377,8 @@ fn complete_old_registry_census_derivation_and_current_scratch_sources_remain_bo
         .split("\nfn refusal()")
         .next()
         .unwrap();
-    assert!(include_str!("../names.rs").contains(&format!("pub(super) fn first({old_first}")));
+    assert!(super::super::names::before_interface_source(include_str!("../names.rs"))
+        .contains(&format!("pub(super) fn first({old_first}")));
     let old_layout = include_str!(
         "../../../../../docs/evidence/registry-census-scratch-833/original/private_layout.rs"
     );

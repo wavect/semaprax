@@ -1,0 +1,57 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "before_file": "factored.before.txt",
+    "current_length": 51339,
+    "current_sha256": "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
+    "before_length": 50781,
+    "before_sha256": "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49",
+    "edits": [
+      [
+        12903,
+        "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        ""
+      ],
+      [
+        14687,
+        "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        ""
+      ],
+      [
+        51297,
+        "\n#[cfg(test)]\nmod hir_memo_release_tests;\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+    "before_file": "canonical.before.txt",
+    "current_length": 55878,
+    "current_sha256": "9ae1b6828a1fab4818043a53e3f73062dc1484ac851b2c06fec50b300c8ff732",
+    "before_length": 55813,
+    "before_sha256": "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514",
+    "edits": [
+      [
+        55813,
+        "\npub(in crate::cleanup_plan::replay::factored) mod hir_last_use;\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+    "before_file": "memo.before.txt",
+    "current_length": 13747,
+    "current_sha256": "1b302f999bf96a4535629e051d87306d958016b0c6402c22b47f16509c984348",
+    "before_length": 11109,
+    "before_sha256": "883a182228e20ef867483585b83f6c81a6b44000e2bff5766e1ade6571c40325",
+    "edits": [
+      [
+        9799,
+        "    pub(super) const RELEASE_CALL: usize = 2 * size_of::<(\n        &mut Self,\n        &ResolvedFunction,\n        &mut ReplayBudget,\n        usize,\n        usize,\n    )>() + 2 * size_of::<Result<(), Diagnostic>>()\n        + size_of::<std::ops::Range<usize>>()\n        + 2 * size_of::<&mut std::ops::Range<usize>>()\n        + 2 * size_of::<Option<usize>>();\n    // Caller holds a certificate that no later root can query these keys.\n    // Directory length/capacity, payload arrays, empty bits and authority remain.\n    pub(super) fn release_private_payloads(\n        &mut self,\n        function: &ResolvedFunction,\n        budget: &mut ReplayBudget,\n        first: usize,\n        end: usize,\n    ) -> Result<(), Diagnostic> {\n        for key in first..end {\n            budget.reserve_bytes(\n                function,\n                // Both the reservation and ordinary-work call form their own\n                // actual/formal arguments; the outer method was paid at entry.\n                4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()\n                    + 4 * size_of::<usize>()\n                    // Entry pays the first next; this step prepays the next one.\n                    + 2 * size_of::<&mut std::ops::Range<usize>>()\n                    + 2 * size_of::<Option<usize>>()\n                    + 2 * size_of::<Option<&mut Chunk<T>>>()\n                    + 2 * size_of::<Option<&mut Box<[Option<T>; WIDTH]>>>()\n                    + 2 * size_of::<Option<T>>()\n                    + 2 * size_of::<T>()\n                    + 4 * size_of::<Result<(), Diagnostic>>(),\n                \"factored HIR-private memo payload release receiving\",\n            )?;\n            budget.charge(function, 1, \"factored HIR-private memo payload release\")?;\n            let Some(chunk) = self.chunks.get_mut(key / WIDTH) else {\n                break;\n            };\n            if let Some(values) = chunk.values.as_mut() {\n                // Preserve the actual payload array even when now empty. A PLAN\n                // key sharing this boundary chunk retains its old paid capacity.\n                drop(values[key % WIDTH].take());\n            }\n        }\n        Ok(())\n    }\n    #[cfg(test)]\n    pub(super) fn private_release_receipt(&self) -> (usize, usize, usize, usize) {\n        (\n            self.chunks.len(),\n            self.chunks.capacity(),\n            self.payload_chunks(),\n            self.chunks\n                .iter()\n                .filter_map(|chunk| chunk.values.as_ref())\n                .map(|values| values.iter().filter(|value| value.is_some()).count())\n                .sum(),\n        )\n    }\n",
+        ""
+      ]
+    ]
+  }
+]

@@ -2,6 +2,8 @@
 use sha2::{Digest, Sha256};
 #[path = "final_ready_inputs/projection_publication.rs"]
 mod projection_publication;
+#[path = "final_ready_inputs/merged_projection.rs"]
+mod merged_projection;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod raw_reader;
 // The original reader remains complete and independently compiled. Only three
@@ -22,6 +24,7 @@ mod reader {
         }
         if let Some(before) =
             crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_file(path, length, sha)
+                .or_else(|| super::merged_projection::named_file(path, length, sha))
         {
             return Ok(before);
         }
@@ -195,6 +198,12 @@ pub(crate) fn source_owner(domain: &str, source: &str, current: &str) -> String 
 fn projection344_stage(supplied: &str) -> String {
     let mut invocation =
         crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+    if let Some((v10, main)) = merged_projection::stages(supplied, &mut invocation) {
+        let v10_previous = projection344_stage(&v10);
+        let main_previous = projection344_stage(&main);
+        assert_eq!(v10_previous, main_previous, "both entire predecessor chains must agree");
+        return v10_previous;
+    }
     let current_audit = projection_publication::audit_join(supplied);
     let supplied = current_audit.as_deref().unwrap_or(supplied);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -206,21 +215,20 @@ fn projection344_stage(supplied: &str) -> String {
         digest(data),
         "ab922dd2f58ea4dc32b7e5ddfbae934a8353b7fe9eefbb2927414cbbdf7e4b3b"
     );
-    let read = |path: &str, length: usize, sha: &str| {
+    fn read(
+        invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
+        root: &std::path::Path,
+        path: &str,
+        length: usize,
+        sha: &str,
+    ) -> String {
         reader::read(&root.join(path), length, sha, 2_097_152)
-            .or_else(|error| {
-                crate::source_reflows_merge::main_e177_final_inputs::file(
-                    &root.join(path),
-                    length,
-                    sha,
-                )
-                .or_else(|| projection_publication::previous(path, length, sha))
-                .ok_or(error)
-            })
+            .or_else(|error| invocation.file(&root.join(path), length, sha).or_else(|| projection_publication::previous(path, length, sha)).ok_or(error))
             .unwrap_or_else(|error| panic!("exact projection344 part {path}: {error:?}"))
-    };
+    }
     assert_eq!(
         read(
+            &mut invocation, root,
             "docs/evidence/current339-source-custody-repair-20261017/projection344-stage.json",
             data.len(),
             &digest(data)
@@ -232,9 +240,10 @@ fn projection344_stage(supplied: &str) -> String {
         row["schema"],
         "semaprax.current339.projection344-whole-stage.v1"
     );
-    let image = |name: &str| {
+    let mut image = |name: &str| {
         let view = &row[name];
         read(
+            &mut invocation, root,
             view["archive"].as_str().unwrap(),
             view["length"].as_u64().unwrap() as usize,
             view["sha256"].as_str().unwrap(),
@@ -242,7 +251,7 @@ fn projection344_stage(supplied: &str) -> String {
     };
     let current = image("current");
     let previous = image("prior");
-    // Authenticate the live49 join before entering the immutable old44 facade. Only
+    // The immutable old44 stage above remains independently checked. Only
     // this exact, separately pinned live49 join may enter that old facade.
     let live = projection344_live_descriptor();
     let constructors = projection344_constructor_subject_join_with(supplied, &mut invocation);
@@ -260,10 +269,7 @@ fn projection344_stage(supplied: &str) -> String {
         && supplied.len() == live["length"].as_u64().unwrap() as usize
         && digest(supplied) == live["sha256"].as_str().unwrap()
     {
-        assert_eq!(
-            projection344_live_sources_with(&live, &mut invocation),
-            supplied
-        );
+        assert_eq!(projection344_live_sources_with(&live, &mut invocation), supplied);
         current.as_str()
     } else {
         supplied
@@ -276,15 +282,19 @@ fn projection344_stage(supplied: &str) -> String {
     let carrier_path = root.join(carrier["source"].as_str().unwrap());
     let carrier_length = carrier["length"].as_u64().unwrap() as usize;
     let carrier_sha = carrier["sha256"].as_str().unwrap();
-    let carrier = invocation
-        .combined_side_file(&carrier_path, carrier_length, carrier_sha)
-        .unwrap_or_else(|| {
-            read(
-                carrier["source"].as_str().unwrap(),
-                carrier_length,
-                carrier_sha,
-            )
-        });
+    let carrier = invocation.combined_side_file(
+        &carrier_path,
+        carrier_length,
+        carrier_sha,
+    )
+    .unwrap_or_else(|| {
+        read(
+            &mut invocation, root,
+            carrier["source"].as_str().unwrap(),
+            carrier_length,
+            carrier_sha,
+        )
+    });
     assert_eq!(carrier.len(), carrier_length);
     assert_eq!(digest(&carrier), carrier_sha);
     let mut actual = String::new();
@@ -337,7 +347,7 @@ fn projection344_stage(supplied: &str) -> String {
                 assert_eq!(digest(&text), sha);
                 text
             } else {
-                read(source, length, sha)
+                read(&mut invocation, root, source, length, sha)
             };
             actual.push_str(&text);
         }
@@ -366,11 +376,19 @@ fn projection344_phase_test_source_with(
     invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
 ) -> String {
     let source = "src/workspace_graph/expected_projection/call_carriers_tests.rs";
-    assert_eq!(compiled.len(), 23994);
+    let actual = merged_projection::current_for_named(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", compiled,
+    ).unwrap_or(compiled);
+    let named = merged_projection::named_part(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", invocation,
+    );
+    let compiled = named.as_deref().unwrap_or(compiled);
+    assert_eq!(compiled.len(), 25183);
     assert_eq!(
         digest(compiled),
-        "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"
+        "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9"
     );
+    let compiled = actual;
     let prior = invocation.value_direct(
         source,
         "bf17711b9ee9801531b16d3a505163c32df52e2ef13a46d1426eeee2cc8c3934",
@@ -531,17 +549,25 @@ fn projection344_classifier_join_with(
         let pin = &part["current"];
         let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
         let sha = pin["sha256"].as_str().unwrap();
-        let current = reader::read(&root.join(source), length, sha, 2_097_152)
-            .expect("complete current classifier source before all historical normalization");
+        let current = merged_projection::named_part(source, length, sha, invocation).unwrap_or_else(|| {
+            reader::read(&root.join(source), length, sha, 2_097_152)
+                .expect("complete current classifier source before all historical normalization")
+        });
         physical.push_str(&current);
         if let Some(pin) = part.get("previous") {
             let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
             let sha = pin["sha256"].as_str().unwrap();
+            if (current.len(), digest(&current)) == (length, sha.to_owned()) {
+                assert_eq!(reader::read(&root.join(format!("e/{sha}")),length,sha,2_097_152).unwrap(),current,"whole current archive for an unchanged classifier part");
+                assert_eq!(reader::read(&root.join(source),length,sha,2_097_152).unwrap(),current,"late current classifier source");
+                previous.push_str(&current);
+            } else {
             previous.push_str(
                 &invocation
                     .file(&root.join(source), length, sha)
                     .expect("independent whole before-classifier source and all current channels"),
             );
+            }
         } else {
             previous.push_str(&current);
         }
@@ -695,21 +721,41 @@ fn projection344_phase_join_with(
     supplied: &str,
     invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
 ) -> Option<String> {
-    if supplied.len() != 647939
-        || digest(supplied) != "fe42350bec2fc90ebd37d5aef11786020716c555df70c85c3bf7622a4b4b1e7b"
-    {
-        return None;
-    }
+    // Preserve the complete intermediate phase join as well as the current
+    // one. Neither tuple changes the immutable49-part recipe or old44 image.
+    let intermediate = match (supplied.len(), digest(supplied).as_str()) {
+        (647939, "fe42350bec2fc90ebd37d5aef11786020716c555df70c85c3bf7622a4b4b1e7b") => true,
+        (649128, "fa45d40b033e349919c909b390d5fe1bd267eabe2e8772c7640f75cc13ea0ec5") => false,
+        _ => return None,
+    };
     let compiled =
         include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs");
     let source = "src/workspace_graph/expected_projection/call_carriers_tests.rs";
-    let current = invocation.value_direct(
-        source,
-        "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047",
-        compiled,
-    );
-    assert_eq!(current, compiled, "complete actual phase observer channels");
+    // This old-view request authenticates the actual complete compiled,
+    // physical and current-archive channels before returning the pinned prior.
+    let prior = projection344_phase_test_source_with(compiled, invocation);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let named_phase = merged_projection::named_part(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", invocation,
+    );
+    let intermediate_source;
+    let phase = if intermediate {
+        intermediate_source = invocation
+            .file(
+                &root.join(source),
+                23994,
+                "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047",
+            )
+            .expect("complete authenticated intermediate phase observer");
+        assert_eq!(intermediate_source.len(), 23994);
+        assert_eq!(
+            digest(&intermediate_source),
+            "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"
+        );
+        intermediate_source.as_str()
+    } else {
+        named_phase.as_deref().unwrap_or(compiled)
+    };
     let descriptor = projection344_live_descriptor();
     let mut physical = String::new();
     for part in descriptor["parts"].as_array().unwrap() {
@@ -717,47 +763,40 @@ fn projection344_phase_join_with(
             physical.push_str(literal);
         } else {
             let path = part["source"].as_str().unwrap();
-            let (length, sha) = if path == source {
-                (
-                    23994,
-                    "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047",
-                )
+            let text = if path == source {
+                phase.to_owned()
             } else {
-                (
-                    part["length"].as_u64().unwrap() as usize,
-                    part["sha256"].as_str().unwrap(),
-                )
+                let length = part["length"].as_u64().unwrap() as usize;
+                let sha = part["sha256"].as_str().unwrap();
+                let text = if let Some(retained) =
+                    projection344_retained_part_with(path, length, sha, invocation)
+                {
+                    retained
+                } else {
+                    reader::read(&root.join(path), length, sha, 2_097_152)
+                        .expect("complete actual projection part before historical normalization")
+                };
+                if let Some(archive) = part["archive"].as_str() {
+                    assert_eq!(
+                        text,
+                        reader::read(&root.join(archive), length, sha, 2_097_152).unwrap()
+                    );
+                }
+                text
             };
-            let text = if let Some(retained) =
-                projection344_retained_part_with(path, length, sha, invocation)
-            {
-                retained
-            } else {
-                reader::read(&root.join(path), length, sha, 2_097_152)
-                    .expect("complete actual projection part before historical normalization")
-            };
-            if path == source {
-                assert_eq!(text, compiled);
-            } else if let Some(archive) = part["archive"].as_str() {
-                assert_eq!(
-                    text,
-                    reader::read(&root.join(archive), length, sha, 2_097_152).unwrap()
-                );
-            }
             physical.push_str(&text);
         }
     }
     assert_eq!(
         physical, supplied,
-        "every actual compiled/physical part in original join order"
+        "every authenticated complete part in original join order"
     );
-    let prior = projection344_phase_test_source_with(compiled, invocation);
     assert_eq!(
-        supplied.matches(compiled).count(),
+        supplied.matches(phase).count(),
         1,
-        "one complete current phase observer in the full join"
+        "one complete phase observer in the full join"
     );
-    let previous = supplied.replacen(compiled, &prior, 1);
+    let previous = supplied.replacen(phase, &prior, 1);
     assert_eq!(previous.len(), 647522);
     assert_eq!(
         digest(&previous),
@@ -766,7 +805,7 @@ fn projection344_phase_join_with(
     Some(previous)
 }
 
-// These three complete source versions precede formatting and acquisition
+// These complete source versions precede formatting and acquisition
 // repairs. Authenticate every actual channel before supplying that old view.
 fn projection344_retained_part_with(
     source: &str,
@@ -775,7 +814,15 @@ fn projection344_retained_part_with(
     invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
 ) -> Option<String> {
     match (source, length, sha) {
-        (
+        ("src/workspace_graph/expected_projection.rs", 59698,
+            "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4")
+        | ("src/workspace_graph/expected_projection/held_projection.rs", 21916,
+            "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942")
+        | ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", 4106,
+            "5a0c22d81a09e58528af9e394df7313cb79198961b6de14a9159af360666f62f")
+        | ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", 12973,
+            "1118299b35a0009ce7476507741ea9f1495b0d12191af673a852a6da7cb771af")
+        | (
             "src/workspace_graph/expected_projection/call_carriers.rs",
             12395,
             "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
@@ -932,11 +979,15 @@ fn projection344_live_sources_with(
                 };
                 let compiled = declared.as_deref().unwrap_or(compiled);
                 let retained;
-                let compiled = if updated_projection_part(source, length, sha).is_some()
-                    || (source == "src/workspace_graph/expected_projection/call_carriers.rs"
-                        && length == 12395
+                let compiled = if updated_projection_part(source, length, sha).is_some() || (source == "src/workspace_graph/expected_projection/call_carriers_original.rs" && length == 23564 && sha == "90f8c704f7a8eeb72cfc5318123b27febe80ce5bbba39b7b6a1952ec6e058f58") || (source
+                    == "src/workspace_graph/expected_projection/call_carriers.rs"
+                    && length == 12395
+                    && sha == "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa")
+                    || (source
+                        == "src/workspace_graph/expected_projection/call_carriers_inverse.rs"
+                        && length == 4106
                         && sha
-                            == "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa")
+                            == "5a0c22d81a09e58528af9e394df7313cb79198961b6de14a9159af360666f62f")
                 {
                     retained = invocation.value_direct(source, sha, compiled);
                     retained.as_str()
@@ -984,6 +1035,10 @@ fn projection344_live_sources_with(
 }
 
 pub(crate) fn current344_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    current344_input_with(&mut invocation, source, current)
+}
+pub(crate) fn current344_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     let domain = match source {
         "src/cleanup_plan/replay/factored/canonical_shared.rs" => Domain::Canonical344,
         "expected_projection::root_join" => Domain::Projection344,
@@ -991,7 +1046,7 @@ pub(crate) fn current344_input(source: &str, current: &str) -> String {
     };
     let stage;
     let current = if matches!(domain, Domain::Canonical344) {
-        stage = canonical870_stage(current);
+        stage = canonical870_stage_with(invocation, current);
         stage.as_str()
     } else if matches!(domain, Domain::Projection344) {
         stage = projection344_stage(current);
@@ -1045,7 +1100,12 @@ pub(crate) fn controls() {
 
 // Separate new raw endpoint; the immutable Canonical344 row remains staged51.
 // Old stage bytes are never an alternative live870 input.
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn canonical870_stage(current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    canonical870_stage_with(&mut invocation, current)
+}
+fn canonical870_stage_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, current: &str) -> String {
     // This endpoint admits only the complete live raw input. Reject foreign
     // bytes before the expensive historical acquisition; valid input still
     // passes every original physical, compiled, archive and stage assertion.
@@ -1057,7 +1117,7 @@ fn canonical870_stage(current: &str) -> String {
         )),
         "complete live canonical870 input"
     );
-    let outer = super::main67107_inputs::project("canonical870", current);
+    let outer = super::main67107_inputs::project_with(invocation, "canonical870", current);
     let current = outer.as_str();
     let data = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -1139,9 +1199,14 @@ fn observer_projection_stage_keeps_whole_current_and_prior_and_refuses_foreign_j
     let live = projection344_live_sources(&projection344_live_descriptor());
     assert_ne!(live, current);
     assert_eq!(projection344_stage(&live), previous);
-    let compiled =
-        include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs");
-    let old_phase = projection344_phase_test_source(compiled);
+    let actual_compiled = include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs");
+    let compiled_phase = merged_projection::named_part(
+        "src/workspace_graph/expected_projection/call_carriers_tests.rs",25183,
+        "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9",
+        &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new(),
+    ).expect("whole named observer phase after complete actual source authentication");
+    let compiled = compiled_phase.as_str();
+    let old_phase = projection344_phase_test_source(actual_compiled);
     assert_eq!(live.matches(&old_phase).count(), 1);
     let phase_join = live.replacen(&old_phase, compiled, 1);
     assert_eq!(
@@ -1149,6 +1214,44 @@ fn observer_projection_stage_keeps_whole_current_and_prior_and_refuses_foreign_j
         Some(live.as_str())
     );
     assert_eq!(projection344_stage(&phase_join), previous);
+    assert_eq!(phase_join.len(), 649128);
+    assert_eq!(
+        digest(&phase_join),
+        "fa45d40b033e349919c909b390d5fe1bd267eabe2e8772c7640f75cc13ea0ec5"
+    );
+    let mut invocation =
+        crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+    let intermediate = invocation
+        .file(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/workspace_graph/expected_projection/call_carriers_tests.rs"),
+            23994,
+            "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047",
+        )
+        .expect("preserved complete intermediate phase observer");
+    assert_eq!(intermediate.len(), 23994);
+    assert_eq!(
+        digest(&intermediate),
+        "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"
+    );
+    let intermediate_join = live.replacen(&old_phase, &intermediate, 1);
+    assert_eq!(intermediate_join.len(), 647939);
+    assert_eq!(
+        digest(&intermediate_join),
+        "fe42350bec2fc90ebd37d5aef11786020716c555df70c85c3bf7622a4b4b1e7b"
+    );
+    assert_eq!(
+        projection344_phase_join(&intermediate_join).as_deref(),
+        Some(live.as_str())
+    );
+    assert_eq!(projection344_stage(&intermediate_join), previous);
+    for foreign in [
+        format!("{intermediate_join} "),
+        intermediate_join[..intermediate_join.len() - 1].to_owned(),
+        intermediate_join.replacen(&intermediate, &format!("{intermediate} "), 1),
+    ] {
+        assert!(std::panic::catch_unwind(|| projection344_stage(&foreign)).is_err());
+    }
     for foreign in [
         format!("{phase_join} "),
         phase_join[..phase_join.len() - 1].to_owned(),
@@ -1201,7 +1304,11 @@ fn projection344_retained_parts_reject_foreign_compiled_and_requested_tuples() {
             continue;
         };
         if !matches!(source,
-            "src/workspace_graph/expected_projection/call_carriers.rs"
+            "src/workspace_graph/expected_projection.rs"
+            | "src/workspace_graph/expected_projection/held_projection.rs"
+            | "src/workspace_graph/expected_projection/call_carriers_inverse.rs"
+            | "src/workspace_graph/expected_projection/prelude_forecast_tests.rs"
+            | "src/workspace_graph/expected_projection/call_carriers.rs"
             | "src/workspace_graph/expected_projection/borrowed_imports/typed.rs"
             | "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs")
         {
@@ -1385,6 +1492,8 @@ fn invoice_compiled_stage(source: &str, length: usize, sha: &str, compiled: &str
     if let Some(previous) = invoice_previous_file(&path, length, sha) {
         let mut invocation =
             crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+        let current = merged_projection::current_for_named(source, length, sha, compiled);
+        let compiled = current.unwrap_or(compiled);
         assert_eq!(invocation.value_direct(source, sha, compiled), previous);
         previous
     } else {

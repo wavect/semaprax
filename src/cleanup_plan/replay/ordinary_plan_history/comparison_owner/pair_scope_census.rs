@@ -47,6 +47,10 @@ pub(super) struct Row {
     pub shared_links: usize,
     pub shared_queries: usize,
     pub shared_boundaries: usize,
+    pub independent_frames: usize,
+    pub independent_checks: usize,
+    pub independent_runs: usize,
+    pub independent_turns: usize,
     pub shared_runs: usize,
     pub shared_boundary_complete: usize,
     pub shared_publishes: usize,
@@ -114,6 +118,10 @@ const EMPTY: Row = Row {
     shared_links: 0,
     shared_queries: 0,
     shared_boundaries: 0,
+    independent_frames: 0,
+    independent_checks: 0,
+    independent_runs: 0,
+    independent_turns: 0,
     shared_runs: 0,
     shared_boundary_complete: 0,
     shared_publishes: 0,
@@ -172,8 +180,10 @@ pub(super) fn maybe_unwind_tail_work() {
 pub(super) fn unwind_next_final_round() {
     UNWIND_FINAL.with(|flag| flag.set(true));
 }
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn prepare() {
+    TRACE.with(|t| t.borrow_mut().rows.resize(128, EMPTY));
+}
 pub(super) fn reset() {
-    super::super::frontiers::prepare();
     UNWIND_FINAL.with(|flag| flag.set(false));
     UNWIND_TAIL.with(|flag| flag.set(false));
     UNWIND_IDENTITY.with(|flag| flag.set(false));
@@ -496,6 +506,30 @@ impl Guard {
             None => r.overflow = true,
         });
     }
+    pub(super) fn independent_frames(&self) {
+        self.update(|r| match r.independent_frames.checked_add(1) {
+            Some(n) => r.independent_frames = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_checks(&self) {
+        self.update(|r| match r.independent_checks.checked_add(1) {
+            Some(n) => r.independent_checks = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_runs(&self) {
+        self.update(|r| match r.independent_runs.checked_add(1) {
+            Some(n) => r.independent_runs = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_turns(&self) {
+        self.update(|r| match r.independent_turns.checked_add(1) {
+            Some(n) => r.independent_turns = n,
+            None => r.overflow = true,
+        });
+    }
     pub(super) fn shared_runs(&self) {
         self.update(|r| match r.shared_runs.checked_add(1) {
             Some(n) => r.shared_runs = n,
@@ -662,6 +696,15 @@ pub(super) fn finish() -> (Vec<Row>, usize) {
         }
     }
     (rows, lost)
+}
+
+// Test-only frontier adapter keeps the private row type inside its owner.
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn reset_for_frontier_test() {
+    reset();
+}
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn finish_empty_for_frontier_test() -> (bool, usize) {
+    let (rows, lost) = finish();
+    (rows.is_empty(), lost)
 }
 
 #[cfg(test)]

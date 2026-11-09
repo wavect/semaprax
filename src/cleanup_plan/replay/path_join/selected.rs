@@ -88,6 +88,17 @@ use queries::{
     owned_provenance, pair_at, place_flags, plan_at, retain_flags, retained_units, scan,
     selected_renewals, slice_index, variant_any, variant_position,
 };
+#[cfg(test)]
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "complete independently executable immediate-old selected path owners"
+)]
+mod before_frontier;
+mod boxed_flow;
+mod frontier;
+#[cfg(test)]
+mod frontier_tests;
 mod renewal;
 mod strings;
 mod walk;

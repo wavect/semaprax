@@ -11,6 +11,9 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{ExpressionId, ResolvedExpr, ResolvedExprKind as E, ResolvedFunction};
 use crate::loan_plan::LoanPlan;
 
+#[cfg(test)]
+mod overlap_tests;
+
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 fn refusal() -> Vec<Diagnostic> {

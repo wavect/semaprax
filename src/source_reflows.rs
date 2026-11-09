@@ -8,6 +8,9 @@ use std::sync::{Mutex, OnceLock};
 
 use sha2::{Digest, Sha256};
 
+pub(crate) use ci_inputs::front_pool;
+pub(crate) use ci_inputs::current_source_epoch::next_before as replay_before_943;
+
 #[path = "source_reflows/ci_inputs.rs"]
 mod ci_inputs;
 pub(crate) use ci_inputs::formatting_preservation::formatting_view;
@@ -161,6 +164,14 @@ fn restore_formatting(record: &serde_json::Value, current: &str) -> String {
     restored
 }
 
+pub(crate) fn batch_913_entry(source: &str, current: &str) -> Option<String> {
+    ci_inputs::batch_913_entry(source, current)
+}
+
+pub(crate) fn lifecycle_visibility_input(source: &str, current: &str) -> String {
+    ci_inputs::lifecycle_visibility_entry(source, current).expect("closed lifecycle source domain")
+}
+
 pub(crate) fn source(
     caller: &'static str,
     included: &'static str,
@@ -168,7 +179,10 @@ pub(crate) fn source(
 ) -> &'static str {
     let path = logical_path(caller, included);
     let record = records().iter().find(|record| record["path"] == path);
-    let entry = ci_inputs::intrinsic_profile_entry(caller, &path, current);
+    let entry = ci_inputs::intrinsic_profile_entry(caller, &path, current)
+        .or_else(|| ci_inputs::lifecycle_visibility_entry(&path, current))
+        .or_else(|| ci_inputs::batch_913_entry(&path, current))
+        .or_else(|| ci_inputs::compact_frontier_entry(&path, current));
     if record.is_none() && !semantic_receivers::contains(&path) && entry.is_none() {
         return current;
     }
@@ -418,4 +432,8 @@ pub(crate) use declared_fixture_stages::complete_child_input;
 pub(crate) fn historical_project_entry(source: &str, expected: &str, supplied: &str) -> String {
     declared_history_inputs::expected_value(source, expected, supplied)
         .unwrap_or_else(|| crate::source_reflows_merge::project_before(source, expected, supplied))
+}
+
+pub(crate) fn next_custody_before(owner: &str, source: &str, current: &str) -> String {
+    ci_inputs::next_custody_before(owner, source, current)
 }

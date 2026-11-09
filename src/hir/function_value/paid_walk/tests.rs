@@ -137,6 +137,14 @@ fn complete_old_walk_presence_and_uses_sources_remain_exact() {
         "../../../../docs/evidence/overlay-transitive-funding/function_value_before_paid_walk.txt"
     );
     let current = include_str!("../../function_value.rs");
+    let wrapper = "pub(crate) fn walk<'a>(function: &'a ResolvedFunction, mut visit: impl FnMut(&'a ResolvedExpr)) {\n    walk_with(function, &mut visit);\n}\n\n";
+    let kernel = "#[inline(never)]\nfn walk_with<'a>(function: &'a ResolvedFunction, visit: &mut dyn FnMut(&'a ResolvedExpr)) {\n";
+    assert_eq!(current.matches(wrapper).count(), 1);
+    assert_eq!(current.matches(kernel).count(), 1);
+    let joined = wrapper.to_owned() + kernel;
+    assert_eq!(current.matches(&joined).count(), 1);
+    let current = current.replacen(&joined, "pub(crate) fn walk<'a>(function: &'a ResolvedFunction, mut visit: impl FnMut(&'a ResolvedExpr)) {\n", 1);
+    let current = current.as_str();
     fn body<'a>(source: &'a str, name: &str) -> &'a str {
         let start = source.find(name).unwrap();
         let end = start + source[start..].find("\n}\n").unwrap() + 3;

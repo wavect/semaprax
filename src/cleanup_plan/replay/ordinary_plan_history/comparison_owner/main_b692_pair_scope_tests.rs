@@ -170,6 +170,7 @@ fn observe_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);

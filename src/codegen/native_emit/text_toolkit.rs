@@ -7,7 +7,7 @@
 
 use super::{backend_error, c_case_symbol, c_field_symbol, CEmitter, COutput, CValue};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationId, ResolvedType};
+use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedType};
 use crate::string_ops::StringOp;
 
 /// Whether any resolved body or contract reaches a Text Toolkit v1 operation.
@@ -99,9 +99,9 @@ impl<O: COutput> CEmitter<'_, O> {
 
     fn emit_text_to_i64(&mut self, input: &str, temporary: &str) -> Result<(), Diagnostic> {
         let layout = self.variant_layout(&crate::string_ops::option_i64())?;
-        let none_id = DeclarationId::new(crate::prelude::OPTION_NONE_ID);
-        let some_id = DeclarationId::new(crate::prelude::OPTION_SOME_ID);
-        let value_id = DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID);
+        let none_id = DeclarationId::compiler(CompilerDeclaration::OptionNone);
+        let some_id = DeclarationId::compiler(CompilerDeclaration::OptionSome);
+        let value_id = DeclarationId::compiler(CompilerDeclaration::OptionSomeValue);
         let none = layout
             .case(&none_id)
             .ok_or_else(|| backend_error("Option<i64> layout has no compiler-owned None case"))?;

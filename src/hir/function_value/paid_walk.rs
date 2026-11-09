@@ -93,9 +93,17 @@ pub(super) fn roots<'a>(
 ) -> Result<(), Diagnostic> {
     let mut pending = Pending::new()?;
     pending.extend(roots)?;
+    walk_pending(&mut pending, &mut visit)
+}
+
+#[inline(never)]
+fn walk_pending<'a>(
+    pending: &mut Pending<'a>,
+    visit: &mut dyn FnMut(&'a ResolvedExpr),
+) -> Result<(), Diagnostic> {
     while let Some(expression) = pending.pop() {
         visit(expression);
-        push_children(expression, &mut pending)?;
+        push_children(expression, pending)?;
     }
     Ok(())
 }

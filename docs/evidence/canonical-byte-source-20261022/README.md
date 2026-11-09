@@ -1,16 +1,18 @@
-# Current source custody and compact byte transports
+# Source custody and compact byte transports at 1a4385642
 
 Status: partial CI repair evidence; qualification is limited to the checks recorded below.
 
 Audience: compiler maintainers and CI reviewers.
 
-This is an incremental CI repair. It does not qualify the full main CI suite.
+This records the incremental CI repair captured at `1a4385642bb412366957085a9b917cbbc0c60495`. It does not qualify the full main CI suite.
 
-The additive generator uses the byte-identical sealed registration parser and
+The historical additive generator uses the byte-identical sealed registration parser and
 retains every previous source, role, chain, raw chunk and closure member. It
 keeps compiled includes distinct from read-only text acquisitions. Three finite
 legacy text projections retain their old closed traces alongside the complete
 actual data bridges; they confer no production or compilation authority.
+The operative unsealed normal hook is `../source-boundary-domains-20261016/boundary_tools.py`, using `current_generation.py` to emit complete literal acquisition trails. Folded compatibility aliases remain prior-head metadata, not current compiled routes.
+
 All three sealed original tools and every original forbidden predicate remain
 unchanged. The unchanged full verifier and all six hostile controls pass.
 

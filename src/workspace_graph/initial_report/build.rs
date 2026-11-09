@@ -4,6 +4,7 @@ pub(in crate::workspace_graph) fn build_owned_inner<E: super::Policy>(
     change_builder_limit: Option<usize>,
     retain_operation_programs: bool,
     mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    report_controls: usize,
 ) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), E> {
     let _diagnostics = diagnostics::invocation_scope();
     if sources.len() < 2 {
@@ -229,43 +230,47 @@ pub(in crate::workspace_graph) fn build_owned_inner<E: super::Policy>(
                     layouts.receipt(),
                     fallback_mode,
                 );
-                let result = constructor_failure::attempt::run(active_builder_limit(), || {
-                    constructor_failure::attempt::reserve(layouts.receipt())?;
-                    staged!(
-                        CorePrebound,
-                        constructor_failure::attempt::reserve(resolve_builder_bytes)
-                    )?;
-                    let custody = custody::SourceCustody::plan(
-                        &sources,
-                        &programs,
-                        &pruned_dependency_functions,
-                    )
-                    .map_err(|error| match error {
-                        custody::CustodyError::Prepaid(_) => {
-                            vec![limit_error("builder_bytes", active_builder_limit())]
-                        }
-                        _ => vec![graph_error(
-                            "SPX-G173",
-                            "current parsed source custody is inconsistent",
-                        )],
-                    })?;
-                    let core = staged!(
-                        ResolvedCore,
-                        build_resolved_core_current(
+                let result = constructor_failure::attempt::run_with_report_controls(
+                    active_builder_limit(),
+                    report_controls,
+                    || {
+                        constructor_failure::attempt::reserve(layouts.receipt())?;
+                        staged!(
+                            CorePrebound,
+                            constructor_failure::attempt::reserve(resolve_builder_bytes)
+                        )?;
+                        let custody = custody::SourceCustody::plan(
+                            &sources,
                             &programs,
-                            &module_paths,
-                            &dependency_depths,
-                            &authored,
-                            Some(&sources),
-                            frontend.as_deref_mut(),
-                            &layouts,
-                            compact_layout
-                                .as_ref()
-                                .map(|layout| &layout.order[..programs.len()]),
+                            &pruned_dependency_functions,
                         )
-                    )?;
-                    Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
-                });
+                        .map_err(|error| match error {
+                            custody::CustodyError::Prepaid(_) => {
+                                vec![limit_error("builder_bytes", active_builder_limit())]
+                            }
+                            _ => vec![graph_error(
+                                "SPX-G173",
+                                "current parsed source custody is inconsistent",
+                            )],
+                        })?;
+                        let core = staged!(
+                            ResolvedCore,
+                            build_resolved_core_current(
+                                &programs,
+                                &module_paths,
+                                &dependency_depths,
+                                &authored,
+                                Some(&sources),
+                                frontend.as_deref_mut(),
+                                &layouts,
+                                compact_layout
+                                    .as_ref()
+                                    .map(|layout| &layout.order[..programs.len()]),
+                            )
+                        )?;
+                        Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))
+                    },
+                );
                 #[cfg(feature = "unstable-workflow-profiling")]
                 exclusive.complete(result.observation_succeeded());
                 result

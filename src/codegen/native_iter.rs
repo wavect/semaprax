@@ -14,7 +14,7 @@ pub(super) fn emit_runtime(
     program: &crate::hir::ResolvedProgram,
 ) {
     use super::native_emit::{c_case_symbol, c_field_symbol};
-    use crate::hir::DeclarationId;
+    use crate::hir::{CompilerDeclaration, DeclarationId};
     let record = crate::iterator_ops::resolved_program_uses_record_iterator(program);
     let mut scalar_runtime = RUNTIME_C.to_owned();
     if record && !program_uses_scalar_iterator(program) {
@@ -52,15 +52,15 @@ pub(super) fn emit_runtime(
         &runtime
             .replace(
                 "ITER_CASE",
-                &c_case_symbol(&DeclarationId::new(crate::iterator_ops::YIELD_ID)),
+                &c_case_symbol(&DeclarationId::compiler(CompilerDeclaration::IterYield)),
             )
             .replace(
                 "ITER_ITEM",
-                &c_field_symbol(&DeclarationId::new(crate::iterator_ops::ITEM_ID)),
+                &c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::IterItem)),
             )
             .replace(
                 "ITER_REST",
-                &c_field_symbol(&DeclarationId::new(crate::iterator_ops::REST_ID)),
+                &c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::IterRest)),
             ),
     );
 }
@@ -194,11 +194,11 @@ static __attribute__((unused)) void spx_iter_drop(struct spx_context *spx_ctx, s
 "#;
 
 pub(super) fn item_read(carrier: &str, ty: &crate::hir::ResolvedType) -> String {
-    use crate::hir::{DeclarationId, ResolvedType};
+    use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedType};
     let bits = format!(
         "({carrier}).spx_payload.{}.{}",
-        super::native_emit::c_case_symbol(&DeclarationId::new(crate::iterator_ops::YIELD_ID)),
-        super::native_emit::c_field_symbol(&DeclarationId::new(crate::iterator_ops::ITEM_ID))
+        super::native_emit::c_case_symbol(&DeclarationId::compiler(CompilerDeclaration::IterYield)),
+        super::native_emit::c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::IterItem))
     );
     match ty {
         ResolvedType::I64 => format!("((int64_t){bits})"),

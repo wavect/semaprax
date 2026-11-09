@@ -960,6 +960,85 @@ impl ReplayBudget {
     }
 }
 
+// Exact fixed-operation lexical producer for the test-only full oracle.
+// No evaluated operands, budget/function aliases, units/phase actual/formal
+// packets or returned compact Result are formed by this outer boundary. The
+// caller token is evaluated once at the original trace point (not passed across
+// a function boundary), preserving the actual source call site. Every
+// original prepare/sticky/lending/oracle-work/arithmetic/trace/refusal operation
+// below remains; returning general and lent producers are unchanged.
+#[cfg(test)]
+macro_rules! charge_flat_identity {
+    ($budget:ident, $function:ident, $caller:expr) => {{
+        match $budget.prepare_builder($function) {
+            Ok(()) => (),
+            Err(error) => {
+                return Err(
+                    $crate::cleanup_plan::replay::physical_budget::ByteFailure::from_budget(error)
+                        .into_diagnostic(),
+                )
+            }
+        };
+        if $budget.refusal_spent {
+            return Err($budget
+                .compact_refusal($function, "selected replay budget already failed", "")
+                .into_diagnostic());
+        }
+        if $budget.lent_skeleton {
+            $crate::cleanup_plan::replay::physical_budget::compact_try!(
+                $budget.charge_compact_skeleton($function, 1, "oracle flat observation identity")
+            );
+        } else {
+            match $budget.charge_oracle_work($function, 1, "oracle flat observation identity") {
+                Ok(()) => (),
+                Err(error) => {
+                    return Err(
+                        $crate::cleanup_plan::replay::physical_budget::ByteFailure::from_budget(
+                            error,
+                        )
+                        .into_diagnostic(),
+                    )
+                }
+            };
+            #[cfg(test)]
+            let caller = $caller;
+            $budget.remaining =
+                $crate::cleanup_plan::replay::physical_budget::compact_try!($budget
+                    .remaining
+                    .checked_sub(1)
+                    .ok_or_else(|| {
+                        #[cfg(test)]
+                        $crate::cleanup_plan::replay::REPLAY_WORK_REFUSAL.with(|record| {
+                            record.set(Some($crate::cleanup_plan::replay::ReplayWorkRefusal {
+                                caller,
+                                requested: 1,
+                                remaining: $budget.remaining,
+                                status_sources: $function.cleanup_plan.status_sources.len(),
+                                first_status_bytes: $function
+                                    .cleanup_plan
+                                    .status_sources
+                                    .first()
+                                    .map_or(0, |source| source.id.expression.as_str().len()),
+                                payer: match $budget.payer {
+                                    $crate::cleanup_plan::replay::AllocationPayer::LegacyUnobserved => "unobserved",
+                                    $crate::cleanup_plan::replay::AllocationPayer::ActiveBuilder => "builder",
+                                    $crate::cleanup_plan::replay::AllocationPayer::SelectedReservation => "selected",
+                                    $crate::cleanup_plan::replay::AllocationPayer::Oracle(_) => "oracle",
+                                },
+                            }))
+                        });
+                        $budget.compact_refusal(
+                            $function,
+                            "cleanup replay work budget exhausted during ",
+                            "oracle flat observation identity",
+                        )
+                    }));
+        }
+    }};
+}
+#[cfg(test)]
+pub(super) use charge_flat_identity;
+
 // Only the selected local callers use this conversion. No global From impl
 // participates in unrelated Result inference; successful calls retain ByteFailure.
 macro_rules! compact_try {

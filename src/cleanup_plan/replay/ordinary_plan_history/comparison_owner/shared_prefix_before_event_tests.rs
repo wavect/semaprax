@@ -188,6 +188,7 @@ fn run_traced(
     hir_shared: bool,
     swaps_only: bool,
 ) -> Run {
+    frontiers::prepare();
     let (actual, mut expected) = fixture(length, depth, shared, fault);
     if hir_shared {
         for path in &mut expected {
@@ -794,6 +795,7 @@ fn shared_identity_replay_typed_oracle_missing_foreign_and_restored_scope_keeps_
 
 #[test]
 fn shared_identity_replay_unwind_drops_live_remainder_and_marks_only_reached_prefix() {
+    frontiers::prepare();
     let program = super::super::super::tests::program();
     let function = &program.functions[0];
     let (actual, expected) = fixture(16, 1, true, 0);

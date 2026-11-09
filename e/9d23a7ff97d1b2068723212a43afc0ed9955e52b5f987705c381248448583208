@@ -1,0 +1,160 @@
+//! Two closed source acquisitions; neither retargets an original V13 endpoint.
+use serde_json::Value;
+
+const OWNERS: [&str; 3] = [
+    "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs",
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+];
+const TARGET: &str = "ca1b14fcf0f108f4c085b11a0b370faa33cde96c";
+
+#[derive(Clone, Copy)]
+enum Route {
+    Original,
+    Caller,
+}
+
+pub(super) fn original(source: &str, supplied: &str) -> String {
+    let acquired = v14_source_before(source, supplied);
+    if OWNERS.contains(&source) {
+        restore(source, &acquired, Route::Original)
+    } else {
+        acquired
+    }
+}
+
+pub(super) fn caller(source: &str, supplied: &str) -> Option<String> {
+    OWNERS
+        .contains(&source)
+        .then(|| restore(source, &v14_source_before(source, supplied), Route::Caller))
+}
+
+fn restore(source: &str, supplied: &str, route: Route) -> String {
+    // The caller first authenticates its complete actual include_str! source.
+    let packet: Value = serde_json::from_str(include_str!("controller_transport.json")).unwrap();
+    assert_eq!(packet["schema"], "semaprax.v13-controller-transport.v1");
+    assert_eq!(packet["target_commit"], TARGET);
+    let records = packet["records"].as_array().unwrap();
+    assert_eq!(records.len(), OWNERS.len());
+    let names: Vec<_> = records
+        .iter()
+        .map(|record| record["source"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, OWNERS);
+    let record = &records[OWNERS.iter().position(|owner| *owner == source).unwrap()];
+    assert_eq!(supplied.len() as u64, record["length"].as_u64().unwrap());
+    assert_eq!(
+        super::hash(supplied.as_bytes()),
+        record["sha256"].as_str().unwrap()
+    );
+    let original: Value = serde_json::from_str(include_str!("inverse.json")).unwrap();
+    let rows: Vec<_> = original
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["source"] == source)
+        .collect();
+    assert_eq!(rows.len(), 1);
+    let endpoint = match route {
+        Route::Original => &record["original"],
+        Route::Caller => &record["caller"],
+    };
+    let mut restored = supplied.to_owned();
+    let edits = match route {
+        Route::Original => &endpoint["edits"],
+        Route::Caller => {
+            assert_eq!(endpoint["edits_from_original"], source);
+            &rows[0]["edits"]
+        }
+    };
+    for edit in edits.as_array().unwrap() {
+        let after = edit["after"].as_str().unwrap();
+        assert!(!after.is_empty());
+        assert_eq!(edit["count"].as_u64(), Some(1));
+        assert_eq!(restored.matches(after).count(), 1);
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(restored.len() as u64, endpoint["length"].as_u64().unwrap());
+    assert_eq!(
+        super::hash(restored.as_bytes()),
+        endpoint["sha256"].as_str().unwrap()
+    );
+    if let Route::Original = route {
+        // Full ca1b inputs precede the independently replayed seven original
+        // inverses. Their whole lower endpoints and records stay unchanged.
+        assert_eq!(endpoint["length"], rows[0]["length"]);
+        assert_eq!(endpoint["sha256"], rows[0]["sha256"]);
+    }
+    // Caller restores ONLY the V13 instrumentation delta. Its separately
+    // pinned endpoint retains all merged metadata and MAIN_C907 cleanup input.
+    restored
+}
+
+
+const V14_FRONT_SOURCES: [&str; 4] = [
+    "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs",
+    "docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py",
+    "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+];
+
+fn v14_source_before(source: &str, supplied: &str) -> String {
+    if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
+        assert_eq!(supplied, include_str!("../main_e177_overlay_labels_v12/tests.rs"));
+        assert_eq!(supplied.len(), 9547);
+        assert_eq!(super::hash(supplied.as_bytes()), "652294002414f8f91534668666c28bec3954d1ce250cffc7fd0f3522a1356a8e");
+        let post = "4 {\n        super::super::verify_current_v14(&page);\n        return;\n    }\n    if page[\"schema\"] == super::super::SCHEMA_V1";
+        let prior = "";
+        assert_eq!(supplied.matches(post).count(), 1);
+        let restored = supplied.replacen(post, prior, 1);
+        assert_eq!(restored.len(), 9424);
+        assert_eq!(super::hash(restored.as_bytes()), "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6");
+        return restored;
+    }
+    let Some(index) = V14_FRONT_SOURCES.iter().position(|path| *path == source) else {
+        return supplied.to_owned();
+    };
+    let compiled = match index {
+        0 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")),
+        1 => include_str!("../main_e177_overlay_v2.rs"),
+        2 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py")),
+        3 => include_str!("../main_e177_overlay_fragments_v3.rs"),
+        _ => unreachable!(),
+    };
+    assert_eq!(supplied, compiled, "complete physical V14 caller source");
+    let packet: Value = serde_json::from_str(include_str!("controller_transport.json")).unwrap();
+    let front = &packet["v14_source_fronts"];
+    assert_eq!(front["schema"], "semaprax.v14-physical-source-fronts.v1");
+    assert_eq!(front["source_kind"], "PHYSICAL_V14_SOURCE_TO_COMPLETE_PRE_V14_INPUT_VIEW");
+    assert_eq!(front["sources"], serde_json::json!(V14_FRONT_SOURCES));
+    let rows = front["records"].as_array().unwrap();
+    assert_eq!(rows.len(), V14_FRONT_SOURCES.len());
+    let names: Vec<_> = rows.iter().map(|row| row["source"].as_str().unwrap()).collect();
+    assert_eq!(names, V14_FRONT_SOURCES);
+    let row = &rows[index];
+    let target_kind = if index < 2 {
+        let controllers = packet["records"].as_array().unwrap();
+        let record = controllers.iter().find(|record| record["source"] == source).unwrap();
+        assert_eq!(record["input_view_kind"], "PHYSICAL_V14_ACQUIRED_THEN_PRE_V14_BODY_WITH_CURRENT_POLICY_SEALS");
+        "PROJECTED_PRE_V14_BODY_WITH_CURRENT_POLICY_SEALS"
+    } else {
+        "COMPLETE_GIT424E_SOURCE_BEFORE"
+    };
+    assert_eq!(row["target"]["source_kind"], target_kind);
+    assert_eq!(supplied.len() as u64, row["length"].as_u64().unwrap());
+    assert!(supplied.len() <= 9_753_094); // Existing source domain, unchanged.
+    assert_eq!(super::hash(supplied.as_bytes()), row["sha256"].as_str().unwrap());
+    let mut restored = supplied.to_owned();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(start <= end && end <= restored.len());
+        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+        assert_eq!(&restored[start..end], edit["after"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        assert!(restored.len() <= 9_753_094);
+    }
+    assert_eq!(restored.len() as u64, row["target"]["length"].as_u64().unwrap());
+    assert_eq!(super::hash(restored.as_bytes()), row["target"]["sha256"].as_str().unwrap());
+    restored
+}

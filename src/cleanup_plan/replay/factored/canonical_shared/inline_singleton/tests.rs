@@ -435,9 +435,9 @@ fn actual_inline_owner_exact_short_zero_and_floor_refusals_release_every_owner()
 
 #[test]
 fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap() {
-    use super::super::super::{
-        before_inline_singleton, compare_with_index_storage, lexical_plan_tests,
-    };
+    super::super::super::paired::tests::authenticate_prepaired_compare();
+    super::super::super::paired::tests::authenticate_preprivate_compare();
+    use super::super::super::{before_inline_singleton, lexical_plan_tests};
     fn invoke(
         old: bool,
         program: &ResolvedProgram,
@@ -470,8 +470,89 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
                                 None,
                             )
                         } else {
-                            compare_with_index_storage(program, function, &mut budget, None, None)
+                            super::super::super::paired::tests::preprivate_compare(
+                                program,
+                                function,
+                                &mut budget,
+                                None,
+                                None,
+                            )
                         }
+                    })()
+                    .map_err(failure);
+                    (result, budget.remaining, budget.skeleton_spent)
+                });
+                (result, remaining, spent, heap)
+            });
+        (result, refused, paid, remaining, spent, heap)
+    }
+    fn invoke_shipping(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        limit: usize,
+    ) -> (
+        Result<Option<bool>, Failure>,
+        bool,
+        usize,
+        usize,
+        usize,
+        Metrics,
+    ) {
+        let ((result, remaining, spent, heap), refused, paid, _) =
+            with_limit_usage_refusal(limit, || {
+                let ((result, remaining, spent), heap) = measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let result = (|| {
+                        crate::cleanup_plan::replay::reserve_program_skeleton_work(
+                            program,
+                            std::iter::once(function),
+                            &mut budget,
+                        )?;
+                        super::super::super::compare_with_index_storage(
+                            program,
+                            function,
+                            &mut budget,
+                            None,
+                            None,
+                        )
+                    })()
+                    .map_err(failure);
+                    (result, budget.remaining, budget.skeleton_spent)
+                });
+                (result, remaining, spent, heap)
+            });
+        (result, refused, paid, remaining, spent, heap)
+    }
+
+    fn invoke_prepaired(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        limit: usize,
+    ) -> (
+        Result<Option<bool>, Failure>,
+        bool,
+        usize,
+        usize,
+        usize,
+        Metrics,
+    ) {
+        let ((result, remaining, spent, heap), refused, paid, _) =
+            with_limit_usage_refusal(limit, || {
+                let ((result, remaining, spent), heap) = measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let result = (|| {
+                        crate::cleanup_plan::replay::reserve_program_skeleton_work(
+                            program,
+                            std::iter::once(function),
+                            &mut budget,
+                        )?;
+                        super::super::super::paired::tests::prepaired_compare(
+                            program,
+                            function,
+                            &mut budget,
+                            None,
+                            None,
+                        )
                     })()
                     .map_err(failure);
                     (result, budget.remaining, budget.skeleton_spent)
@@ -493,6 +574,15 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
             assert_eq!(heap.live, 0);
             assert_eq!(heap.allocated, heap.freed);
         }
+        // Preserve the complete prepaired generation and observe its paid partition work.
+        let prepaired = invoke_prepaired(&program, &function, 64 * 1024 * 1024);
+        assert_eq!(prepaired.0, current.0);
+        assert!(!prepaired.1 && !prepaired.5.invalid);
+        assert_eq!(prepaired.4, current.4);
+        assert_eq!(prepaired.5.live, 0);
+        assert_eq!(prepaired.5.allocated, prepaired.5.freed);
+        assert!(prepaired.5.allocated <= prepaired.2 && prepaired.5.highwater <= prepaired.2);
+        eprintln!("OPT884 distinct prepaired remaining={} spent={} paid={} physical={:?}",prepaired.3,prepaired.4,prepaired.2,prepaired.5);
         // A complete composition may pay more on a cold graph. This owner
         // checks real semantics and teardown without padding the old invoice.
         eprintln!(
@@ -507,6 +597,40 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
             assert!(short.0.is_err() && short.1);
             assert_eq!(short.5.live, 0);
             assert_eq!(short.5.allocated, short.5.freed);
+        }
+
+        // Keep the canonical generation controls above complete. This second
+        // arm reaches today's shipping paired proof on the identical fixture.
+        let shipping = invoke_shipping(&program, &function, 64 * 1024 * 1024);
+        assert_eq!(shipping.0, current.0);
+        assert!(!shipping.1);
+        assert!(shipping.3 < MAX_REPLAY_WORK_UNITS);
+        assert!(!shipping.5.invalid && shipping.5.live == 0);
+        assert_eq!(shipping.5.allocated, shipping.5.freed);
+        assert!(shipping.5.allocated <= shipping.2 && shipping.5.highwater <= shipping.2);
+        eprintln!(
+            "OPT889 distinct shipping paid={} work={}/{} heap={:?}",
+            shipping.2, shipping.3, shipping.4, shipping.5
+        );
+        let exact = invoke_shipping(&program, &function, shipping.2);
+        assert_eq!(exact.0, shipping.0);
+        assert_eq!((exact.3, exact.4), (shipping.3, shipping.4));
+        assert!(!exact.1 && !exact.5.invalid && exact.5.live == 0);
+        assert_eq!(exact.5.allocated, exact.5.freed);
+        for limit in [0, shipping.2 - 1] {
+            let short = invoke_shipping(&program, &function, limit);
+            let error = short.0.unwrap_err();
+            assert_eq!(error.code, "SPX-H006");
+            assert_eq!(error.severity, crate::diagnostic::Severity::Error);
+            assert!(error.path.is_none() && error.span.is_none() && error.help.is_none());
+            assert!(short.1 && short.2 <= limit);
+            assert!(!short.5.invalid && short.5.live == 0);
+            assert_eq!(short.5.allocated, short.5.freed);
+            assert!(short.5.allocated <= short.2 && short.5.highwater <= short.2);
+            eprintln!(
+                "OPT889 shipping short limit={limit} work={}/{} error={error:?}",
+                short.3, short.4
+            );
         }
     }
 }

@@ -68,7 +68,7 @@ impl Policy for WorkspaceReportFailure {
         site: Option<ReservationSite>,
     ) -> Self {
         match paid {
-            Some(report) => Self::existing(report),
+            Some(report) => Self::existing_with_site(report, first, site),
             None => Self::initial(diagnostics::initial::Captured::live(maximum, first, site)),
         }
     }

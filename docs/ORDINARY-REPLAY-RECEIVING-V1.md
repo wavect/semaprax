@@ -147,3 +147,52 @@ restrictions stay unchanged. The source/payer selector retains sticky retry and
 separately reaches a fresh foreign-function check on the same physical payer,
 asserting six fields, paid String pointer, no new allocation, unchanged charged
 bytes and terminal sticky refusal. All controls remain unrun.
+
+## Neutral complete sequence receiver
+
+The source candidate's ordinary one-prefix/one-suffix branch retains the
+original complete renewal scan, validation scope, shared classifier publication
+and owned-source clone call. It does not infer validity from a DAG marker or
+replace the query with an assumed leaf result. The prefix must have no
+observations or owned source, be active and have Normal continuation. The
+suffix must have an empty inline tail, no owned source and Normal continuation.
+Its existing DAG remains the actual shared immutable owner.
+
+The lexical receiver moves the original prefix Vec once and writes the existing
+suffix Rc into its empty prefix field. It constructs no general Emission,
+Failure, temporary Observations or swap owner. SELECT pays every new production
+predicate before evaluation. OUTPUT prepays the new output/ledger/error loans
+and receivers; the original SHARE_CONTROLS and validation CALL remain fully
+paid before their unchanged helpers. Unsupported renewal/classification follows
+the original general caller fallback without executing either scan twice.
+All original clone/path work and materialization events remain.
+
+The cfg(test) immediate mode skips only the new lexical branch and executes the
+entire original emitter expansion in the same sequence caller. It does not add
+a forwarding old-call frame or charge the new selector to the old invoice.
+The owning controls retain whole old source, exercise subsequent shared-query
+work, all work cuts and complete owner Drop, and require an actual full-caller
+reservation reduction. These controls are source-authored and unexecuted;
+application admission and the earlier static module forecast remain separate.
+
+The additional multiple-suffix candidate accepts the same single neutral prefix
+and more than one Normal suffix only when each suffix has an actual shared DAG,
+empty inline tail and absent owned source. A prepaid scalar cursor inspects
+those places; any mismatch retains the complete general emitter. The entire
+renewal scan and validation/cache publication still run once. Each output keeps
+the original prefix/suffix/owned-source clone and path work events. The first
+output reuses the existing Vec slot; later outputs construct their actual
+Observations/path owners and call the original paid push helper. The finite
+path-profile refusal remains after the owned-source clone and before path work.
+Backing is acquired at each original publication boundary, never prepaid by an
+early aggregate allocation that could change the first work refusal.
+
+MANY_SELECT and MANY_PROBE fund their additional predicates, index transports
+and terminal probes before formation. MANY_OUTPUT conservatively retains the
+complete singleton output/error gateways and adds each actually new output
+Observations, path, continuation, vector/push and cursor packet. The inherited
+singleton branch and independently executable full old caller are unchanged.
+The additional controls compare whole ordinary caller invoices, cached work,
+ordered outputs, every work cut, exact/short/floor reservations and full Drop.
+They are unexecuted: this source change does not establish a positive net result
+or application admission, and it removes no completed census tariff.

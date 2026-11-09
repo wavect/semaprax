@@ -365,3 +365,65 @@ impl OracleLease {
         })
     }
 }
+
+// Helper-owned metadata for ONE additional ordinary Oracle charge. This is a
+// bounded maximum over success/missing/expired/sticky/exhausted arms, not an
+// account, permission, refund or substitute for performing the original call.
+// Private State includes the epoch; a receipt-only stand-in loses real owners.
+impl OracleLease {
+    const WITH_UPDATE_CONTROLS: usize = {
+        use std::mem::size_of;
+        2 * size_of::<OracleLease>() // with actual/formal self
+        + 2 * size_of::<&usize>() // moved update closure, actual/formal capture
+        + 2 * size_of::<(&u64, &usize)>() // TLS closure captures epoch loan + update
+        + 2 * size_of::<&std::thread::LocalKey<Cell<Option<State>>>>()
+        + 6 * size_of::<&Cell<Option<State>>>() // TLS argument, get self, set self pairs
+        + 5 * size_of::<Option<State>>() // get result/ok_or receiver; Some initializer + set actual/formal
+        + 2 * size_of::<Result<State, OracleRefusal>>() // ok_or return/receiving match
+        + 4 * size_of::<State>() // bound Ok owner, mutable local, Some move, selected receiver
+        + 2 * size_of::<&mut OracleReceipt>() // update actual/formal loan
+        + 8 * size_of::<Result<(), OracleRefusal>>() // update, TLS, with, outer return/receiving pairs
+        + 4 * size_of::<OracleRefusal>() // missing/expired selected constructors and matches
+        + 4 * size_of::<u64>() + 2 * size_of::<bool>() // epoch values and equality/branch
+    };
+    const REFUSAL_PREDICATE_CONTROLS: usize = {
+        use std::mem::size_of;
+        2 * size_of::<&OracleReceipt>()
+        + 4 * size_of::<&Option<OracleFirstRefusal>>()
+        + 2 * size_of::<&Option<&str>>()
+        + 8 * size_of::<bool>()
+    };
+    const ARITHMETIC_UPDATE_CONTROLS: usize = {
+        use std::mem::size_of;
+        2 * size_of::<(OracleLease, usize)>() // public charge actual/formal tuple
+        + 4 * size_of::<Option<usize>>() // checked attempt/total result and matches
+        + 14 * size_of::<usize>() // inputs, remaining, ordinals, total and publication
+        + 2 * size_of::<OracleFirstRefusal>() // initializer/insert parameter
+        + 2 * size_of::<Option<OracleFirstRefusal>>() // selected Some publication
+        + 2 * size_of::<&mut Option<OracleFirstRefusal>>()
+        + 2 * size_of::<&mut OracleFirstRefusal>()
+        + 4 * size_of::<OracleRefusal>() // overflow/sticky/exhausted selected results
+        + 8 * size_of::<bool>() // comparison, selection and overflow predicates
+    };
+    // refused() uses the same epoch-bearing State producer, but its update
+    // closure is zero-sized and the TLS closure captures only &self. Its
+    // actual returned R is bool, not unit. No receipt/state proxy is used.
+    const REFUSED_CALL_CONTROLS: usize = Self::WITH_UPDATE_CONTROLS
+        - 8 * std::mem::size_of::<Result<(), OracleRefusal>>()
+        + 8 * std::mem::size_of::<Result<bool, OracleRefusal>>()
+        - 2 * std::mem::size_of::<&usize>()
+        - 2 * std::mem::size_of::<(&u64, &usize)>()
+        + 2 * std::mem::size_of::<&OracleLease>()
+        + Self::REFUSAL_PREDICATE_CONTROLS;
+    // A new work call first runs prepare_builder -> builder_refused -> refused,
+    // then the complete charge_work update. Both real State paths are paid.
+    pub(in crate::cleanup_plan::replay) const WORK_CALL_CONTROLS: usize =
+        Self::WITH_UPDATE_CONTROLS + Self::REFUSAL_PREDICATE_CONTROLS
+        + Self::ARITHMETIC_UPDATE_CONTROLS + Self::REFUSED_CALL_CONTROLS;
+    // A new positive byte call performs BOTH readiness checks: prepare_builder
+    // checks builder_refused, then reserve_compact_bytes checks refused again
+    // before charge. Neither old call is credited or removed by the new bank.
+    pub(in crate::cleanup_plan::replay) const BYTE_CALL_CONTROLS: usize =
+        Self::WITH_UPDATE_CONTROLS + Self::REFUSAL_PREDICATE_CONTROLS
+        + Self::ARITHMETIC_UPDATE_CONTROLS + 2 * Self::REFUSED_CALL_CONTROLS;
+}

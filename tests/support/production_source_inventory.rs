@@ -8,7 +8,7 @@ mod boundary;
 mod original;
 
 pub(super) fn production(raw: &str, manifest: &str) -> String {
-    assert_current_accepted_batch_relocated_prefix(raw);
+    assert_current_full_raw_relocated_prefix(raw);
     // Authenticate ALL raw bytes, sources, registrations and production/test
     // roles first. No outside-boundary source is relabelled or left unaudited.
     let complete_authenticated_production = original::production(raw, manifest);
@@ -409,6 +409,170 @@ fn current_accepted_batch_relocated_prefix() -> String {
         include_str!("../../tests/workspace/semantic_graph/source_inventory_controls.rs"),
     ).to_owned()
 }
+// Exact current leading acquisitions; the complete raw payload remains unchanged.
+fn current_hir_leading_acquisitions() -> &'static str {
+    concat!(
+        include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/contains_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/contains_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs"),
+        include_str!("../../src/source_verify/constructor_tests/corpus/operator_refusals.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_tests.rs"),
+        include_str!("../../src/bounded_output/exclusive_debits/path_census.rs"),
+        include_str!("../../src/bounded_output/request_reservation.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/held_edge_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/held_edge_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/hir_memo_release_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/plan_prefix.rs"),
+        include_str!("../../src/cleanup_plan/replay/plan_prefix/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/plan_prefix/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/plan_prefix.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_lookup.rs"),
+        include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs"),
+        include_str!("../../src/cleanup_plan/replay/branch_clone/short_plan.rs"),
+        include_str!("../../src/cleanup_plan/replay/nested_shape/scalar_tests.rs"),
+        include_str!("../../src/test_allocation_observer/phase_peaks.rs"),
+        include_str!("../../src/loan_plan/paid_plan/before_reachability_release.rs"),
+        include_str!("../../src/loan_plan/paid_plan/reachability_release_tests.rs"),
+        include_str!("../../src/loan_plan/funded_flat/before_reachability_release.rs"),
+        include_str!("../../src/workspace_graph/loan_retention/overlap_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs"),
+        include_str!("../../src/cleanup_plan/replay/selected_owner/ordinary.rs"),
+        include_str!("../../src/cleanup_plan/replay/selected_owner/ordinary/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/mod.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/storage.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/before_frontier/transition.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/boxed_flow.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/frontier.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/frontier_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/frontier_tests/custody.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/frontier_tests/whole.rs"),
+        include_str!("../../src/call_index/validation_before.rs"),
+        include_str!("../../src/call_index/validation_receipt_tests.rs"),
+        include_str!("../../src/codegen/native_owned_data_provider/emit_provider_before.rs"),
+        include_str!("../../src/codegen/native_owned_data_provider/validation_reuse_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs"),
+        include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_census.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_before.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_labels_v12.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory/modular.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/paired.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/record_before.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs"),
+    )
+}
+fn current_projection_leading_acquisitions() -> &'static str {
+    concat!(
+        include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/contains_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/contains_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs"),
+        include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs"),
+        include_str!("../../src/source_verify/constructor_tests/corpus/operator_refusals.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs"),
+        include_str!("../../src/cleanup_plan/replay/path_join/direct_one_tests.rs"),
+        include_str!("../../src/bounded_output/exclusive_debits/path_census.rs"),
+        include_str!("../../src/bounded_output/request_reservation.rs"),
+        include_str!("../../src/test_allocation_observer/phase_peaks.rs"),
+        include_str!("../../src/loan_plan/paid_plan/before_reachability_release.rs"),
+        include_str!("../../src/loan_plan/paid_plan/reachability_release_tests.rs"),
+        include_str!("../../src/loan_plan/funded_flat/before_reachability_release.rs"),
+        include_str!("../../src/workspace_graph/loan_retention/overlap_tests.rs"),
+        include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs"),
+    )
+}
+fn current_hir_browser_leading_acquisitions() -> String {
+    let first = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs");
+    let browser = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs");
+    let original = current_hir_leading_acquisitions();
+    assert!(!first.is_empty() && !browser.is_empty());
+    assert_eq!(original.matches(first).count(), 1);
+    assert_eq!(original.matches(browser).count(), 0);
+    let rest = original
+        .strip_prefix(first)
+        .expect("complete original HIR first acquisition before the browser child");
+    format!("{first}{browser}{rest}")
+}
+fn assert_current_full_raw_relocated_prefix(raw: &str) {
+    let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
+    assert_eq!(raw.matches(moved_child).count(), 1, "the complete moved lexical child must remain present exactly once in actual raw");
+    let next_hir = current_hir_browser_leading_acquisitions();
+    for leading in [current_hir_leading_acquisitions(), current_projection_leading_acquisitions(), next_hir.as_str()] {
+        if let Some(original_tail) = raw.strip_prefix(leading) {
+            let original = current_accepted_batch_relocated_prefix();
+            let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
+            assert_eq!(original.matches(moved_child).count(), 1);
+            let current_slot = original.replacen(moved_child, "", 1);
+            let rest = original_tail.strip_prefix(current_slot.as_str()).expect("all current thirty-two source chunks retain exact order and multiplicity");
+            assert!(!rest.is_empty());
+            assert!(!rest.starts_with(current_slot.as_str()));
+            // Only the historical guard view restores the child slot. The full
+            // unmodified raw payload is still authenticated by original::production.
+            assert_current_accepted_batch_relocated_prefix(&format!("{original}{rest}"));
+            return;
+        }
+    }
+    panic!("complete exact HIR or projection leading acquisition sequence required");
+}
 fn assert_before_format_accepted_prefix(raw: &str) {
     let prefix = before_format_current_accepted_batch_relocated_prefix();
     let rest = raw
@@ -432,6 +596,37 @@ fn assert_current_accepted_batch_relocated_prefix(raw: &str) {
 #[test]
 fn current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjects() {
     let prefix = current_accepted_batch_relocated_prefix();
+    let next_hir = current_hir_browser_leading_acquisitions();
+    for (leading, first, second) in [
+        (current_hir_leading_acquisitions(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),
+        (current_projection_leading_acquisitions(), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs")),
+        (next_hir.as_str(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")),
+    ] {
+        let first_two = format!("{first}{second}");
+        let rest = leading.strip_prefix(first_two.as_str()).unwrap();
+        let relocated_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
+        assert_eq!(prefix.matches(relocated_child).count(), 1);
+        let current_prefix = prefix.replacen(relocated_child, "", 1);
+        let actual_tail_child = if leading.matches(relocated_child).count() == 1 { "" } else { relocated_child };
+        let valid = format!("{leading}{current_prefix}{actual_tail_child}remaining raw inventory");
+        assert_current_full_raw_relocated_prefix(&valid);
+        for bad in [valid.replacen(relocated_child, "", 1), format!("{valid}{relocated_child}")] {
+            assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad)).is_err());
+        }
+        for changed in [
+            format!("{second}{rest}"),
+            format!("{second}{first}{rest}"),
+            format!("{first}{first}{second}{rest}"),
+            format!("{first}{second}{second}{rest}"),
+            format!("foreign{leading}"),
+        ] {
+            assert_ne!(changed, leading);
+            let bad = format!("{changed}{current_prefix}{actual_tail_child}remaining raw inventory");
+            assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad)).is_err());
+        }
+        let missing_nested = current_prefix.replacen(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/matched.rs"), "", 1);
+        assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&format!("{leading}{missing_nested}{actual_tail_child}remaining raw inventory"))).is_err());
+    }
     let original = accepted_batch_relocated_prefix();
     let before_format = before_format_current_accepted_batch_relocated_prefix();
     assert_eq!(before_format, formatted_accepted_batch_relocated_prefix());

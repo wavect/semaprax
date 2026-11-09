@@ -1,0 +1,563 @@
+{
+  "schema": "semaprax.feature-only-path-census-source-inverse.v1",
+  "base": "82b5d3f2b8e33e625b6e5d002d37d244b5a71dd3",
+  "rows": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 227742,
+      "sha256": "a89396ad310b42c99c219473d6744eee8efb7e498f1275c460673b38427fc2ca",
+      "before_length": 228201,
+      "before_sha256": "8371f1de8fc08fe7920f341acc9e09edc04a015ed1c934c233eadfd853726e78",
+      "edits": [
+        [
+          294,
+          "\n        include_str!(\"../../../../../src/bounded_output/exclusive_debits/path_census.rs\"),\n        include_str!(\"../../../../../src/bounded_output/request_reservation.rs\"),\n",
+          ""
+        ],
+        [
+          37543,
+          "",
+          "macro_rules! fixed_operation_identity_source_inventory {\n    () => {\n        audit_source_join!(\n            include_str!(\"../../../../../src/hir/ids/fixed_operation_tests.rs\"),\n            include_str!(\"../../../../../src/hir/ids/declaration_tag.rs\"),\n            include_str!(\"../../../../../src/hir/ids/declaration_tag/before.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/map/identity_tests.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/list/identity_tests.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/iterator/identity_tests.rs\"),\n        )\n    };\n}\n"
+        ]
+      ]
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+      "length": 4907,
+      "sha256": "0c395566e9282ae146094b91ca9759663366120f452d741a846d7d382cde4f6a",
+      "before_length": 4274,
+      "before_sha256": "842979bf706a0ce014e74436eefbc722ccbef7e605f5aaeba3893dca7e55781f",
+      "edits": [
+        [
+          0,
+          "macro_rules! fixed_operation_identity_source_inventory {\n    () => {\n        audit_source_join!(\n            include_str!(\"../../../../../src/hir/ids/fixed_operation_tests.rs\"),\n            include_str!(\"../../../../../src/hir/ids/declaration_tag.rs\"),\n            include_str!(\"../../../../../src/hir/ids/declaration_tag/before.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/map/identity_tests.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/list/identity_tests.rs\"),\n            include_str!(\"../../../../../src/hir/resolve_box_call/iterator/identity_tests.rs\"),\n        )\n    };\n}\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "scripts/diagnose-resolved-core.py",
+      "length": 12403,
+      "sha256": "35791ffcde097943ed11ada74bc4ec98896b18b901e33d7e26beafdb3576bcde",
+      "before_length": 10283,
+      "before_sha256": "b7c746df32a0cd140c7b4ec16d90209aed95b2eb07481518bb8e1d581404c6d4",
+      "edits": [
+        [
+          4496,
+          "    families = [json.loads(line.removeprefix(\"path-census:\"))\n                for line in detail if line.startswith(\"path-census:\")]\n    assert [row[\"family\"] for row in families] == [\"residual\", \"ordinary\", \"selected\"]\n    assert sum(row[\"debit_bytes\"] for row in families) == consumed\n    for row in families:\n        assert row[\"schema\"] == \"semaprax.path-family-census.v1\"\n        assert set(row) == set(\"schema family entries successes errors unwinds refusals requests requested_bytes admitted_requests admitted_bytes debits debit_bytes terminal_paths successful_paths events event_labels foreign_events descendant_requests descendant_requested_bytes descendant_admitted_requests descendant_admitted_bytes descendant_entries descendant_events physical_allocator_census\".split())\n        for key, value in row.items():\n            if key not in {\"schema\", \"family\", \"events\", \"event_labels\", \"descendant_events\", \"physical_allocator_census\"}:\n                assert type(value) is int and value >= 0\n        assert row[\"entries\"] == sum(row[key] for key in (\"successes\", \"errors\", \"unwinds\", \"refusals\"))\n        assert 0 <= row[\"admitted_requests\"] <= row[\"requests\"]\n        assert 0 <= row[\"admitted_bytes\"] <= row[\"requested_bytes\"]\n        assert row[\"foreign_events\"] == 0 and row[\"physical_allocator_census\"] is False\n        assert len(row[\"events\"]) == len(row[\"event_labels\"]) == 12\n        assert row[\"event_labels\"] == [\"body\", \"empty_publication\", \"one_promotion\", \"many_publication\", \"owned_box_formation\", \"held_box_transfer\", \"promotion\", \"equal_duplicate\", \"tree_insert_request\", \"incoming_empty\", \"incoming_one\", \"incoming_many\"]\n        for key in (\"requests\", \"requested_bytes\", \"admitted_requests\", \"admitted_bytes\", \"entries\"):\n            assert 0 <= row[\"descendant_\" + key] <= row[key]\n        assert len(row[\"descendant_events\"]) == 12\n        assert all(type(n) is int and 0 <= n <= total for n, total in zip(row[\"descendant_events\"], row[\"events\"]))\n        assert all(type(n) is int and n >= 0 for n in row[\"events\"])\n",
+          ""
+        ],
+        [
+          6617,
+          "            \"path_family_request_and_source_event_census\": families,\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "scripts/diagnose-resolved-core.rs",
+      "length": 4859,
+      "sha256": "330b7c3f34f8041588d5b56fd27b7ee371d123e80d8b28f9a038c0922217703a",
+      "before_length": 3596,
+      "before_sha256": "47c796d59caf8b0e522f22bab7a7e5dc15ac1880845c6aaa24847aeda681104d",
+      "edits": [
+        [
+          3214,
+          "        for (family, row) in semaprax::workflow_profile::plan_comparison::PATH_FAMILIES\n            .iter()\n            .zip(a.path_census)\n        {\n            println!(\"path-census:{{\\\"schema\\\":\\\"semaprax.path-family-census.v1\\\",\\\"family\\\":\\\"{}\\\",\\\"entries\\\":{},\\\"successes\\\":{},\\\"errors\\\":{},\\\"unwinds\\\":{},\\\"refusals\\\":{},\\\"requests\\\":{},\\\"requested_bytes\\\":{},\\\"admitted_requests\\\":{},\\\"admitted_bytes\\\":{},\\\"debits\\\":{},\\\"debit_bytes\\\":{},\\\"terminal_paths\\\":{},\\\"successful_paths\\\":{},\\\"events\\\":{:?},\\\"event_labels\\\":{:?},\\\"foreign_events\\\":{},\\\"descendant_requests\\\":{},\\\"descendant_requested_bytes\\\":{},\\\"descendant_admitted_requests\\\":{},\\\"descendant_admitted_bytes\\\":{},\\\"descendant_entries\\\":{},\\\"descendant_events\\\":{:?},\\\"physical_allocator_census\\\":false}}\",\n                family,row.entries,row.successes,row.errors,row.unwinds,row.refusals,row.requests,row.requested_bytes,row.admitted_requests,row.admitted_bytes,row.debits,row.debit_bytes,row.terminal_paths,row.successful_paths,row.events,semaprax::workflow_profile::plan_comparison::PATH_EVENTS,row.foreign_events,row.descendant_requests,row.descendant_requested_bytes,row.descendant_admitted_requests,row.descendant_admitted_bytes,row.descendant_entries,row.descendant_events);\n        }\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output.rs",
+      "length": 52350,
+      "sha256": "b964e4a5ddffbf9d8e61d37eeb2cbf819b96c2dd204c91bca0755dc08c8a9664",
+      "before_length": 52670,
+      "before_sha256": "f9b2a1c5f5b7d9608071ab2f8c5bbdff4a4e2555caa2416d2ac4c75867b83c4c",
+      "edits": [
+        [
+          238,
+          "mod request_reservation;\nuse request_reservation::reserve_optional;\n",
+          ""
+        ],
+        [
+          11680,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::path_census::request(budget, length, false);\n",
+          ""
+        ],
+        [
+          11872,
+          "",
+          "}\n\n#[track_caller]\nfn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {\n    let Some(budget) = budget else {\n        return true;\n    };\n    // A zero-sized retry cannot authenticate an already refused account.\n    // Positive optional writes can still consume a reserved error trailer;\n    // they never clear the selected refusal or restore required admission.\n    if length == 0 && budget.overflowed.get() {\n        return false;\n    }\n    let remaining = budget.remaining.get();\n    if length > remaining {\n        record_refusal(budget, length);\n        budget.overflowed.set(true);\n        return false;\n    }\n    if length\n        .checked_add(budget.floor.get())\n        .is_none_or(|required| required > remaining)\n    {\n        return false;\n    }\n    budget.remaining.set(remaining - length);\n    #[cfg(test)]\n    stage_debits::debit(budget, length);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    exclusive_debits::debit(budget, length);\n    true\n"
+        ],
+        [
+          12808,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::path_census::request(budget.as_deref(), length, false);\n",
+          ""
+        ],
+        [
+          13847,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::path_census::request(Some(budget), length, false);\n",
+          ""
+        ],
+        [
+          14052,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::path_census::request(Some(budget), length, false);\n",
+          ""
+        ],
+        [
+          47646,
+          "#[cfg(test)]\npub(crate) use canonical_stage_tests::census_before;\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output/canonical_stage_tests.rs",
+      "length": 19983,
+      "sha256": "2119b3931a91be3727ca3962c2c01e76f73e7f371b15cdc6635f46b3a206a8bb",
+      "before_length": 13924,
+      "before_sha256": "efa1f4d50b7412c64e141aaef0d4c22ade9d6ee4265c7661c8f202de3c6aee96",
+      "edits": [
+        [
+          11422,
+          "census_before(\n        \"src/bounded_output/request_reservation.rs\",\n        include_bytes!(\"request_reservation.rs\"),\n    );\n    let restored = census_before(\n        \"src/bounded_output.rs\",\n        include_bytes!(\"../bounded_output.rs\"),\n    );\n    let live = std::str::from_utf8(&restored).unwrap(",
+          "let live = include_str!(\"../bounded_output.rs\""
+        ],
+        [
+          14178,
+          "\n// Finite feature-only source transport, before any earlier immutable inverse.\n// Raw/default and compiled channels must agree; no caller accepts this as proof.\npub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let encoded = include_str!(\"../cleanup_plan/replay/path_join/path_census_inverse.json\");\n    let rows: serde_json::Value = serde_json::from_str(encoded).unwrap();\n    let Some(row) = rows[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|row| row[\"path\"] == path)\n    else {\n        return current.to_vec();\n    };\n    assert_eq!(current.len() as u64, row[\"length\"].as_u64().unwrap());\n    assert_eq!(digest(current), row[\"sha256\"].as_str().unwrap());\n    let compiled: &[u8] = match path {\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")).as_slice(),\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs\")).as_slice(),\n        \"scripts/diagnose-resolved-core.py\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/scripts/diagnose-resolved-core.py\")).as_slice(),\n        \"scripts/diagnose-resolved-core.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/scripts/diagnose-resolved-core.rs\")).as_slice(),\n        \"src/bounded_output.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output.rs\")).as_slice(),\n        \"src/bounded_output/canonical_stage_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output/canonical_stage_tests.rs\")).as_slice(),\n        \"src/bounded_output/exclusive_debits.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output/exclusive_debits.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/lexical_replay.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/lexical_replay.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join/frontier.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/frontier.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join/frontier_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/frontier_tests.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join/selected/frontier.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/frontier.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/path_join/selected/walk.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/walk.rs\")).as_slice(),\n        \"src/cleanup_plan/replay/scalar_replay.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/scalar_replay.rs\")).as_slice(),\n        \"src/source_reflows_merge/constructor_stage.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/source_reflows_merge/constructor_stage.rs\")).as_slice(),\n        \"src/workflow_profile/plan_comparison.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/workflow_profile/plan_comparison.rs\")).as_slice(),\n        \"src/workspace_graph/shape_identity/source_controls.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/workspace_graph/shape_identity/source_controls.rs\")).as_slice(),\n        \"tests/hir_module_boundaries.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\")).as_slice(),\n        \"tests/workspace/semantic_graph/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/workspace/semantic_graph/source_inventory.rs\")).as_slice(),\n        \"src/bounded_output/request_reservation.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output/request_reservation.rs\")).as_slice(),\n        _ => panic!(\"undeclared census source\"),\n    };\n    assert_eq!(current, compiled);\n    let mut bytes = current.to_vec();\n    for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[0].as_u64().unwrap() as usize;\n        let after = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(bytes.get(start..start + after.len()), Some(after));\n        bytes.splice(\n            start..start + after.len(),\n            edit[2].as_str().unwrap().bytes(),\n        );\n    }\n    assert_eq!(bytes.len() as u64, row[\"before_length\"].as_u64().unwrap());\n    assert_eq!(digest(&bytes), row[\"before_sha256\"].as_str().unwrap());\n    if path == \"src/bounded_output/request_reservation.rs\" {\n        assert_eq!(row[\"before_owner\"], \"src/bounded_output.rs\");\n        let parent = census_before(\n            \"src/bounded_output.rs\",\n            include_bytes!(\"../bounded_output.rs\"),\n        );\n        let start = row[\"before_start\"].as_u64().unwrap() as usize;\n        let end = row[\"before_end\"].as_u64().unwrap() as usize;\n        assert_eq!(parent.get(start..end), Some(bytes.as_slice()));\n    }\n    bytes\n}\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output/exclusive_debits.rs",
+      "length": 39412,
+      "sha256": "0c43f2acd2230a4bf1e443c7f3ba5ca2fee3f086ed3f65216e484ee8a7ed2cf4",
+      "before_length": 37885,
+      "before_sha256": "9b08ffc1d880bb95970752ae61336fbeb2ae5fcbcd53e60970639f5fa4e11cf0",
+      "edits": [
+        [
+          184,
+          "pub mod path_census;\n",
+          ""
+        ],
+        [
+          4124,
+          "    pub path_census: [path_census::Row; 3],\n",
+          ""
+        ],
+        [
+          5184,
+          "        path_census: [path_census::Row::EMPTY; 3],\n",
+          ""
+        ],
+        [
+          7752,
+          "    path_family: Option<path_census::Family>,\n    path_depth: usize,\n    serial: usize,\n",
+          ""
+        ],
+        [
+          7947,
+          "        path_family: None,\n        path_depth: 0,\n        serial: 0,\n",
+          ""
+        ],
+        [
+          8143,
+          "    path_base_depth: usize,\n",
+          ""
+        ],
+        [
+          8288,
+          "        path_base_depth: 0,\n",
+          ""
+        ],
+        [
+          8598,
+          "    next_ledger: usize,\n",
+          ""
+        ],
+        [
+          9001,
+          "            next_ledger: 0,\n",
+          ""
+        ],
+        [
+          11257,
+          "        s.next_ledger = 0;\n",
+          ""
+        ],
+        [
+          12930,
+          "                if s.ledgers[index + 1..s.ledger_depth]\n                    .iter()\n                    .any(|ledger| ledger.path_depth != 0)\n                {\n                    s.invalid();\n                }\n",
+          ""
+        ],
+        [
+          13847,
+          "            let Some(serial) = s.next_ledger.checked_add(1) else {\n                s.report.overflow = true;\n                s.invalid();\n                return;\n            };\n            s.next_ledger = serial;\n",
+          ""
+        ],
+        [
+          14232,
+          "                path_family: None,\n                path_depth: 0,\n                serial,\n",
+          ""
+        ],
+        [
+          15981,
+          "                path_census::add_debit(s, index, bytes);\n",
+          ""
+        ],
+        [
+          20354,
+          "        let owner = Rc::as_ptr(&budget) as usize;\n        let path_base_depth = s.ledgers[..s.ledger_depth]\n            .iter()\n            .find(|ledger| ledger.owner == owner)\n            .map_or(0, |ledger| ledger.path_depth);\n",
+          ""
+        ],
+        [
+          20635,
+          ",\n            path_base_depth",
+          ": Rc::as_ptr(&budget) as usize"
+        ],
+        [
+          21645,
+          "\n                && s.ledgers[..s.ledger_depth]\n                    .iter()\n                    .find(|ledger| ledger.owner == s.frames[index].owner)\n                    .is_some_and(|ledger| ledger.path_depth == s.frames[index].path_base_depth)",
+          ""
+        ],
+        [
+          22887,
+          "\n                || !path_census::balanced(&row.path_census, row.consumed)",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output/request_reservation.rs",
+      "length": 1451,
+      "sha256": "da94643f10ffe0cb22f356726ca16932ff11a5fcbb344cb58a0db625a48c1670",
+      "before_length": 984,
+      "before_sha256": "b3013bb820ba6f87bd661c14a8912279863bc8edbc4d70806db38aead48663a3",
+      "edits": [
+        [
+          0,
+          "//! The complete ordinary optional reservation decision, without a forwarding ABI.\n#[cfg(feature = \"unstable-workflow-profiling\")]\nuse super::exclusive_debits;\n#[cfg(test)]\nuse super::stage_debits;\nuse super::{record_refusal, Budget};\n",
+          ""
+        ],
+        [
+          251,
+          "pub(super) fn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let mut path_request = exclusive_debits::path_census::Request::new(budget, length);",
+          "fn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {"
+        ],
+        [
+          1359,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    path_request.admitted();\n",
+          ""
+        ]
+      ],
+      "before_owner": "src/bounded_output.rs",
+      "before_start": 11680,
+      "before_end": 12664
+    },
+    {
+      "path": "src/cleanup_plan/replay/lexical_replay.rs",
+      "length": 16725,
+      "sha256": "5686964a0f12cca8f3a63c5ef1b48daf6f587ecaf7ad40dc337fe7328040e319",
+      "before_length": 16313,
+      "before_sha256": "c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98",
+      "edits": [
+        [
+          8891,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(\n            crate::bounded_output::exclusive_debits::path_census::Family::Selected,\n        );\n",
+          ""
+        ],
+        [
+          9623,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        path_census.success();\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        drop(path_census);\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join.rs",
+      "length": 53255,
+      "sha256": "e66afaf7a9241c178c4800d325fdb20a7ff6a6715bf016c839fdb031148b83c9",
+      "before_length": 52505,
+      "before_sha256": "a4be447ed96e73c45044675adf1c7d85606fbc194683a6d583b63a3bb3a24896",
+      "edits": [
+        [
+          1688,
+          "    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(\n        crate::bounded_output::exclusive_debits::path_census::Family::Ordinary,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::event(\n        crate::bounded_output::exclusive_debits::path_census::Event::Body,\n",
+          ""
+        ],
+        [
+          8281,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n",
+          ""
+        ],
+        [
+          43457,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    {\n        crate::bounded_output::exclusive_debits::path_census::finish(\n            terminal_paths,\n            successful_paths,\n        );\n        path_census.success();\n    }\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+      "length": 14589,
+      "sha256": "2a6bb7f4c53fd303d7b8ae581e0d210b8a9ecdfc8e0b36e8334cd681681b667d",
+      "before_length": 11444,
+      "before_sha256": "6d4c82e64f917d2a729b97b7da5d7fa2a691d035d9d4d9e2347d6858ee9f7360",
+      "edits": [
+        [
+          7044,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+          ""
+        ],
+        [
+          7333,
+          "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,\n            );\n",
+          ""
+        ],
+        [
+          8586,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+          ""
+        ],
+        [
+          8875,
+          "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,\n            );\n",
+          ""
+        ],
+        [
+          10336,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(super) fn observe_incoming(&self) {\n        use crate::bounded_output::exclusive_debits::path_census::{event, Event};\n        event(match self {\n            Self::Empty => Event::InputEmpty,\n            Self::One(_) => Event::InputOne,\n            Self::Many(_) => Event::InputMany,\n        });\n    }\n",
+          ""
+        ],
+        [
+          11264,
+          "{\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,\n                );\n                *self = Self::One(value);\n            }",
+          "*self = Self::One(value),"
+        ],
+        [
+          11600,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                {\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::One,\n                    );\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,\n                    );\n                }\n",
+          ""
+        ],
+        [
+          12261,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ],
+        [
+          12548,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ],
+        [
+          12927,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Many,\n                );\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier_tests.rs",
+      "length": 22051,
+      "sha256": "9c5fb6769cc7bc5f6e5518f781095e66c9c4cc0db11ca19b88462b80217e2d1a",
+      "before_length": 19986,
+      "before_sha256": "d6fddcc766fc297e99577b23225cd482bcc7a11223291f9cbb11fd347f339f62",
+      "edits": [
+        [
+          19986,
+          "\n#[cfg(feature = \"unstable-workflow-profiling\")]\n#[test]\nfn actual_ordinary_driver_reports_bound_body_frontier_and_complete_terminal_arity() {\n    use crate::bounded_output::exclusive_debits::{attempt, path_census::Event};\n    use crate::workflow_profile::plan_comparison::{Binding, Capture};\n    let program=crate::hir::resolve(&crate::check(\n        \"module census; @id(\\\"f\\\") fn f(flag:bool)->i64 {if flag {1}else{2}} @id(\\\"main\\\") fn main()->i64 {f(false)}\",\n        \"census.spx\").unwrap()).unwrap();\n    let function = program.functions.iter().find(|f| f.name == \"main\").unwrap();\n    let c = Capture::begin(Binding::caller_labelled(\n        \"actual ordinary path census\",\n        [0; 32],\n    ))\n    .unwrap();\n    let ((outcome, remaining), refused, paid, _) =\n        crate::bounded_output::with_limit_usage_refusal(64 << 20, || {\n            let mut a = attempt(0, 0, 0);\n            let mut budget = ReplayBudget::new();\n            let outcome = (|| {\n                let storage = validate_slots_paid(function, &mut budget)?;\n                let leaves = collect_leaves_paid(function, &mut budget)?;\n                validate_path_states::<Diagnostic>(\n                    &program,\n                    function,\n                    &storage,\n                    &leaves,\n                    &mut budget,\n                    None,\n                    None,\n                )\n            })();\n            let remaining = budget.remaining;\n            a.complete(outcome.is_ok());\n            (outcome, remaining)\n        });\n    assert!(outcome.is_ok() && !refused && remaining < MAX_REPLAY_WORK_UNITS && paid > 0);\n    let r = c.finish().unwrap().resolved_core;\n    assert!(r.complete && !r.invalid);\n    let row = r.attempts[0].path_census[1];\n    assert_eq!(\n        (row.entries, row.successes, row.events[Event::Body as usize]),\n        (1, 1, 1)\n    );\n    assert!(row.events[Event::InputOne as usize] > 0 && row.events[Event::OwnedBox as usize] > 0);\n    assert!(row.terminal_paths > 0 && row.successful_paths > 0 && row.admitted_requests > 0);\n}\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs",
+      "length": 13248,
+      "sha256": "bc0f17e4753b893a398e71c9739d1e165236c3bfcc14f0622e2cd2e6174d27a6",
+      "before_length": 13190,
+      "before_sha256": "624579489df9e6ab2aa43b2cf8a96ebc62a68c108faa753008a14b2158234465",
+      "edits": [
+        [
+          2956,
+          "\n            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap()",
+          " std::fs::read(root.join(&path)).unwrap("
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/selected/frontier.rs",
+      "length": 14596,
+      "sha256": "ca861587e6f8de81dcee273d9d1918e97e153f344342ca4c658cdcd94c82939e",
+      "before_length": 11451,
+      "before_sha256": "070cce6ee64b01c273f546b82f332b266bf9e19a89d15e314a2e2c787a4e3aa2",
+      "edits": [
+        [
+          7051,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+          ""
+        ],
+        [
+          7340,
+          "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,\n            );\n",
+          ""
+        ],
+        [
+          8593,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+          ""
+        ],
+        [
+          8882,
+          "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,\n            );\n",
+          ""
+        ],
+        [
+          10343,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(super) fn observe_incoming(&self) {\n        use crate::bounded_output::exclusive_debits::path_census::{event, Event};\n        event(match self {\n            Self::Empty => Event::InputEmpty,\n            Self::One(_) => Event::InputOne,\n            Self::Many(_) => Event::InputMany,\n        });\n    }\n",
+          ""
+        ],
+        [
+          11271,
+          "{\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,\n                );\n                *self = Self::One(value);\n            }",
+          "*self = Self::One(value),"
+        ],
+        [
+          11607,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                {\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::One,\n                    );\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,\n                    );\n                }\n",
+          ""
+        ],
+        [
+          12268,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ],
+        [
+          12555,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ],
+        [
+          12934,
+          "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Many,\n                );\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/selected/walk.rs",
+      "length": 59932,
+      "sha256": "62259dab9014167a28306a770722fdb772aac1064168bf18758e27f8313058da",
+      "before_length": 59490,
+      "before_sha256": "d34216eb45d74d5c3c5c8152fefde141d002769e36b64cd1fba087672f67fda5",
+      "edits": [
+        [
+          389,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::event(\n        crate::bounded_output::exclusive_debits::path_census::Event::Body,\n    );\n",
+          ""
+        ],
+        [
+          12535,
+          "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n",
+          ""
+        ],
+        [
+          59602,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::finish(terminal_paths, successful_paths);\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/scalar_replay.rs",
+      "length": 17273,
+      "sha256": "249f4d28c04da282a3f704dacf2e0dda98b553f9fc1f7468d826c2d323d04689",
+      "before_length": 16893,
+      "before_sha256": "fc0d67cafc8ee7e41d0616de194144d57e967ba1648b35fcb3325074c0a4d644",
+      "edits": [
+        [
+          8328,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(\n        crate::bounded_output::exclusive_debits::path_census::Family::Selected,\n    );\n",
+          ""
+        ],
+        [
+          8901,
+          "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    path_census.success();\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    drop(path_census);\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/constructor_stage.rs",
+      "length": 14090,
+      "sha256": "14e60be9942680da8457e166212d17942374f7d800754cd4947fa640ea8a7da6",
+      "before_length": 13853,
+      "before_sha256": "72674ce0503a378d67079268e0fe65fd6caa0462ef809be16eddf44c60eda512",
+      "edits": [
+        [
+          2322,
+          "{\n            crate::bounded_output::census_before(\n                \"src/bounded_output/request_reservation.rs\",\n                include_bytes!(\"../bounded_output/request_reservation.rs\"),\n            );\n            (\n                include_str!(\"../bounded_output.rs\"),\n                \"fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f\",\n            )\n        }",
+          "(\n            include_str!(\"../bounded_output.rs\"),\n            \"fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f\",\n        ),"
+        ]
+      ]
+    },
+    {
+      "path": "src/workflow_profile/plan_comparison.rs",
+      "length": 41488,
+      "sha256": "76cb487fafb9de2c14f54d30e1520b83bdffb686c4cdf03b89db89c3df72358a",
+      "before_length": 41344,
+      "before_sha256": "4c17db3e4d81ac32f62e6c762fa4b6d2ef6df1b6a579bd146b9fd1d0c1366223",
+      "edits": [
+        [
+          325,
+          "pub use crate::bounded_output::exclusive_debits::path_census::{\n    Row as PathFamilyCensus, EVENTS as PATH_EVENTS, LABELS as PATH_FAMILIES,\n};\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/workspace_graph/shape_identity/source_controls.rs",
+      "length": 6111,
+      "sha256": "2bf674aa1e6c1d60feddb278d1fd5ce8928d142ad22842dff47b0b063d958bec",
+      "before_length": 5828,
+      "before_sha256": "c2288ee7f78f21dc4f31d095077dc5e77c4bda32d9210cb73c9977d6f0e52719",
+      "edits": [
+        [
+          3976,
+          "crate::bounded_output::census_before(\n        \"src/bounded_output/request_reservation.rs\",\n        include_bytes!(\"../../bounded_output/request_reservation.rs\"),\n    );\n    let current_budget = String::from_utf8(crate::bounded_output::census_before(\n        \"src/bounded_output.rs\",\n        &std::fs::read(root.join(\"src/bounded_output.rs\")).unwrap(),\n    ))\n    ",
+          "let current_budget = std::fs::read_to_string(root.join(\"src/bounded_output.rs\"))"
+        ]
+      ]
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 153194,
+      "sha256": "29a37b470efcab74c13779e9dcd1b2fac6cd548d7325d2cd1a9a4081afb3af96",
+      "before_length": 153044,
+      "before_sha256": "338db3b855fe3fe22df94003ded7ede52ae63f5338cab873ef7b19a230c2cb50",
+      "edits": [
+        [
+          244,
+          "\n        include_str!(\"../src/bounded_output/exclusive_debits/path_census.rs\"),\n        include_str!(\"../src/bounded_output/request_reservation.rs\"),\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 181075,
+      "sha256": "36ae99b2e4319a83f688797315600c1c7f6dcfacbebcc0f5d21637c26155ff9e",
+      "before_length": 180919,
+      "before_sha256": "59e4e0626cde83ab4e741c080019d9e30c5792625ed2ee3d48a30cacdfca36dc",
+      "edits": [
+        [
+          2844,
+          "\n        include_str!(\"../../src/bounded_output/exclusive_debits/path_census.rs\"),\n        include_str!(\"../../src/bounded_output/request_reservation.rs\"),\n",
+          ""
+        ]
+      ]
+    }
+  ]
+}

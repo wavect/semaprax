@@ -1991,13 +1991,19 @@ fn callable_limit_exact_advances_and_one_over_is_g171() {
     );
     let exact = callable_boundary_source(MAX_CALLABLES - 1);
     let (exact_result, reference_comparisons, reference_bytes) =
-        crate::cleanup_plan::with_financed_workspace_test_oracles(|| {
-            build_owned(vec![exact, leaf.clone()])
-        });
+        // At most seven monotonic core modes (0..=6) can resolve this same
+        // fixture again (initial_report/build.rs). Each attempt has at most
+        // MAX_CALLABLES authored functions plus two module-local mains, and
+        // each HIR validation invokes both complete original receivers.
+        crate::cleanup_plan::with_financed_workspace_test_oracles(
+            2usize.checked_mul(MAX_CALLABLES.checked_add(2).unwrap()).unwrap().checked_mul(7).unwrap(),
+            || build_owned(vec![exact, leaf.clone()]),
+        );
     assert!(reference_comparisons >= 2 * MAX_CALLABLES);
     assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));
     let trace = crate::bounded_output::stage_debits::take_completed();
-    eprintln!("callable-limit-exact post-construction trace={trace:?}");
+    let final_trace = crate::bounded_output::stage_debits::take_last_completed();
+    eprintln!("callable-limit-exact largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}");
     exact_result.expect("exact callable limit must advance");
     let over = callable_boundary_source(MAX_CALLABLES);
     let error = build_owned(vec![over, leaf])

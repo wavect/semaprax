@@ -5,7 +5,7 @@
 use super::*;
 use crate::bounded_output::cfg_reservation::CfgReservation;
 
-pub(super) fn merge<'a>(
+pub(crate) fn merge<'a>(
     rows: impl Iterator<Item = &'a [LoanId]> + Clone,
     payer: &CfgReservation,
 ) -> Result<Vec<LoanId>, Diagnostic> {

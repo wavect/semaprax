@@ -1,4 +1,7 @@
 //! Proper tagged nested success/error, exact physical settlement, and partial failure.
+#[path = "owned_nested_outcome/boundaries.rs"]
+mod boundaries;
+
 use semaprax::interpreter::{self, InterpreterOptions};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};

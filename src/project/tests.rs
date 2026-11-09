@@ -130,7 +130,7 @@ fn main() -> i64 { if choose(42) { 42 } else { 0 } }
     root.canonicalize().unwrap()
 }
 
-fn fixture() -> PathBuf {
+pub(super) fn fixture() -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "semaprax-project-v1-{}-{}",
         std::process::id(),
@@ -1414,4 +1414,58 @@ fn windows_manifest_and_source_link_counts_are_one() {
     assert_eq!(error[0].code, "SPX-J102");
     std::fs::remove_file(manifest_link).unwrap();
     let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn reporting_project_preserves_original_success_and_drift_mapper_order() {
+    use std::cell::Cell;
+    let root = fixture();
+    let path = root.join(MANIFEST_FILE);
+    let observe = |snapshot: &mut ProjectSnapshot| {
+        snapshot.check()?;
+        Ok((
+            snapshot.manifest().name().to_owned(),
+            snapshot.project_revision().to_owned(),
+        ))
+    };
+    let expected = with_authenticated_project(&path, observe).unwrap();
+    let hints = Cell::new(0);
+    let actual = with_authenticated_project_reporting(&path, observe, |report| {
+        hints.set(hints.get() + 1);
+        report
+    })
+    .unwrap();
+    assert_eq!(actual, expected);
+    assert_eq!(
+        hints.get(),
+        0,
+        "successful checks never execute error hints"
+    );
+    let source = root.join("z/app.spx");
+    let original = std::fs::read(&source).unwrap();
+    let operation = |_: &mut ProjectSnapshot| -> Result<(), Vec<Diagnostic>> {
+        std::fs::write(&source, b"changed after authenticated load").unwrap();
+        Err(vec![Diagnostic::io_static("SPX-T947", "selected primary")])
+    };
+    let expected = with_authenticated_project(&path, operation).unwrap_err();
+    assert_eq!(expected[0].code, "SPX-T947");
+    assert!(expected
+        .iter()
+        .any(|d| matches!(d.code, "SPX-J102" | "SPX-J103")));
+    std::fs::write(&source, &original).unwrap();
+    let actual = with_authenticated_project_reporting(&path, operation, |mut report| {
+        hints.set(hints.get() + 1);
+        report.push(Diagnostic::io_static("SPX-T948", "original caller hint"));
+        report
+    })
+    .unwrap_err();
+    let mut expected = expected;
+    expected.push(Diagnostic::io_static("SPX-T948", "original caller hint"));
+    assert_eq!(actual.reported().unwrap(), expected);
+    assert_eq!(
+        hints.get(),
+        1,
+        "outer hint runs once after original final recheck"
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }

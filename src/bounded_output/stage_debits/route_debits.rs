@@ -995,6 +995,9 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
         env!("CARGO_MANIFEST_DIR"),
         "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs"
     ));
+    let (paired, independent) = paired.split_once("// BEGIN INDEPENDENT LOADED SEGMENTS").unwrap();
+    assert_eq!(independent.matches("paid!(").count(), 3);
+    assert_eq!(independent.matches(".charge(").count(), 5);
     let suffix = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs"
@@ -1025,7 +1028,7 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
         ]
     );
     // Both lexical producers forward only the caller's already-checked phase.
-    for lexical in [lexical, paired_forward] {
+    for lexical in [lexical, paired_forward, independent] {
         let sites: Vec<_> = lexical.match_indices("paid!(").collect();
         for (at, _) in sites {
             let body = &lexical[at + "paid!(".len()..];
@@ -1253,6 +1256,15 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
             + (2 - 1), // real right-success work expansions minus old common work site
         29
     );
+    let independent_calls = macro_arguments(suffix, "independent_plan_segment_run!(");
+    assert_eq!(independent_calls.len(), 1);
+    assert_eq!(independent_calls[0].len(), 6);
+    assert_eq!(independent_calls[0][5], "\"ordinary plan history paired cursor next\"");
+    // The original complete29-site equation remains above. The actual single
+    // loaded-run expansion adds three payments and five work sites, funded
+    // in the existing multipath-only primitive acquisition before any run.
+    assert_eq!(independent.matches("paid!(").count() + independent.matches(".charge(").count(), 8);
+    assert!(independent.contains("pub(super) const INDEPENDENT_PRIMITIVES: usize = 8 * PAYMENT_HEADER;"));
     for phase in phases(heads, "paid!(", 4)
         .into_iter()
         .chain(phases(suffix, "paid!(", 4))
@@ -1262,6 +1274,63 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
             comparison_phase(phase).is_some(),
             "unattributed certified payment: {phase}"
         );
+    }
+
+    // The genuine incoming599 phase inventory remains an explicit puremain
+    // control, independently of the actual composed shipping expansion above.
+    {
+        let owner = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs"));
+        let lexical = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments_cursor.rs"));
+        let direct = phases(owner, "paid!(", 4);
+        let forwarded = macro_arguments(owner, "lexical_plan_next!(");
+        let shared = macro_arguments(owner, "shared_plan_pair_step!(");
+        assert_eq!((direct.len(), forwarded.len(), shared.len()), (12, 4, 1));
+        assert_eq!(forwarded.iter().filter(|v|v.len()==10).count(), 2);
+        assert_eq!(forwarded.iter().filter(|v|v.len()==4).count(), 1);
+        assert_eq!(forwarded.iter().filter(|v|v.len()==12).count(), 1);
+        assert_eq!(shared[0].len(), 12);
+    let sites: Vec<_> = lexical.match_indices("paid!(").collect();
+    assert_eq!(sites.len(), 27, "audit every generic payment site");
+    assert_eq!(lexical.matches("shared_plan_boundary!(").count(), 1);
+    assert_eq!(lexical.matches("shared_plan_segment_run!(").count(), 1);
+    assert_eq!(lexical.matches("independent_plan_segment_run!(").count(), 1);
+    assert_eq!(lexical.matches("paired_plan_tails!(").count(), 1);
+    assert_eq!(lexical.matches("remember_plan_tail!(").count(), 3);
+    let compact: String = lexical.split_whitespace().collect();
+    assert!(!compact.contains("lexical_pair_plan_next!"));
+    assert_eq!(compact.matches("paired_plan_observations!($owner,$left_path,$right_path,$left_tail,$right_tail,$left_links,$right_links,$census,$function,$budget,$pair_loop,$phase);").count(), 1);
+    assert_eq!(
+        compact
+            .matches("shared_plan_boundary!($owner,$left_links,$right_links,$census,$function,$budget,$phase);")
+            .count(),
+        1
+    );
+    assert_eq!(
+        compact
+            .matches("shared_plan_segment_run!($owner,$census,$function,$budget,$phase);")
+            .count(),
+        1
+    );
+    assert_eq!(compact.matches("independent_plan_segment_run!($owner,$census,$function,$budget,$pair_loop,$phase);").count(), 1);
+    for (at, _) in sites {
+        let body = &lexical[at + "paid!(".len()..];
+        let end = body.find(")?;").expect("unknown generic payment shape");
+        let phase = body[..end].trim().trim_end_matches(',').trim();
+        assert!(
+            phase
+                .rsplit_once(',')
+                .is_some_and(|(_, last)| last.trim() == "$phase"),
+            "unknown generic payment forwarding shape: {phase}"
+        );
+    }
+
+        for call in forwarded.into_iter().chain(shared) {
+            let phase = call.last().unwrap().trim().strip_prefix('"').unwrap().strip_suffix('"').unwrap();
+            assert!(comparison_phase(phase).is_some(), "unattributed incoming payment: {phase}");
+        }
+        for phase in direct { assert!(comparison_phase(phase).is_some()); }
     }
 }
 

@@ -1,0 +1,119 @@
+[
+  {
+    "current": "src/cleanup_plan/replay/path_join.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/path_join.rs.txt",
+    "current_length": 54380,
+    "current_sha256": "c87e4c4f061f25fedde76f64119ef1a0ece0961f8e411ceff5961d41cc4ab7e2",
+    "before_sha256": "2977cc41d8a37cba936f983af9635ec45a4d2bb09938dcc4ab6ae3c3db06f552",
+    "edits": [
+      {
+        "from": "mod compact_failure_before;\n#[cfg(test)]\nmod compact_failure_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently compiled immediate-compact frontier owner\")]\nmod contains_before;\n#[cfg(test)]\nmod contains_tests;\n",
+        "to": "mod compact_failure_before;\n#[cfg(test)]\nmod compact_failure_tests;\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/frontier.rs.txt",
+    "current_length": 20194,
+    "current_sha256": "96f7289e424d786cc87c8d4d02c9d546720f31d81c0d5de98293f71904ffeb25",
+    "before_sha256": "457bdf0b9c7d121803fc4caec020a8da3e7e7ba91dde5899f502c270db2f8130",
+    "edits": [
+      {
+        "from": "            + 3 * size_of::<usize>()\n            // contains result + named duplicate, each branch predicate and\n            // match selector. The renewed bank precedes all warm hits too.\n            + 8 * size_of::<bool>()\n            + 2 * size_of::<Option<usize>>()\n            + 2 * size_of::<&mut Incoming<T>>()\n            // The lexical match keeps its actual &Incoming view. The old\n            // contains callee's independent formal &Incoming no longer exists.\n            + size_of::<&Incoming<T>>()\n            + 2 * size_of::<&T>();\n    pub(super) fn entry_controls() -> usize {\n        Self::ENTRY_CONTROLS\n    }\n    // Exact original tree entry price; only borrowed Self references depend on\n    // the receiver type, and both remain thin references to a sized owner.\n",
+        "to": "            + 3 * size_of::<usize>()\n            // contains result + named duplicate, each branch predicate and\n            // match selector. The renewed bank precedes all warm hits too.\n            + 8 * size_of::<bool>()\n            + 2 * size_of::<Option<usize>>()\n            + 2 * size_of::<&mut Incoming<T>>()\n            + 2 * size_of::<&Incoming<T>>()\n            + 2 * size_of::<&T>();\n    pub(super) fn entry_controls() -> usize {\n        Self::ENTRY_CONTROLS\n    }\n    // Exact original tree entry price; only borrowed Self references depend on\n    // the receiver type, and both remain thin references to a sized owner.\n"
+      },
+      {
+        "from": "        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                Self::controls() + Self::entry_controls(),\n                \"ownership insertion receiving controls\",\n            )?;\n            #[cfg(test)]\n            contains_tests::record_entry_bank();\n        }\n        let mut result = Self {\n            failed: false,\n            refusal: None,\n            entry: true,\n            group_entry: true,\n",
+        "to": "        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                Self::controls() + Self::entry_controls(),\n                \"ownership insertion receiving controls\",\n            )?;\n        }\n        let mut result = Self {\n            failed: false,\n            refusal: None,\n            entry: true,\n            group_entry: true,\n"
+      },
+      {
+        "from": "        budget: &mut ReplayBudget,\n    ) {\n        self.authenticate(function, budget);\n        if self.failed {\n            return;\n        }\n        let duplicate = match &*target {\n            Incoming::Empty => false,\n            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,\n            Incoming::Many(v) => v.contains(&value),\n        };\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::OWNED_EMPTY,\n                Incoming::One(_) => Self::OWNED_ONE,\n",
+        "to": "        budget: &mut ReplayBudget,\n    ) {\n        self.authenticate(function, budget);\n        if self.failed {\n            return;\n        }\n        let duplicate = target.contains(&value);\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::OWNED_EMPTY,\n                Incoming::One(_) => Self::OWNED_ONE,\n"
+      },
+      {
+        "from": "            bytes,\n            \"compact incoming owned state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(test)]\n        if budget.pays_allocations() {\n            contains_tests::record_entry_bank();\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n",
+        "to": "            bytes,\n            \"compact incoming owned state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n"
+      },
+      {
+        "from": "        budget: &mut ReplayBudget,\n    ) {\n        self.authenticate(function, budget);\n        if self.failed {\n            return;\n        }\n        let duplicate = match &*target {\n            Incoming::Empty => false,\n            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,\n            Incoming::Many(v) => v.contains(value.as_ref()),\n        };\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::ENTRY_CONTROLS,\n                Incoming::One(_) => Self::HELD_ONE,\n",
+        "to": "        budget: &mut ReplayBudget,\n    ) {\n        self.authenticate(function, budget);\n        if self.failed {\n            return;\n        }\n        let duplicate = target.contains(value.as_ref());\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::ENTRY_CONTROLS,\n                Incoming::One(_) => Self::HELD_ONE,\n"
+      },
+      {
+        "from": "            bytes,\n            \"compact incoming held state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(test)]\n        if budget.pays_allocations() {\n            contains_tests::record_entry_bank();\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n",
+        "to": "            bytes,\n            \"compact incoming held state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n"
+      },
+      {
+        "from": "            Self::Many(_) => Event::InputMany,\n        });\n    }\n    pub(super) fn is_empty(&self) -> bool {\n        self.len() == 0\n    }\n    // Called only after all box, node/split, move, empty replacement and Result\n    // roles have been acquired. On a refused payment no target is taken.\n    fn publish(&mut self, value: Box<T>) {\n        match self {\n            Self::Empty => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n",
+        "to": "            Self::Many(_) => Event::InputMany,\n        });\n    }\n    pub(super) fn is_empty(&self) -> bool {\n        self.len() == 0\n    }\n    fn contains(&self, value: &T) -> bool {\n        match self {\n            Self::Empty => false,\n            Self::One(old) => old.as_ref().cmp(value) == std::cmp::Ordering::Equal,\n            Self::Many(v) => v.contains(value),\n        }\n    }\n    // Called only after all box, node/split, move, empty replacement and Result\n    // roles have been acquired. On a refused payment no target is taken.\n    fn publish(&mut self, value: Box<T>) {\n        match self {\n            Self::Empty => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/direct_one_tests.rs.txt",
+    "current_length": 13374,
+    "current_sha256": "45af4bfff1372dfbe9f493fb79c59a035081901170445244f90f5515180b786b",
+    "before_sha256": "9664f67acf4f1683c832738b7fd3b4e6b78b1174d8fd7e963a67d898c9a9966b",
+    "edits": [
+      {
+        "from": "            };\n            let before = observe(true, usize::MAX);\n            reset_banks();\n            contains_tests::reset_banks();\n            let current = observe(false, usize::MAX);\n            let banks = paid_banks();\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1 && banks > 0);\n",
+        "to": "            };\n            let before = observe(true, usize::MAX);\n            reset_banks();\n            let current = observe(false, usize::MAX);\n            let banks = paid_banks();\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1 && banks > 0);\n"
+      },
+      {
+        "from": "                .checked_mul(direct_one_before::removed_iterator_controls())\n                .unwrap();\n            let setup_removed = compact_failure_tests::setup_delta::<PathState>();\n            let entry_removed = contains_tests::paid_banks()\n                .checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();\n            assert_eq!(\n                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)).and_then(|n| n.checked_add(entry_removed)),\n                Some(before.2)\n            );\n            assert!(current.2 < before.2);\n            eprintln!(\"direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} entry_removed={} physical_before={:?} physical_current={:?}\", f.id,before.2,current.2,banks,removed,setup_removed,entry_removed,before.0.1,current.0.1);\n            for o in [&before, &current] {\n                let a = &o.0 .1;\n                assert!(!a.invalid && a.live == 0 && a.allocated <= o.2);\n",
+        "to": "                .checked_mul(direct_one_before::removed_iterator_controls())\n                .unwrap();\n            let setup_removed = compact_failure_tests::setup_delta::<PathState>();\n            assert_eq!(\n                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)),\n                Some(before.2)\n            );\n            assert!(current.2 < before.2);\n            eprintln!(\"direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} physical_before={:?} physical_current={:?}\", f.id,before.2,current.2,banks,removed,setup_removed,before.0.1,current.0.1);\n            for o in [&before, &current] {\n                let a = &o.0 .1;\n                assert!(!a.invalid && a.live == 0 && a.allocated <= o.2);\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/compact_failure_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/compact_failure_tests.rs.txt",
+    "current_length": 30102,
+    "current_sha256": "fe1f46359a6d39399a23dfe09878a196a6ee8b3a27d61e1ef8cc20b7af8a2370",
+    "before_sha256": "f6092afd5d271b42f67f45abc37794683f24f9060583790b40b34d3bff1764a3",
+    "edits": [
+      {
+        "from": "    );\n    assert_eq!(\n        compact_failure_before::Insertions::<T>::entry_controls(),\n        frontier::Insertions::<T>::entry_controls() + contains_tests::entry_delta::<T>()\n    );\n    assert_eq!(\n        compact_failure_before::Insertions::<T>::GROUP_ENTRY_CONTROLS,\n        frontier::Insertions::<T>::GROUP_ENTRY_CONTROLS\n    );\n    let old_entry_prices = compact_failure_before::Insertions::<T>::observed_prices();\n    let new_entry_prices = frontier::Insertions::<T>::observed_prices();\n    for i in 0..6 {\n        assert_eq!(old_entry_prices[i], new_entry_prices[i] + contains_tests::entry_delta::<T>());\n    }\n    assert_eq!(old_entry_prices[6], new_entry_prices[6]);\n    net\n}\n#[test]\n",
+        "to": "    );\n    assert_eq!(\n        compact_failure_before::Insertions::<T>::entry_controls(),\n        frontier::Insertions::<T>::entry_controls()\n    );\n    assert_eq!(\n        compact_failure_before::Insertions::<T>::GROUP_ENTRY_CONTROLS,\n        frontier::Insertions::<T>::GROUP_ENTRY_CONTROLS\n    );\n    assert_eq!(\n        compact_failure_before::Insertions::<T>::observed_prices(),\n        frontier::Insertions::<T>::observed_prices()\n    );\n    net\n}\n#[test]\n"
+      },
+      {
+        "from": "    };\n    let old = invoice(true);\n    let new = invoice(false);\n    assert_eq!(new.0 + net + contains_tests::entry_delta::<PathState>(), old.0);\n    assert_eq!(new.1, old.1);\n    for prior in [false, true] {\n        let exact = if prior { old.0 } else { new.0 };\n",
+        "to": "    };\n    let old = invoice(true);\n    let new = invoice(false);\n    assert_eq!(new.0 + net, old.0);\n    assert_eq!(new.1, old.1);\n    for prior in [false, true] {\n        let exact = if prior { old.0 } else { new.0 };\n"
+      },
+      {
+        "from": "fn digest(raw: &[u8]) -> String {\n    format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(raw)))\n}\npub(super) fn before_source(path: &str, actual: String) -> String {\n    let mut actual = contains_tests::before_source(path, actual);\n    let inverse = include_bytes!(\"compact_failure_before/inverse.json\");\n    assert_eq!(inverse.len(), INVERSE_LENGTH);\n    assert_eq!(digest(inverse), INVERSE_SHA);\n",
+        "to": "fn digest(raw: &[u8]) -> String {\n    format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(raw)))\n}\npub(super) fn before_source(path: &str, mut actual: String) -> String {\n    let inverse = include_bytes!(\"compact_failure_before/inverse.json\");\n    assert_eq!(inverse.len(), INVERSE_LENGTH);\n    assert_eq!(digest(inverse), INVERSE_SHA);\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/shared_insertions_tests.rs.txt",
+    "current_length": 20576,
+    "current_sha256": "ebd51055fbe63840eecf6baee106060728f5fc6d2506999f210242e24d56b5a3",
+    "before_sha256": "88e797cc0764b2322c71f800c4a62069aa1ead7114c03c205609bb4ca5594bcf",
+    "edits": [
+      {
+        "from": "    let f = function();\n    macro_rules! same {\n        ($t:ty) => {{\n            let original = prices::<$t>(&f).0;\n            let current = Insertions::<$t>::observed_prices();\n            for i in 0..6 {\n                assert_eq!(current[i].checked_add(contains_tests::entry_delta::<$t>()), Some(original[i]));\n            }\n            assert_eq!(current[6], original[6]);\n            assert_eq!(\n                frontier::const_node_upper::<Box<$t>, ()>(),\n                crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Box<$t>, ()>()\n",
+        "to": "    let f = function();\n    macro_rules! same {\n        ($t:ty) => {{\n            assert_eq!(Insertions::<$t>::observed_prices(), prices::<$t>(&f).0);\n            assert_eq!(\n                frontier::const_node_upper::<Box<$t>, ()>(),\n                crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Box<$t>, ()>()\n"
+      },
+      {
+        "from": "        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Aligned, [u64; 3]>()\n    );\n    let before = prices::<State>(&f).1;\n    assert_eq!(Insertions::<State>::entry_controls() + contains_tests::entry_delta::<State>(), before[1]);\n    assert_eq!(Insertions::<State>::GROUP_ENTRY_CONTROLS, before[3]);\n    let removed = before[0] + before[2] + before[3] - Insertions::<State>::controls();\n    assert!(removed > 0);\n",
+        "to": "        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Aligned, [u64; 3]>()\n    );\n    let before = prices::<State>(&f).1;\n    assert_eq!(Insertions::<State>::entry_controls(), before[1]);\n    assert_eq!(Insertions::<State>::GROUP_ENTRY_CONTROLS, before[3]);\n    let removed = before[0] + before[2] + before[3] - Insertions::<State>::controls();\n    assert!(removed > 0);\n"
+      },
+      {
+        "from": "        assert!(!refused && first.is_none());\n        paid\n    };\n    assert_eq!(invoice(false) + removed + contains_tests::entry_delta::<State>(), invoice(true));\n}\n#[test]\nfn shared_group_entry_keeps_original_box_duplicate_drop_and_each_paid_frontier() {\n",
+        "to": "        assert!(!refused && first.is_none());\n        paid\n    };\n    assert_eq!(invoice(false) + removed, invoice(true));\n}\n#[test]\nfn shared_group_entry_keeps_original_box_duplicate_drop_and_each_paid_frontier() {\n"
+      },
+      {
+        "from": "            };\n            let before = observe(true, usize::MAX);\n            direct_one_tests::reset_banks();\n            contains_tests::reset_banks();\n            let current = observe(false, usize::MAX);\n            let direct_banks = direct_one_tests::paid_banks();\n            let entry_removed = contains_tests::paid_banks().checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);\n            let old_controls = prices::<PathState>(f).1;\n            let removed = old_controls[0] + old_controls[2] + old_controls[3]\n",
+        "to": "            };\n            let before = observe(true, usize::MAX);\n            direct_one_tests::reset_banks();\n            let current = observe(false, usize::MAX);\n            let direct_banks = direct_one_tests::paid_banks();\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);\n            let old_controls = prices::<PathState>(f).1;\n            let removed = old_controls[0] + old_controls[2] + old_controls[3]\n"
+      },
+      {
+        "from": "                f.id, before.2, current.2, removed, before.0.1, current.0.1\n            );\n            assert_eq!(\n                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls() + entry_removed,\n                before.2\n            );\n            every_invoice_lower &= current.2 < before.2;\n",
+        "to": "                f.id, before.2, current.2, removed, before.0.1, current.0.1\n            );\n            assert_eq!(\n                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls(),\n                before.2\n            );\n            every_invoice_lower &= current.2 < before.2;\n"
+      }
+    ]
+  }
+]

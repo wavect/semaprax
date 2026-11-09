@@ -1,10 +1,24 @@
 //! Complete paid ordered key directory for receiving replay. Indices are private
 //! construction coordinates; keys are compared in full and never hashed.
 use super::*;
+pub(in crate::cleanup_plan::replay) mod held_invocation;
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) mod invocation;
 use crate::cleanup_plan::ExitTargetId;
 use std::cmp::Ordering;
 
 const NIL: usize = usize::MAX;
+
+// One immutable lexical insertion choice: actual/formal Option receiver loans,
+// primitive predicate return, receiving expression and branch discriminator.
+pub(super) const LEXICAL_INSERT_SELECTOR_BYTES: usize =
+    2 * std::mem::size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()
+        + 3 * std::mem::size_of::<bool>();
+pub(super) const LEXICAL_INSERT_SELECTOR_WORK: usize = 1;
+#[cfg(test)]
+pub(super) const LEXICAL_INSERT_CONSTRUCTOR_BASE_BYTES: usize =
+    2 * std::mem::size_of::<Option<Box<status_prefix::FrozenStatusIndex>>>();
+
 // Per-step charges mirror the expression-fact arena.
 const VISIT_UNITS: usize = 3;
 const STEP_UNITS: usize = 2;
@@ -166,6 +180,31 @@ impl<K: KeyWork> Directory<K> {
     #[cfg(test)]
     pub(super) fn has_frozen_lookup_for_test(&self) -> bool {
         self.lookup.is_some()
+    }
+
+    pub(super) fn new_with_lexical_insert_selector(
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        phase: &'static str,
+    ) -> Result<Self, Diagnostic> {
+        budget.reserve_bytes(function, 0, phase)?;
+        budget.charge(function, 0, phase)?;
+        // The new optional field has two initialized receiving slots. Existing
+        // directory fields and reservation requests receive no credit.
+        budget.reserve_bytes(
+            function,
+            2 * std::mem::size_of::<Option<Box<status_prefix::FrozenStatusIndex>>>()
+                + LEXICAL_INSERT_SELECTOR_BYTES,
+            phase,
+        )?;
+        budget.charge(function, 1 + LEXICAL_INSERT_SELECTOR_WORK, phase)?;
+        Ok(Self {
+            nodes: Vec::new(),
+            root: NIL,
+            first: NIL,
+            phase,
+            lookup: None,
+        })
     }
 
     pub(super) fn new(

@@ -225,6 +225,10 @@ pub(super) fn validate_paid(
     }
     // Lexical functions always replay every path: no summary shortcut applies.
     if budget.selected() {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(
+            crate::bounded_output::exclusive_debits::path_census::Family::Selected,
+        );
         crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
             budget,
             function,
@@ -241,6 +245,10 @@ pub(super) fn validate_paid(
                 None
             )
         )?;
+        #[cfg(feature = "unstable-workflow-profiling")]
+        path_census.success();
+        #[cfg(feature = "unstable-workflow-profiling")]
+        drop(path_census);
     } else {
         validate_path_states::<expression_facts::errors::EngineError>(
             program,

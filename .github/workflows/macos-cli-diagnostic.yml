@@ -642,7 +642,7 @@ jobs:
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
           profile=os.environ["OPT_BATCH_SELECTION"]
           expected_filters=65 if profile=="next" else 50
-          expected_tests=171 if profile=="next" else 153
+          expected_tests=176 if profile=="next" else 153
           if profile=="language-followup":
               expected_filters,expected_tests=2,7
           assert receipt["selection"]["profile"]==profile

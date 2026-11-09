@@ -590,7 +590,6 @@ fn receiving_pre286_record_source(path: &str, current: &str, record: &serde_json
     };
     let result = if let Some((index, length, sha, before_length, before_sha)) = stage {
         let edits = record["edits"].as_array().unwrap();
-        assert_eq!(edits.len(), index + 1);
         let after = edits[index]["after"].as_str().unwrap();
         let before = edits[index]["before"].as_str().unwrap();
         assert_eq!((after.len(), hash(after)), (length, sha.to_owned()));
@@ -607,9 +606,21 @@ fn receiving_pre286_record_source(path: &str, current: &str, record: &serde_json
             receiving, before,
             "entire original receiving result before the retained full transport"
         );
-        after.to_owned()
+        // The complete transport can have later literal edits in the same
+        // authenticated record. Replay that suffix before comparing checkpoints.
+        let mut checkpoint = after.to_owned();
+        for edit in &edits[index + 1..] {
+            let before = edit["before"].as_str().unwrap();
+            let after = edit["after"].as_str().unwrap();
+            assert_eq!(checkpoint.matches(before).count(), 1);
+            checkpoint = checkpoint.replacen(before, after, 1);
+        }
+        checkpoint
     } else {
-        receiving
+        // This checkpoint predates both the callee certificate and the
+        // auxiliary carrier registration left by the earlier inverse.
+        assert_eq!(path, "src/workspace_graph/expected_projection.rs");
+        super::super::call_carriers::inverse::pre898(&receiving)
     };
     assert_eq!(
         forecast_joint_physical_reader::read(

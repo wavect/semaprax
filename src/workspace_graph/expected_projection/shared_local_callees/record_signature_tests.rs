@@ -10,8 +10,8 @@ const SOURCE: &str = r#"module record.local;
 use function @id("remote") from record.provider as remote;
 @id("leaf") record Leaf { @id("leaf.n") n:i64, }
 @id("outer") record Outer { @id("outer.leaf") leaf:Leaf, }
-@id("read") fn read(v:borrow Leaf)->i64{v.n}
-@id("caller") fn caller(v:borrow Outer)->i64{read(v.leaf)+read(v.leaf)}
+@id("read") fn read(v:Leaf)->i64{v.n}
+@id("caller") fn caller(v:Outer)->i64{read(v.leaf)+read(v.leaf)}
 @id("main") fn main()->i64{0}
 "#;
 fn programs() -> [Program; 2] {

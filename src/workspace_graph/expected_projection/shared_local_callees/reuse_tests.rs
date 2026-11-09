@@ -1,7 +1,8 @@
 //! Actual uncached route, both whole predecessors, and independent source scopes.
 use super::super::super::{
     before_shared_local_projection as before, cached_exact, dependency_identity_max,
-    held_projection, shared_local_callees, uncached_peak, HIR_IDENTITY_COPY_FACTOR,
+    held_projection, retained_scratch, shared_local_callees, uncached_peak,
+    HIR_IDENTITY_COPY_FACTOR,
 };
 use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
@@ -126,9 +127,15 @@ fn actual_uncached_tiny_repeated_shipping_path_and_complete_proof_drop_are_obser
         assert_eq!(local.slots, calls);
         assert_eq!(allocation.live, 0);
         assert_eq!(allocation.allocated, allocation.freed);
+        crate::workspace_graph::diagnostics::begin_precharge_pass();
         let ((layout, allocation), refused, charged, first) =
             with_limit_usage_refusal(usize::MAX, || {
-                measure(|| uncached_peak::uncached_output_layout(&programs, &authored).unwrap())
+                measure(|| {
+                    let layout =
+                        uncached_peak::uncached_output_layout(&programs, &authored).unwrap();
+                    crate::workspace_graph::diagnostics::begin_precharge_pass();
+                    layout
+                })
             });
         assert!(!refused && first.is_none() && !allocation.invalid);
         assert_eq!(layout.order[0], 0);
@@ -160,43 +167,50 @@ fn actual_uncached_tiny_repeated_shipping_path_and_complete_proof_drop_are_obser
                 .unwrap()
                 .retained_hir
             }
-            _ => {
-                let (full, retained) = shared_local_callees::paired::estimates(
-                    ctx.program,
-                    &authored,
-                    &programs,
-                    Some(maximum),
-                    6,
-                    true,
-                    None,
-                )
-                .unwrap();
-                if imports {
-                    full.retained_hir
-                } else {
-                    retained.retained_hir
-                }
-            }
+            _ => unreachable!(),
         };
-        // One module has no preceding retention: the real shipping peak is
-        // exactly max(full, retained), rather than merely a positive number.
         let original = estimate(true, 0).max(estimate(false, 0));
         let immediate = estimate(true, 1).max(estimate(false, 1));
-        let expected = estimate(true, 2).max(estimate(false, 2));
+        let (full, retained) = shared_local_callees::paired::estimates(
+            ctx.program,
+            &authored,
+            &programs,
+            Some(maximum),
+            6,
+            true,
+            None,
+        )
+        .unwrap();
+        // With one module the peak covers either full resolution or retained
+        // output plus the largest validation scratch and its function directory.
+        let scratch = retained.retained_scratch;
+        let directory = crate::hir::retained_scalar_directory_bound(scratch.functions).unwrap();
+        let retained_with_validation =
+            retained.retained_hir - scratch.bytes().unwrap() + scratch.later().unwrap() + directory;
+        let expected =
+            full.retained_hir.max(retained_with_validation) + retained_scratch::RECEIVING;
         assert_eq!(layout.forecast, expected);
-        for limit in [expected, expected - 1, 0] {
+        // The forecast is the returned layout bound. The physical lender's
+        // exact frontier is the measured debit of constructing that layout.
+        for limit in [charged, charged - 1, 0] {
             let ((result, allocation), refused, _, first) = with_limit_usage_refusal(limit, || {
                 measure(|| {
                     let result = uncached_peak::uncached_output_layout(&programs, &authored);
                     let success = result.is_ok();
                     drop(result);
+                    // Include the complete diagnostic owner's teardown in the measurement.
+                    crate::workspace_graph::diagnostics::begin_precharge_pass();
                     success
                 })
             });
-            assert_eq!(result, limit == expected, "real shipping frontier {limit}");
+            assert_eq!(
+                result,
+                limit == charged,
+                "physical shipping frontier {limit}"
+            );
             assert!(!allocation.invalid && allocation.live == 0);
             assert_eq!(allocation.allocated, allocation.freed);
-            if limit == 0 {
+            if limit != charged {
                 assert!(
                     refused && first.is_some(),
                     "physical zero refusal remains sticky"
@@ -460,7 +474,12 @@ fn coupled_estimate_retains_the_whole_old_algorithm_and_rejects_other_modes() {
         include_str!("coupled_projection.rs"),
     );
     let _historical_coupled = source_owned.as_str();
-    let source = include_str!("coupled_projection.rs");
+    let source = crate::source_reflows::next_custody_before(
+        "constructor903",
+        "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
+        include_str!("coupled_projection.rs"),
+    );
+    let source = source.as_str();
     assert_eq!(
         (source.len(), hash_explicit_import_stage(source)),
         (

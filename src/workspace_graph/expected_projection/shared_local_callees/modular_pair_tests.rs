@@ -1,7 +1,7 @@
 //! Real imported-module shipping forecasts against BOTH complete old equations.
 use super::super::super::{
-    before_shared_local_projection as pre916, cached_exact, dependency_identity_max, uncached_peak,
-    HIR_IDENTITY_COPY_FACTOR,
+    before_shared_local_projection as pre916, cached_exact, dependency_identity_max,
+    retained_scratch, uncached_peak, HIR_IDENTITY_COPY_FACTOR,
 };
 use super::super::modular_session::tests::{context, programs};
 use super::*;
@@ -117,6 +117,8 @@ fn actual_two_module_uncached_shipping_peak_and_full_drop_are_observed() {
     let p = programs();
     let i = crate::workspace_graph::index_authored(&p).unwrap();
     let mut entries = Vec::new();
+    let mut later_scratch = 0;
+    let mut covered_functions = 0;
     for (index, program) in p.iter().enumerate() {
         let maximum = Some(dependency_identity_max(program, &i, &p).unwrap());
         let (full, retained) = if program.module_uses.is_empty() {
@@ -125,7 +127,14 @@ fn actual_two_module_uncached_shipping_peak_and_full_drop_are_observed() {
             estimates(program, &i, &p, maximum, 6, true, None)
         }
         .unwrap();
-        entries.push((index, full.retained_hir, retained.retained_hir));
+        let scratch = retained.retained_scratch;
+        entries.push((
+            index,
+            full.retained_hir + retained_scratch::RECEIVING,
+            retained.retained_hir - scratch.bytes().unwrap() + retained_scratch::RECEIVING,
+        ));
+        later_scratch = later_scratch.max(scratch.later().unwrap());
+        covered_functions += scratch.functions;
     }
     entries.sort_unstable_by(|left, right| {
         right
@@ -140,11 +149,19 @@ fn actual_two_module_uncached_shipping_peak_and_full_drop_are_observed() {
         peak = peak.max(retained + full);
         retained += held;
     }
+    let directory = crate::hir::retained_scalar_directory_bound(covered_functions).unwrap();
+    let forecast = peak.max(retained + later_scratch + directory);
+    crate::workspace_graph::diagnostics::begin_precharge_pass();
     let ((layout, allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
-        measure(|| uncached_peak::uncached_output_layout(&p, &i).unwrap())
+        measure(|| {
+            let layout = uncached_peak::uncached_output_layout(&p, &i).unwrap();
+            // The test owns the forecast rather than a live diagnostic receipt.
+            crate::workspace_graph::diagnostics::begin_precharge_pass();
+            layout
+        })
     });
     assert!(!refused && first.is_none());
-    assert_eq!(layout.forecast, peak.max(retained));
+    assert_eq!(layout.forecast, forecast);
     assert_eq!(layout.order[..2], [entries[0].0, entries[1].0]);
     assert!(!allocation.invalid && allocation.live == 0);
     assert_eq!(allocation.allocated, allocation.freed);

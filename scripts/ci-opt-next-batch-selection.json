@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
   "filters": 65,
-  "expected_tests": 171,
+  "expected_tests": 176,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -106,7 +106,7 @@
       "binary": "lib",
       "filter": "workspace_graph::expected_projection::shared_local_callees::tests::",
       "exact": false,
-      "expected_tests": 10
+      "expected_tests": 15
     },
     {
       "owner": "OPT729 nested outcome complete existing owner and boundary controls",
@@ -391,7 +391,7 @@
     {
       "owner": "OPT916 exact local record signature authority and complete old constructor controls",
       "binary": "lib",
-      "filter": "workspace_graph::expected_projection::shared_local_callees::record_signatures::tests::",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::modular_session::record_signatures::tests::",
       "exact": false,
       "expected_tests": 7
     },

@@ -1,0 +1,254 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    916
+  ],
+  "source_commit": "fffab186a9b677d87f02a98e5b1478652d4e9c99",
+  "platform": "Darwin arm64",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
+  "focused_rust_selectors": [
+    {
+      "owner": "OPT916 shared local callee certificate and full predecessor forecast",
+      "expected": 15,
+      "passed": 15,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 joint traversal actual shipping path and both complete predecessors",
+      "expected": 7,
+      "passed": 7,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 separate callee certificate constructor and lender controls",
+      "expected": 3,
+      "passed": 3,
+      "exit": 0
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "expected": 1,
+      "passed": 1,
+      "exit": 0
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "expected": 1,
+      "passed": 1,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 exact invocation-local paired full and retained census controls",
+      "expected": 6,
+      "passed": 6,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "expected": 6,
+      "passed": 6,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "expected": 5,
+      "passed": 5,
+      "exit": 0
+    },
+    {
+      "owner": "OPT916 exact local record signature authority and complete old constructor controls",
+      "expected": 7,
+      "passed": 7,
+      "exit": 0
+    }
+  ],
+  "control_source_sha256": {
+    "scripts/ci-opt-next-batch-selection.json": "99a639d344c5f441bf7e3254409de1417bf4d335154182d4e1a580cceff546ca",
+    "src/source_reflows/ci_inputs/successor_fronts.rs": "21570712d59a17ddf7043dec342711f6d6f4e4d2a7017d6d2de06e502dee301f",
+    "src/source_reflows/next_custody_fronts.json": "522a5e71fd24eccb9df6ee232d33d29d1d01f549cc083a422973326a1b9b7d84",
+    "src/source_reflows/next_custody_inverse.json": "39b4e16ce7188e4fed641c370cc4f29a1f013d1e5d1f151a5426ceb71fc98481",
+    "src/workspace_graph/expected_projection/prelude_forecast_tests.rs": "d2764fe780162e373cfd2856beb8551daf76f98fe8efe7241381b7ab9f502bf8",
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs": "87ae6b18cd9a89e63bfcc7d70f64228841ecec48300794e97069e401b02375ec",
+    "src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs": "e718c935351680f7d1c78458b5c7df1b503348ffc887115cda75197fbb749917",
+    "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs": "293e0b26cc7224405ca7e0f60df318255d6279f53e31dc1a13fcd19d51e7d78c"
+  },
+  "production_clippy": "Rust 1.97.1, lib and semaprax CLI, warnings denied",
+  "strict_source_controls": {
+    "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+    "complete_current_carriers": 3,
+    "complete_original_guard_carriers": 3,
+    "old_maximums_unchanged": true,
+    "refusals": 67,
+    "original_verifier_executed": false,
+    "rust_executed": false
+  },
+  "runtime_application_evidence": {
+    "selected-file": {
+      "manifest": "experiments/selected-file-input/loglens/semaprax.toml",
+      "manifest_sha256": "685e45d94e1e26f31d5e0c72ff8a91645e9d73e40972277241a922e666f932af",
+      "cli49": [
+        {
+          "builder_ceiling_bytes": 67108864,
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 75988992
+        },
+        {
+          "builder_ceiling_bytes": 134217728,
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 75956224
+        }
+      ]
+    },
+    "matcher": {
+      "manifest": "experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted/semaprax.toml",
+      "manifest_sha256": "562de81a29f3440745228a9d046655cf70034a35794feec1c30c980ab1141734",
+      "cli49": [
+        {
+          "builder_ceiling_bytes": 67108864,
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 100417536
+        },
+        {
+          "builder_ceiling_bytes": 134217728,
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 98844672
+        }
+      ]
+    },
+    "catalog-normalizer": {
+      "manifest": "examples/catalog-normalizer-project/semaprax.toml",
+      "manifest_sha256": "28e7c26ad40de74b2945c12b7f02ef42eb53ad2d753338b47b56453a23591619",
+      "whole_application_test": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+      "builder_ceiling_bytes": 134217728,
+      "successful_construction_prebound_bytes": 81369005,
+      "successful_construction_debit_bytes": 107781450
+    }
+  },
+  "runtime_reference_receipt": "benchmarks/opt-batch-verification-v1/opt913-verification.json#final_qualification",
+  "application_forecasts": {
+    "selected-file": {
+      "modules": 3,
+      "construction_ceiling_bytes": 67108864,
+      "complete_old_mode_five_forecast_bytes": 10709855,
+      "current_mode_six_forecast_bytes": 11094994,
+      "current_minus_old_forecast_bytes": 385139,
+      "old_forecast_ledger_debit_bytes": 0,
+      "current_forecast_ledger_debit_bytes": 573569,
+      "local_callee_proof_terms_by_module": {
+        "dependencies/std.int.decimal/0.1.0/decimal.spx": {
+          "full_forecast_proof_term_bytes": 162510,
+          "retained_forecast_proof_term_bytes": 163797
+        },
+        "loglens.spx": {
+          "full_forecast_proof_term_bytes": 202828,
+          "retained_forecast_proof_term_bytes": 204115,
+          "authored_source_sha256": "61ef260e21c025f1b26201c8eb0721f9be954787f35865b750d0bdb4635b73bc"
+        },
+        "unit.spx": {
+          "full_forecast_proof_term_bytes": 3887,
+          "retained_forecast_proof_term_bytes": 5174,
+          "authored_source_sha256": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+        }
+      }
+    },
+    "matcher": {
+      "modules": 4,
+      "construction_ceiling_bytes": 67108864,
+      "complete_old_mode_five_forecast_bytes": 51310874,
+      "current_mode_six_forecast_bytes": 52542713,
+      "current_minus_old_forecast_bytes": 1231839,
+      "old_forecast_ledger_debit_bytes": 6828,
+      "current_forecast_ledger_debit_bytes": 479922,
+      "local_callee_proof_terms_by_module": {
+        "dependencies/std.int.decimal/0.1.0/decimal.spx": {
+          "full_forecast_proof_term_bytes": 162510,
+          "retained_forecast_proof_term_bytes": 163797
+        },
+        "dependencies/std.pattern/0.1.0/pattern.spx": {
+          "full_forecast_proof_term_bytes": 67238,
+          "retained_forecast_proof_term_bytes": 68525
+        },
+        "loglens.spx": {
+          "full_forecast_proof_term_bytes": 121048,
+          "retained_forecast_proof_term_bytes": 122335,
+          "authored_source_sha256": "f0f1d849f81eaf6238bbd0cf3b8b9830cba87a9b40239bf41dab8697cf208c38"
+        },
+        "unit.spx": {
+          "full_forecast_proof_term_bytes": 3887,
+          "retained_forecast_proof_term_bytes": 5174,
+          "authored_source_sha256": "02f0d43cfac00a54e85119a737f07dfeab03d361f435b16c9d7d7d5e000e4c82"
+        }
+      }
+    },
+    "catalog-normalizer": {
+      "modules": 12,
+      "construction_ceiling_bytes": 134217728,
+      "complete_old_mode_five_forecast_bytes": 71069802,
+      "current_mode_six_forecast_bytes": 84172249,
+      "current_minus_old_forecast_bytes": 13102447,
+      "old_forecast_ledger_debit_bytes": 9642,
+      "current_forecast_ledger_debit_bytes": 21707557,
+      "local_callee_proof_terms_by_module": {
+        "dependencies/std.data.json.dec/0.1.0/dec.spx": {
+          "full_forecast_proof_term_bytes": 923108,
+          "retained_forecast_proof_term_bytes": 924395
+        },
+        "dependencies/std.data.json.doc/0.1.0/doc.spx": {
+          "full_forecast_proof_term_bytes": 287630,
+          "retained_forecast_proof_term_bytes": 288917
+        },
+        "dependencies/std.data.json.utf8/0.1.0/utf8.spx": {
+          "full_forecast_proof_term_bytes": 85075,
+          "retained_forecast_proof_term_bytes": 86362
+        },
+        "dependencies/std.data.ndjson/0.1.0/ndjson.spx": {
+          "full_forecast_proof_term_bytes": 256722,
+          "retained_forecast_proof_term_bytes": 258009
+        },
+        "dependencies/std.io.lines/0.1.0/lines.spx": {
+          "full_forecast_proof_term_bytes": 52196,
+          "retained_forecast_proof_term_bytes": 53483
+        },
+        "dependencies/std.io/0.1.0/io.spx": {
+          "full_forecast_proof_term_bytes": 3887,
+          "retained_forecast_proof_term_bytes": 5174
+        },
+        "src/app.spx": {
+          "full_forecast_proof_term_bytes": 4256085,
+          "retained_forecast_proof_term_bytes": 4257372,
+          "authored_source_sha256": "8c11e9fd4d3d7c1be071e91e43c52a77403373a6894c25b1d5ff34ffa8215b73"
+        },
+        "src/batch.spx": {
+          "full_forecast_proof_term_bytes": 2103854,
+          "retained_forecast_proof_term_bytes": 2105141,
+          "authored_source_sha256": "3736344c54e7987dfd53082e10dfcba0c819c829c0dd917fa22a7e674d4caa4c"
+        },
+        "src/enrichment.spx": {
+          "full_forecast_proof_term_bytes": 54302,
+          "retained_forecast_proof_term_bytes": 55589,
+          "authored_source_sha256": "3fe16e6ca1ca94c0c474af5f47671f11d01145bd565e81d677ba67956f0a6375"
+        },
+        "src/limits.spx": {
+          "full_forecast_proof_term_bytes": 3887,
+          "retained_forecast_proof_term_bytes": 5174,
+          "authored_source_sha256": "411c1e25124bb992fdf5cf100560861daa2d7c7e0d785c11cd715746b0b766e9"
+        },
+        "src/record.spx": {
+          "full_forecast_proof_term_bytes": 2349091,
+          "retained_forecast_proof_term_bytes": 2350378,
+          "authored_source_sha256": "ba208a7e0977ec278e63da673d3a8893d8a117e10de3a8619cd3d4656ae35842"
+        },
+        "src/tests.spx": {
+          "full_forecast_proof_term_bytes": 672431,
+          "retained_forecast_proof_term_bytes": 673718,
+          "authored_source_sha256": "2d69842f7ad6423ac14ecd5a12d3414942d4eab2d2e941811ab0364f076f19dd"
+        }
+      }
+    }
+  },
+  "measurement_scope": "Whole-application source and dependency sets were parsed at their existing caps. The complete executable historical uncached mode-five estimator and the shipping mode-six estimator used the same parsed inputs and authenticated layout registry. The deltas include composed forecast changes. Proof terms are separate components of each forecast and can share one paid census. Forecast-phase cumulative debit, admitted construction debit, and process RSS are reported separately."
+}

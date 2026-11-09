@@ -806,8 +806,7 @@ pub(crate) fn is_same_owner_reassignment_hir_source(
 // Closed ABI census for the additional cfg(test) trailing-active preparation.
 // No reservation or identity authority is introduced by this numeric constant.
 impl VecOp {
-    pub(crate) const ID_CALL_CONTROLS: usize =
-        2 * std::mem::size_of::<Self>() // by-value actual/formal
+    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal
         + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum
         + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver
 }

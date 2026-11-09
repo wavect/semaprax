@@ -369,9 +369,15 @@ for(let i=0;i<8;i++) {
 #[test]
 fn checked_literal_format_same_c_o0_o2_preserves_success_precommit_failure_and_render_settlement() {
     fn symbol(id: &str) -> String {
-        format!("spx_decl_{}", id.bytes().map(|byte| format!("{byte:02x}")).collect::<String>())
+        format!(
+            "spx_decl_{}",
+            id.bytes()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        )
     }
-    let source = format!(r#"{SOURCE}
+    let source = format!(
+        r#"{SOURCE}
 @id("format.reject")
 fn reject(text: string) -> string requires string_len(text) < 0 {{ text }}
 @id("format.precommit")
@@ -380,7 +386,8 @@ fn precommit() -> i64 {{
     let rendered = string_format("{{}}{{}}", prefix, reject("late"));
     string_len(rendered)
 }}
-"#);
+"#
+    );
     let program = semaprax::check(&source, "format-paired-native.spx").unwrap();
     let resolved = hir::resolve(&program).unwrap();
     // Public HIR validation includes complete cleanup-plan replay.
@@ -388,7 +395,9 @@ fn precommit() -> i64 {{
     let emitted = codegen::emit_c(&program).unwrap();
     assert_eq!(emitted, codegen::emit_c(&program).unwrap());
     let marker = "#define SPX_FORMAT_STATUS_DOMAIN_V1";
-    let (before, after) = emitted.split_once(marker).expect("same checked format worker");
+    let (before, after) = emitted
+        .split_once(marker)
+        .expect("same checked format worker");
     let allocation = "struct spx_string_v10 *value = (struct spx_string_v10 *)malloc(";
     assert!(after.matches(allocation).count() >= 2);
     // Exactly the original helper-failure injection boundary, now observed
@@ -400,8 +409,11 @@ fn precommit() -> i64 {{
     );
     let tracked = format!("{before}{marker}{worker}").replace("realloc(", "format_pair_realloc(");
     let mut probe = String::from(include_str!("../support/native_fixture_stdio.c"));
-    probe.push_str(include_str!("../native_owned_utf8_settlement_v1/allocations.c"));
-    probe.push_str(r#"
+    probe.push_str(include_str!(
+        "../native_owned_utf8_settlement_v1/allocations.c"
+    ));
+    probe.push_str(
+        r#"
 static unsigned format_pair_requests, format_pair_refuse_at, format_pair_realloc_requests;
 static void *format_pair_malloc(size_t bytes) {
     if (++format_pair_requests == format_pair_refuse_at) return NULL;
@@ -411,10 +423,16 @@ static __attribute__((unused)) void *format_pair_realloc(void *pointer, size_t b
     ++format_pair_realloc_requests;
     return realloc(pointer, bytes);
 }
-"#);
+"#,
+    );
     probe.push_str(&tracked);
     probe.push_str("\n#undef malloc\n#undef free\n");
-    probe.push_str(&format!("#define PAIR_SUCCESS {}\n#define PAIR_PRECOMMIT {}\n#define PAIR_POSTCOMMIT {}\n", symbol("format.success"), symbol("format.precommit"), symbol("format.failure")));
+    probe.push_str(&format!(
+        "#define PAIR_SUCCESS {}\n#define PAIR_PRECOMMIT {}\n#define PAIR_POSTCOMMIT {}\n",
+        symbol("format.success"),
+        symbol("format.precommit"),
+        symbol("format.failure")
+    ));
     probe.push_str(r#"
 int main(void) {
     REQUIRE(fixture_binary_stdout());
@@ -455,6 +473,9 @@ int main(void) {
     let o0 = fixture.native(&probe, "-O0");
     let o2 = fixture.native(&probe, "-O2");
     assert_eq!(o0.lines().count(), 9);
-    assert_eq!(o0, o2, "same checked source/C probe must preserve every observed allocation/settlement tuple");
+    assert_eq!(
+        o0, o2,
+        "same checked source/C probe must preserve every observed allocation/settlement tuple"
+    );
     fixture.cleanup();
 }

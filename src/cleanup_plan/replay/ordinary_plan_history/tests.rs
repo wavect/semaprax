@@ -297,6 +297,8 @@ fn unobserved_history_backing_keeps_depth_validation_fail_closed() {
         actual.arena[0].depth = corrupted_depth;
         let error = compare(function, &mut public, actual, &expected).unwrap_err();
         assert_eq!(error.code, "SPX-H006");
-        assert!(error.message.ends_with("ordinary plan history depth is invalid"));
+        assert!(error
+            .message
+            .ends_with("ordinary plan history depth is invalid"));
     }
 }

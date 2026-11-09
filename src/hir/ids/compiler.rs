@@ -152,19 +152,24 @@ impl CompilerDeclaration {
         let branches = [
             size_of::<crate::vec_ops::VecOp>() + crate::vec_ops::VecOp::ID_CALL_CONTROLS,
             size_of::<crate::box_ops::BoxOp>() + crate::box_ops::BoxOp::ID_CALL_CONTROLS,
-            size_of::<crate::stdin_stream_ops::PureOp>() + crate::stdin_stream_ops::PureOp::ID_CALL_CONTROLS,
+            size_of::<crate::stdin_stream_ops::PureOp>()
+                + crate::stdin_stream_ops::PureOp::ID_CALL_CONTROLS,
             size_of::<crate::str_ops::StrOp>() + crate::str_ops::StrOp::ID_CALL_CONTROLS,
             size_of::<crate::byte_ops::ByteOp>() + crate::byte_ops::ByteOp::ID_CALL_CONTROLS,
-            size_of::<crate::host_io_ops::HostIoOp>() + crate::host_io_ops::HostIoOp::ID_CALL_CONTROLS,
+            size_of::<crate::host_io_ops::HostIoOp>()
+                + crate::host_io_ops::HostIoOp::ID_CALL_CONTROLS,
             size_of::<crate::map_ops::MapOp>() + crate::map_ops::MapOp::ID_CALL_CONTROLS,
             size_of::<crate::list_ops::ListOp>() + crate::list_ops::ListOp::ID_CALL_CONTROLS,
-            size_of::<crate::iterator_ops::IteratorOp>() + crate::iterator_ops::IteratorOp::ID_CALL_CONTROLS,
+            size_of::<crate::iterator_ops::IteratorOp>()
+                + crate::iterator_ops::IteratorOp::ID_CALL_CONTROLS,
             size_of::<ResolvedHostCommandOperation>() + crate::command_io_ops::ID_CALL_CONTROLS,
         ];
         let mut maximum = 0;
         let mut index = 0;
         while index < branches.len() {
-            if branches[index] > maximum { maximum = branches[index]; }
+            if branches[index] > maximum {
+                maximum = branches[index];
+            }
             index += 1;
         }
         4 * size_of::<Self>() // copied text(self) actual/formal and match sum

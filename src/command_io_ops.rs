@@ -1017,7 +1017,12 @@ pub(crate) const ID_CALL_CONTROLS: usize = {
     let filesystem = crate::filesystem_ops::ID_CALL_CONTROLS;
     let network = size_of::<ResolvedHostCommandOperation>() // final network binding
         + crate::network_io_ops::ID_CALL_CONTROLS;
-    let remaining = filesystem_guard + if filesystem > network { filesystem } else { network };
+    let remaining = filesystem_guard
+        + if filesystem > network {
+            filesystem
+        } else {
+            network
+        };
     4 * size_of::<ResolvedHostCommandOperation>() // actual/formal and match sum
         + 2 * size_of::<&'static str>() // outer return/receiving arm
         + environment_guard + if environment > remaining { environment } else { remaining }

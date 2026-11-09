@@ -724,4 +724,3 @@ fn prepare_sealed_before_empty_terminal<'a, T>(
     }
     result
 }
-

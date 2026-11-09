@@ -45,12 +45,12 @@ use semaprax::digest_hex;
 pub(crate) mod main_e177_final_inputs;
 #[path = "../src/source_reflows_merge/next_big_batch_inputs.rs"]
 pub(crate) mod next_big_batch_inputs;
-#[path = "support/main44_wasm_entries.rs"]
-mod source_reflows_merge;
-#[path = "../src/source_reflows/ci_inputs.rs"]
-mod source_reflows;
 #[path = "../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod source_binding_reader;
+#[path = "../src/source_reflows/ci_inputs.rs"]
+mod source_reflows;
+#[path = "support/main44_wasm_entries.rs"]
+mod source_reflows_merge;
 
 // Use the same real allocator/registry as the library and workspace test images.
 #[allow(dead_code, unused_imports)]

@@ -306,35 +306,38 @@ impl Proof<'_> {
 macro_rules! take_owned {
     ($work:ident) => {{
         'query_owner: {
-    let owner = $work.queries.owner.take();
-    if !$work.queries.current($work) {
-        $work.queries.failed = true;
-        return Err(Diagnostic::io("SPX-H006", String::new()));
-    }
-    if let Some(proof) = owner {
-        let result = proof.authenticate($work);
-        if result.is_err() {
-            $work.queries.failed = true;
-        }
-        result?;
-        break 'query_owner proof;
-    }
-    $work.budget
-        .reserve_bytes($work.function, CREATE, "structural query owner construction")?;
-    let mut ledger = ClassifierLedger::empty_receiving();
-    ledger.capture_current_into();
-    let proof = Box::new(Proof {
-        function: $work.function,
-        budget: $work.budget,
-        ledger,
-        last: None,
-    });
-    let result = proof.authenticate($work);
-    if result.is_err() {
-        $work.queries.failed = true;
-    }
-    result?;
-    proof
+            let owner = $work.queries.owner.take();
+            if !$work.queries.current($work) {
+                $work.queries.failed = true;
+                return Err(Diagnostic::io("SPX-H006", String::new()));
+            }
+            if let Some(proof) = owner {
+                let result = proof.authenticate($work);
+                if result.is_err() {
+                    $work.queries.failed = true;
+                }
+                result?;
+                break 'query_owner proof;
+            }
+            $work.budget.reserve_bytes(
+                $work.function,
+                CREATE,
+                "structural query owner construction",
+            )?;
+            let mut ledger = ClassifierLedger::empty_receiving();
+            ledger.capture_current_into();
+            let proof = Box::new(Proof {
+                function: $work.function,
+                budget: $work.budget,
+                ledger,
+                last: None,
+            });
+            let result = proof.authenticate($work);
+            if result.is_err() {
+                $work.queries.failed = true;
+            }
+            result?;
+            proof
         }
     }};
 }
@@ -590,7 +593,10 @@ mod tests;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn before_owner(current: &str, path: &str) -> String {
-    assert!(matches!(path, "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/skeleton_work.rs"));
+    assert!(matches!(
+        path,
+        "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/skeleton_work.rs"
+    ));
     tests::restore(current, path)
 }
 

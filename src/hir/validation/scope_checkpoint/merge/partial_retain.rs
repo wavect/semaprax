@@ -10,7 +10,8 @@ type Set = BTreeSet<Vec<PlaceProjection>>;
 // filter callback, not a new per-prefix operation or a credited old carrier.
 pub(super) const CONTROL: usize = 2 * size_of::<&mut Set>()
     + 2 * size_of::<(&ValidationBinding, &ValidationBinding)>()
-    + 2 * size_of::<Set>() + 2 * size_of::<()>();
+    + 2 * size_of::<Set>()
+    + 2 * size_of::<()>();
 impl HirValidator<'_> {
     pub(super) fn join_definitely_partial_retained(
         left: &ValidationBinding,
@@ -40,12 +41,16 @@ pub(super) mod before;
 #[cfg(test)]
 thread_local! { static BEFORE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 #[cfg(test)]
-pub(super) fn before_selected() -> bool { BEFORE.with(std::cell::Cell::get) }
+pub(super) fn before_selected() -> bool {
+    BEFORE.with(std::cell::Cell::get)
+}
 #[cfg(test)]
 pub(super) fn with_before<T>(body: impl FnOnce() -> T) -> T {
     struct Restore(bool);
     impl Drop for Restore {
-        fn drop(&mut self) { BEFORE.with(|v| v.set(self.0)); }
+        fn drop(&mut self) {
+            BEFORE.with(|v| v.set(self.0));
+        }
     }
     let restore = Restore(BEFORE.with(|v| v.replace(true)));
     let result = body();

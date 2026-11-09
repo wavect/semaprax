@@ -501,10 +501,19 @@ fn v14_preserves_entire_v13_v12_and_opaque_pin_metadata() {
     assert_eq!(current["schema"], SCHEMA_V14);
     assert_eq!(canonical(&current).as_slice(), current_raw.as_slice());
     assert_eq!(current_raw.len(), 249641);
-    assert_eq!(hash(current_raw), "b512649322d5a7623b6fa516ae6edf922badf1e4c369ad959fd33a3608d33cdd");
-    let policy_raw = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/11eb976472f112c926f275ab28244f4cdb3e964178aa019c309b1a402062eea5"));
+    assert_eq!(
+        hash(current_raw),
+        "b512649322d5a7623b6fa516ae6edf922badf1e4c369ad959fd33a3608d33cdd"
+    );
+    let policy_raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/11eb976472f112c926f275ab28244f4cdb3e964178aa019c309b1a402062eea5"
+    ));
     assert_eq!(policy_raw.len(), 137177);
-    assert_eq!(hash(policy_raw), "11eb976472f112c926f275ab28244f4cdb3e964178aa019c309b1a402062eea5");
+    assert_eq!(
+        hash(policy_raw),
+        "11eb976472f112c926f275ab28244f4cdb3e964178aa019c309b1a402062eea5"
+    );
     let historical_policy: Value = serde_json::from_slice(policy_raw).unwrap();
     assert_eq!(historical_policy["page"]["length"], current_raw.len());
     assert_eq!(historical_policy["page"]["sha256"], hash(current_raw));
@@ -675,7 +684,8 @@ fn v15_fixture() -> Value {
     let mut value = v14_fixture();
     value["additions"][0]["source"] = (SOURCE_PREFIXES[0].to_owned() + "unicode-λ.rs").into();
     value["additions"][0]["extra"]["source"] = "0:opaque".into();
-    value["replacements"][0]["old519_index"][3][0]["source"] = (SOURCE_PREFIXES[2].to_owned() + "a.rs").into();
+    value["replacements"][0]["old519_index"][3][0]["source"] =
+        (SOURCE_PREFIXES[2].to_owned() + "a.rs").into();
     value["replacements"][0]["old519_index"][3][1]["source"] = "0:opaque".into();
     value
 }
@@ -691,7 +701,10 @@ fn v15_preserves_entire_v14_v13_v12_and_opaque_source_metadata() {
     let v13 = expand_to_v13_logical(&v14).unwrap();
     assert_eq!(expand_to_v12_logical(&v13).unwrap(), v12);
     assert_eq!(wire["additions"][0]["extra"], v14["additions"][0]["extra"]);
-    assert_eq!(wire["replacements"][0]["old519_index"][3][1], v14["replacements"][0]["old519_index"][3][1]);
+    assert_eq!(
+        wire["replacements"][0]["old519_index"][3][1],
+        v14["replacements"][0]["old519_index"][3][1]
+    );
     let actual = python_v15(&v12);
     assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
     assert_eq!(canonical(&actual["v14"]), canonical(&v14));
@@ -699,56 +712,114 @@ fn v15_preserves_entire_v14_v13_v12_and_opaque_source_metadata() {
 #[test]
 fn v15_rejects_malformed_uninterned_noncanonical_and_unknown_envelopes() {
     let wire = encode_v15(&v15_fixture()).unwrap();
-    for source in [json!(false), json!(null), json!([0, "x"]), json!("i:x"), json!("0:"), json!("0:/x"), json!("0:../x"), json!("0:x\\y"), json!("0:x:y"), json!(SOURCE_PREFIXES[0].to_owned()+"x"), json!("1:ordinary_plan_history/comparison_owner/x")] {
-        let mut bad = wire.clone();bad["additions"][0]["source"] = source;
+    for source in [
+        json!(false),
+        json!(null),
+        json!([0, "x"]),
+        json!("i:x"),
+        json!("0:"),
+        json!("0:/x"),
+        json!("0:../x"),
+        json!("0:x\\y"),
+        json!("0:x:y"),
+        json!(SOURCE_PREFIXES[0].to_owned() + "x"),
+        json!("1:ordinary_plan_history/comparison_owner/x"),
+    ] {
+        let mut bad = wire.clone();
+        bad["additions"][0]["source"] = source;
         assert!(expand_to_v14(&bad).is_err(), "accepted {bad}");
     }
-    let mut bad=wire.clone();bad["source_prefixes"]=json!([]);
+    let mut bad = wire.clone();
+    bad["source_prefixes"] = json!([]);
     assert_eq!(expand_to_v14(&bad).unwrap_err(), "v15 envelope");
-    let mut bad=wire;bad["schema"]=SCHEMA_V14.into();
+    let mut bad = wire;
+    bad["schema"] = SCHEMA_V14.into();
     assert_eq!(expand_to_v14(&bad).unwrap_err(), "v15 envelope");
 }
 #[test]
 fn v15_keeps_public_v14_cap_and_tail_amplification_bounds_independent() {
-    let mut bad=encode_v15(&v15_fixture()).unwrap();
-    bad["pin_tails"]=json!([[7, 0, format!("e/{}", "x".repeat(100000))]]);
-    let tuple=bad["replacements"][0]["old519_index"].as_array_mut().unwrap();
-    tuple[1]=json!([0]);tuple[2]=Value::Array((0..100).map(|_|json!([0,0])).collect());tuple[3]=Value::Null;
-    assert!(canonical(&bad).len()<=PAGE_CAP);
+    let mut bad = encode_v15(&v15_fixture()).unwrap();
+    bad["pin_tails"] = json!([[7, 0, format!("e/{}", "x".repeat(100000))]]);
+    let tuple = bad["replacements"][0]["old519_index"]
+        .as_array_mut()
+        .unwrap();
+    tuple[1] = json!([0]);
+    tuple[2] = Value::Array((0..100).map(|_| json!([0, 0])).collect());
+    tuple[3] = Value::Null;
+    assert!(canonical(&bad).len() <= PAGE_CAP);
     assert_eq!(expand_to_v14(&bad).unwrap_err(), "v14 expanded bound");
-    let mut large=encode_v15(&v15_fixture()).unwrap();large["predecessor"]="x".repeat(PAGE_CAP).into();
+    let mut large = encode_v15(&v15_fixture()).unwrap();
+    large["predecessor"] = "x".repeat(PAGE_CAP).into();
     assert_eq!(expand_to_v14(&large).unwrap_err(), "v15 same one-page cap");
 }
 #[test]
 fn v15_actual_overcap_frontier_and_current_whole_page_keep_python_rust_parity() {
-    let v14_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/6a06db716fe5fa91c8233ade79203b29457dadb46b6e1083ecfe6b0df3952d61"));
-    assert_eq!(v14_raw.len(), 280154); assert_eq!(hash(v14_raw), "6a06db716fe5fa91c8233ade79203b29457dadb46b6e1083ecfe6b0df3952d61");
-    let v13_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/8b843ea5514147508b8a1676e1e1b6e8078d0b5e0f26af744a61814351f307e1"));
-    assert_eq!(v13_raw.len(), 297229); assert_eq!(hash(v13_raw), "8b843ea5514147508b8a1676e1e1b6e8078d0b5e0f26af744a61814351f307e1");
-    let v12_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/571ec88fa5e7037cae6d7b6e2ea592acaf3c97380a07a07cafe366bf923d295b"));
-    assert_eq!(v12_raw.len(), 327382); assert_eq!(hash(v12_raw), "571ec88fa5e7037cae6d7b6e2ea592acaf3c97380a07a07cafe366bf923d295b");
-    let v14:Value=serde_json::from_slice(v14_raw).unwrap();
-    let v12:Value=serde_json::from_slice(v12_raw).unwrap();
+    let v14_raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/6a06db716fe5fa91c8233ade79203b29457dadb46b6e1083ecfe6b0df3952d61"
+    ));
+    assert_eq!(v14_raw.len(), 280154);
+    assert_eq!(
+        hash(v14_raw),
+        "6a06db716fe5fa91c8233ade79203b29457dadb46b6e1083ecfe6b0df3952d61"
+    );
+    let v13_raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/8b843ea5514147508b8a1676e1e1b6e8078d0b5e0f26af744a61814351f307e1"
+    ));
+    assert_eq!(v13_raw.len(), 297229);
+    assert_eq!(
+        hash(v13_raw),
+        "8b843ea5514147508b8a1676e1e1b6e8078d0b5e0f26af744a61814351f307e1"
+    );
+    let v12_raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/571ec88fa5e7037cae6d7b6e2ea592acaf3c97380a07a07cafe366bf923d295b"
+    ));
+    assert_eq!(v12_raw.len(), 327382);
+    assert_eq!(
+        hash(v12_raw),
+        "571ec88fa5e7037cae6d7b6e2ea592acaf3c97380a07a07cafe366bf923d295b"
+    );
+    let v14: Value = serde_json::from_slice(v14_raw).unwrap();
+    let v12: Value = serde_json::from_slice(v12_raw).unwrap();
     assert_eq!(expand_to_v13(&v14).unwrap_err(), "v14 same one-page cap");
-    let wire=encode_v15(&v12).unwrap();
-    assert_eq!(canonical(&expand_to_v14(&wire).unwrap()).as_slice(), v14_raw.as_slice());
-    assert_eq!(canonical(&expand_to_v13_logical(&v14).unwrap()).as_slice(), v13_raw.as_slice());
-    assert_eq!(canonical(&expand_to_v12_logical(&serde_json::from_slice(v13_raw).unwrap()).unwrap()).as_slice(), v12_raw.as_slice());
+    let wire = encode_v15(&v12).unwrap();
+    assert_eq!(
+        canonical(&expand_to_v14(&wire).unwrap()).as_slice(),
+        v14_raw.as_slice()
+    );
+    assert_eq!(
+        canonical(&expand_to_v13_logical(&v14).unwrap()).as_slice(),
+        v13_raw.as_slice()
+    );
+    assert_eq!(
+        canonical(&expand_to_v12_logical(&serde_json::from_slice(v13_raw).unwrap()).unwrap())
+            .as_slice(),
+        v12_raw.as_slice()
+    );
     assert_eq!(canonical(&wire).len(), 260553);
-    let actual=python_v15(&v12);
+    let actual = python_v15(&v12);
     assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
     assert_eq!(canonical(&actual["v14"]).as_slice(), v14_raw.as_slice());
     assert_eq!(canonical(&actual["v13"]).as_slice(), v13_raw.as_slice());
     assert_eq!(canonical(&actual["v12"]).as_slice(), v12_raw.as_slice());
-    let current_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
-    let current:Value=serde_json::from_slice(current_raw).unwrap();
+    let current_raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
+    ));
+    let current: Value = serde_json::from_slice(current_raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), current_raw.as_slice());
     let current = retain_v16_page_for_v17(retain_current_v17_for_v18(current));
-    if current["schema"]==SCHEMA_V16 { verify_current_v16(&current); }
-    else { verify_current_v15(&current); }
+    if current["schema"] == SCHEMA_V16 {
+        verify_current_v16(&current);
+    } else {
+        verify_current_v15(&current);
+    }
 }
 fn python_v15(full: &Value) -> Value {
-    use std::io::{Read,Write}; use std::process::{Command,Stdio};
+    use std::io::{Read, Write};
+    use std::process::{Command, Stdio};
     let mut child=Command::new("python3").args(["-B","-c",r#"
 import json,runpy,sys
 from pathlib import Path
@@ -756,17 +827,43 @@ root=Path(sys.argv[1]);n=runpy.run_path(str(root/'docs/evidence/finite-source-ov
 full=json.load(sys.stdin);encoded=n['encode_v15'](full);v14=n['expand_v15_source_paths'](encoded);v13=n['_expand_v14_logical_pin_tails'](v14);v12=n['_expand_v13_logical_digest_table'](v13)
 sys.stdout.buffer.write(n['canonical']({'encoded':encoded,'v14':v14,'v13':v13,'v12':v12,'logical':n['_expand_v12_logical_view_labels'](v12)}))
 "#]).arg(env!("CARGO_MANIFEST_DIR")).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
-    child.stdin.take().unwrap().write_all(&canonical(full)).unwrap();
-    let mut raw=Vec::new();let read=child.stdout.take().unwrap().take((SOURCE_CAP+1) as u64).read_to_end(&mut raw);let status=child.wait().unwrap();read.unwrap();assert!(status.success());assert!(raw.len()<=SOURCE_CAP);
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(full))
+        .unwrap();
+    let mut raw = Vec::new();
+    let read = child
+        .stdout
+        .take()
+        .unwrap()
+        .take((SOURCE_CAP + 1) as u64)
+        .read_to_end(&mut raw);
+    let status = child.wait().unwrap();
+    read.unwrap();
+    assert!(status.success());
+    assert!(raw.len() <= SOURCE_CAP);
     serde_json::from_slice(&raw).unwrap()
 }
-pub(in super::super::super) fn verify_current_v15(page:&Value) {
-    assert_eq!(page["schema"],SCHEMA_V15);assert!(canonical(page).len()<=PAGE_CAP);
-    let v14=expand_to_v14(page).unwrap();let v13=expand_to_v13_logical(&v14).unwrap();let v12=expand_to_v12_logical(&v13).unwrap();
-    let logical=logical_v12::expand_to_v11(&v12).unwrap();
-    assert_eq!(canonical(&encode_v15(&v12).unwrap()),canonical(page));
-    let actual=python_v15(&v12);
-    for (key,value) in [("encoded",page),("v14",&v14),("v13",&v13),("v12",&v12),("logical",&logical)] {assert_eq!(canonical(&actual[key]),canonical(value));}
+pub(in super::super::super) fn verify_current_v15(page: &Value) {
+    assert_eq!(page["schema"], SCHEMA_V15);
+    assert!(canonical(page).len() <= PAGE_CAP);
+    let v14 = expand_to_v14(page).unwrap();
+    let v13 = expand_to_v13_logical(&v14).unwrap();
+    let v12 = expand_to_v12_logical(&v13).unwrap();
+    let logical = logical_v12::expand_to_v11(&v12).unwrap();
+    assert_eq!(canonical(&encode_v15(&v12).unwrap()), canonical(page));
+    let actual = python_v15(&v12);
+    for (key, value) in [
+        ("encoded", page),
+        ("v14", &v14),
+        ("v13", &v13),
+        ("v12", &v12),
+        ("logical", &logical),
+    ] {
+        assert_eq!(canonical(&actual[key]), canonical(value));
+    }
 }
 
 fn v16_fixture() -> Value {
@@ -1185,92 +1282,6 @@ fn v18_fixture() -> Value {
     full["additions"][1]["opaque_reference"] = serde_json::json!({"canonical_source":519});
     full
 }
-#[test]
-fn v18_entire_preimage_keeps_unknown_fields_one_level_domains_and_order() {
-    let logical = encode_v15(&v18_fixture()).unwrap();
-    let legacy = encode_v17_rows(&logical).unwrap();
-    let wire = typed_refs_v18::encode_rows(&logical).unwrap();
-    assert_eq!(wire["replacements"][0]["old519_index"][3][0], 519);
-    assert_eq!(wire["replacements"][0]["old519_index"][3][1], 520);
-    assert_eq!(
-        canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()),
-        canonical(&logical)
-    );
-    assert_eq!(
-        canonical(&encode_v17_rows(&logical).unwrap()),
-        canonical(&legacy)
-    );
-    assert_eq!(canonical(&legacy).len() - canonical(&wire).len(), 42);
-    assert_eq!(
-        wire["additions"][1]["opaque_reference"],
-        logical["additions"][1]["opaque_reference"]
-    );
-    let mut nested = logical.clone();
-    nested["additions"][1]["fragments"] = serde_json::json!([{ "source":"nested.rs", "compiled":true,"current":[1,"A".repeat(43)],"views":[],"fragments":[519,{"canonical_source":519}]}]);
-    assert_eq!(
-        typed_refs_v18::encode_rows(&nested).unwrap_err(),
-        "v13 uninterned or aliased digest"
-    );
-    nested["additions"][1]["fragments"][0]["current"] = serde_json::json!([1, 0]);
-    assert_eq!(
-        typed_refs_v18::encode_rows(&nested).unwrap_err(),
-        "v14 uninterned or aliased tail"
-    );
-    let admitted_tail = logical["replacements"][0]["old519_index"][1].clone();
-    assert_eq!(admitted_tail.as_array().unwrap().len(), 1);
-    assert!(admitted_tail[0].is_u64());
-    nested["additions"][1]["fragments"][0]["current"] = admitted_tail;
-    assert_eq!(
-        typed_refs_v18::expand_to_v15(&typed_refs_v18::encode_rows(&nested).unwrap()).unwrap(),
-        nested
-    );
-}
-#[test]
-fn v18_rejects_aliases_bad_indices_wrong_slots_and_truncation() {
-    let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
-    let total = 519 + wire["additions"].as_array().unwrap().len();
-    for bad in [
-        serde_json::json!(true),
-        serde_json::json!(false),
-        serde_json::json!(-1),
-        serde_json::json!(0),
-        serde_json::json!(518),
-        serde_json::json!(519.0),
-        serde_json::json!(-0.0),
-        serde_json::json!(total),
-        serde_json::json!({"canonical_source":519}),
-    ] {
-        let mut changed = wire.clone();
-        changed["replacements"][0]["old519_index"][3][0] = bad;
-        assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
-    }
-    let mut changed = wire.clone();
-    changed["additions"][0] = 519.into();
-    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
-    changed = wire.clone();
-    changed["replacements"][0]["old519_index"] = serde_json::json!([0, [], []]);
-    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
-    changed = wire;
-    changed["unknown"] = 519.into();
-    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
-}
-#[test]
-fn v18_exact_short_expanded_bound_and_wire_cap_are_independent() {
-    let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
-    let logical = typed_refs_v18::expand_to_v15(&wire).unwrap();
-    let exact = canonical(&logical).len();
-    assert_eq!(typed_refs_v18::preflight(&wire, exact).unwrap(), exact);
-    assert_eq!(
-        typed_refs_v18::preflight(&wire, exact - 1).unwrap_err(),
-        "v18 expanded bound"
-    );
-    let mut large = wire;
-    large["predecessor"] = "x".repeat(PAGE_CAP).into();
-    assert_eq!(
-        typed_refs_v18::expand_to_v15(&large).unwrap_err(),
-        "v18 same one-page cap"
-    );
-}
 fn python_v18(full: &Value, hostile: &[Value]) -> Value {
     use std::io::{Read, Write};
     use std::process::{Command, Stdio};
@@ -1309,14 +1320,18 @@ sys.stdout.buffer.write(n['canonical']({'encoded':wire,'v15':v15,'refused':refus
 }
 #[test]
 fn v18_complete_current_page_and_python_rust_transport_match() {
-    let raw = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
-        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
+    let raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
+    ));
     let current: Value = serde_json::from_slice(raw).unwrap();
-    assert_eq!(canonical(&current).as_slice(),raw.as_slice());
+    assert_eq!(canonical(&current).as_slice(), raw.as_slice());
     verify_current_v18(&current);
 }
 pub(in super::super::super) fn verify_current_v18(current: &Value) {
-    if super::super::super::compiled_successor_v19::is_successor20(current) { return typed_refs_v18::verify_current_compact(current); }
+    if super::super::super::compiled_successor_v19::is_successor20(current) {
+        return typed_refs_v18::verify_current_compact(current);
+    }
     if current["schema"] != super::super::super::compiled_successor_v19::SCHEMA {
         return verify_current_v18_before_v19(current);
     }
@@ -1326,7 +1341,10 @@ pub(in super::super::super) fn verify_current_v18(current: &Value) {
     let expected = super::super::super::compose_values(before.clone(), &policy, current).unwrap();
     // Only the private singleton base is derived, after full V19 validation.
     let mut derived = before.clone();
-    assert_eq!(derived["rows"][389]["source"], "src/workspace_graph/expected_projection/borrowed_imports.rs");
+    assert_eq!(
+        derived["rows"][389]["source"],
+        "src/workspace_graph/expected_projection/borrowed_imports.rs"
+    );
     assert_eq!(derived["rows"][389]["compiled"], false);
     derived["rows"][389]["compiled"] = true.into();
     let mut inverse = derived.clone();
@@ -1337,21 +1355,41 @@ pub(in super::super::super) fn verify_current_v18(current: &Value) {
     inner["predecessor"] = policy["predecessor"].clone();
     let indexed = inner["schema"] == typed_refs_v18::SCHEMA_V19_INDEXED;
     assert!(indexed || inner["schema"] == typed_refs_v18::SCHEMA_V18);
-    let decode = |page: &Value| if indexed { typed_refs_v18::expand_indexed_to_v15(page) } else { typed_refs_v18::expand_to_v15(page) };
+    let decode = |page: &Value| {
+        if indexed {
+            typed_refs_v18::expand_indexed_to_v15(page)
+        } else {
+            typed_refs_v18::expand_to_v15(page)
+        }
+    };
     let logical = decode(&inner).unwrap();
     let v12 = expand_to_v12_logical(
         &expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap(),
-    ).unwrap();
-    let wire = if indexed { typed_refs_v18::encode_indexed(&v12) } else { typed_refs_v18::encode(&v12) }.unwrap();
-    let actual = if indexed { typed_refs_v18::python_indexed(&v12) } else { python_v18(&v12, &[]) };
+    )
+    .unwrap();
+    let wire = if indexed {
+        typed_refs_v18::encode_indexed(&v12)
+    } else {
+        typed_refs_v18::encode(&v12)
+    }
+    .unwrap();
+    let actual = if indexed {
+        typed_refs_v18::python_indexed(&v12)
+    } else {
+        python_v18(&v12, &[])
+    };
     assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
     assert_eq!(canonical(&actual["v15"]), canonical(&logical));
     assert_eq!(canonical(&decode(&wire).unwrap()), canonical(&logical));
     assert_eq!(canonical(&inner), canonical(&wire));
-    let compose = |page: &Value| if indexed {
-        let expanded = typed_refs_v18::expand_v19_indexed(&derived, &policy, page)?;
-        super::super::super::compose_values_v2(derived.clone(), &policy, &expanded)
-    } else { super::super::super::compose_values(derived.clone(), &policy, page) };
+    let compose = |page: &Value| {
+        if indexed {
+            let expanded = typed_refs_v18::expand_v19_indexed(&derived, &policy, page)?;
+            super::super::super::compose_values_v2(derived.clone(), &policy, &expanded)
+        } else {
+            super::super::super::compose_values(derived.clone(), &policy, page)
+        }
+    };
     let original = compose(&inner).unwrap();
     let restored = compose(&wire).unwrap();
     assert_eq!(canonical(&restored), canonical(&original));
@@ -1387,42 +1425,10 @@ fn verify_current_v18_before_v19(current: &Value) {
     assert_eq!(canonical(&restored), canonical(&original));
 }
 
-#[test]
-fn v18_python_rust_hostile_reference_decisions_match() {
-    let full = v18_fixture();
-    let wire = typed_refs_v18::encode(&full).unwrap();
-    let mut hostile = Vec::new();
-    for bad in [
-        serde_json::json!(true),
-        serde_json::json!(-1),
-        serde_json::json!(518),
-        serde_json::json!(519.0),
-        serde_json::json!(-0.0),
-        serde_json::json!(u64::MAX),
-        serde_json::json!({"canonical_source":519}),
-    ] {
-        let mut value = wire.clone();
-        value["replacements"][0]["old519_index"][3][0] = bad;
-        hostile.push(value);
-    }
-    let actual = python_v18(&full, &hostile);
-    let refused: Vec<Value> = hostile
-        .iter()
-        .map(|p| typed_refs_v18::expand_to_v15(p).is_err().into())
-        .collect();
-    assert_eq!(actual["refused"], Value::Array(refused));
-    assert!(actual["refused"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|v| v.as_bool() == Some(true)));
-}
-
-
-// Historical controls acquire the actual live wire first, then an exact
-// independently pinned full predecessor. Their evidence remains historical.
 fn authenticate_current_page_for_retained_controls(current: &Value) {
-    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA || super::super::super::compiled_successor_v19::is_successor20(current) {
+    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA
+        || super::super::super::compiled_successor_v19::is_successor20(current)
+    {
         let (policy, loaded) = super::super::super::load_current().unwrap();
         assert_eq!(canonical(current), canonical(&loaded));
         let before = super::super::super::super::packet_before_overlay();
@@ -1430,14 +1436,16 @@ fn authenticate_current_page_for_retained_controls(current: &Value) {
         return;
     }
     assert!(current["schema"] == SCHEMA_V17 || current["schema"] == typed_refs_v18::SCHEMA_V18);
-    let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
-        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
+    let compiled = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
+    ));
     assert!(compiled.len() <= PAGE_CAP);
     assert_eq!(canonical(current).as_slice(), compiled.as_slice());
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("docs/evidence/finite-source-overlay-v2-20261018/page.json");
-    let physical = super::super::super::held_4a6eb(&path,compiled.len(),&hash(compiled)).unwrap();
-    assert_eq!(physical.as_bytes(),compiled.as_slice());
+    let physical = super::super::super::held_4a6eb(&path, compiled.len(), &hash(compiled)).unwrap();
+    assert_eq!(physical.as_bytes(), compiled.as_slice());
     if current["schema"] == typed_refs_v18::SCHEMA_V18 {
         typed_refs_v18::expand_to_v15(current).unwrap();
     } else {
@@ -1445,18 +1453,28 @@ fn authenticate_current_page_for_retained_controls(current: &Value) {
     }
 }
 fn retain_current_v17_for_v18(current: Value) -> Value {
-    if current["schema"] != typed_refs_v18::SCHEMA_V18 && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA && !super::super::super::compiled_successor_v19::is_successor20(&current) { return current; }
+    if current["schema"] != typed_refs_v18::SCHEMA_V18
+        && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA
+        && !super::super::super::compiled_successor_v19::is_successor20(&current)
+    {
+        return current;
+    }
     authenticate_current_page_for_retained_controls(&current);
-    let raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
-        "/e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"));
-    assert_eq!(raw.len(),261018);
-    assert_eq!(hash(raw),"ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a");
-    let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+    let raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"
+    ));
+    assert_eq!(raw.len(), 261018);
+    assert_eq!(
+        hash(raw),
+        "ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"
+    );
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a");
-    let physical=super::super::super::held_4a6eb(&path,raw.len(),&hash(raw)).unwrap();
-    assert_eq!(physical.as_bytes(),raw.as_slice());
-    let prior:Value=serde_json::from_slice(raw).unwrap();
-    assert_eq!(prior["schema"],SCHEMA_V17);
-    assert_eq!(canonical(&prior).as_slice(),raw.as_slice());
+    let physical = super::super::super::held_4a6eb(&path, raw.len(), &hash(raw)).unwrap();
+    assert_eq!(physical.as_bytes(), raw.as_slice());
+    let prior: Value = serde_json::from_slice(raw).unwrap();
+    assert_eq!(prior["schema"], SCHEMA_V17);
+    assert_eq!(canonical(&prior).as_slice(), raw.as_slice());
     prior
 }

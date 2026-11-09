@@ -656,9 +656,10 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
             measure(|| {
                 let mut b = ReplayBudget::new();
                 let observer = census::observe(f, &b);
-                let result =
-                    super::super::super::paired::tests::prepaired_compare(program, f, &mut b, None, None)
-                        .map_err(failure);
+                let result = super::super::super::paired::tests::prepaired_compare(
+                    program, f, &mut b, None, None,
+                )
+                .map_err(failure);
                 let work = (b.remaining, b.skeleton_remaining, b.skeleton_spent);
                 let report = census::take();
                 drop(observer);

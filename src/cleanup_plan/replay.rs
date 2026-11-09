@@ -49,12 +49,12 @@ mod selected_entry;
 #[cfg(test)]
 mod sequence_prefix;
 mod sequence_vector;
-#[cfg(test)]
-mod trailing_active;
 mod shape_cursor;
 mod status_construction;
 mod structural_control;
 mod structural_maps;
+#[cfg(test)]
+mod trailing_active;
 #[cfg(test)]
 pub(crate) use selected_context::borrowed::{
     Identity as ReplayBorrowedIdentity, Lease as ReplayBorrowedLease,
@@ -87,13 +87,6 @@ pub(crate) use physical_storage::{
 mod physical_observation_tests;
 #[cfg(test)]
 mod primitive_fixture;
-use expression_children::replay_expression_child;
-use expression_facts::expression_facts;
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
-#[cfg(test)]
-use crate::hir::ResolvedTypeDeclarationKind;
-#[cfg(test)]
-use std::cell::Cell;
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
@@ -110,6 +103,8 @@ use crate::ast::{BinaryOp, UnaryOp};
 use crate::cleanup::ReplayContext;
 use crate::cleanup::{CleanupStorageOrigin, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
+#[cfg(test)]
+use crate::hir::ResolvedTypeDeclarationKind;
 use crate::hir::{
     DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
     OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
@@ -117,6 +112,11 @@ use crate::hir::{
     ResolvedStatement, ResolvedType,
 };
 use crate::prelude;
+use expression_children::replay_expression_child;
+use expression_facts::expression_facts;
+#[cfg(test)]
+use std::cell::Cell;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 mod factored;
 mod leaf_index;
 use leaf_index::Leaves;
@@ -2875,8 +2875,13 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
                 .take()
                 .expect("ordinary setup selected first error"));
         }
-        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, "skeleton query neutral slot receivers")?;
-        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),
+        budget.reserve_bytes(
+            function,
+            skeleton_work::query_proof::HEADER,
+            "skeleton query neutral slot receivers",
+        )?;
+        SkeletonWork {
+            queries: skeleton_work::query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,
@@ -3047,9 +3052,8 @@ fn sequence_skeleton_paths(
         return trailing_active::before_sequence_skeleton_paths(prefixes, suffixes, work);
     }
     sequence_vector::inplace_dispatch!(prefixes, suffixes, work);
-    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
-        prefixes, suffixes, work
-    );
+    let prefixes =
+        ordinary_plan_history::completed_fork::emission::dispatch!(prefixes, suffixes, work);
     let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
     let share_prefix = work.prefix_tail_sharing(&suffixes)?;
@@ -3073,7 +3077,17 @@ fn sequence_skeleton_paths(
     }
     #[cfg(test)]
     if !single && first {
-        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);
+        trailing_active::reuse!(
+            prefixes,
+            suffixes,
+            work,
+            share_prefix,
+            minimum,
+            precharged,
+            first,
+            single,
+            combined
+        );
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
@@ -3141,9 +3155,14 @@ fn sequence_skeleton_paths(
             continue;
         };
         #[cfg(test)]
-        if !precharged { final_output::record_final_frontier(0, work); }
-        if precharged { precharged = false; }
-        else { work.charge(1, "skeleton prefix clone")?; }
+        if !precharged {
+            final_output::record_final_frontier(0, work);
+        }
+        if precharged {
+            precharged = false;
+        } else {
+            work.charge(1, "skeleton prefix clone")?;
+        }
         work.budget.reserve_bytes(
             work.function,
             final_output::FINAL_SPLIT_CONTROLS,
@@ -6425,7 +6444,9 @@ fn sequence_call_argument(
             let observations =
                 work.clone_observations(&prefix.observations, "call prefix clone")?;
             let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
-                observations, suffix, work
+                observations,
+                suffix,
+                work
             )?;
             let owned_source =
                 work.clone_owned(&suffix.owned_source, "call suffix owned-source clone")?;

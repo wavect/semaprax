@@ -339,7 +339,9 @@ pub(in crate::cleanup_plan::replay) fn compare(
         "ordinary plan reachable cursor primitive frames"
     )?;
     #[cfg(test)]
-    if owner.len >= 2 { census.independent_frames(); }
+    if owner.len >= 2 {
+        census.independent_frames();
+    }
     owner.build = owner.len / 2;
     owner.drain = owner.len;
     backing!(

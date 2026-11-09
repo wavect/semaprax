@@ -587,10 +587,11 @@ pub(super) use pins_v9::{expand_v9, SCHEMA_V9};
 #[path = "main_e177_overlay_pins_v10.rs"]
 mod pins_v10;
 pub(super) use pins_v10::{expand_v10, expand_v10_compatible, SCHEMA_V10};
-
 #[path = "main_e177_overlay_pins_v11.rs"]
 mod pins_v11;
-pub(super) use pins_v11::{expand_v10_public_compatible, expand_v11, expand_v11_compatible, SCHEMA_V11};
+pub(super) use pins_v11::{
+    expand_v10_public_compatible, expand_v11, expand_v11_compatible, SCHEMA_V11,
+};
 // Complete independent incoming V10/named-view V11 decoder and controls.
 #[path = "main_e177_overlay_names_v11/main_e177_overlay_pins_v10.rs"]
 mod names_v11;
@@ -1477,7 +1478,6 @@ pub(super) fn canonical(value: &Value) -> Vec<u8> {
     result.push('\n');
     result.into_bytes()
 }
-
 #[path = "main_e177_overlay_digests_v13.rs"]
 mod digests_v13;
 #[cfg(test)]
@@ -1489,12 +1489,12 @@ pub(super) use digests_v13::{
     expand_v14, expand_v15, expand_v16, expand_v17, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16,
     SCHEMA_V17,
 };
-
 pub(super) use digests_v13::{
     expand_v18, expand_v19_indexed, preflight_indexed, SCHEMA_V18, SCHEMA_V19_INDEXED,
 };
-
 #[cfg(test)]
 pub(super) use digests_v13::{verify_current_v17, verify_current_v18};
 
-pub(super) use digests_v13::{expand_v20_compact, preflight_compact_with_bound, SCHEMA_V20_COMPACT};
+pub(super) use digests_v13::{
+    expand_v20_compact, preflight_compact_with_bound, SCHEMA_V20_COMPACT,
+};

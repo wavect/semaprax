@@ -173,12 +173,52 @@
     },
     {
       "source": "src/cleanup_plan/replay.rs",
-      "length": 325874,
-      "sha256": "c995ae6f94161a856d6a612c1a14a14d45dedd785fdf523b9ef6e172fd0fcb85",
+      "length": 326129,
+      "sha256": "f98a8462e5eca592b2627a7ca1f706df67a362f4aa4aa4f667cc8f7bddb13fc6",
       "checkpoint_length": 326264,
       "checkpoint_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "inverse": [
+        [
+          "                observations,\n                suffix,\n                work\n",
+          "                observations, suffix, work\n"
+        ],
+        [
+          "        if !precharged {\n            final_output::record_final_frontier(0, work);\n        }\n        if precharged {\n            precharged = false;\n        } else {\n            work.charge(1, \"skeleton prefix clone\")?;\n        }\n",
+          "        if !precharged { final_output::record_final_frontier(0, work); }\n        if precharged { precharged = false; }\n        else { work.charge(1, \"skeleton prefix clone\")?; }\n"
+        ],
+        [
+          "        trailing_active::reuse!(\n            prefixes,\n            suffixes,\n            work,\n            share_prefix,\n            minimum,\n            precharged,\n            first,\n            single,\n            combined\n        );\n",
+          "        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);\n"
+        ],
+        [
+          "    let prefixes =\n        ordinary_plan_history::completed_fork::emission::dispatch!(prefixes, suffixes, work);\n",
+          "    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(\n        prefixes, suffixes, work\n    );\n"
+        ],
+        [
+          "        budget.reserve_bytes(\n            function,\n            skeleton_work::query_proof::HEADER,\n            \"skeleton query neutral slot receivers\",\n        )?;\n        SkeletonWork {\n            queries: skeleton_work::query_proof::Slot::new(function, budget),\n",
+          "        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\n"
+        ],
+        [
+          "use expression_children::replay_expression_child;\nuse expression_facts::expression_facts;\n#[cfg(test)]\nuse std::cell::Cell;\nuse std::collections::{BTreeMap, BTreeSet, VecDeque};\n",
+          ""
+        ],
+        [
+          "#[cfg(test)]\nuse crate::hir::ResolvedTypeDeclarationKind;\n",
+          ""
+        ],
+        [
+          "mod primitive_fixture;\nuse super::{\n",
+          "mod primitive_fixture;\nuse expression_children::replay_expression_child;\nuse expression_facts::expression_facts;\nuse std::collections::{BTreeMap, BTreeSet, VecDeque};\n#[cfg(test)]\nuse crate::hir::ResolvedTypeDeclarationKind;\n#[cfg(test)]\nuse std::cell::Cell;\nuse super::{\n"
+        ],
+        [
+          "#[cfg(test)]\nmod trailing_active;\n",
+          ""
+        ],
+        [
+          "mod sequence_vector;\nmod shape_cursor;\n",
+          "mod sequence_vector;\n#[cfg(test)]\nmod trailing_active;\nmod shape_cursor;\n"
+        ],
         [
           "    // The shared PLAN prefix route is admitted only for ordinary control.\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && function.cleanup_plan.lexical_control.is_none() && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n",
           "    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n"
@@ -655,12 +695,20 @@
     },
     {
       "source": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
-      "length": 21988,
-      "sha256": "991d49863ea7d35864b9dbcf203e7c7e5b245ef5325b4e75d9ff0ee7c5dd3123",
+      "length": 22015,
+      "sha256": "fa3078001c087651ba7bc46863cccd20d30d1c801da83f2a434c257a03d7c8cc",
       "checkpoint_length": 17171,
       "checkpoint_sha256": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
       "archive": "e/e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
       "inverse": [
+        [
+          "        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))\n        ),\n",
+          "        format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))),\n"
+        ],
+        [
+          "    let old =\n        crate::source_reflows_merge::main_e177_final_inputs::value_direct(source, expected, raw);\n",
+          "    let old = crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n        source, expected, raw,\n    );\n"
+        ],
         [
           "\n    // The historical view is available only after the complete actual physical,\n    // compiled and archive channels agree for this registered source owner.\n    let source = \"src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\";\n    let raw = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"\n    ));\n    let expected = \"e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4\";\n    let original = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/e/e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4\"\n    ));\n    assert_eq!(original.len(), 17171);\n    let old = crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n        source, expected, raw,\n    );\n    assert_eq!(old, original);\n    assert_eq!(\n        format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))),\n        expected\n    );\n    for supplied in [\n        raw.replacen(\"#[test]\\n\", \"\", 1),\n        raw.replacen(\"Complete old/current\", \"CompletE old/current\", 1),\n        format!(\"{raw}\\n\"),\n    ] {\n        assert_ne!(supplied, raw);\n        assert_ne!(supplied, original);\n        assert_eq!(\n            crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n                source, expected, &supplied,\n            ),\n            supplied\n        );\n    }\n",
           ""
@@ -720,11 +768,19 @@
     {
       "source": "src/cleanup_plan/replay/expression_facts/arena.rs",
       "length": 32716,
-      "sha256": "df333d15e89cfe5a8b50006042a0d03a4040a27eeba80b176a330dcf65483709",
+      "sha256": "7e630a44b48fa76280525253d6289a90ee45806b14e2bc69054555adcfb33071",
       "checkpoint_length": 13588,
       "checkpoint_sha256": "c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59",
       "archive": "e/c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59",
       "inverse": [
+        [
+          "pub(super) mod retained;\n",
+          ""
+        ],
+        [
+          "pub(in crate::cleanup_plan::replay::expression_facts) use prefix::compact::NARROWED_SAVING as NARROWED_LOOKUP_SAVING;\npub(in crate::cleanup_plan::replay) mod invocation;\n",
+          "pub(in crate::cleanup_plan::replay::expression_facts) use prefix::compact::NARROWED_SAVING as NARROWED_LOOKUP_SAVING;\npub(super) mod retained;\npub(in crate::cleanup_plan::replay) mod invocation;\n"
+        ],
         [
           "pub(in crate::cleanup_plan::replay) mod invocation;\n",
           ""

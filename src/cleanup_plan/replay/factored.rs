@@ -108,7 +108,8 @@ const HOT_BUILDER_THRESHOLD_GATE_CONTROLS: usize = {
 macro_rules! ordinary_builder_selected {
     ($function:ident, $cfg_paths:ident, $semantic_paths:ident, $budget:ident) => {{
         $budget.reserve_bytes(
-            $function, COLD_BUILDER_THRESHOLD_CONTROLS,
+            $function,
+            COLD_BUILDER_THRESHOLD_CONTROLS,
             "ordinary builder cold threshold receivers",
         )?;
         if $cfg_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD
@@ -117,11 +118,15 @@ macro_rules! ordinary_builder_selected {
             false
         } else {
             $budget.reserve_bytes(
-                $function, BUILDER_SELECTOR_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS,
+                $function,
+                BUILDER_SELECTOR_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS,
                 "ordinary builder representation selector receivers",
             )?;
             selected_builder_paid(
-                $function, $cfg_paths, $semantic_paths, &mut ReplayBudget::new(),
+                $function,
+                $cfg_paths,
+                $semantic_paths,
+                &mut ReplayBudget::new(),
             )?
         }
     }};

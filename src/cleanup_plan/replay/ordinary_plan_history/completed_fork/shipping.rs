@@ -2,8 +2,8 @@
 //! Flat, lexical, selected, oracle, merged and lent receivers keep their route.
 use super::super::producer::view;
 use super::*;
-use skeleton_work::enumerated_prefix;
 use crate::cleanup_plan::CleanupBlock;
+use skeleton_work::enumerated_prefix;
 
 #[path = "shipping/flat_admission.rs"]
 pub(in crate::cleanup_plan::replay) mod flat_admission;

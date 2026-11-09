@@ -755,10 +755,29 @@ fn transition_scratch_keeps_missing_and_noncall_diagnostic_priority_and_source_i
         let whole = format!("{program:?}");
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
+        let released = block_run_driver(
+            &program,
+            function,
+            BlockDriver::AfterRelease,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
         let current = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
         assert!(old.0.is_err());
-        assert_eq!(current.0, old.0, "all six fields mode={mode}");
-        assert_eq!(current.3, old.3);
+        assert_eq!(released.0, old.0, "all six transition fields mode={mode}");
+        assert_eq!(released.3, old.3, "original transition work mode={mode}");
+        assert_eq!(current.0, released.0, "all six shipping fields mode={mode}");
+        if mode == 2 {
+            assert_eq!(
+                current.3, released.3,
+                "schema refusal precedes prefix lookup"
+            );
+        } else {
+            assert!(
+                current.3 < released.3,
+                "shipping prefix lookup saves work mode={mode}"
+            );
+        }
         assert_eq!(format!("{program:?}"), whole);
     }
 }
@@ -941,7 +960,12 @@ fn callback_run(
     drop(trace);
     let reference = reference.finish();
     assert!(reference.started <= receivers, "{reference:?}");
-    eprintln!("callback reference max_receivers={receivers} complete_receipt={reference:?}");
+    // A captured eprintln can keep an unrelated libtest allocation live.
+    use std::io::Write;
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "callback reference max_receivers={receivers} complete_receipt={reference:?}"
+    );
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()

@@ -904,23 +904,61 @@ fn complete_incoming_main_and_shipping_keep_source_results_work_and_full_drop() 
         "/e/18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c"
     ));
     assert_eq!(original.len(), 51619);
-    assert_eq!(digest(original.as_bytes()), "18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c");
-    assert_eq!(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/e/18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c")).unwrap(), original.as_bytes());
+    assert_eq!(
+        digest(original.as_bytes()),
+        "18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c"
+    );
+    assert_eq!(
+        std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c"
+        ))
+        .unwrap(),
+        original.as_bytes()
+    );
     let current = include_str!("main3d81_before.rs");
-    assert_eq!(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/main3d81_before.rs")).unwrap(), current.as_bytes());
+    assert_eq!(
+        std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/main3d81_before.rs"
+        ))
+        .unwrap(),
+        current.as_bytes()
+    );
     let method = original.split_once("#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\n").unwrap().1.split_once("\ntype ControlKey =").unwrap().0;
     let acquired = current.strip_prefix("use super::*;\n\n#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\n").unwrap().split_once("\n// Independently retained incoming-main source and complete caller comparison.\n").unwrap().0;
     assert_eq!(acquired, method);
     let root = include_str!("../path_join.rs");
-    let helpers = original.split_once("type ControlKey =").unwrap().1.split_once("\n#[cfg(test)]\n#[rustfmt::skip]").unwrap().0;
+    let helpers = original
+        .split_once("type ControlKey =")
+        .unwrap()
+        .1
+        .split_once("\n#[cfg(test)]\n#[rustfmt::skip]")
+        .unwrap()
+        .0;
     assert_eq!(root.matches(helpers).count(), 1);
     for (path, raw, expected) in [
-        ("src/cleanup_plan/replay/path_join/boxed_states.rs", include_bytes!("boxed_states.rs").as_slice(), "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5"),
-        ("src/cleanup_plan/replay/path_join/branch_join.rs", include_bytes!("branch_join.rs").as_slice(), "d3633b8f9fd25ed9036c7387541961e94147743613423e2f945051be3c434a54"),
-        ("src/cleanup_plan/replay/path_join/storage.rs", include_bytes!("storage.rs").as_slice(), "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5"),
+        (
+            "src/cleanup_plan/replay/path_join/boxed_states.rs",
+            include_bytes!("boxed_states.rs").as_slice(),
+            "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5",
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/branch_join.rs",
+            include_bytes!("branch_join.rs").as_slice(),
+            "d3633b8f9fd25ed9036c7387541961e94147743613423e2f945051be3c434a54",
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/storage.rs",
+            include_bytes!("storage.rs").as_slice(),
+            "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+        ),
     ] {
         assert_eq!(digest(raw), expected);
-        assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), raw);
+        assert_eq!(
+            std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(),
+            raw
+        );
     }
     let source = r#"
 module boxed;
@@ -946,12 +984,33 @@ module boxed;
                         let storage = validate_slots_paid(function, &mut budget)?;
                         let leaves = collect_leaves_paid(function, &mut budget)?;
                         if incoming {
-                            validate_path_states::<Diagnostic>(&program, function, &storage, &leaves, &mut budget, None, None)
+                            validate_path_states::<Diagnostic>(
+                                &program,
+                                function,
+                                &storage,
+                                &leaves,
+                                &mut budget,
+                                None,
+                                None,
+                            )
                         } else {
-                            super::validate_path_states::<Diagnostic>(&program, function, &storage, &leaves, &mut budget, None, None)
+                            super::validate_path_states::<Diagnostic>(
+                                &program,
+                                function,
+                                &storage,
+                                &leaves,
+                                &mut budget,
+                                None,
+                                None,
+                            )
                         }
                     })();
-                    let verdict = (result.is_ok(), budget.remaining, budget.skeleton_remaining, budget.skeleton_spent);
+                    let verdict = (
+                        result.is_ok(),
+                        budget.remaining,
+                        budget.skeleton_remaining,
+                        budget.skeleton_spent,
+                    );
                     drop(result);
                     drop(budget);
                     verdict
@@ -960,11 +1019,11 @@ module boxed;
         };
         let incoming = run(true);
         let shipping = run(false);
-        assert!(incoming.0.0.0 && shipping.0.0.0);
-        assert_eq!(incoming.0.0, shipping.0.0);
+        assert!(incoming.0 .0 .0 && shipping.0 .0 .0);
+        assert_eq!(incoming.0 .0, shipping.0 .0);
         for row in [&incoming, &shipping] {
             assert!(!row.1 && row.3.is_none());
-            let allocation = row.0.1;
+            let allocation = row.0 .1;
             assert!(!allocation.invalid && allocation.live == 0);
             assert_eq!(allocation.allocated, allocation.freed);
             assert!(allocation.allocated <= row.2);

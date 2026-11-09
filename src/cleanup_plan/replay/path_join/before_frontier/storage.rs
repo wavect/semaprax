@@ -136,7 +136,8 @@ pub(in crate::cleanup_plan::replay) fn reserve_btree_node<K, V>(
     }
     budget.reserve_bytes(
         function,
-        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<K, V>().unwrap_or(usize::MAX),
+        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<K, V>()
+            .unwrap_or(usize::MAX),
         phase,
     )
 }

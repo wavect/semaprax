@@ -340,12 +340,17 @@ fn decode_base85(encoded: &str) -> Result<Vec<u8>, &'static str> {
     let mut decoded = Vec::with_capacity(encoded.len() / 5 * 4 + remainder.saturating_sub(1));
     for chunk in encoded.as_bytes().chunks(5) {
         let mut value = 0u32;
-        for symbol in chunk.iter().copied().chain(std::iter::repeat_n(b'~', 5 - chunk.len())) {
+        for symbol in chunk
+            .iter()
+            .copied()
+            .chain(std::iter::repeat_n(b'~', 5 - chunk.len()))
+        {
             let digit = digits[usize::from(symbol)];
             if digit == u8::MAX {
                 return Err(INVALID);
             }
-            value = value.checked_mul(85)
+            value = value
+                .checked_mul(85)
                 .and_then(|value| value.checked_add(u32::from(digit)))
                 .ok_or(INVALID)?;
         }
@@ -377,7 +382,10 @@ fn base85_digits(mut value: u32) -> [u8; 5] {
 }
 
 pub(super) fn is_successor20(page: &Value) -> bool {
-    matches!(page["schema"].as_str(), Some(SCHEMA_V20 | SCHEMA_V21 | SCHEMA_V22))
+    matches!(
+        page["schema"].as_str(),
+        Some(SCHEMA_V20 | SCHEMA_V21 | SCHEMA_V22)
+    )
 }
 
 pub(super) fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'static str> {
@@ -1010,5 +1018,4 @@ pub(super) mod source_sections {
         let end = start + code[start..].find("\n}\n").unwrap() + "\n}\n".len();
         &code[start..end]
     }
-
 }

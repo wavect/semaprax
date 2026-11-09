@@ -1019,5 +1019,12 @@ fn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact() 
     );
     assert_eq!(include_str!("lexical_cursor_shared_steps.rs"), admitted);
     let restored = frontiers::before_preparation("main99_pair_scope_tests.rs").split_once("\n#[test]\nfn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact").unwrap().0.replacen("use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", "", 1);
-    assert_eq!(restored, super::super::reachable_stage("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs", "10ecb901fd3ce0805b1fbc81f68ad221d9a4fc3ddf3f707ff05fc38fff5b13e5", include_str!("pair_scope_tests.rs")));
+    assert_eq!(
+        restored,
+        super::super::reachable_stage(
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+            "10ecb901fd3ce0805b1fbc81f68ad221d9a4fc3ddf3f707ff05fc38fff5b13e5",
+            include_str!("pair_scope_tests.rs")
+        )
+    );
 }

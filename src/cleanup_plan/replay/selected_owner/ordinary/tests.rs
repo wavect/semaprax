@@ -58,7 +58,7 @@ fn cold_original_search_keeps_every_owner_six_field_error_and_actual_paid_drop()
             })
         };
         let full = observe(usize::MAX, 0);
-        assert!(full.0.0 && !full.1 && full.3.is_none());
+        assert!(full.0 .0 && !full.1 && full.3.is_none());
         for (limit, floor, success) in [
             (0, 0, false),
             (full.2 - 1, 0, false),
@@ -66,10 +66,10 @@ fn cold_original_search_keeps_every_owner_six_field_error_and_actual_paid_drop()
             (full.2, 1, false),
         ] {
             let actual = observe(limit, floor);
-            assert_eq!(actual.0.0, success);
+            assert_eq!(actual.0 .0, success);
             assert_eq!(actual.1, !success);
             assert_eq!(actual.3.is_some(), !success);
-            let metrics = actual.0.1;
+            let metrics = actual.0 .1;
             assert!(!metrics.invalid && metrics.live == 0);
             assert_eq!(metrics.allocated, metrics.freed);
             assert!(metrics.allocated <= actual.2 && actual.2 <= limit);
@@ -160,13 +160,11 @@ fn exact_original_owner_helper_and_both_original_adapters_remain_source_bound() 
     ] {
         let restored = super::custody(path, compiled.as_bytes());
         assert_eq!(restored, before.as_bytes());
-        assert!(
-            std::panic::catch_unwind(|| super::custody(
-                path,
-                &(compiled.to_owned() + " ").into_bytes()
-            ))
-            .is_err()
-        );
+        assert!(std::panic::catch_unwind(|| super::custody(
+            path,
+            &(compiled.to_owned() + " ").into_bytes()
+        ))
+        .is_err());
         assert!(std::panic::catch_unwind(|| super::custody(path, before.as_bytes())).is_err());
     }
 }

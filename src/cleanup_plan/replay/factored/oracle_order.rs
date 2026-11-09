@@ -33,16 +33,30 @@ fn text(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
+    compare_text::<false>(a, b, function, budget)
+}
+
+fn compare_text<const SHARED: bool>(
+    a: &str,
+    b: &str,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    budget.charge(function, 1, "oracle identity byte or end")?;
+    // A shared immutable slice has the same bytes and the same length.
+    if SHARED && std::ptr::eq(a, b) {
+        return Ok(Ordering::Equal);
+    }
     let mut a = a.bytes();
     let mut b = b.bytes();
     loop {
-        budget.charge(function, 1, "oracle identity byte or end")?;
         match (a.next(), b.next()) {
             (None, None) => return Ok(Ordering::Equal),
             (None, Some(_)) => return Ok(Ordering::Less),
             (Some(_), None) => return Ok(Ordering::Greater),
             (Some(x), Some(y)) => decide!(x.cmp(&y)),
         }
+        budget.charge(function, 1, "oracle identity byte or end")?;
     }
 }
 
@@ -612,6 +626,15 @@ pub(super) fn observation(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
+    observation_order::<false>(a, b, function, budget)
+}
+
+fn observation_order<const SHARED: bool>(
+    a: &SkeletonObservation,
+    b: &SkeletonObservation,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
     use SkeletonObservation as O;
     budget.charge(function, 1, "oracle observation kind")?;
     decide!(ordinal(a).cmp(&ordinal(b)));
@@ -626,7 +649,12 @@ pub(super) fn observation(
                 binding: yb,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             place(xb, yb, function, budget)
         }
         (
@@ -639,7 +667,12 @@ pub(super) fn observation(
                 destination: yd,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             place(xd, yd, function, budget)
         }
         (
@@ -654,7 +687,12 @@ pub(super) fn observation(
                 destination: yd,
             },
         ) => {
-            decide!(text(xa.as_str(), ya.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xa.as_str(),
+                ya.as_str(),
+                function,
+                budget
+            )?);
             decide!(place(xs, ys, function, budget)?);
             place(xd, yd, function, budget)
         }
@@ -668,7 +706,12 @@ pub(super) fn observation(
                 arguments: ya,
             },
         ) => {
-            decide!(text(xc.as_str(), yc.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xc.as_str(),
+                yc.as_str(),
+                function,
+                budget
+            )?);
             arguments(xa, ya, function, budget)
         }
         (
@@ -681,7 +724,12 @@ pub(super) fn observation(
                 value: yv,
             },
         ) => {
-            decide!(text(xe.as_str(), ye.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xe.as_str(),
+                ye.as_str(),
+                function,
+                budget
+            )?);
             scalar(xv, yv, function, budget, "oracle boolean value")
         }
         (
@@ -696,8 +744,18 @@ pub(super) fn observation(
                 matches: ym,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
-            decide!(text(xc.as_str(), yc.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
+            decide!(compare_text::<SHARED>(
+                xc.as_str(),
+                yc.as_str(),
+                function,
+                budget
+            )?);
             scalar(xm, ym, function, budget, "oracle variant match flag")
         }
         (
@@ -712,7 +770,12 @@ pub(super) fn observation(
                 selected: yv,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
             decide!(scalar(xa, ya, function, budget, "oracle arm ordinal")?);
             scalar(xv, yv, function, budget, "oracle arm selected flag")
         }
@@ -726,7 +789,7 @@ pub(super) fn observation(
                 success: yv,
             },
         ) => {
-            decide!(text(
+            decide!(compare_text::<SHARED>(
                 xs.expression.as_str(),
                 ys.expression.as_str(),
                 function,
@@ -754,7 +817,12 @@ pub(super) fn observation(
                 target: yt,
             },
         ) => {
-            decide!(text(xs.as_str(), ys.as_str(), function, budget)?);
+            decide!(compare_text::<SHARED>(
+                xs.as_str(),
+                ys.as_str(),
+                function,
+                budget
+            )?);
             decide!(scalar(
                 xk,
                 yk,
@@ -982,7 +1050,6 @@ fn before_byte_items(
     Ok(a.len().cmp(&b.len()))
 }
 
-
 fn items(
     a: &[Rc<SkeletonObservation>],
     b: &[Rc<SkeletonObservation>],
@@ -1039,7 +1106,19 @@ fn observations(
         budget,
         "oracle observation prefix identity"
     )?);
-    items(ai, bi, function, budget)
+    // Sorting repeatedly compares the same paths. Stream the complete
+    // observations without buying an identity receiver for each member.
+    for (x, y) in ai.iter().zip(bi) {
+        budget.charge(function, 1, "oracle flat observation member")?;
+        decide!(observation_order::<true>(
+            x.as_ref(),
+            y.as_ref(),
+            function,
+            budget,
+        )?);
+    }
+    budget.charge(function, 1, "oracle flat observation length")?;
+    Ok(ai.len().cmp(&bi.len()))
 }
 
 pub(super) fn path(

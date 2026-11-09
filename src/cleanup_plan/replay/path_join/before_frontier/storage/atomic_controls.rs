@@ -71,5 +71,3 @@ pub(in crate::cleanup_plan::replay::path_join) fn copy(payload: Payload<'_>) -> 
         payload.returned.clone(),
     )
 }
-
-

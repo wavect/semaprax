@@ -158,35 +158,80 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         let supplied = joint_compiled_input.as_deref().unwrap_or(supplied);
         // Acquire the entire pre-observer compiled input before its unchanged history.
         let observer_compiled_input;
-        let supplied = if super::hash(supplied.as_bytes()) == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf" {
+        let supplied = if super::hash(supplied.as_bytes())
+            == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf"
+        {
             assert_eq!(supplied.len(), 157253);
-            assert_eq!(physical_reader::read(&root.join(source), 157253,
-                "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf", 9_753_094).unwrap(), compiled);
+            assert_eq!(
+                physical_reader::read(
+                    &root.join(source),
+                    157253,
+                    "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf",
+                    9_753_094
+                )
+                .unwrap(),
+                compiled
+            );
             observer_compiled_input = physical_reader::read(
-                &root.join("e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"), 156891, "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap();
+                &root.join("e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"),
+                156891,
+                "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11",
+                9_753_094,
+            )
+            .unwrap();
             observer_compiled_input.as_str()
-        } else { supplied };
+        } else {
+            supplied
+        };
         // Acquire the complete reviewed pre-repair compiled input before its unchanged history.
         let repair_compiled_input;
-        let supplied = if super::hash(supplied.as_bytes()) == "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11" {
+        let supplied = if super::hash(supplied.as_bytes())
+            == "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"
+        {
             assert_eq!(supplied.len(), 156891);
-            if super::hash(compiled.as_bytes()) == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf" {
-                assert_eq!(physical_reader::read(&root.join("e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"), 156891,
-                    "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap(), supplied);
+            if super::hash(compiled.as_bytes())
+                == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf"
+            {
+                assert_eq!(
+                    physical_reader::read(
+                        &root.join(
+                            "e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"
+                        ),
+                        156891,
+                        "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11",
+                        9_753_094
+                    )
+                    .unwrap(),
+                    supplied
+                );
             } else {
-            assert_eq!(physical_reader::read(&root.join(source), 156891,
-                "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap(), compiled);
+                assert_eq!(
+                    physical_reader::read(
+                        &root.join(source),
+                        156891,
+                        "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11",
+                        9_753_094
+                    )
+                    .unwrap(),
+                    compiled
+                );
             }
             repair_compiled_input = physical_reader::read(
                 &root.join("e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"),
-                154097, "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3", 9_753_094).unwrap();
+                154097,
+                "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3",
+                9_753_094,
+            )
+            .unwrap();
             repair_compiled_input.as_str()
         } else {
             supplied
         };
         // Acquire complete mainb7 source before the unchanged loader history.
         let mainb7_compiled_input;
-        let supplied = if super::hash(supplied.as_bytes()) == "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3" {
+        let supplied = if super::hash(supplied.as_bytes())
+            == "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"
+        {
             assert_eq!(supplied.len(), 154097);
             let mut restored = supplied.to_owned();
             for &(start, end, after, before) in [
@@ -200,7 +245,10 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
                 restored.replace_range(start..end, before);
             }
             assert_eq!(restored.len(), 152325);
-            assert_eq!(super::hash(restored.as_bytes()), "7e88be48fafcc0a596fef3b48630452f45ae9441ab98cd1733224644e2151be6");
+            assert_eq!(
+                super::hash(restored.as_bytes()),
+                "7e88be48fafcc0a596fef3b48630452f45ae9441ab98cd1733224644e2151be6"
+            );
             mainb7_compiled_input = restored;
             mainb7_compiled_input.as_str()
         } else {
@@ -289,29 +337,48 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
     }
     if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
         let actual = include_str!("../main_e177_overlay_labels_v12/tests.rs");
-        assert_eq!(supplied, actual, "whole actual labels test before any historical source stage");
+        assert_eq!(
+            supplied, actual,
+            "whole actual labels test before any historical source stage"
+        );
         let actual_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let actual_sha = super::hash(actual.as_bytes());
-        assert_eq!(physical_reader::read(&actual_root.join(source),actual.len(),&actual_sha,9_753_094).unwrap(),actual);
-        const OLD_LABELS: &str = include_str!("../../../e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2");
+        assert_eq!(
+            physical_reader::read(
+                &actual_root.join(source),
+                actual.len(),
+                &actual_sha,
+                9_753_094
+            )
+            .unwrap(),
+            actual
+        );
+        const OLD_LABELS: &str = include_str!(
+            "../../../e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"
+        );
         let edits: Value = serde_json::from_str(r####"[{"start":2203,"end":2918,"current":"    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v20\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v19\" {\n        // The shared verifier authenticates and composes the complete current\n        // V19 packet before selecting its exact immutable V18/V12 history.\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v18\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v17\" {\n        super::super::verify_current_v17(&page);\n        return;\n    }\n","before":""}]"####).unwrap();
         assert!(edits.as_array().unwrap().len() <= 512);
-        let mut restored_labels = supplied.to_owned(); let mut next = restored_labels.len();
+        let mut restored_labels = supplied.to_owned();
+        let mut next = restored_labels.len();
         for edit in edits.as_array().unwrap().iter().rev() {
             let lo = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
             let hi = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
             assert!(lo <= hi && hi <= next);
-            assert_eq!(restored_labels.get(lo..hi),Some(edit["current"].as_str().unwrap()));
-            restored_labels.replace_range(lo..hi,edit["before"].as_str().unwrap());
-            assert!(restored_labels.len() <= 9_753_094); next = lo;
+            assert_eq!(
+                restored_labels.get(lo..hi),
+                Some(edit["current"].as_str().unwrap())
+            );
+            restored_labels.replace_range(lo..hi, edit["before"].as_str().unwrap());
+            assert!(restored_labels.len() <= 9_753_094);
+            next = lo;
         }
-        assert_eq!(restored_labels,OLD_LABELS,"ENTIRE retained V16 labels source");
+        assert_eq!(
+            restored_labels, OLD_LABELS,
+            "ENTIRE retained V16 labels source"
+        );
         let supplied = restored_labels.as_str();
 
-        assert_eq!(
-            supplied,
-            OLD_LABELS
-        );
+        assert_eq!(supplied, OLD_LABELS);
         // Acquire the entire physical V16 source before the unchanged V15 inverse.
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let compiled = supplied;
@@ -321,16 +388,24 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         {
             assert_eq!(supplied.len(), 9793);
             assert_eq!(
-                physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
-                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(),
+                physical_reader::read(
+                    &root
+                        .join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"),
+                    9793,
+                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2",
+                    9_753_094
+                )
+                .unwrap(),
                 compiled
             );
             let post = "    if page[\"schema\"] == super::super::SCHEMA_V16 {\n        super::super::verify_current_v16(&page);\n        return;\n    }\n";
             assert_eq!(supplied.matches(post).count(), 1);
             let restored = supplied.replacen(post, "", 1);
             assert_eq!(restored.len(), 9670);
-            assert_eq!(super::hash(restored.as_bytes()),
-                "e1f1e7883e7b9930c68b345102fef5efb7caf4825164d75df5d130ac9b6872d9");
+            assert_eq!(
+                super::hash(restored.as_bytes()),
+                "e1f1e7883e7b9930c68b345102fef5efb7caf4825164d75df5d130ac9b6872d9"
+            );
             v16_labels_input = restored;
             v16_labels_input.as_str()
         } else {
@@ -343,8 +418,15 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         {
             assert_eq!(supplied.len(), 9670);
             assert_eq!(
-                physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
-                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap().as_bytes(),
+                physical_reader::read(
+                    &root
+                        .join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"),
+                    9793,
+                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2",
+                    9_753_094
+                )
+                .unwrap()
+                .as_bytes(),
                 compiled.as_bytes()
             );
             let post = "    if page[\"schema\"] == super::super::SCHEMA_V15 {\n        super::super::verify_current_v15(&page);\n        return;\n    }\n";
@@ -375,10 +457,28 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
             "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6"
         );
         if compiled.len() == 9793 {
-            assert_eq!(physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
-                "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(), compiled);
+            assert_eq!(
+                physical_reader::read(
+                    &root
+                        .join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"),
+                    9793,
+                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2",
+                    9_753_094
+                )
+                .unwrap(),
+                compiled
+            );
         }
-        assert_eq!(physical_reader::read(&actual_root.join(source),actual.len(),&actual_sha,9_753_094).unwrap(),actual);
+        assert_eq!(
+            physical_reader::read(
+                &actual_root.join(source),
+                actual.len(),
+                &actual_sha,
+                9_753_094
+            )
+            .unwrap(),
+            actual
+        );
         return restored;
     }
     let Some(index) = V14_FRONT_SOURCES.iter().position(|path| *path == source) else {
@@ -390,12 +490,17 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
     let front = &packet["v14_source_fronts"];
     let physical = &packet["v16_physical_front"];
     assert_eq!(physical["schema"], "semaprax.v16-physical-source-fronts.v1");
-    assert_eq!(physical["source_kind"], "COMPLETE_PHYSICAL_V16_TO_UNCHANGED_V15_INPUT");
+    assert_eq!(
+        physical["source_kind"],
+        "COMPLETE_PHYSICAL_V16_TO_UNCHANGED_V15_INPUT"
+    );
     assert_eq!(physical["sources"], serde_json::json!(V14_FRONT_SOURCES));
     let physical_rows = physical["records"].as_array().unwrap();
     assert_eq!(physical_rows.len(), V14_FRONT_SOURCES.len());
-    let physical_names: Vec<_> = physical_rows.iter()
-        .map(|row| row["source"].as_str().unwrap()).collect();
+    let physical_names: Vec<_> = physical_rows
+        .iter()
+        .map(|row| row["source"].as_str().unwrap())
+        .collect();
     assert_eq!(physical_names, V14_FRONT_SOURCES);
     let physical_row = &physical_rows[index];
     let physical_length = usize::try_from(physical_row["length"].as_u64().unwrap()).unwrap();
@@ -404,8 +509,16 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
     assert_eq!(supplied.len(), physical_length);
     assert_eq!(super::hash(supplied.as_bytes()), physical_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(physical_reader::read(&root.join(v20_previous_archive(index)), physical_length,
-        physical_sha, 9_753_094).unwrap(), compiled);
+    assert_eq!(
+        physical_reader::read(
+            &root.join(v20_previous_archive(index)),
+            physical_length,
+            physical_sha,
+            9_753_094
+        )
+        .unwrap(),
+        compiled
+    );
     let mut v16_input = supplied.to_owned();
     for edit in physical_row["edits"].as_array().unwrap().iter().rev() {
         let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
@@ -414,13 +527,23 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         assert!(start <= end && end <= v16_input.len());
         assert!(v16_input.is_char_boundary(start) && v16_input.is_char_boundary(end));
         assert_eq!(&v16_input[start..end], edit["after"].as_str().unwrap());
-        let restored_length = v16_input.len().checked_sub(end - start).unwrap()
-            .checked_add(before.len()).unwrap();
+        let restored_length = v16_input
+            .len()
+            .checked_sub(end - start)
+            .unwrap()
+            .checked_add(before.len())
+            .unwrap();
         assert!(restored_length <= 9_753_094);
         v16_input.replace_range(start..end, before);
     }
-    assert_eq!(v16_input.len() as u64, physical_row["target"]["length"].as_u64().unwrap());
-    assert_eq!(super::hash(v16_input.as_bytes()), physical_row["target"]["sha256"].as_str().unwrap());
+    assert_eq!(
+        v16_input.len() as u64,
+        physical_row["target"]["length"].as_u64().unwrap()
+    );
+    assert_eq!(
+        super::hash(v16_input.as_bytes()),
+        physical_row["target"]["sha256"].as_str().unwrap()
+    );
     // Retain the complete V16-to-V15 replay above. The current V14 front
     // independently authenticates the physical source, whereas older packets
     // acquired the unchanged V15 input. Select only the exact recorded stage.
@@ -487,8 +610,16 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         super::hash(restored.as_bytes()),
         row["target"]["sha256"].as_str().unwrap()
     );
-    assert_eq!(physical_reader::read(&root.join(v20_previous_archive(index)), physical_length,
-        physical_sha, 9_753_094).unwrap(), compiled);
+    assert_eq!(
+        physical_reader::read(
+            &root.join(v20_previous_archive(index)),
+            physical_length,
+            physical_sha,
+            9_753_094
+        )
+        .unwrap(),
+        compiled
+    );
     restored
 }
 
@@ -496,15 +627,35 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
 fn joint_compiled_source_before(supplied: &str) -> Option<String> {
     const SOURCE: &str = "src/source_reflows_merge/main_e177_overlay_compiled.rs";
     const CURRENT: &str = include_str!("../main_e177_overlay_compiled.rs");
-    const BEFORE: &str = include_str!("../../../e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d");
-    if supplied != CURRENT { return None; }
+    const BEFORE: &str =
+        include_str!("../../../e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d");
+    if supplied != CURRENT {
+        return None;
+    }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let current_sha = super::hash(CURRENT.as_bytes());
     let archive = format!("e/{current_sha}");
     let authenticate = || {
-        assert_eq!(physical_reader::read(&root.join(SOURCE), CURRENT.len(), &current_sha, 9_753_094).unwrap(), CURRENT);
-        assert_eq!(physical_reader::read(&root.join(&archive), CURRENT.len(), &current_sha, 9_753_094).unwrap(), CURRENT);
-        assert_eq!(physical_reader::read(&root.join("e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d"), BEFORE.len(), "783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d", 9_753_094).unwrap(), BEFORE);
+        assert_eq!(
+            physical_reader::read(&root.join(SOURCE), CURRENT.len(), &current_sha, 9_753_094)
+                .unwrap(),
+            CURRENT
+        );
+        assert_eq!(
+            physical_reader::read(&root.join(&archive), CURRENT.len(), &current_sha, 9_753_094)
+                .unwrap(),
+            CURRENT
+        );
+        assert_eq!(
+            physical_reader::read(
+                &root.join("e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d"),
+                BEFORE.len(),
+                "783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d",
+                9_753_094
+            )
+            .unwrap(),
+            BEFORE
+        );
     };
     authenticate();
     const INVERSE: &str = r##########"[[115,132,"#[rustfmt::skip]\n",""],[4384,36231,"const CURRENT_CANONICAL_WRITER: &str = r#########\"fn canonical(value: &Value) -> Vec<u8> {\n    fn quoted(value: &str, out: &mut String) {\n        let bytes = value.as_bytes();\n        let mut index = 0;\n        while index < bytes.len() {\n            let byte = bytes[index];\n            if !matches!(byte, 0x20..=0x7e) || matches!(byte, b'\"' | b'\\\\') {\n                out.push_str(&serde_json::to_string(value).unwrap());\n                return;\n            }\n            index += 1;\n        }\n        out.push('\"');\n        out.push_str(value);\n        out.push('\"');\n    }\n    fn write(v: &Value, out: &mut String) {\n        match v {\n            Value::Object(map) => {\n                out.push('{');\n                let mut emit = |index: usize, key: &str, value: &Value| {\n                    if index != 0 {\n                        out.push(',');\n                    }\n                    quoted(key, out);\n                    out.push(':');\n                    write(value, out);\n                };\n                if map.keys().is_sorted() {\n                    for (index, (key, value)) in map.iter().enumerate() {\n                        emit(index, key, value);\n                    }\n                } else if map.len() <= 16 {\n                    // Borrow every field. Large/unknown dictionaries retain the full fallback.\n                    let mut fields = [None; 16];\n                    for (slot, entry) in fields.iter_mut().zip(map.iter()) {\n                        *slot = Some(entry);\n                    }\n                    let fields = &mut fields[..map.len()];\n                    fields.sort_unstable_by_key(|entry| entry.unwrap().0);\n                    for (index, entry) in fields.iter().enumerate() {\n                        let (key, value) = entry.unwrap();\n                        emit(index, key, value);\n                    }\n                } else {\n                    for (index, (key, value)) in\n                        map.iter().collect::<BTreeMap<_, _>>().iter().enumerate()\n                    {\n                        emit(index, key, value);\n                    }\n                }\n                out.push('}');\n            }\n            Value::Array(array) => {\n                out.push('[');\n                for (index, value) in array.iter().enumerate() {\n                    if index != 0 {\n                        out.push(',');\n                    }\n                    write(value, out);\n                }\n                out.push(']');\n            }\n            Value::String(value) => quoted(value, out),\n            Value::Null => out.push_str(\"null\"),\n            Value::Bool(value) => out.push_str(if *value { \"true\" } else { \"false\" }),\n            _ => out.push_str(&serde_json::to_string(v).unwrap()),\n        }\n    }\n    let mut result = String::new();\n    write(value, &mut result);\n    result.push('\\n');\n    result.into_bytes()\n}\"#########;\n    const PREVIOUS_CANONICAL_WRITER: &str = r#########\"fn canonical(value: &Value) -> Vec<u8> {\n    fn write(v: &Value, out: &mut String) {\n        match v {\n            Value::Object(map) => {\n                out.push('{');\n                for (i, (key, value)) in map.iter().collect::<BTreeMap<_, _>>().iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    out.push_str(&serde_json::to_string(key).unwrap());\n                    out.push(':');\n                    write(value, out);\n                }\n                out.push('}');\n            }\n            Value::Array(array) => {\n                out.push('[');\n                for (i, value) in array.iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    write(value, out);\n                }\n                out.push(']');\n            }\n            _ => out.push_str(&serde_json::to_string(v).unwrap()),\n        }\n    }\n    let mut result = String::new();\n    write(value, &mut result);\n    result.push('\\n');\n    result.into_bytes()\n}\"#########;\n    const CURRENT_CANONICAL_WRITER_TESTS: &str = r#########\"\n    fn full_before_canonical_serializer(value: &Value) -> Vec<u8> {\n        fn write(v: &Value, out: &mut String) {\n            match v {\n                Value::Object(map) => {\n                    out.push('{');\n                    for (i, (key, value)) in\n                        map.iter().collect::<BTreeMap<_, _>>().iter().enumerate()\n                    {\n                        if i != 0 {\n                            out.push(',');\n                        }\n                        out.push_str(&serde_json::to_string(key).unwrap());\n                        out.push(':');\n                        write(value, out);\n                    }\n                    out.push('}');\n                }\n                Value::Array(array) => {\n                    out.push('[');\n                    for (i, value) in array.iter().enumerate() {\n                        if i != 0 {\n                            out.push(',');\n                        }\n                        write(value, out);\n                    }\n                    out.push(']');\n                }\n                _ => out.push_str(&serde_json::to_string(v).unwrap()),\n            }\n        }\n        let mut result = String::new();\n        write(value, &mut result);\n        result.push('\\n');\n        result.into_bytes()\n    }\n\n    #[test]\n    fn canonical_writer_matches_full_before_for_all_json_types_and_unknown_fields() {\n        let special = serde_json::json!({\n            \"all_ascii\": (0u8..=127).map(char::from).collect::<String>(),\n            \"unicode\": \"é😀\\u{2028}\",\n            \"escaped\": \"\\0\\n\\r\\t\\\"\\\\\",\n            \"numbers\": [-0.0, 1.25e90, i64::MIN as f64],\n            \"booleans\": [true, false],\n            \"nothing\": null,\n        });\n        for width in 0..=128 {\n            for reverse in [false, true] {\n                let mut fields = serde_json::Map::new();\n                for offset in 0..width {\n                    let index = if reverse { width - offset - 1 } else { offset };\n                    fields.insert(format!(\"unknown-{index:04}\"), special.clone());\n                }\n                let value = Value::Object(fields);\n                let actual = canonical(&value);\n                assert_eq!(actual, full_before_canonical_serializer(&value));\n                assert_eq!(serde_json::from_slice::<Value>(&actual).unwrap(), value);\n            }\n        }\n        let mut exotic_keys = serde_json::Map::new();\n        for key in [\"\", \"\\0\\n\\r\\t\\\"\\\\\", \"é😀\\u{2028}\"] {\n            exotic_keys.insert(key.to_owned(), special.clone());\n        }\n        let exotic_keys = Value::Object(exotic_keys);\n        assert_eq!(\n            canonical(&exotic_keys),\n            full_before_canonical_serializer(&exotic_keys)\n        );\n        assert_eq!(\n            serde_json::from_slice::<Value>(&canonical(&exotic_keys)).unwrap(),\n            exotic_keys\n        );\n        let mut nested = special;\n        for _ in 0..64 {\n            nested = serde_json::json!([nested]);\n        }\n        assert_eq!(\n            canonical(&nested),\n            full_before_canonical_serializer(&nested)\n        );\n    }\n    #[test]\n    fn canonical_writer_preserves_every_field_of_complete_current_metadata_files() {\n        let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n        for path in [\n            \"docs/evidence/finite-source-overlay-v2-20261018/page.json\",\n            \"docs/evidence/finite-source-overlay-v2-20261018/policy.json\",\n            \"docs/evidence/a3-e47-final-custody-20261016/hir.json\",\n            \"docs/evidence/a3-e47-final-custody-20261016/projection.json\",\n        ] {\n            let raw = std::fs::read(root.join(path)).unwrap();\n            let value: Value = serde_json::from_slice(&raw).unwrap();\n            let actual = canonical(&value);\n            assert_eq!(actual, full_before_canonical_serializer(&value), \"{path}\");\n            assert_eq!(\n                serde_json::from_slice::<Value>(&actual).unwrap(),\n                value,\n                \"{path}\"\n            );\n        }\n    }\n\"#########;\n    fn restore_previous_writer(root: &str) -> String {\n        // Cover every new serializer and regression byte before every original inverse.\n        assert_eq!(root.matches(CURRENT_CANONICAL_WRITER).count(), 1);\n        assert_eq!(root.matches(CURRENT_CANONICAL_WRITER_TESTS).count(), 1);\n        let previous = root.replacen(CURRENT_CANONICAL_WRITER, PREVIOUS_CANONICAL_WRITER, 1);\n        previous.replacen(CURRENT_CANONICAL_WRITER_TESTS, \"\", 1)\n    }\n    #[test]\n    fn canonical_writer_source_inverse_keeps_new_body_and_test_mutation_refusals() {\n        assert_eq!(restore_whole_before(ROOT, CHILD), before());\n        for mutated in [\n            ROOT.replacen(\n                CURRENT_CANONICAL_WRITER,\n                &(CURRENT_CANONICAL_WRITER.to_owned() + \" \"),\n                1,\n            ),\n            ROOT.replacen(\n                CURRENT_CANONICAL_WRITER_TESTS,\n                &(CURRENT_CANONICAL_WRITER_TESTS.to_owned() + \" \"),\n                1,\n            ),\n            ROOT.replacen(CURRENT_CANONICAL_WRITER, \"\", 1),\n            ROOT.replacen(CURRENT_CANONICAL_WRITER_TESTS, \"\", 1),\n            ROOT.to_owned() + CURRENT_CANONICAL_WRITER,\n            ROOT.to_owned() + CURRENT_CANONICAL_WRITER_TESTS,\n        ] {\n            assert!(std::panic::catch_unwind(|| restore_whole_before(&mutated, CHILD)).is_err());\n        }\n    }\n    fn authenticate_next_finite_scope() { let root=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")); let admitted:Vec<String>=serde_json::from_str(ROOT[constant(ROOT,\"ADDITIONS\")].split_once(\"= &\").unwrap().1.strip_suffix(';').unwrap()).unwrap(); for source in [\"src/hir/validation/scope_checkpoint/merge/partial_retain.rs\",\"src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\",\"src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\",\"src/cleanup_plan/replay/factored/paired/visited_transfer.rs\"] { assert_eq!(admitted.iter().filter(|path|path.as_str()==source).count(),1,\"new current finite audit source admitted exactly once\"); let raw=super::compiled(source).expect(\"complete current finite child compiler registration\"); let sha=format!(\"{:x}\",crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))); assert_eq!(super::main48_historical_reader::read(&root.join(source),raw.len(),&sha,2_097_152).unwrap(),raw); assert_eq!(super::main48_historical_reader::read(&root.join(format!(\"e/{sha}\")),raw.len(),&sha,2_097_152).unwrap(),raw); } }\n    fn restore_owned_literal_scope(stage:&str,actual:&str)->String { const OWNED:&[&str]=&[\"src/cleanup_plan/replay/path_join/before_singleton.rs\",\"src/cleanup_plan/replay/transition.rs\",\"src/workspace_graph/initial_report/build.rs\",\"docs/AGENT-SKILL-BUNDLE-V1.json\",\"src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs\",\"src/cleanup_plan/replay/path_join/main3d81_before.rs\",\"src/cleanup_plan/replay/path_join/field_local/mod.rs\",\"src/cleanup_plan/replay/path_join/field_local/frontier.rs\",\"src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\",\"src/cleanup_plan/replay/path_join/field_local/tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\",\"src/cleanup_plan/replay_tests/factored.rs\",\"src/cleanup_plan/replay/factored/moderate_tests.rs\",\"src/cleanup_plan/replay/factored/paired.rs\",\"src/cleanup_plan/replay/factored/paired/tests.rs\",\"src/workspace_graph/tests.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\",\"src/cleanup_plan/replay/workspace_oracle.rs\",\"src/cleanup_plan/replay/branch_clone/inline_tests.rs\",\"src/cleanup_plan/replay/branch_clone/production_capacity.rs\",\"src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\",\"src/workspace_graph/shape_identity/source_controls.rs\",\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs\",\"src/workspace_graph/expected_projection/borrowed_imports/tests.rs\",\"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\",\"src/hir/inspection/paid_nul.rs\",\"src/hir/inspection/paid_nul/pending.rs\",\"src/hir/inspection/paid_nul/tests.rs\",\"src/hir/inspection/paid_nul/reuse_before.rs\",\"src/hir/inspection/paid_nul/reuse_before/pending.rs\",\"src/hir/inspection/paid_nul/type_scratch.rs\",\"src/cleanup_plan/replay/continuation_storage.rs\",\"src/cleanup_plan/replay/continuation_storage/tests.rs\",\"src/cleanup_plan/replay/continuation_storage/reached.rs\",\"src/cleanup_plan/replay/continuation_storage/reached_before.rs\",\"src/cleanup_plan/replay/continuation_storage/reached_tests.rs\",\"src/cleanup_plan/replay/path_join/fused_before.rs\",\"src/cleanup_plan/replay/path_join/fused_before_frontier.rs\",\"src/cleanup_plan/replay/path_join/fused_tests.rs\",\"src/cleanup_plan/replay/path_join/compact_failure_before.rs\",\"src/cleanup_plan/replay/path_join/compact_failure_tests.rs\",\"src/cleanup_plan/replay/path_join/contains_before.rs\",\"src/cleanup_plan/replay/path_join/contains_tests.rs\",\"src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs\",\"src/source_reflows_merge/main_e177_overlay_digests_v13.rs\",\"src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs\",\"src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs\",\"src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\",\"tests/wasm/scalar_browser_ci_contract/current_profiles573.rs\",\"src/cleanup_plan/replay/expression_facts/capacity/before_types.rs\",\"src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\",\"src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs\",\"src/source_verify/constructor_tests/corpus/operator_refusals.rs\",\"src/cleanup_plan/replay/path_join/direct_one_before.rs\",\"src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs\",\"src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs\",\"src/cleanup_plan/replay/path_join/direct_one_tests.rs\",\"src/cleanup_plan/replay/skeleton_work/query_proof.rs\",\"src/cleanup_plan/replay/skeleton_work/query_proof/before.rs\",\"src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs\",\"src/bounded_output/exclusive_debits/path_census.rs\",\"src/bounded_output/request_reservation.rs\",\"src/source_reflows_merge/main_e177_overlay_lookup.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs\",\"src/cleanup_plan/replay/factored/hir_memo_release_tests.rs\",\"src/cleanup_plan/replay/path_join/shared_insertions_before.rs\",\"src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs\",\"src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs\",\"src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs\",\"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\"src/cleanup_plan/replay/plan_prefix.rs\",\"src/cleanup_plan/replay/plan_prefix/before.rs\",\"src/cleanup_plan/replay/plan_prefix/tests.rs\",\"src/cleanup_plan/replay/skeleton_work/plan_prefix.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs\",\"src/cleanup_plan/replay/path_join/held_edge_before.rs\",\"src/cleanup_plan/replay/path_join/held_edge_tests.rs\",\"src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs\",\"src/cleanup_plan/replay/branch_clone/short_plan.rs\",\"src/cleanup_plan/replay/nested_shape.rs\",\"src/cleanup_plan/replay/nested_shape/scalar_tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs\",\"src/cleanup_plan/replay/selected_owner/ordinary.rs\",\"src/cleanup_plan/replay/selected_owner/ordinary/tests.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs\",\"src/cleanup_plan/replay/path_join/selected/receiving.rs\",\"src/cleanup_plan/replay/path_join/selected/tests/mod.rs\",\"src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs\",\"src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs\",\"src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs\",\"src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs\",\"src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs\",\"src/cleanup_plan/replay/path_join/selected/boxed_flow.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier_tests.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs\",\"src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs\",\"src/hir/validation/scope_checkpoint/marks/before.rs\",\"src/hir/validation/scope_checkpoint/marks/tests.rs\",\"src/source_reflows_merge/main_e177_overlay_pins_v11.rs\",\"src/cleanup_plan/replay/factored/early_release.rs\",\"src/cleanup_plan/replay/factored/early_release/before.rs\",\"src/hir/validation/continuation_frame.rs\",\"src/hir/validation/frame_reuse.rs\",\"src/hir/validation/frame_reuse/before.rs\",\"src/hir/validation/frame_reuse/before_0.rs\",\"src/hir/validation/frame_reuse/before_1.rs\",\"src/hir/validation/frame_reuse/before_10.rs\",\"src/hir/validation/frame_reuse/before_11.rs\",\"src/hir/validation/frame_reuse/before_12.rs\",\"src/hir/validation/frame_reuse/before_13.rs\",\"src/hir/validation/frame_reuse/before_14.rs\",\"src/hir/validation/frame_reuse/before_15.rs\",\"src/hir/validation/frame_reuse/before_16.rs\",\"src/hir/validation/frame_reuse/before_17.rs\",\"src/hir/validation/frame_reuse/before_2.rs\",\"src/hir/validation/frame_reuse/before_3.rs\",\"src/hir/validation/frame_reuse/before_4.rs\",\"src/hir/validation/frame_reuse/before_5.rs\",\"src/hir/validation/frame_reuse/before_6.rs\",\"src/hir/validation/frame_reuse/before_7.rs\",\"src/hir/validation/frame_reuse/before_8.rs\",\"src/hir/validation/frame_reuse/before_9.rs\",\"src/hir/validation/frame_reuse/contracts.rs\",\"src/hir/validation/frame_reuse/contracts_before.rs\",\"src/hir/validation/frame_reuse/custody.rs\",\"src/hir/validation/frame_reuse/function.rs\",\"src/hir/validation/frame_reuse/function_before.rs\",\"src/hir/validation/frame_reuse/source_inverse.rs\",\"src/hir/validation/frame_reuse/tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs\",\"src/cleanup_plan/replay/owned_suffix.rs\",\"src/cleanup_plan/replay/final_output/current_observation_tests.rs\",\"src/cleanup_plan/replay/final_output/tests.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs\",\"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs\",\"src/cleanup_plan/replay/final_output.rs\",\"src/cleanup_plan/replay/final_output/compact.rs\",\"src/cleanup_plan/replay/final_output/tests/compact_results.rs\",\"src/cleanup_plan/replay/path_join/boxed_states.rs\",\"src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs\",\"src/cleanup_plan/replay/sequence_vector.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs\",\"tests/source_locked_contracts.rs\",\"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\",\"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\",\"src/cleanup_plan/replay/physical_budget/authentication.rs\",\"src/source_reflows_merge/final_ready_inputs/projection_publication.rs\",\"src/cleanup_plan/replay/factored/strategy/compact_receiving.rs\",\"src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs\",\"src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs\",\"src/cli/help/authoring/contract_owners.rs\",\"src/cli/help/authoring/contract_owners/tests.rs\",\"src/source_reflows_merge/boxed_inputs.rs\",\"src/workspace_graph/expected_projection/shared_local_callees.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/invoice.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/walk.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/before.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/content.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/producer_admission.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/producer_view.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/producer_view_tests.rs\",\"src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs\",\"src/workspace_graph/expected_projection/call_carriers_joint.rs\",\"src/workspace_graph/expected_projection/call_carriers_directory/reused.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/reused.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs\",\"src/source_reflows_merge/main_e177_overlay_labels_v12.rs\",\"src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs\",\"src/workspace_graph/expected_projection/call_carriers_directory/modular.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/paired.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/record_before.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs\",\"src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs\",\"src/workspace_graph/expected_projection/private_layout/names/interface_census.rs\",\"src/workspace_graph/expected_projection/private_layout/names/interface_before.rs\",\"src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs\",\"src/call_index/validation_before.rs\",\"src/call_index/validation_receipt_tests.rs\",\"src/codegen/native_owned_data_provider/emit_provider_before.rs\",\"src/codegen/native_owned_data_provider/validation_reuse_tests.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/mod.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/storage.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/tests.rs\",\"src/cleanup_plan/replay/path_join/before_frontier/transition.rs\",\"src/cleanup_plan/replay/path_join/boxed_flow.rs\",\"src/cleanup_plan/replay/path_join/frontier.rs\",\"src/cleanup_plan/replay/path_join/frontier_tests.rs\",\"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\",\"src/cleanup_plan/replay/path_join/frontier_tests/whole.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs\",\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs\",\"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs\",\"src/test_allocation_observer/phase_peaks.rs\",\"src/loan_plan/paid_plan/before_reachability_release.rs\",\"src/loan_plan/paid_plan/reachability_release_tests.rs\",\"src/loan_plan/funded_flat/before_reachability_release.rs\",\"src/workspace_graph/loan_retention/overlap_tests.rs\"]; let mut restored=stage.to_owned(); for name in [\"REPLACEMENTS\",\"ADDITIONS\"] { let parse=|text:&str| { let decl=&text[constant(text,name)]; serde_json::from_str::<Vec<String>>(decl.split_once(\"= &\").unwrap().1.strip_suffix(';').unwrap()).unwrap() }; let current=parse(actual); let prior=parse(stage); assert_eq!(current.iter().collect::<std::collections::BTreeSet<_>>().len(),current.len()); assert_eq!(prior.iter().collect::<std::collections::BTreeSet<_>>().len(),prior.len()); assert!(prior.iter().all(|source|current.contains(source)),\"historical scope remains a complete current literal prefix/subsequence\"); let admitted:Vec<_>=current.iter().filter(|source|prior.contains(source)||OWNED.contains(&source.as_str())).cloned().collect(); let complement:Vec<_>=current.iter().filter(|source|!admitted.contains(source)).cloned().collect(); if !complement.is_empty() { let packet=crate::source_reflows_merge::main_e177_final_inputs::packet(); for source in &complement { let rows=packet[\"rows\"].as_array().unwrap(); assert_eq!(rows.iter().filter(|row|row[\"source\"]==source.as_str()).count(),1,\"unrelated current scope needs one ordinary admitted owner\"); let row=rows.iter().find(|row|row[\"source\"]==source.as_str()).unwrap(); let _=crate::source_reflows_merge::main_e177_final_inputs::actual(row); } } let mut kept=admitted.iter(); let mut extra=complement.iter(); let complete:Vec<_>=current.iter().map(|source|if admitted.contains(source){kept.next().unwrap()}else{extra.next().unwrap()}).collect(); assert!(kept.next().is_none()&&extra.next().is_none()); assert_eq!(complete,current.iter().collect::<Vec<_>>(),\"ENTIRE actual registry order, duplicates and unknown entries accounted before history\"); assert!(prior.iter().all(|source|admitted.contains(source))); assert_eq!(admitted.iter().filter(|source|prior.contains(source)).collect::<Vec<_>>(),prior.iter().collect::<Vec<_>>(),\"all earlier entries and order retained\"); let replacement=format!(\"const {name}: &[&str] = &{};\",serde_json::to_string(&admitted).unwrap()); let span=constant(&restored,name); restored.replace_range(span,&replacement); } assert!(restored.len()<=2_097_152); restored }\n    fn restore_guard_lookup_scope(stage: &str) -> String { const ACTUAL: &str = include_str!(\"main_e177_overlay_lookup.rs\"); let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")); let actual_sha = format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes()))); let authenticate = || { assert_eq!(super::main48_historical_reader::read(&root.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"),ACTUAL.len(),&actual_sha,2_097_152).unwrap(),ACTUAL); assert_eq!(super::main48_historical_reader::read(&root.join(format!(\"e/{actual_sha}\")),ACTUAL.len(),&actual_sha,2_097_152).unwrap(),ACTUAL); for source in [\"src/workspace_graph/expected_projection/borrowed_imports/tests.rs\",\"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\"] { let compiled = super::compiled(source).expect(\"closed admitted main48 lookup owner\"); let sha = format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))); assert_eq!(super::main48_historical_reader::read(&root.join(source),compiled.len(),&sha,2_097_152).unwrap(),compiled); assert_eq!(super::main48_historical_reader::read(&root.join(format!(\"e/{sha}\")),compiled.len(),&sha,2_097_152).unwrap(),compiled); }}; authenticate(); let original_lookup = lookup(stage); let mut restored_lookup = original_lookup.to_owned(); for arm in [\"        \\\"src/workspace_graph/expected_projection/borrowed_imports/tests.rs\\\" => Some(include_str!(\\\"../../src/workspace_graph/expected_projection/borrowed_imports/tests.rs\\\")),\\n\",\"        \\\"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\\\" => Some(include_str!(\\\"../../src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\\\")),\\n\"] { assert_eq!(ACTUAL.matches(arm).count(),1,\"one actual admitted arm\"); assert_eq!(restored_lookup.matches(arm).count(),0,\"exact historical arm omission\"); let after = &ACTUAL[ACTUAL.find(arm).unwrap()+arm.len()..]; let anchor = after.split_inclusive('\\n').find(|line| line.trim_start().starts_with('\"') && line.contains(\" => \") && restored_lookup.matches(*line).count()==1).unwrap_or(\"        _ => None,\\n\"); assert_eq!(restored_lookup.matches(anchor).count(),1,\"unique next retained lookup arm\"); let at = restored_lookup.find(anchor).unwrap(); restored_lookup.insert_str(at,arm); } let mut inverse = restored_lookup.clone(); for arm in [\"        \\\"src/workspace_graph/expected_projection/borrowed_imports/tests.rs\\\" => Some(include_str!(\\\"../../src/workspace_graph/expected_projection/borrowed_imports/tests.rs\\\")),\\n\",\"        \\\"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\\\" => Some(include_str!(\\\"../../src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\\\")),\\n\"] { assert_eq!(inverse.matches(arm).count(),1); inverse = inverse.replacen(arm,\"\",1); } assert_eq!(inverse,original_lookup,\"ENTIRE historical lookup inverse with both old removals retained\"); assert_eq!(stage.matches(original_lookup).count(),1); let result = stage.replacen(original_lookup,&restored_lookup,1); assert_eq!(result.replacen(&restored_lookup,original_lookup,1),stage,\"ENTIRE historical child forward equality\"); authenticate(); result } ",""],[36512,38283,"        let custody_root=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")); let acquire_writer=|| { for (path,text) in [(\"src/source_reflows_merge/main_e177_overlay_v2.rs\",ROOT),(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\",CHILD)] { let sha=format!(\"{:x}\",crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))); assert_eq!(super::main48_historical_reader::read(&custody_root.join(path),text.len(),&sha,2_097_152).unwrap(),text); assert_eq!(super::main48_historical_reader::read(&custody_root.join(format!(\"e/{sha}\")),text.len(),&sha,2_097_152).unwrap(),text); } assert_eq!(super::main48_historical_reader::read(&custody_root.join(\"e/4aea927864195155e3214b81f14771ce6307e0fc73c90687654e650597d7f1f5\"),127257,\"4aea927864195155e3214b81f14771ce6307e0fc73c90687654e650597d7f1f5\",2_097_152).unwrap(),include_str!(\"../../e/4aea927864195155e3214b81f14771ce6307e0fc73c90687654e650597d7f1f5\")); }; acquire_writer();\n        let serializer_before=restore_previous_writer(root); assert_eq!(serializer_before.matches(PREVIOUS_CANONICAL_WRITER).count(),1); let serializer_before=serializer_before.replacen(PREVIOUS_CANONICAL_WRITER,\"use fragments_v3::canonical;\",1); let anchor=\"\\n    #[test]\\n    fn logical_current_view_precedes_stage_normalization_and_preserves_foreign_refusals() {\"; assert_eq!(serializer_before.matches(anchor).count(),1); assert_eq!(serializer_before.matches(\"use fragments_v3::canonical;\").count(),1); let serializer_forward=serializer_before.replacen(\"use fragments_v3::canonical;\",CURRENT_CANONICAL_WRITER,1).replacen(anchor,&(CURRENT_CANONICAL_WRITER_TESTS.to_owned()+anchor),1); assert_eq!(serializer_forward,root,\"ENTIRE current registry, bindings, fields and unknown bytes survive the exact incoming writer inverse\"); acquire_writer();\n",""],[38416,38511,"restored_lookup_scope = restore_guard_lookup_scope(&rebound); let child = restored_lookup_scope","child = rebound"],[38875,38996,"authenticate_next_finite_scope(); let owned_scope = restore_owned_literal_scope(&prior_root,ROOT); let root = owned_scope","let root = prior_root"],[79430,79472,"        authenticate_next_finite_scope();\n",""],[151275,151281," \n    ","\n\n    "],[151288,151293,"     ","\n    "],[151370,151379,"         ","\n        "],[151435,151444,"         ","\n        "],[151458,151471,"             ","\n            "],[151491,151504,"             ","\n            "],[151554,151567,"             ","\n            "],[151628,151637,"         ","\n        "],[151640,151653,"             ","\n            "],[151678,151691,"             ","\n            "],[151773,151792,"         }         ","\n        }\n        "],[151842,151851,"         ","\n        "],[151902,151911,"         ","\n        "],[151924,151937,"             ","\n            "],[151956,151969,"             ","\n            "],[152045,152058,"             ","\n            "],[152099,152108,"         ","\n        "],[152111,152124,"             ","\n            "],[152147,152160,"             ","\n            "],[152242,152263,"         }     }     ","\n        }\n    }\n    "],[153132,153132,"","\n"],[153299,154069,"\nmod main48_historical_reader;\n#[cfg(test)] #[rustfmt::skip] mod census_split { use sha2::{Digest, Sha256}; const ROOT: &str = include_str!(\"main_e177_overlay_compiled.rs\"); const LOOKUP: &str = include_str!(\"main_e177_overlay_lookup.rs\"); const BEFORE: &str = include_str!(\"main_e177_overlay_compiled.before.rs.txt\"); const PYTHON: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py\" )); const CODECS: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py\" )); const PYTHON_BEFORE: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.before.py.txt\" )); "," mod main48_historical_reader; #[cfg(test)] mod census_split { use sha2::{Digest, Sha256}; const ROOT: &str = include_str!(\"main_e177_overlay_compiled.rs\"); const LOOKUP: &str = include_str!(\"main_e177_overlay_lookup.rs\"); const BEFORE: &str = include_str!(\"main_e177_overlay_compiled.before.rs.txt\"); const PYTHON: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py\" )); const CODECS: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py\" )); const PYTHON_BEFORE: &str = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.before.py.txt\" ));\n"],[154207,154208," ","\n"],[154404,154405," ","\n"],[155529,155534,"     ","\n    "],[156392,156401,"         ","\n        "],[156465,156505,"         \"src/cleanup_plan.rs\",         ","\n        \"src/cleanup_plan.rs\",\n        "],[156536,156545,"         ","\n        "],[156615,156624,"         ","\n        "],[156701,156710,"         ","\n        "],[156756,156765,"         ","\n        "],[156803,156812,"         ","\n        "],[156859,156868,"         ","\n        "],[156913,156922,"         ","\n        "],[156973,156982,"         ","\n        "],[157034,157043,"         ","\n        "],[157104,157113,"         ","\n        "],[157164,157173,"         ","\n        "],[157217,157218," ","\n"],[157220,157225,"     ","\n    "],[157620,157625,"     ","\n    "],[157957,157962,"     ","\n    "],[158469,158474,"     ","\n    "],[159309,159314,"     ","\n    "],[160185,160190,"     ","\n    "],[160747,160752,"     ","\n    "],[161341,161346,"     ","\n    "],[161591,161596,"     ","\n    "],[163123,163132,"         ","\n        "],[163303,163312,"         ","\n        "],[163400,163409,"         ","\n        "],[163966,163975,"         ","\n        "],[164044,164053,"         ","\n        "],[164466,164475,"         ","\n        "],[164527,164536,"         ","\n        "],[164617,164626,"         ","\n        "],[164685,164694,"         ","\n        "],[164815,164824,"         ","\n        "],[165093,165098,"     ","\n    "],[165100,165105,"     ","\n    "],[165139,165148,"         ","\n        "],[165156,165169,"             ","\n            "],[165176,165189,"             ","\n            "],[165250,165265,"         )     ","\n        )\n    "],[165266,165271,"     ","\n    "],[165366,173014," assert_eq!(parent,ROOT);assert_eq!(lookup,LOOKUP);let r541=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));let actual541=super::main48_historical_reader::read(&r541.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"),98975,\"4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\",2_097_152).unwrap();assert_eq!(actual541,LOOKUP);assert_eq!(super::main48_historical_reader::read(&r541.join(\"e/4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\"),98975,\"4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\",2_097_152).unwrap(),actual541);let parent541=super::main48_historical_reader::read(&r541.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap();assert_eq!(parent541,ROOT);let mut prior541=lookup.to_owned();for arm in [\"        \\\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs\\\")),\\n\",\"        \\\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs\\\")),\\n\"] {assert_eq!(prior541.matches(arm).count(),1);prior541=prior541.replacen(arm,\"\",1);}const BEFORE541:&str=include_str!(\"../../e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\");assert_eq!(prior541,BEFORE541);assert_eq!(super::main48_historical_reader::read(&r541.join(\"e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\"),98521,\"528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\",2_097_152).unwrap(),BEFORE541);let result541=(|| {const LOOKUP:&str=include_str!(\"../../e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\");let lookup=prior541.as_str(); assert_eq!(parent,ROOT);assert_eq!(lookup,LOOKUP);let r539=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));let actual539=super::main48_historical_reader::read(&r539.join(\"e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\"),98521,\"528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\",2_097_152).unwrap();assert_eq!(actual539,LOOKUP);assert_eq!(super::main48_historical_reader::read(&r539.join(\"e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\"),98521,\"528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\",2_097_152).unwrap(),actual539);let parent539=super::main48_historical_reader::read(&r539.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap();assert_eq!(parent539,ROOT);let mut prior539=lookup.to_owned();for arm in [\"        \\\"src/source_reflows_merge/main_e177_packet_reacquire.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_packet_reacquire.rs\\\")),\\n\",\"        \\\"src/source_reflows_merge/main_e177_reacquired_context.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_reacquired_context.rs\\\")),\\n\"] {assert_eq!(prior539.matches(arm).count(),1);prior539=prior539.replacen(arm,\"\",1);}const BEFORE539:&str=include_str!(\"../../e/61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\");assert_eq!(prior539,BEFORE539);assert_eq!(super::main48_historical_reader::read(&r539.join(\"e/61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\"),98213,\"61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\",2_097_152).unwrap(),BEFORE539);let result539=(|| {const LOOKUP:&str=include_str!(\"../../e/61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\");let lookup=prior539.as_str(); assert_eq!(parent,ROOT);assert_eq!(lookup,LOOKUP);let r1056=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));let actual1056=super::main48_historical_reader::read(&r1056.join(\"e/61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\"),98213,\"61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\",2_097_152).unwrap();assert_eq!(actual1056,LOOKUP);let parent1056=super::main48_historical_reader::read(&r1056.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap();assert_eq!(parent1056,ROOT);let mut prior1056=lookup.to_owned();for arm in [\"        \\\"src/project/reporting.rs\\\" => Some(include_str!(\\\"../../src/project/reporting.rs\\\")),\\n\",\"        \\\"src/workspace_report/site.rs\\\" => Some(include_str!(\\\"../../src/workspace_report/site.rs\\\")),\\n\",\"        \\\"src/workspace_report/site/tests.rs\\\" => Some(include_str!(\\\"../../src/workspace_report/site/tests.rs\\\")),\\n\",\"        \\\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\\\")),\\n\",\"        \\\"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\\\")),\\n\"] {assert_eq!(prior1056.matches(arm).count(),1);prior1056=prior1056.replacen(arm,\"\",1);}const BEFORE1056:&str=include_str!(\"../../e/f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\");assert_eq!(prior1056,BEFORE1056);assert_eq!(super::main48_historical_reader::read(&r1056.join(\"e/f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\"),97467,\"f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\",2_097_152).unwrap(),BEFORE1056);let result1056=(|| {const LOOKUP:&str=include_str!(\"../../e/f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\");let lookup=prior1056.as_str(); assert_eq!(parent,ROOT);assert_eq!(lookup,LOOKUP);let r1051=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));let actual1051=super::main48_historical_reader::read(&r1051.join(\"e/f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\"),97467,\"f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\",2_097_152).unwrap();assert_eq!(actual1051,LOOKUP);let parent1051=super::main48_historical_reader::read(&r1051.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap();assert_eq!(parent1051,ROOT);let mut prior1051=lookup.to_owned();for arm in [\"        \\\"src/hir/validation/scope_checkpoint/merge/partial_retain.rs\\\" => Some(include_str!(\\\"../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\\\")),\\n\",\"        \\\"src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\\\" => Some(include_str!(\\\"../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\\\")),\\n\",\"        \\\"src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\\\" => Some(include_str!(\\\"../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\\\")),\\n\",\"        \\\"src/cleanup_plan/replay/factored/paired/visited_transfer.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\\\")),\\n\"] {assert_eq!(prior1051.matches(arm).count(),1);prior1051=prior1051.replacen(arm,\"\",1);}const BEFORE1051:&str=include_str!(\"../../e/65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\");assert_eq!(prior1051,BEFORE1051);assert_eq!(super::main48_historical_reader::read(&r1051.join(\"e/65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\"),96793,\"65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\",2_097_152).unwrap(),BEFORE1051);let result1051=(|| {const LOOKUP:&str=include_str!(\"../../e/65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\");let lookup=prior1051.as_str();",""],[173225,173291,"e/65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf","src/source_reflows_merge/main_e177_overlay_lookup.rs"],[174633,174643,"          ","\n         "],[176871,176871,""," \n\n        assert_eq!(parent, ROOT);"],[176880,176914,"assert_eq!(parent, ROOT);         ",""],[208378,208387,"         ","\n        "],[208445,208458,"             ","\n            "],[208523,208543,"         );         ","\n        );\n        "],[208578,208587,"         ","\n        "],[208698,208707,"         ","\n        "],[208753,208762,"         ","\n        "],[208815,208824,"         ","\n        "],[208861,208870,"         ","\n        "],[209078,209087,"         ","\n        "],[209150,209159,"         ","\n        "],[209218,209227,"         ","\n        "],[209273,209282,"         ","\n        "],[209330,209339,"         ","\n        "],[209381,209390,"         ","\n        "],[209440,209449,"         ","\n        "],[209533,209542,"         ","\n        "],[209588,209597,"         ","\n        "],[209884,209898,"              ","\n             "],[210493,210559,"e/65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf","src/source_reflows_merge/main_e177_overlay_lookup.rs"],[210862,213019,")();assert_eq!(super::main48_historical_reader::read(&r1051.join(\"e/f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\"),97467,\"f9259bb1a7f7deac7e8e217542dba1cd57de2b3b9b81271757ad6cfdd0982d97\",2_097_152).unwrap(),actual1051);assert_eq!(super::main48_historical_reader::read(&r1051.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap(),parent1051);result1051})();assert_eq!(super::main48_historical_reader::read(&r1056.join(\"e/61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\"),98213,\"61304f77d5a18845655f21881cd009ca3b1ae3f29cb0d42874ea1f3720b7dba6\",2_097_152).unwrap(),actual1056);assert_eq!(super::main48_historical_reader::read(&r1056.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap(),parent1056);result1056})();assert_eq!(super::main48_historical_reader::read(&r539.join(\"e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\"),98521,\"528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\",2_097_152).unwrap(),actual539);assert_eq!(super::main48_historical_reader::read(&r539.join(\"e/528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\"),98521,\"528192b590f69a6f31cfb424f0ed52c29d3eebeed7dd4aa14cd4a6a3b22a1bf3\",2_097_152).unwrap(),actual539);assert_eq!(super::main48_historical_reader::read(&r539.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap(),parent539);result539})();assert_eq!(super::main48_historical_reader::read(&r541.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"),98975,\"4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\",2_097_152).unwrap(),actual541);assert_eq!(super::main48_historical_reader::read(&r541.join(\"e/4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\"),98975,\"4b9c160e33cc32ea8004ce1747d9acfb9970d22041e7d4a2cb001365b7f9d530\",2_097_152).unwrap(),actual541);assert_eq!(super::main48_historical_reader::read(&r541.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap(),parent541);result541}     ","\n    "],[213086,213095,"         ","\n        "],[213155,213164,"         ","\n        "],[213956,213965,"         ","\n        "],[214019,214028,"         ","\n        "],[214074,214083,"         ","\n        "],[214114,214127,"             ","\n            "],[214206,214219,"             ","\n            "],[214265,214278,"             ","\n            "],[214320,214329,"         ","\n        "],[214330,214339,"         ","\n        "],[214405,214414,"         ","\n        "],[214472,214481,"         ","\n        "],[214508,214521,"             ","\n            "],[214600,214613,"             ","\n            "],[214659,214672,"             ","\n            "],[214714,214723,"         ","\n        "],[214724,214733,"         ","\n        "],[214795,214804,"         ","\n        "],[214858,214867,"         ","\n        "],[214912,214925,"             ","\n            "],[214975,214988,"             ","\n            "],[215034,215043,"         ","\n        "],[215044,215053,"         ","\n        "],[215155,215164,"         ","\n        "],[215222,215231,"         ","\n        "],[215285,215294,"         ","\n        "],[215327,215336,"         ","\n        "],[215431,215440,"         ","\n        "],[215457,215470,"             ","\n            "],[215549,215562,"             ","\n            "],[215608,215621,"             ","\n            "],[215663,215672,"         ","\n        "],[215673,215682,"         ","\n        "],[215744,215753,"         ","\n        "],[215807,215816,"         ","\n        "],[216044,216053,"         ","\n        "],[216107,216116,"         ","\n        "],[216166,216175,"         ","\n        "],[216523,216532,"         ","\n        "],[216586,216595,"         ","\n        "],[216645,216654,"         ","\n        "],[217296,217305,"         ","\n        "],[217361,217370,"         ","\n        "],[217445,217454,"         ","\n        "],[217520,217529,"         ","\n        "],[217614,217623,"         ","\n        "],[218202,218211,"         ","\n        "],[218225,218230,"     ","\n    "],[218285,218294,"         ","\n        "],[218321,218330,"         ","\n        "],[218356,218365,"         ","\n        "],[218404,218413,"         ","\n        "],[218424,218437,"             ","\n            "],[218459,218472,"             ","\n            "],[218549,218558,"         ","\n        "],[218616,218629,"             ","\n            "],[218703,218723,"         );         ","\n        );\n        "],[218780,218793,"             ","\n            "],[218873,218893,"         );         ","\n        );\n        "],[218928,218937,"         ","\n        "],[218970,218979,"         ","\n        "],[219025,219034,"         ","\n        "],[219071,219080,"         ","\n        "],[219118,219131,"             ","\n            "],[219181,219194,"             ","\n            "],[219240,219249,"         ","\n        "],[219250,219259,"         ","\n        "],[219330,219331," ","\n"],[219629,220240,"             let current: Vec<_> = parent.lines().filter(|line| line.starts_with(prefix)).collect();             let previous: Vec<_> = PYTHON_BEFORE.lines().filter(|line| line.starts_with(prefix)).collect();             assert_eq!((current.len(), previous.len()), (1, 1));             assert_eq!(restored.matches(current[0]).count(), 1);             restored = restored.replacen(current[0], previous[0], 1);         }         assert_eq!(             restored, PYTHON_BEFORE,             \"ENTIRE published pre-split Python parent\"\n        );         restored\n    }     fn physical_codec_loader(hostile: bool) { ","\n            let current: Vec<_> = parent.lines().filter(|line| line.starts_with(prefix)).collect();\n            let previous: Vec<_> = PYTHON_BEFORE.lines().filter(|line| line.starts_with(prefix)).collect();\n            assert_eq!((current.len(), previous.len()), (1, 1));\n            assert_eq!(restored.matches(current[0]).count(), 1);\n            restored = restored.replacen(current[0], previous[0], 1);\n        }\n        assert_eq!(\n            restored, PYTHON_BEFORE,\n            \"ENTIRE published pre-split Python parent\"\n        );\n        restored\n    }\n    fn physical_codec_loader(hostile: bool) {\n"],[222201,222210,"         ","\n        "],[222260,222273,"             ","\n            "],[222361,222374,"             ","\n            "],[222426,222435,"         ","\n        "],[222515,222526,"     }     ","\n    }\n    "],[222533,222538,"     ","\n    "],[222627,222636,"         ","\n        "],[222684,222693,"         ","\n        "],[222750,222759,"         ","\n        "],[222788,222797,"         ","\n        "],[222814,222827,"             ","\n            "],[222895,222916,"         }     }     ","\n        }\n    }\n    "],[222923,222928,"     ","\n    "],[222995,223004,"         ","\n        "],[223032,223041,"         ","\n        "],[223056,223069,"             ","\n            "],[223088,223101,"             ","\n            "],[223128,223141,"             ","\n            "],[223170,223179,"         ","\n        "],[223182,223195,"             ","\n            "],[223273,223292,"         }         ","\n        }\n        "],[223306,223319,"             ","\n            "],[223340,223353,"             ","\n            "],[223404,223417,"             ","\n            "],[223479,223488,"         ","\n        "],[223491,223504,"             ","\n            "],[223579,223598,"         }         ","\n        }\n        "],[223866,223879,"             ","\n            "],[223900,223913,"             ","\n            "],[223953,223966,"             ","\n            "],[224007,224016,"         ","\n        "],[224019,224032,"             ","\n            "],[224110,224129,"         }         ","\n        }\n        "],[224143,224156,"             ","\n            "],[224177,224190,"             ","\n            "],[224259,224268,"         ","\n        "],[224271,224284,"             ","\n            "],[224361,224383,"         }     } \n    ","\n        }\n    }\n\n    "],[224399,224404,"     ","\n    "],[224453,224462,"         ","\n        "],[224574,224583,"         ","\n        "],[224693,224702,"         ","\n        "],[224837,224846,"         ","\n        "],[225032,225041,"         ","\n        "],[225225,225234,"         ","\n        "],[225365,225374,"         ","\n        "],[225601,225610,"         ","\n        "],[225658,225667,"         ","\n        "],[225711,225720,"         ","\n        "],[225933,225942,"         ","\n        "],[225989,225998,"         ","\n        "],[226041,226050,"         ","\n        "],[226358,226367,"         ","\n        "],[226414,226423,"         ","\n        "],[226466,226475,"         ","\n        "],[226504,226513,"         ","\n        "],[226704,226713,"         ","\n        "],[226907,226916,"         ","\n        "],[226930,226935,"     ","\n    "],[226959,226964,"     ","\n    "],[227041,227050,"         ","\n        "],[227290,227299,"         ","\n        "],[227394,227401,"     } ","\n    }\n"]]"##########;
@@ -521,33 +672,58 @@ fn joint_compiled_source_before(supplied: &str) -> Option<String> {
     assert_eq!(super::hash(restored.as_bytes()), ENTRY_SHA);
     let mut end_bound = restored.len();
     for edit in edits.iter().rev() {
-        let edit = edit.as_array().unwrap(); assert_eq!(edit.len(), 4);
+        let edit = edit.as_array().unwrap();
+        assert_eq!(edit.len(), 4);
         let start = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
         let end = usize::try_from(edit[1].as_u64().unwrap()).unwrap();
         assert!(start <= end && end <= end_bound);
         assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
         assert_eq!(&restored[start..end], edit[2].as_str().unwrap());
         restored.replace_range(start..end, edit[3].as_str().unwrap());
-        assert!(restored.len() <= 9_753_094); end_bound = start;
+        assert!(restored.len() <= 9_753_094);
+        end_bound = start;
     }
-    assert_eq!(restored, BEFORE, "entire current compiled source inverse before retained history");
+    assert_eq!(
+        restored, BEFORE,
+        "entire current compiled source inverse before retained history"
+    );
     let result = joint_compiled_source_before_retained_main48ad(&restored);
-    assert!(result.is_some(), "complete original joint route still executes");
+    assert!(
+        result.is_some(),
+        "complete original joint route still executes"
+    );
     authenticate();
     result
 }
 
 fn joint_compiled_source_before_retained_main48ad(supplied: &str) -> Option<String> {
     const SOURCE: &str = "e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d";
-    const CURRENT: &str = include_str!("../../../e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d");
-    const PRIOR: &str = include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
+    const CURRENT: &str =
+        include_str!("../../../e/783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d");
+    const PRIOR: &str =
+        include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
     const SHA: &str = "783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d";
-    if supplied.len() != 183704 || super::hash(supplied.as_bytes()) != SHA { return None; }
-    assert_eq!(supplied, CURRENT, "whole current compiled source before named predecessor");
+    if supplied.len() != 183704 || super::hash(supplied.as_bytes()) != SHA {
+        return None;
+    }
+    assert_eq!(
+        supplied, CURRENT,
+        "whole current compiled source before named predecessor"
+    );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap();
+    let physical =
+        physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap();
     assert_eq!(physical, CURRENT);
-    assert_eq!(physical_reader::read(&root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"), PRIOR.len(), "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679", 9_753_094).unwrap(), PRIOR);
+    assert_eq!(
+        physical_reader::read(
+            &root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"),
+            PRIOR.len(),
+            "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679",
+            9_753_094
+        )
+        .unwrap(),
+        PRIOR
+    );
     let mut prior = supplied.to_owned();
     let edits: &[(usize, usize, &str, &str)] = &[
         (102, 102, "", "\n"),
@@ -566,22 +742,45 @@ fn joint_compiled_source_before_retained_main48ad(supplied: &str) -> Option<Stri
     }
     assert_eq!(prior, PRIOR, "entire immediate prior compiled source");
     let result = joint_compiled_source_before_current1042(&prior);
-    assert!(result.is_some(), "complete original joint route still executes");
-    assert_eq!(physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(), physical);
-    assert_eq!(physical_reader::read(&root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"), PRIOR.len(), "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679", 9_753_094).unwrap(), PRIOR);
+    assert!(
+        result.is_some(),
+        "complete original joint route still executes"
+    );
+    assert_eq!(
+        physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(),
+        physical
+    );
+    assert_eq!(
+        physical_reader::read(
+            &root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"),
+            PRIOR.len(),
+            "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679",
+            9_753_094
+        )
+        .unwrap(),
+        PRIOR
+    );
     result
 }
 
 fn joint_compiled_source_before_current1042(supplied: &str) -> Option<String> {
     const SOURCE: &str = "e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679";
-    const CURRENT: &str = include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
-    const BEFORE: &str = include_str!("../../../e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3");
+    const CURRENT: &str =
+        include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
+    const BEFORE: &str =
+        include_str!("../../../e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3");
     const SHA: &str = "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679";
-    if supplied.len() != 177730 || super::hash(supplied.as_bytes()) != SHA { return None; }
+    if supplied.len() != 177730 || super::hash(supplied.as_bytes()) != SHA {
+        return None;
+    }
     assert_eq!(supplied, CURRENT, "complete supplied joint compiled source");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = physical_reader::read(&root.join(SOURCE), supplied.len(), SHA, 9_753_094).unwrap();
-    assert_eq!(physical, CURRENT, "whole physical and compiled joint source before historical inverse");
+    let physical =
+        physical_reader::read(&root.join(SOURCE), supplied.len(), SHA, 9_753_094).unwrap();
+    assert_eq!(
+        physical, CURRENT,
+        "whole physical and compiled joint source before historical inverse"
+    );
     let mut prior = supplied.to_owned();
     let edits: &[(usize, usize, &str, &str)] = &[
         (10251, 10418, "            \"src/workspace_graph/expected_projection/borrowed_imports/tests.rs\",\n            \"src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs\",\n", ""),
@@ -598,144 +797,598 @@ fn joint_compiled_source_before_current1042(supplied: &str) -> Option<String> {
         assert_eq!(&prior[start..end], after);
         prior.replace_range(start..end, before);
     }
-    assert_eq!((prior.len(), super::hash(prior.as_bytes())), (154097, "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3".to_owned()));
-    assert_eq!(prior, BEFORE, "entire independently retained historical compiled input");
-    assert_eq!(physical_reader::read(&root.join("e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"), 154097, "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3", 9_753_094).unwrap(), BEFORE);
-    assert_eq!(physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(), physical, "late whole current compiled source");
+    assert_eq!(
+        (prior.len(), super::hash(prior.as_bytes())),
+        (
+            154097,
+            "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3".to_owned()
+        )
+    );
+    assert_eq!(
+        prior, BEFORE,
+        "entire independently retained historical compiled input"
+    );
+    assert_eq!(
+        physical_reader::read(
+            &root.join("e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"),
+            154097,
+            "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3",
+            9_753_094
+        )
+        .unwrap(),
+        BEFORE
+    );
+    assert_eq!(
+        physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(),
+        physical,
+        "late whole current compiled source"
+    );
     Some(prior)
 }
 
 // Closed current ingress; old V16 and V14 packets stay byte-exact below it.
-fn v20_previous_archive(index:usize)->&'static str { match index {
-    0 => "e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7",
-    1 => "e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e",
-    2 => "e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6",
-    3 => "e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339",
-    _=>unreachable!(),
-}}
-fn v20_previous_compiled(index:usize)->&'static str { match index {
-    0 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7")),
-    1 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e")),
-    2 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6")),
-    3 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339")),
-    _=>unreachable!(),
-}}
-fn v20_current_compiled(index:usize)->&'static str { match index {
-    0 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")),
-    1 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/source_reflows_merge/main_e177_overlay_v2.rs")),
-    2 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py")),
-    3 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/source_reflows_merge/main_e177_overlay_fragments_v3.rs")),
-    _=>unreachable!(),
-}}
-fn v20_ingress_before_using(index:usize,supplied:&str,record:&Value,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
-    v20_ingress_before_format_using(index,supplied,record,"semaprax.v20-shared-source-ingress.v1",read)
-}
-fn v20_ingress_before_format_using(index:usize,supplied:&str,record:&Value,format:&str,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
-    let compact=match format {"semaprax.v20-shared-source-ingress.v1"=>false,"semaprax.v20-shared-source-ingress.v2"=>true,_=>panic!("closed source ingress format")};
-    let keys=|value:&Value,names:&[&str]|value.as_object().is_some_and(|o|o.len()==names.len()&&names.iter().all(|name|o.contains_key(*name)));
-    assert!(keys(record,&["source","current","previous","edits"]));assert_eq!(record["source"],V14_FRONT_SOURCES[index]);
-    let compiled=v20_current_compiled(index);assert_eq!(compiled,supplied,"whole actual current source before history");
-    let prior=v20_previous_compiled(index);let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let length=compiled.len();let sha=super::hash(compiled.as_bytes());let archive=format!("e/{sha}");
-    let previous_sha=super::hash(prior.as_bytes());
-    for (descriptor,n,h,path) in [(&record["current"],length,sha.as_str(),archive.as_str()),(&record["previous"],prior.len(),previous_sha.as_str(),v20_previous_archive(index))] {
-        assert!(keys(descriptor,&["length","sha256"]));assert!(n<=9_753_094);
-        assert_eq!(descriptor["length"].as_u64(),Some(n as u64));assert_eq!(descriptor["sha256"],h);assert_eq!(path,format!("e/{h}"));
+fn v20_previous_archive(index: usize) -> &'static str {
+    match index {
+        0 => "e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7",
+        1 => "e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e",
+        2 => "e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6",
+        3 => "e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339",
+        _ => unreachable!(),
     }
-    let acquire=||{
-        assert_eq!(read(&root.join(V14_FRONT_SOURCES[index]),length,&sha),compiled);
-        assert_eq!(read(&root.join(&archive),length,&sha),compiled);
-        assert_eq!(read(&root.join(v20_previous_archive(index)),prior.len(),&previous_sha),prior);
+}
+fn v20_previous_compiled(index: usize) -> &'static str {
+    match index {
+        0 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7"
+        )),
+        1 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e"
+        )),
+        2 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6"
+        )),
+        3 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339"
+        )),
+        _ => unreachable!(),
+    }
+}
+fn v20_current_compiled(index: usize) -> &'static str {
+    match index {
+        0 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py"
+        )),
+        1 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/source_reflows_merge/main_e177_overlay_v2.rs"
+        )),
+        2 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py"
+        )),
+        3 => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/source_reflows_merge/main_e177_overlay_fragments_v3.rs"
+        )),
+        _ => unreachable!(),
+    }
+}
+fn v20_ingress_before_using(
+    index: usize,
+    supplied: &str,
+    record: &Value,
+    read: &impl Fn(&std::path::Path, usize, &str) -> String,
+) -> String {
+    v20_ingress_before_format_using(
+        index,
+        supplied,
+        record,
+        "semaprax.v20-shared-source-ingress.v1",
+        read,
+    )
+}
+fn v20_ingress_before_format_using(
+    index: usize,
+    supplied: &str,
+    record: &Value,
+    format: &str,
+    read: &impl Fn(&std::path::Path, usize, &str) -> String,
+) -> String {
+    let compact = match format {
+        "semaprax.v20-shared-source-ingress.v1" => false,
+        "semaprax.v20-shared-source-ingress.v2" => true,
+        _ => panic!("closed source ingress format"),
     };
-    acquire();let mut restored=supplied.to_owned();
-    for edit in record["edits"].as_array().unwrap().iter().rev(){
-        let (start,end,after,before)=if compact {
-            let parts=edit.as_array().unwrap();assert_eq!(parts.len(),3,"closed slice ingress edit");
-            let start=usize::try_from(parts[0].as_u64().unwrap()).unwrap();let end=usize::try_from(parts[1].as_u64().unwrap()).unwrap();
-            assert!(start<=end&&end<=compiled.len()&&compiled.is_char_boundary(start)&&compiled.is_char_boundary(end));
-            (start,end,&compiled[start..end],parts[2].as_str().unwrap())
-        }else{
-            let (start,end,after,before)=if let Some(parts)=edit.as_array(){
-                assert_eq!(parts.len(),4,"closed compact ingress edit");(&parts[0],&parts[1],&parts[2],&parts[3])
-            }else{assert!(keys(edit,&["start","end","after","before"]));(&edit["start"],&edit["end"],&edit["after"],&edit["before"])};
-            (usize::try_from(start.as_u64().unwrap()).unwrap(),usize::try_from(end.as_u64().unwrap()).unwrap(),after.as_str().unwrap(),before.as_str().unwrap())
-        };
-        assert!(start<=end&&end<=restored.len()&&restored.is_char_boundary(start)&&restored.is_char_boundary(end));assert_eq!(&restored[start..end],after);
-        assert!(restored.len().checked_sub(end-start).unwrap().checked_add(before.len()).unwrap()<=9_753_094);restored.replace_range(start..end,before);
+    let keys = |value: &Value, names: &[&str]| {
+        value.as_object().is_some_and(|o| {
+            o.len() == names.len() && names.iter().all(|name| o.contains_key(*name))
+        })
+    };
+    assert!(keys(record, &["source", "current", "previous", "edits"]));
+    assert_eq!(record["source"], V14_FRONT_SOURCES[index]);
+    let compiled = v20_current_compiled(index);
+    assert_eq!(
+        compiled, supplied,
+        "whole actual current source before history"
+    );
+    let prior = v20_previous_compiled(index);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let length = compiled.len();
+    let sha = super::hash(compiled.as_bytes());
+    let archive = format!("e/{sha}");
+    let previous_sha = super::hash(prior.as_bytes());
+    for (descriptor, n, h, path) in [
+        (&record["current"], length, sha.as_str(), archive.as_str()),
+        (
+            &record["previous"],
+            prior.len(),
+            previous_sha.as_str(),
+            v20_previous_archive(index),
+        ),
+    ] {
+        assert!(keys(descriptor, &["length", "sha256"]));
+        assert!(n <= 9_753_094);
+        assert_eq!(descriptor["length"].as_u64(), Some(n as u64));
+        assert_eq!(descriptor["sha256"], h);
+        assert_eq!(path, format!("e/{h}"));
     }
-    assert_eq!(restored,prior,"ENTIRE pre-V20 physical stage");acquire();restored
+    let acquire = || {
+        assert_eq!(
+            read(&root.join(V14_FRONT_SOURCES[index]), length, &sha),
+            compiled
+        );
+        assert_eq!(read(&root.join(&archive), length, &sha), compiled);
+        assert_eq!(
+            read(
+                &root.join(v20_previous_archive(index)),
+                prior.len(),
+                &previous_sha
+            ),
+            prior
+        );
+    };
+    acquire();
+    let mut restored = supplied.to_owned();
+    for edit in record["edits"].as_array().unwrap().iter().rev() {
+        let (start, end, after, before) = if compact {
+            let parts = edit.as_array().unwrap();
+            assert_eq!(parts.len(), 3, "closed slice ingress edit");
+            let start = usize::try_from(parts[0].as_u64().unwrap()).unwrap();
+            let end = usize::try_from(parts[1].as_u64().unwrap()).unwrap();
+            assert!(
+                start <= end
+                    && end <= compiled.len()
+                    && compiled.is_char_boundary(start)
+                    && compiled.is_char_boundary(end)
+            );
+            (
+                start,
+                end,
+                &compiled[start..end],
+                parts[2].as_str().unwrap(),
+            )
+        } else {
+            let (start, end, after, before) = if let Some(parts) = edit.as_array() {
+                assert_eq!(parts.len(), 4, "closed compact ingress edit");
+                (&parts[0], &parts[1], &parts[2], &parts[3])
+            } else {
+                assert!(keys(edit, &["start", "end", "after", "before"]));
+                (
+                    &edit["start"],
+                    &edit["end"],
+                    &edit["after"],
+                    &edit["before"],
+                )
+            };
+            (
+                usize::try_from(start.as_u64().unwrap()).unwrap(),
+                usize::try_from(end.as_u64().unwrap()).unwrap(),
+                after.as_str().unwrap(),
+                before.as_str().unwrap(),
+            )
+        };
+        assert!(
+            start <= end
+                && end <= restored.len()
+                && restored.is_char_boundary(start)
+                && restored.is_char_boundary(end)
+        );
+        assert_eq!(&restored[start..end], after);
+        assert!(
+            restored
+                .len()
+                .checked_sub(end - start)
+                .unwrap()
+                .checked_add(before.len())
+                .unwrap()
+                <= 9_753_094
+        );
+        restored.replace_range(start..end, before);
+    }
+    assert_eq!(restored, prior, "ENTIRE pre-V20 physical stage");
+    acquire();
+    restored
 }
-fn v20_ingress_before(index:usize,supplied:&str,record:&Value)->String {
-    v20_ingress_before_using(index,supplied,record,&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap())
+fn v20_ingress_before(index: usize, supplied: &str, record: &Value) -> String {
+    v20_ingress_before_using(index, supplied, record, &|p, n, h| {
+        physical_reader::read(p, n, h, 9_753_094).unwrap()
+    })
 }
-fn v14_source_before_using(source:&str,supplied:&str,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
-    let Some(index)=V14_FRONT_SOURCES.iter().position(|s|*s==source)else{return v14_source_before_before_v20(source,supplied);};
-    let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();let ingress=&packet["v20_shared_ingress"];
-    assert!(ingress.as_object().is_some_and(|o|o.len()==4));let format=ingress["schema"].as_str().unwrap();assert!(matches!(format,"semaprax.v20-shared-source-ingress.v1"|"semaprax.v20-shared-source-ingress.v2"));assert_eq!(ingress["source_kind"],"ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE");assert_eq!(ingress["sources"],serde_json::json!(V14_FRONT_SOURCES));
-    let records=ingress["records"].as_array().unwrap();assert_eq!(records.len(),V14_FRONT_SOURCES.len());
-    assert_eq!(records.iter().map(|r|r["source"].as_str().unwrap()).collect::<Vec<_>>(),V14_FRONT_SOURCES);
-    let before=v20_ingress_before_format_using(index,supplied,&records[index],format,read);let result=v14_source_before_before_v20(source,&before);
-    assert_eq!(v20_ingress_before_format_using(index,supplied,&records[index],format,read),before);result
+fn v14_source_before_using(
+    source: &str,
+    supplied: &str,
+    read: &impl Fn(&std::path::Path, usize, &str) -> String,
+) -> String {
+    let Some(index) = V14_FRONT_SOURCES.iter().position(|s| *s == source) else {
+        return v14_source_before_before_v20(source, supplied);
+    };
+    let packet: Value = serde_json::from_str(include_str!("controller_transport.json")).unwrap();
+    let ingress = &packet["v20_shared_ingress"];
+    assert!(ingress.as_object().is_some_and(|o| o.len() == 4));
+    let format = ingress["schema"].as_str().unwrap();
+    assert!(matches!(
+        format,
+        "semaprax.v20-shared-source-ingress.v1" | "semaprax.v20-shared-source-ingress.v2"
+    ));
+    assert_eq!(
+        ingress["source_kind"],
+        "ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE"
+    );
+    assert_eq!(ingress["sources"], serde_json::json!(V14_FRONT_SOURCES));
+    let records = ingress["records"].as_array().unwrap();
+    assert_eq!(records.len(), V14_FRONT_SOURCES.len());
+    assert_eq!(
+        records
+            .iter()
+            .map(|r| r["source"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        V14_FRONT_SOURCES
+    );
+    let before = v20_ingress_before_format_using(index, supplied, &records[index], format, read);
+    let result = v14_source_before_before_v20(source, &before);
+    assert_eq!(
+        v20_ingress_before_format_using(index, supplied, &records[index], format, read),
+        before
+    );
+    result
 }
-fn v14_source_before(source:&str,supplied:&str)->String {
-    v14_source_before_using(source,supplied,&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap())
+fn v14_source_before(source: &str, supplied: &str) -> String {
+    v14_source_before_using(source, supplied, &|p, n, h| {
+        physical_reader::read(p, n, h, 9_753_094).unwrap()
+    })
 }
 #[cfg(test)]
 mod v20_ingress_tests {
     use super::*;
     #[test]
     fn current_three_channels_restore_whole_pre_v20_and_all_old_targets_refuse_drift() {
-        let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();
-        for index in 0..V14_FRONT_SOURCES.len(){
-            let current=v20_current_compiled(index);let prior=v20_previous_compiled(index);
-            let compact_record=&packet["v20_shared_ingress"]["records"][index];let mut expanded=compact_record.clone();
-            if packet["v20_shared_ingress"]["schema"]=="semaprax.v20-shared-source-ingress.v2" {
-                for edit in expanded["edits"].as_array_mut().unwrap(){let parts=edit.as_array().unwrap();assert_eq!(parts.len(),3);let start=usize::try_from(parts[0].as_u64().unwrap()).unwrap();let end=usize::try_from(parts[1].as_u64().unwrap()).unwrap();*edit=serde_json::json!([start,end,&current[start..end],parts[2]]);}
+        let packet: Value =
+            serde_json::from_str(include_str!("controller_transport.json")).unwrap();
+        for index in 0..V14_FRONT_SOURCES.len() {
+            let current = v20_current_compiled(index);
+            let prior = v20_previous_compiled(index);
+            let compact_record = &packet["v20_shared_ingress"]["records"][index];
+            let mut expanded = compact_record.clone();
+            if packet["v20_shared_ingress"]["schema"] == "semaprax.v20-shared-source-ingress.v2" {
+                for edit in expanded["edits"].as_array_mut().unwrap() {
+                    let parts = edit.as_array().unwrap();
+                    assert_eq!(parts.len(), 3);
+                    let start = usize::try_from(parts[0].as_u64().unwrap()).unwrap();
+                    let end = usize::try_from(parts[1].as_u64().unwrap()).unwrap();
+                    *edit = serde_json::json!([start, end, &current[start..end], parts[2]]);
+                }
             }
-            let record=&expanded;
-            assert_eq!(v20_ingress_before(index,current,record),prior);
-            assert_eq!(v14_source_before(V14_FRONT_SOURCES[index],current),v14_source_before_before_v20(V14_FRONT_SOURCES[index],prior));
-            let mut drift=current.to_owned();drift.push(' ');assert!(std::panic::catch_unwind(||v20_ingress_before(index,&drift,record)).is_err());
-            for field in ["current","previous"]{let mut bad=record.clone();bad[field]["sha256"]="0".repeat(64).into();assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());}
-            let mut bad=record.clone();bad["extra"]=true.into();assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());
-            let first=&record["edits"][0];let tuple=if let Some(parts)=first.as_array(){parts.clone()}else{vec![first["start"].clone(),first["end"].clone(),first["after"].clone(),first["before"].clone()]};
-            let mut compact=record.clone();compact["edits"][0]=serde_json::json!(tuple);assert_eq!(v20_ingress_before(index,current,&compact),prior);
-            let mut object=record.clone();object["edits"][0]=serde_json::json!({"start":tuple[0],"end":tuple[1],"after":tuple[2],"before":tuple[3]});assert_eq!(v20_ingress_before(index,current,&object),prior);
-            for edit in [serde_json::json!([0,0,""]),serde_json::json!([]),serde_json::json!([0,0,"","",false]),serde_json::json!([true,0,"",""]),serde_json::json!([-1,0,"",""]),serde_json::json!([0.5,0,"",""]),serde_json::json!([0,0,false,""]),serde_json::json!([0,0,"",false]),serde_json::json!({"start":0,"end":0,"after":"","before":"","extra":true})]{
-                let mut bad=record.clone();bad["edits"][0]=edit;assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());
+            let record = &expanded;
+            assert_eq!(v20_ingress_before(index, current, record), prior);
+            assert_eq!(
+                v14_source_before(V14_FRONT_SOURCES[index], current),
+                v14_source_before_before_v20(V14_FRONT_SOURCES[index], prior)
+            );
+            let mut drift = current.to_owned();
+            drift.push(' ');
+            assert!(
+                std::panic::catch_unwind(|| v20_ingress_before(index, &drift, record)).is_err()
+            );
+            for field in ["current", "previous"] {
+                let mut bad = record.clone();
+                bad[field]["sha256"] = "0".repeat(64).into();
+                assert!(
+                    std::panic::catch_unwind(|| v20_ingress_before(index, current, &bad)).is_err()
+                );
+            }
+            let mut bad = record.clone();
+            bad["extra"] = true.into();
+            assert!(std::panic::catch_unwind(|| v20_ingress_before(index, current, &bad)).is_err());
+            let first = &record["edits"][0];
+            let tuple = if let Some(parts) = first.as_array() {
+                parts.clone()
+            } else {
+                vec![
+                    first["start"].clone(),
+                    first["end"].clone(),
+                    first["after"].clone(),
+                    first["before"].clone(),
+                ]
+            };
+            let mut compact = record.clone();
+            compact["edits"][0] = serde_json::json!(tuple);
+            assert_eq!(v20_ingress_before(index, current, &compact), prior);
+            let mut object = record.clone();
+            object["edits"][0] = serde_json::json!({"start":tuple[0],"end":tuple[1],"after":tuple[2],"before":tuple[3]});
+            assert_eq!(v20_ingress_before(index, current, &object), prior);
+            for edit in [
+                serde_json::json!([0, 0, ""]),
+                serde_json::json!([]),
+                serde_json::json!([0, 0, "", "", false]),
+                serde_json::json!([true, 0, "", ""]),
+                serde_json::json!([-1, 0, "", ""]),
+                serde_json::json!([0.5, 0, "", ""]),
+                serde_json::json!([0, 0, false, ""]),
+                serde_json::json!([0, 0, "", false]),
+                serde_json::json!({"start":0,"end":0,"after":"","before":"","extra":true}),
+            ] {
+                let mut bad = record.clone();
+                bad["edits"][0] = edit;
+                assert!(
+                    std::panic::catch_unwind(|| v20_ingress_before(index, current, &bad)).is_err()
+                );
             }
             // The new version derives slices only after all ordinary channels authenticate.
-            let mut slice_record=record.clone();for edit in slice_record["edits"].as_array_mut().unwrap(){let p=edit.as_array().unwrap();*edit=serde_json::json!([p[0],p[1],p[3]]);}
-            let decode=|r:&Value,supplied:&str|v20_ingress_before_format_using(index,supplied,r,"semaprax.v20-shared-source-ingress.v2",&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap());
-            assert_eq!(decode(&slice_record,current),prior);
-            assert!(std::panic::catch_unwind(||decode(&slice_record,&drift)).is_err());
-            for field in ["current","previous"]{let mut bad=slice_record.clone();bad[field]["sha256"]="0".repeat(64).into();assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
-            for edit in [serde_json::json!([]),serde_json::json!([0,0,"",""]),serde_json::json!([true,0,""]),serde_json::json!([-1,0,""]),serde_json::json!([0.5,0,""]),serde_json::json!([0,0,false]),serde_json::json!([1,0,""]),serde_json::json!([0,current.len()+1,""]),serde_json::json!({"start":0,"end":0,"before":""})]{let mut bad=slice_record.clone();bad["edits"][0]=edit;assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
-            if let Some((offset,ch))=current.char_indices().find(|(_,ch)|ch.len_utf8()>1){let mut bad=slice_record.clone();bad["edits"][0]=serde_json::json!([offset+1,offset+ch.len_utf8(),""]);assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
-            let reads=std::cell::Cell::new(0);assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||v20_ingress_before_format_using(index,current,&slice_record,"unknown",&|_,_,_|{reads.set(reads.get()+1);String::new()}))).is_err());assert_eq!(reads.get(),0);
+            let mut slice_record = record.clone();
+            for edit in slice_record["edits"].as_array_mut().unwrap() {
+                let p = edit.as_array().unwrap();
+                *edit = serde_json::json!([p[0], p[1], p[3]]);
+            }
+            let decode = |r: &Value, supplied: &str| {
+                v20_ingress_before_format_using(
+                    index,
+                    supplied,
+                    r,
+                    "semaprax.v20-shared-source-ingress.v2",
+                    &|p, n, h| physical_reader::read(p, n, h, 9_753_094).unwrap(),
+                )
+            };
+            assert_eq!(decode(&slice_record, current), prior);
+            assert!(std::panic::catch_unwind(|| decode(&slice_record, &drift)).is_err());
+            for field in ["current", "previous"] {
+                let mut bad = slice_record.clone();
+                bad[field]["sha256"] = "0".repeat(64).into();
+                assert!(std::panic::catch_unwind(|| decode(&bad, current)).is_err());
+            }
+            for edit in [
+                serde_json::json!([]),
+                serde_json::json!([0, 0, "", ""]),
+                serde_json::json!([true, 0, ""]),
+                serde_json::json!([-1, 0, ""]),
+                serde_json::json!([0.5, 0, ""]),
+                serde_json::json!([0, 0, false]),
+                serde_json::json!([1, 0, ""]),
+                serde_json::json!([0, current.len() + 1, ""]),
+                serde_json::json!({"start":0,"end":0,"before":""}),
+            ] {
+                let mut bad = slice_record.clone();
+                bad["edits"][0] = edit;
+                assert!(std::panic::catch_unwind(|| decode(&bad, current)).is_err());
+            }
+            if let Some((offset, ch)) = current.char_indices().find(|(_, ch)| ch.len_utf8() > 1) {
+                let mut bad = slice_record.clone();
+                bad["edits"][0] = serde_json::json!([offset + 1, offset + ch.len_utf8(), ""]);
+                assert!(std::panic::catch_unwind(|| decode(&bad, current)).is_err());
+            }
+            let reads = std::cell::Cell::new(0);
+            assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                v20_ingress_before_format_using(
+                    index,
+                    current,
+                    &slice_record,
+                    "unknown",
+                    &|_, _, _| {
+                        reads.set(reads.get() + 1);
+                        String::new()
+                    },
+                )
+            }))
+            .is_err());
+            assert_eq!(reads.get(), 0);
             // Exercise each actual channel through the unchanged ordinary held
             // reader, with corrupt/truncated fixture bytes at early AND late
             // acquisition. The immutable repository images are never edited.
-            let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-            let current_sha=super::super::hash(current.as_bytes());
-            let channels=[(root.join(V14_FRONT_SOURCES[index]),current),(root.join(format!("e/{current_sha}")),current),(root.join(v20_previous_archive(index)),prior)];
-            for (channel,bytes) in channels {for frontier in 0..4 {for truncated in [false,true] {
-                static NEXT:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(0);
-                let sequence=NEXT.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
-                let path=std::env::temp_dir().join(format!("semaprax-v20-source-ingress-{}-{sequence}",std::process::id()));
-                let mut bad=bytes.as_bytes().to_vec();if truncated{bad.pop();}else{bad[0]^=1;}
-                let mut file=std::fs::OpenOptions::new().write(true).create_new(true).open(&path).unwrap();
-                use std::io::Write;file.write_all(&bad).unwrap();drop(file);
-                struct Remove(std::path::PathBuf);impl Drop for Remove{fn drop(&mut self){std::fs::remove_file(&self.0).unwrap();}}
-                let remove=Remove(path);let encounters=std::cell::Cell::new(0usize);
-                let read=|p:&std::path::Path,n:usize,h:&str|{
-                    let selected=if p==channel.as_path() {let count=encounters.get();encounters.set(count+1);count==frontier}else{false};
-                    physical_reader::read(if selected{remove.0.as_path()}else{p},n,h,9_753_094).unwrap()
-                };
-                assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||v14_source_before_using(V14_FRONT_SOURCES[index],current,&read))).is_err());
-                assert_eq!(encounters.get(),frontier+1,"selected freshness frontier reached");
-            }}}
-
+            let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+            let current_sha = super::super::hash(current.as_bytes());
+            let channels = [
+                (root.join(V14_FRONT_SOURCES[index]), current),
+                (root.join(format!("e/{current_sha}")), current),
+                (root.join(v20_previous_archive(index)), prior),
+            ];
+            for (channel, bytes) in channels {
+                for frontier in 0..4 {
+                    for truncated in [false, true] {
+                        static NEXT: std::sync::atomic::AtomicU64 =
+                            std::sync::atomic::AtomicU64::new(0);
+                        let sequence = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        let path = std::env::temp_dir().join(format!(
+                            "semaprax-v20-source-ingress-{}-{sequence}",
+                            std::process::id()
+                        ));
+                        let mut bad = bytes.as_bytes().to_vec();
+                        if truncated {
+                            bad.pop();
+                        } else {
+                            bad[0] ^= 1;
+                        }
+                        let mut file = std::fs::OpenOptions::new()
+                            .write(true)
+                            .create_new(true)
+                            .open(&path)
+                            .unwrap();
+                        use std::io::Write;
+                        file.write_all(&bad).unwrap();
+                        drop(file);
+                        struct Remove(std::path::PathBuf);
+                        impl Drop for Remove {
+                            fn drop(&mut self) {
+                                std::fs::remove_file(&self.0).unwrap();
+                            }
+                        }
+                        let remove = Remove(path);
+                        let encounters = std::cell::Cell::new(0usize);
+                        let read = |p: &std::path::Path, n: usize, h: &str| {
+                            let selected = if p == channel.as_path() {
+                                let count = encounters.get();
+                                encounters.set(count + 1);
+                                count == frontier
+                            } else {
+                                false
+                            };
+                            physical_reader::read(
+                                if selected { remove.0.as_path() } else { p },
+                                n,
+                                h,
+                                9_753_094,
+                            )
+                            .unwrap()
+                        };
+                        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            v14_source_before_using(V14_FRONT_SOURCES[index], current, &read)
+                        }))
+                        .is_err());
+                        assert_eq!(
+                            encounters.get(),
+                            frontier + 1,
+                            "selected freshness frontier reached"
+                        );
+                    }
+                }
+            }
         }
     }
+}
+
+mod v18_overlay_tests {
+    use super::super::*;
+    #[test]
+    fn v18_entire_preimage_keeps_unknown_fields_one_level_domains_and_order() {
+        let logical = encode_v15(&v18_fixture()).unwrap();
+        let legacy = encode_v17_rows(&logical).unwrap();
+        let wire = typed_refs_v18::encode_rows(&logical).unwrap();
+        assert_eq!(wire["replacements"][0]["old519_index"][3][0], 519);
+        assert_eq!(wire["replacements"][0]["old519_index"][3][1], 520);
+        assert_eq!(
+            canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()),
+            canonical(&logical)
+        );
+        assert_eq!(
+            canonical(&encode_v17_rows(&logical).unwrap()),
+            canonical(&legacy)
+        );
+        assert_eq!(canonical(&legacy).len() - canonical(&wire).len(), 42);
+        assert_eq!(
+            wire["additions"][1]["opaque_reference"],
+            logical["additions"][1]["opaque_reference"]
+        );
+        let mut nested = logical.clone();
+        nested["additions"][1]["fragments"] = serde_json::json!([{ "source":"nested.rs", "compiled":true,"current":[1,"A".repeat(43)],"views":[],"fragments":[519,{"canonical_source":519}]}]);
+        assert_eq!(
+            typed_refs_v18::encode_rows(&nested).unwrap_err(),
+            "v13 uninterned or aliased digest"
+        );
+        nested["additions"][1]["fragments"][0]["current"] = serde_json::json!([1, 0]);
+        assert_eq!(
+            typed_refs_v18::encode_rows(&nested).unwrap_err(),
+            "v14 uninterned or aliased tail"
+        );
+        let admitted_tail = logical["replacements"][0]["old519_index"][1].clone();
+        assert_eq!(admitted_tail.as_array().unwrap().len(), 1);
+        assert!(admitted_tail[0].is_u64());
+        nested["additions"][1]["fragments"][0]["current"] = admitted_tail;
+        assert_eq!(
+            typed_refs_v18::expand_to_v15(&typed_refs_v18::encode_rows(&nested).unwrap()).unwrap(),
+            nested
+        );
+    }
+    #[test]
+    fn v18_rejects_aliases_bad_indices_wrong_slots_and_truncation() {
+        let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
+        let total = 519 + wire["additions"].as_array().unwrap().len();
+        for bad in [
+            serde_json::json!(true),
+            serde_json::json!(false),
+            serde_json::json!(-1),
+            serde_json::json!(0),
+            serde_json::json!(518),
+            serde_json::json!(519.0),
+            serde_json::json!(-0.0),
+            serde_json::json!(total),
+            serde_json::json!({"canonical_source":519}),
+        ] {
+            let mut changed = wire.clone();
+            changed["replacements"][0]["old519_index"][3][0] = bad;
+            assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+        }
+        let mut changed = wire.clone();
+        changed["additions"][0] = 519.into();
+        assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+        changed = wire.clone();
+        changed["replacements"][0]["old519_index"] = serde_json::json!([0, [], []]);
+        assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+        changed = wire;
+        changed["unknown"] = 519.into();
+        assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+    }
+    #[test]
+    fn v18_exact_short_expanded_bound_and_wire_cap_are_independent() {
+        let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
+        let logical = typed_refs_v18::expand_to_v15(&wire).unwrap();
+        let exact = canonical(&logical).len();
+        assert_eq!(typed_refs_v18::preflight(&wire, exact).unwrap(), exact);
+        assert_eq!(
+            typed_refs_v18::preflight(&wire, exact - 1).unwrap_err(),
+            "v18 expanded bound"
+        );
+        let mut large = wire;
+        large["predecessor"] = "x".repeat(PAGE_CAP).into();
+        assert_eq!(
+            typed_refs_v18::expand_to_v15(&large).unwrap_err(),
+            "v18 same one-page cap"
+        );
+    }
+
+    #[test]
+    fn v18_python_rust_hostile_reference_decisions_match() {
+        let full = v18_fixture();
+        let wire = typed_refs_v18::encode(&full).unwrap();
+        let mut hostile = Vec::new();
+        for bad in [
+            serde_json::json!(true),
+            serde_json::json!(-1),
+            serde_json::json!(518),
+            serde_json::json!(519.0),
+            serde_json::json!(-0.0),
+            serde_json::json!(u64::MAX),
+            serde_json::json!({"canonical_source":519}),
+        ] {
+            let mut value = wire.clone();
+            value["replacements"][0]["old519_index"][3][0] = bad;
+            hostile.push(value);
+        }
+        let actual = python_v18(&full, &hostile);
+        let refused: Vec<Value> = hostile
+            .iter()
+            .map(|p| typed_refs_v18::expand_to_v15(p).is_err().into())
+            .collect();
+        assert_eq!(actual["refused"], Value::Array(refused));
+        assert!(actual["refused"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|v| v.as_bool() == Some(true)));
+    }
+
+    // Historical controls acquire the actual live wire first, then an exact
+    // independently pinned full predecessor. Their evidence remains historical.
 }

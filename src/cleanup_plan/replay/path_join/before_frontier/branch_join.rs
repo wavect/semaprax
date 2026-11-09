@@ -276,5 +276,3 @@ impl BranchJoins {
         )
     }
 }
-
-

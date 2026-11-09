@@ -389,9 +389,9 @@ impl OracleLease {
     const REFUSAL_PREDICATE_CONTROLS: usize = {
         use std::mem::size_of;
         2 * size_of::<&OracleReceipt>()
-        + 4 * size_of::<&Option<OracleFirstRefusal>>()
-        + 2 * size_of::<&Option<&str>>()
-        + 8 * size_of::<bool>()
+            + 4 * size_of::<&Option<OracleFirstRefusal>>()
+            + 2 * size_of::<&Option<&str>>()
+            + 8 * size_of::<bool>()
     };
     const ARITHMETIC_UPDATE_CONTROLS: usize = {
         use std::mem::size_of;
@@ -417,13 +417,15 @@ impl OracleLease {
         + Self::REFUSAL_PREDICATE_CONTROLS;
     // A new work call first runs prepare_builder -> builder_refused -> refused,
     // then the complete charge_work update. Both real State paths are paid.
-    pub(in crate::cleanup_plan::replay) const WORK_CALL_CONTROLS: usize =
-        Self::WITH_UPDATE_CONTROLS + Self::REFUSAL_PREDICATE_CONTROLS
-        + Self::ARITHMETIC_UPDATE_CONTROLS + Self::REFUSED_CALL_CONTROLS;
+    pub(in crate::cleanup_plan::replay) const WORK_CALL_CONTROLS: usize = Self::WITH_UPDATE_CONTROLS
+        + Self::REFUSAL_PREDICATE_CONTROLS
+        + Self::ARITHMETIC_UPDATE_CONTROLS
+        + Self::REFUSED_CALL_CONTROLS;
     // A new positive byte call performs BOTH readiness checks: prepare_builder
     // checks builder_refused, then reserve_compact_bytes checks refused again
     // before charge. Neither old call is credited or removed by the new bank.
-    pub(in crate::cleanup_plan::replay) const BYTE_CALL_CONTROLS: usize =
-        Self::WITH_UPDATE_CONTROLS + Self::REFUSAL_PREDICATE_CONTROLS
-        + Self::ARITHMETIC_UPDATE_CONTROLS + 2 * Self::REFUSED_CALL_CONTROLS;
+    pub(in crate::cleanup_plan::replay) const BYTE_CALL_CONTROLS: usize = Self::WITH_UPDATE_CONTROLS
+        + Self::REFUSAL_PREDICATE_CONTROLS
+        + Self::ARITHMETIC_UPDATE_CONTROLS
+        + 2 * Self::REFUSED_CALL_CONTROLS;
 }

@@ -68,18 +68,40 @@ pub(in super::super) fn batch_913_entry(source: &str, supplied: &str) -> Option<
         ]),
         _ => return None,
     };
-    let physical_compiled = compiled; let supplied_stage = supplied; let current_join = current_source_epoch::physical_batch_input(source, supplied, physical_compiled); let supplied = current_join.as_ref();
+    let physical_compiled = compiled;
+    let supplied_stage = supplied;
+    let current_join =
+        current_source_epoch::physical_batch_input(source, supplied, physical_compiled);
+    let supplied = current_join.as_ref();
     let (closure_epoch, _) =
         crate::source_reflows_merge::Main44Fixture::closure_epoch(source, expected, compiled);
-    let batch_input = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref()); let compiled = batch_input.as_ref();
+    let batch_input = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref());
+    let compiled = batch_input.as_ref();
     assert_eq!(supplied, physical_compiled, "complete current batch source");
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    if source == "src/hir/validation/frame_reuse/source_inverse.rs" { assert_eq!(reader::read(&root.join(source), physical_compiled.len(), &digest(physical_compiled), 2_097_152).unwrap(), physical_compiled); }
+    if source == "src/hir/validation/frame_reuse/source_inverse.rs" {
+        assert_eq!(
+            reader::read(
+                &root.join(source),
+                physical_compiled.len(),
+                &digest(physical_compiled),
+                2_097_152
+            )
+            .unwrap(),
+            physical_compiled
+        );
+    }
     assert_eq!(
         reader::read(
-            &if matches!(source, "src/hir/validation/scope_checkpoint/marks.rs" | "src/hir/validation/lexical_exit.rs" | "src/hir/validation/frame_reuse/source_inverse.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
+            &if matches!(
+                source,
+                "src/hir/validation/scope_checkpoint/marks.rs"
+                    | "src/hir/validation/lexical_exit.rs"
+                    | "src/hir/validation/frame_reuse/source_inverse.rs"
+                    | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"
+            ) {
                 root.join("e").join(expected)
             } else {
                 root.join(source)
@@ -163,13 +185,28 @@ pub(in super::super) fn batch_913_entry(source: &str, supplied: &str) -> Option<
             "ENTIRE unchanged pre-fixture current source"
         );
     }
-    if source == "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs" { assert_eq!(reader::read(&root.join(source), physical_compiled.len(), &digest(physical_compiled), 2_097_152).unwrap(), physical_compiled, "complete late physical history observer source"); } for &(after, prior) in edits {
+    if source == "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs" {
+        assert_eq!(
+            reader::read(
+                &root.join(source),
+                physical_compiled.len(),
+                &digest(physical_compiled),
+                2_097_152
+            )
+            .unwrap(),
+            physical_compiled,
+            "complete late physical history observer source"
+        );
+    }
+    for &(after, prior) in edits {
         assert_eq!(before.matches(after).count(), 1);
         before = before.replacen(after, prior, 1);
     }
     assert_eq!(before.len(), prior_length);
     assert_eq!(digest(&before), prior_sha);
-    let _ = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref()); let _ = current_source_epoch::physical_batch_input(source, supplied_stage, physical_compiled); Some(before)
+    let _ = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref());
+    let _ = current_source_epoch::physical_batch_input(source, supplied_stage, physical_compiled);
+    Some(before)
 }
 // Enter the immutable selected-path predecessor only through complete live images.
 pub(in super::super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {
@@ -277,9 +314,47 @@ pub(in super::super) fn compact_frontier_entry(source: &str, supplied: &str) -> 
 }
 
 pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> String {
-    if (owner, source) == ("modular916", "src/workspace_graph/expected_projection/held_projection.rs") && supplied.len() == 23069 && digest(supplied) == "19dd7ed0772d873ba5d7854b3c8c16c298009c2c0454d12b538524cbc7b56e29" { let complete = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")); let prior = next_custody_before("production7834", source, complete); assert_eq!(supplied, prior, "exact named production7834 output at modular916 ingress"); return prior; }
-    if (owner, source) == ("modular916", "src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs") && supplied.len() == 14772 && digest(supplied) == "fdbdd20cb63d8bf8f32e8244e96be2526df769614f1ed325c9b515d7fd67e722" { let complete = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")); let prior = next_custody_before("production7834", source, complete); assert_eq!(supplied, prior, "exact named production7834 output at modular916 ingress"); return prior; }
-    if owner == "constructor903" { return constructor903_before(source, supplied).unwrap_or_else(|| supplied.to_owned()); }
+    if (owner, source)
+        == (
+            "modular916",
+            "src/workspace_graph/expected_projection/held_projection.rs",
+        )
+        && supplied.len() == 23069
+        && digest(supplied) == "19dd7ed0772d873ba5d7854b3c8c16c298009c2c0454d12b538524cbc7b56e29"
+    {
+        let complete = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/workspace_graph/expected_projection/held_projection.rs"
+        ));
+        let prior = next_custody_before("production7834", source, complete);
+        assert_eq!(
+            supplied, prior,
+            "exact named production7834 output at modular916 ingress"
+        );
+        return prior;
+    }
+    if (owner, source)
+        == (
+            "modular916",
+            "src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs",
+        )
+        && supplied.len() == 14772
+        && digest(supplied) == "fdbdd20cb63d8bf8f32e8244e96be2526df769614f1ed325c9b515d7fd67e722"
+    {
+        let complete = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs"
+        ));
+        let prior = next_custody_before("production7834", source, complete);
+        assert_eq!(
+            supplied, prior,
+            "exact named production7834 output at modular916 ingress"
+        );
+        return prior;
+    }
+    if owner == "constructor903" {
+        return constructor903_before(source, supplied).unwrap_or_else(|| supplied.to_owned());
+    }
     const PACKET: &str = include_str!("../next_custody_inverse.json");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
@@ -349,8 +424,14 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
         physical, compiled,
         "complete actual compiled source channel"
     );
-    let constructor = constructor903_before(source, compiled); let acquired = constructor.filter(|before| supplied == compiled || supplied == before.as_str())
-        .or_else(|| (supplied.len() as u64 == row["current_length"].as_u64().unwrap() && digest(supplied) == row["current_sha256"].as_str().unwrap()).then(|| supplied.to_owned()))
+    let constructor = constructor903_before(source, compiled);
+    let acquired = constructor
+        .filter(|before| supplied == compiled || supplied == before.as_str())
+        .or_else(|| {
+            (supplied.len() as u64 == row["current_length"].as_u64().unwrap()
+                && digest(supplied) == row["current_sha256"].as_str().unwrap())
+            .then(|| supplied.to_owned())
+        })
         .or_else(|| next_emission_before(owner, source, supplied, compiled))
         .or_else(|| next_custody_front(owner, source, supplied, compiled, row));
     if acquired.is_none() {
@@ -503,14 +584,31 @@ fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str)
         return None;
     }
     // Authenticate the exact runtime-repaired raw source before its unchanged925 input view.
-    let raw_actual=actual; let raw_supplied=supplied;
+    let raw_actual = actual;
+    let raw_supplied = supplied;
     let prefix: Option<(usize,&str,&[(usize,&str,&str)])> = match source {
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs" => Some((17977,"f483721064e9e81524fdf22c6b41e07d045edfab0d9f4d0627e35e8c470bc33e",&[(6817,"","                let mut work = SkeletonWork::new(&program, function, &mut budget);\n"),(6852,"                    let mut work = SkeletonWork::with_index(&program, function, &mut budget, None)?;\n",""),(8179,"                        budget\n","                        work.budget\n"),(8377,"","                drop(work);\n")])),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => Some((35081,"5d34472a0f59197c69d691fd9cc9b2dc90424ad09c74287b31ea42b2df263eb6",&[(1549,"    let raw_source = include_str!(\"../../../../replay.rs\");\n    assert_eq!(std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"src/cleanup_plan/replay.rs\")).unwrap(), raw_source.as_bytes());\n    let digest = |bytes: &[u8]| { use sha2::{Digest, Sha256}; format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes))) };\n    assert_eq!(raw_source.len(), 327551);\n    assert_eq!(digest(raw_source.as_bytes()), \"751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5\");\n    let mut source = raw_source.to_owned();\n    let prefix_edits: &[(usize, &str, &str)] = &[\n        (1097, \"mod plan_prefix;\\n\", \"\"),\n        (108404, \"#[rustfmt::skip]\\n\", \"\"),\n        (112083, \"        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\\n\", \"\"),\n        (116424, \"        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \\\"skeleton query neutral slot receivers\\\")?;\\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\\n\", \"        SkeletonWork {\\n\"),\n        (279166, \"#[rustfmt::skip]\\n\", \"\"),\n        (279316, \"    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \\\"PLAN prefix eligibility receivers\\\")?;\\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\\n\", \"\"),\n        (289554, \"                compact_path::plan_selection!(budget, function);\\n\", \"                budget.reserve_bytes(\\n                    function,\\n                    branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS,\\n                    \\\"plan final-output selection controls\\\",\\n                )?;\\n\"),\n        (289948, \"                        physical_budget::compact_try!(budget.reserve_compact_bytes(\\n\", \"                        budget.reserve_bytes(\\n\"),\n        (290070, \"                            branch_clone::direct::plan_compact_roles::<\\n\", \"                            branch_clone::direct::compact_roles::<\\n\"),\n        (290357, \"                        ));\\n\", \"                        )?;\\n\"),\n        (291020, \"                        physical_budget::compact_try!(budget.reserve_compact_bytes(\\n\", \"                        budget.reserve_bytes(\\n\"),\n        (291142, \"                            branch_clone::plan_compact_roles::<std::rc::Rc<SkeletonObservation>>(),\\n\", \"                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\\n\"),\n        (291305, \"                        ));\\n\", \"                        )?;\\n\"),\n        (291645, \"                        physical_budget::compact_try!(budget.reserve_compact_bytes(\\n\", \"                        budget.reserve_bytes(\\n\"),\n        (291767, \"                            branch_clone::direct::plan_compact_roles::<\\n\", \"                            branch_clone::direct::compact_roles::<\\n\"),\n        (292054, \"                        ));\\n\", \"                        )?;\\n\"),\n        (292911, \"                    compact_path::plan_move!(budget, function);\\n                    compact_path::plan_work!(\\n                        budget,\\n\", \"                    budget.reserve_bytes(\\n\"),\n        (293087, \"                        \\\"cleanup-plan skeleton branch clone\\\"\\n                    );\\n\", \"                        final_output::PLAN_MOVE_CONTROLS,\\n                        \\\"plan final-output move controls\\\",\\n                    )?;\\n                    budget.charge_skeleton(function, 1, \\\"cleanup-plan skeleton branch clone\\\")?;\\n\"),\n        (293480, \"                    compact_path::plan_work!(budget, function, \\\"plan branch observation push\\\");\\n\", \"                    budget.charge_skeleton(function, 1, \\\"plan branch observation push\\\")?;\\n\"),\n        (293629, \"                    compact_path::plan_auth!(budget, function);\\n                    compact_path::plan_conversion!(budget, function, observation);\\n\", \"                    budget.reserve_bytes(function, 0, \\\"plan branch observation push\\\")?;\\n                    budget.reserve_bytes(\\n                        function,\\n                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\\n                            &observation,\\n                        ),\\n                        \\\"plan branch observation push\\\",\\n                    )?;\\n\"),\n        (297849, \"                        branch_clone::short_plan::produce!(\\n                            budget,\\n                            function,\\n                            observations,\\n                            observation,\\n                            edge,\\n                            queue\\n                        );\\n\", \"\"),\n        (324946, \"#[cfg(test)]\\nmod workspace_oracle;\\n\", \"\\n\"),\n        (325059, \"#[cfg(test)]\\npub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\\n\", \"\\n\"),\n        (325167, \"\", \"\\n\"),\n    ];\n    for &(at, current, previous) in prefix_edits.iter().rev() {\n        assert_eq!(source.get(at..at + current.len()), Some(current));\n        source.replace_range(at..at + current.len(), previous);\n    }\n    assert_eq!(source.len(), 326623);\n    assert_eq!(digest(source.as_bytes()), \"027903ce7f76fd0a9883e2736adfa1214bdb1e687303d939c0e40751c6130320\");\n    assert_eq!(std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"src/cleanup_plan/replay.rs\")).unwrap(), raw_source.as_bytes());\n","    let mut source = include_str!(\"../../../../replay.rs\").to_owned();\n"),(30433,"\n// Exact pre-sticky validation participates in this full caller boundary.\nfn joint_frozen_immediate(\n    program: &ResolvedProgram,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    let mut expected = with_frozen_immediate(|| hir_skeleton_paths(program, function, budget))?;\n    budget.reserve_bytes(\n        function,\n        sequence::ENTRY_CALL,\n        \"whole HIR complete content sort\",\n    )?;\n    sequence::sort(&mut expected, function, budget)?;\n    budget.reserve_bytes(\n        function,\n        view::PRODUCE_CALL,\n        \"whole independent PLAN producer\",\n    )?;\n    let produced = view::produce(function, budget)?;\n    budget.reserve_bytes(\n        function,\n        view::COMPARE_CALL,\n        \"whole independent history comparison\",\n    )?;\n    view::compare(produced, &expected, budget)\n}\n\n#[test]\nfn retained_fork_true_frozen_immediate_whole_net_and_cold_costs_are_disclosed() {\n    let mut improvement = false;\n    for program in [fixture(), nested_call_program()] {\n        for function in &program.functions {\n            let run = |immediate, limit, floor| {\n                with_limit_usage_refusal(limit, || {\n                    measure(|| {\n                        assert!(set_active_floor(floor));\n                        let mut budget = ReplayBudget::new();\n                        let result = reserve_program_skeleton_work(\n                            &program,\n                            std::iter::once(function),\n                            &mut budget,\n                        )\n                        .and_then(|_reserved| {\n                            if immediate {\n                                joint_frozen_immediate(&program, function, &mut budget)\n                            } else {\n                                joint(&program, function, &mut budget)\n                            }\n                        });\n                        let work = (\n                            budget.skeleton_spent,\n                            budget.skeleton_remaining,\n                            budget.remaining,\n                        );\n                        if result.is_err() {\n                            assert!(budget\n                                .reserve_bytes(function, 0, \"retained whole fork sticky zero\")\n                                .is_err());\n                        }\n                        drop(budget);\n                        result.map(|()| work).map_err(|error| {\n                            let code = error.code;\n                            drop(error);\n                            code\n                        })\n                    })\n                })\n            };\n            let ((before, old_heap), old_refused, old_paid, _) = run(true, usize::MAX, 0);\n            let ((after, new_heap), new_refused, new_paid, _) = run(false, usize::MAX, 0);\n            let old_work = before.unwrap();\n            let new_work = after.unwrap();\n            assert_eq!(old_work, new_work);\n            assert!(!old_refused && !new_refused);\n            for (heap, paid) in [(old_heap, old_paid), (new_heap, new_paid)] {\n                assert!(!heap.invalid && heap.live == 0);\n                assert_eq!(heap.allocated, heap.freed);\n                assert!(heap.allocated <= paid);\n            }\n            improvement |= new_paid < old_paid;\n            eprintln!(\"925 true_immediate_whole function={} old_paid={} new_paid={} old_heap={:?} new_heap={:?} work={:?}\",\n                function.id.as_str(), old_paid, new_paid, old_heap, new_heap, new_work);\n            // Exact/short/floor/zero are independently determined for each full\n            // producer. A changed net invoice never becomes a cap increase.\n            for (immediate, paid) in [(true, old_paid), (false, new_paid)] {\n                for (limit, floor, success) in [\n                    (paid, 0, true),\n                    (paid - 1, 0, false),\n                    (0, 0, false),\n                    (paid, paid, false),\n                ] {\n                    let ((result, heap), refused, _, first) = run(immediate, limit, floor);\n                    assert_eq!(result.is_ok(), success);\n                    assert!(!heap.invalid && heap.live == 0);\n                    assert_eq!(heap.allocated, heap.freed);\n                    if !success {\n                        assert!(refused && first.is_some());\n                        assert_eq!(result.unwrap_err(), \"SPX-H006\");\n                    }\n                }\n            }\n        }\n    }\n    assert!(\n        improvement,\n        \"complete composed receiver must earn a positive net invoice\"\n    );\n}\n","")])),
         _ => None,
     };
-    let acquired=prefix.map(|(length,sha,edits)| { assert_eq!(raw_supplied,raw_actual); assert_eq!(raw_actual.len(),length); assert_eq!(digest(raw_actual),sha); let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")); assert_eq!(reader::read(&root.join(source),length,sha,2_097_152).unwrap(),raw_actual); let mut prior=raw_actual.to_owned(); for &(at,post,pre)in edits.iter().rev(){assert_eq!(prior.get(at..at+post.len()),Some(post));prior.replace_range(at..at+post.len(),pre);} prior });
-    let actual=acquired.as_deref().unwrap_or(actual); let supplied=if acquired.is_some(){actual}else{supplied};
+    let acquired = prefix.map(|(length, sha, edits)| {
+        assert_eq!(raw_supplied, raw_actual);
+        assert_eq!(raw_actual.len(), length);
+        assert_eq!(digest(raw_actual), sha);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            reader::read(&root.join(source), length, sha, 2_097_152).unwrap(),
+            raw_actual
+        );
+        let mut prior = raw_actual.to_owned();
+        for &(at, post, pre) in edits.iter().rev() {
+            assert_eq!(prior.get(at..at + post.len()), Some(post));
+            prior.replace_range(at..at + post.len(), pre);
+        }
+        prior
+    });
+    let actual = acquired.as_deref().unwrap_or(actual);
+    let supplied = if acquired.is_some() { actual } else { supplied };
     let (length, sha, target, target_sha, edits): (usize, &str, &str, &str, &[(usize, &str, &str)]) = match source {
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs" => (17992, "86eb3c62bd63b7b04a30adc265bde874e9faf1910cdd538d9d9e6c0265180fa0", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/5534698ffa877cfeff74d028d5cd23ef13e100c0a361a14245512f9530e23745")), "5534698ffa877cfeff74d028d5cd23ef13e100c0a361a14245512f9530e23745", &[(10327, "\n#[test]\nfn retained_fork_receivers_preserve_immediate_emitter_and_singleton_allocation() {\n    let program = fixture();\n    let function = &program.functions[0];\n    with_limit_usage_refusal(usize::MAX, || {\n        for len in [0, 1, 7, 127] {\n            for count in [0, 1, 2, 5] {\n                let mut old_budget = ReplayBudget::with_skeleton_limit(usize::MAX);\n                let mut old_work = SkeletonWork::new(&program, function, &mut old_budget);\n                let (prefixes, suffixes) = inputs(&mut old_work, len, count);\n                let old = with_immediate(|| call(prefixes, &suffixes, &mut old_work)).unwrap();\n                let old_spent = old_work.budget.skeleton_spent;\n                let mut new_budget = ReplayBudget::with_skeleton_limit(usize::MAX);\n                let mut new_work = SkeletonWork::new(&program, function, &mut new_budget);\n                let (prefixes, suffixes) = inputs(&mut new_work, len, count);\n                let pointer = prefixes.as_ptr();\n                let capacity = prefixes.capacity();\n                let actual = call(prefixes, &suffixes, &mut new_work).unwrap();\n                assert_eq!(old_spent, new_work.budget.skeleton_spent);\n                if count == 1 {\n                    assert_eq!(actual.as_ptr(), pointer);\n                    assert_eq!(actual.capacity(), capacity);\n                }\n                assert!(equal_paths(&actual, &old, &mut new_work));\n            }\n        }\n        // A real shared singleton, both stopped states and a flat empty suffix\n        // all use the same cardinality proof; no empty input is manufactured.\n        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);\n        let mut work = SkeletonWork::new(&program, function, &mut budget);\n        let (prefixes, suffixes) = inputs(&mut work, 7, 2);\n        let shared = with_immediate(|| call(prefixes, &suffixes, &mut work)).unwrap();\n        let (prefixes, _) = inputs(&mut work, 3, 0);\n        let mut prefixes = prefixes;\n        prefixes[1].failed = false;\n        prefixes[1].residual = true;\n        let pointer = prefixes.as_ptr();\n        let actual = call(prefixes, &shared[..1], &mut work).unwrap();\n        assert_eq!(actual.as_ptr(), pointer);\n        let (mut prefixes, _) = inputs(&mut work, 3, 0);\n        prefixes[1].failed = false;\n        prefixes[1].residual = true;\n        let old = with_immediate(|| call(prefixes, &shared[..1], &mut work)).unwrap();\n        assert!(equal_paths(&actual, &old, &mut work));\n    });\n}\n\n#[test]\nfn retained_fork_immediate_work_cuts_and_all_diagnostic_fields_match() {\n    let program = fixture();\n    let function = &program.functions[0];\n    // Cuts apply after the same complete paid setup. Both independent emitters\n    // retain the held skeleton loan, including stopped and final-output events.\n    for count in [0, 1, 2, 5] {\n        let attempt = |cut, immediate| {\n            let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);\n            let mut work = SkeletonWork::new(&program, function, &mut budget);\n            let (prefixes, suffixes) = inputs(&mut work, 7, count);\n            work.budget.skeleton_remaining = cut;\n            let before = work.budget.skeleton_spent;\n            let result = if immediate {\n                with_immediate(|| call(prefixes, &suffixes, &mut work))\n            } else {\n                call(prefixes, &suffixes, &mut work)\n            }\n            .map(drop);\n            (result, work.budget.skeleton_spent - before)\n        };\n        for cut in 0..32 {\n            let (old, old_work) = attempt(cut, true);\n            let (new, new_work) = attempt(cut, false);\n            assert_eq!(old_work, new_work);\n            match (old, new) {\n                (Ok(()), Ok(())) => {}\n                (Err(a), Err(b)) => assert_eq!(\n                    (a.code, a.severity, a.message, a.path, a.span, a.help),\n                    (b.code, b.severity, b.message, b.path, b.span, b.help)\n                ),\n                _ => panic!(\"immediate held-work refusal frontier changed\"),\n            }\n        }\n    }\n}\n\n#[test]\nfn retained_fork_keeps_the_entire_immediate_parent_and_old_producer() {\n    let current = include_str!(\"../emission.rs\");\n    let before = retained::before_emission(current);\n    let body = |s: &str| {\n        let begin = s\n            .find(\"pub(in crate::cleanup_plan::replay) fn emit_prepaid(\")\n            .unwrap();\n        let end = s[begin..]\n            .find(\"\\n// The original caller's actual-payer pattern\")\n            .unwrap()\n            + begin;\n        s[begin..end].to_owned()\n    };\n    assert_eq!(body(current), body(&before));\n    // Both the original public receiver invoice and the complete STEP inventory\n    // stay compiled with the old body; no candidate discounts reach that arm.\n    let banks = |s: &str| {\n        let begin = s\n            .find(\"pub(in crate::cleanup_plan::replay) const ENTRY:\")\n            .unwrap();\n        let end = s.find(\"const FREEZE:\").unwrap();\n        s[begin..end].to_owned()\n    };\n    assert_eq!(banks(current), banks(&before));\n}\n\n#[test]\nfn retained_fork_cold_empty_tiny_and_repeated_packets_disclose_actual_costs() {\n    let program = fixture();\n    let function = &program.functions[0];\n    // Direct emitter boundary: deliberately includes cold/unsupported-empty\n    // shapes that the shipping dispatcher can avoid. No app inference follows.\n    for (empty, len, count, repeats) in [\n        (true, 0, 0, 1),\n        (false, 0, 1, 1),\n        (false, 1, 2, 1),\n        (false, 127, 1, 3),\n        (false, 127, 5, 3),\n    ] {\n        let run = |immediate| {\n            with_limit_usage_refusal(usize::MAX, || {\n                measure(|| {\n                    let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);\n                    let mut work = SkeletonWork::new(&program, function, &mut budget);\n                    let result = (|| {\n                        let (mut paths, suffixes) = inputs(&mut work, len, count);\n                        if empty {\n                            paths.clear();\n                        }\n                        for _ in 0..repeats {\n                            paths = if immediate {\n                                with_immediate(|| call(paths, &suffixes, &mut work))\n                            } else {\n                                call(paths, &suffixes, &mut work)\n                            }?;\n                        }\n                        drop(paths);\n                        drop(suffixes);\n                        Ok::<_, Diagnostic>(())\n                    })();\n                    let work_used = work.budget.skeleton_spent;\n                    drop(work);\n                    drop(budget);\n                    result.map(|()| work_used).map_err(|error| {\n                        let code = error.code;\n                        drop(error);\n                        code\n                    })\n                })\n            })\n        };\n        let ((old, old_heap), old_refused, old_paid, _) = run(true);\n        let ((new, new_heap), new_refused, new_paid, _) = run(false);\n        assert_eq!(old.unwrap(), new.unwrap());\n        assert!(!old_refused && !new_refused);\n        for (heap, paid) in [(old_heap, old_paid), (new_heap, new_paid)] {\n            assert!(!heap.invalid && heap.live == 0);\n            assert_eq!(heap.allocated, heap.freed);\n            assert!(heap.allocated <= paid);\n        }\n        eprintln!(\"925 direct empty={} len={} suffixes={} repeats={} old_paid={} new_paid={} old_heap={:?} new_heap={:?}\",\n            empty,len,count,repeats,old_paid,new_paid,old_heap,new_heap);\n    }\n}\n", "")]),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => (24809, "40926dadafd6738359bd52c3a7ba3fb1f9dbc27beebbf19b4a4120aaf9cb405b", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/67b827f40e61c90022e48c1c234b9f3f667dd5dc0ab799c57ee249bfbbfae93d")), "67b827f40e61c90022e48c1c234b9f3f667dd5dc0ab799c57ee249bfbbfae93d", &[(20122, "\n// Complete immediate-b23 producer; the sort, independent PLAN producer,\n// comparison and owner destruction are identical to joint's whole boundary.\nfn joint_immediate(\n    program: &ResolvedProgram,\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    let mut expected = with_immediate(|| hir_skeleton_paths(program, function, budget))?;\n    budget.reserve_bytes(\n        function,\n        sequence::ENTRY_CALL,\n        \"whole HIR complete content sort\",\n    )?;\n    sequence::sort(&mut expected, function, budget)?;\n    budget.reserve_bytes(\n        function,\n        view::PRODUCE_CALL,\n        \"whole independent PLAN producer\",\n    )?;\n    let produced = view::produce(function, budget)?;\n    budget.reserve_bytes(\n        function,\n        view::COMPARE_CALL,\n        \"whole independent history comparison\",\n    )?;\n    view::compare(produced, &expected, budget)\n}\n\n#[test]\nfn retained_fork_whole_hir_sort_plan_net_invoice_and_cold_tiny_are_disclosed() {\n    let mut improvement = false;\n    for program in [fixture(), nested_call_program()] {\n        for function in &program.functions {\n            let run = |immediate, limit, floor| {\n                with_limit_usage_refusal(limit, || {\n                    measure(|| {\n                        assert!(set_active_floor(floor));\n                        let mut budget = ReplayBudget::new();\n                        let result = reserve_program_skeleton_work(\n                            &program,\n                            std::iter::once(function),\n                            &mut budget,\n                        )\n                        .and_then(|_reserved| {\n                            if immediate {\n                                joint_immediate(&program, function, &mut budget)\n                            } else {\n                                joint(&program, function, &mut budget)\n                            }\n                        });\n                        let work = (\n                            budget.skeleton_spent,\n                            budget.skeleton_remaining,\n                            budget.remaining,\n                        );\n                        if result.is_err() {\n                            assert!(budget\n                                .reserve_bytes(function, 0, \"retained whole fork sticky zero\")\n                                .is_err());\n                        }\n                        drop(budget);\n                        result.map(|()| work).map_err(|error| {\n                            let code = error.code;\n                            drop(error);\n                            code\n                        })\n                    })\n                })\n            };\n            let ((before, old_heap), old_refused, old_paid, _) = run(true, usize::MAX, 0);\n            let ((after, new_heap), new_refused, new_paid, _) = run(false, usize::MAX, 0);\n            let old_work = before.unwrap();\n            let new_work = after.unwrap();\n            assert_eq!(old_work, new_work);\n            assert!(!old_refused && !new_refused);\n            for (heap, paid) in [(old_heap, old_paid), (new_heap, new_paid)] {\n                assert!(!heap.invalid && heap.live == 0);\n                assert_eq!(heap.allocated, heap.freed);\n                assert!(heap.allocated <= paid);\n            }\n            improvement |= new_paid < old_paid;\n            eprintln!(\"925 whole function={} old_paid={} new_paid={} old_heap={:?} new_heap={:?} work={:?}\",\n                function.id.as_str(), old_paid, new_paid, old_heap, new_heap, new_work);\n            // Exact/short/floor/zero are independently determined for each full\n            // producer. A changed net invoice never becomes a cap increase.\n            for (immediate, paid) in [(true, old_paid), (false, new_paid)] {\n                for (limit, floor, success) in [\n                    (paid, 0, true),\n                    (paid - 1, 0, false),\n                    (0, 0, false),\n                    (paid, paid, false),\n                ] {\n                    let ((result, heap), refused, _, first) = run(immediate, limit, floor);\n                    assert_eq!(result.is_ok(), success);\n                    assert!(!heap.invalid && heap.live == 0);\n                    assert_eq!(heap.allocated, heap.freed);\n                    if !success {\n                        assert!(refused && first.is_some());\n                        assert_eq!(result.unwrap_err(), \"SPX-H006\");\n                    }\n                }\n            }\n        }\n    }\n    assert!(\n        improvement,\n        \"complete composed receiver must earn a positive net invoice\"\n    );\n}\n", "")]),
@@ -540,7 +638,18 @@ fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str)
         restored.replace_range(*at..end, prior);
     }
     assert_eq!(restored, target, "entire fixed b23 test source");
-    if acquired.is_some(){assert_eq!(reader::read(&root.join(source),raw_actual.len(),&digest(raw_actual),2_097_152).unwrap(),raw_actual);}
+    if acquired.is_some() {
+        assert_eq!(
+            reader::read(
+                &root.join(source),
+                raw_actual.len(),
+                &digest(raw_actual),
+                2_097_152
+            )
+            .unwrap(),
+            raw_actual
+        );
+    }
     Some(restored)
 }
 

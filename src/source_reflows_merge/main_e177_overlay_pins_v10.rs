@@ -833,7 +833,10 @@ mod v12_tests {
             "../../e/015884cd29c24b8021e244ad86871aaef404bf55e5e7a0801722a27f5d77e9ac"
         ))
         .unwrap();
-        assert_eq!(super::super::names_v11::expand_v11_names(&old).unwrap(), fixture["input"]);
+        assert_eq!(
+            super::super::names_v11::expand_v11_names(&old).unwrap(),
+            fixture["input"]
+        );
         assert_eq!(
             expand_v12_packed(&fixture["encoded"]).unwrap(),
             fixture["input"]

@@ -1,6 +1,6 @@
 //! Persistent function scope; diagnostics retain their original order.
-use super::super::*;
 use super::super::function_scope::lifecycle;
+use super::super::*;
 #[rustfmt::skip]
 impl HirValidator<'_> {
     pub(in crate::hir) fn validate_function_before_frame_reuse(

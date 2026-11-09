@@ -660,20 +660,52 @@ fn compiled_join() -> String {
 // Every old target and every unmodified row/order remains independently bound.
 fn prior_current_part<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
     let (length, sha, packet) = match source {
-        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs" => (17353, "e6ae7f63df349b2a4f8e260b8ec25312bf9362eed35882af10a3da3b2520c534", r########"[[1788,1801,"#[cfg(test)]\n",""],[4713,11275,"// Direct place expressions introduce no cursor/observations alias, closure,\n// returned Result or array. Every binding inside this block is the exact old\n// frame/item/child binding and retains its original branch bank. A labelled\n// unit block replaces only next's successful return; errors return compare's\n// already-funded Result. PAYMENT still renews the same payment gateway.\nconst ADVANCE_BLOCK: usize = PAYMENT;\nmacro_rules! advance {\n    ($pair:ident, $side:ident, $path:ident, $function:ident, $budget:ident) => {{\n        'advance: {\n            $pair.$side.yielded = None;\n            if $budget.lent_skeleton {\n                return Err($budget.compact_refusal(\n                    $function,\n                    \"enumerated HIR cursor cannot spend a lent skeleton allowance\",\n                    \"\",\n                ));\n            }\n            loop {\n                $budget.reserve_compact_bytes(\n                    $function,\n                    FRAME_COMMON,\n                    \"enumerated HIR cursor common frame receiving renewal\",\n                )?;\n                #[cfg(test)]\n                frame_event(0);\n                $pair.$side.current = $pair.$side.pending.pop();\n                if $pair.$side.current.is_none() {\n                    break;\n                }\n                $budget.charge_compact($function, 1, \"enumerated HIR cursor traversal\")?;\n                match $pair\n                    .$side\n                    .current\n                    .take()\n                    .expect(\"the popped frame was present\")\n                {\n                    Frame::RootItems { next } => {\n                        #[cfg(test)]\n                        frame_event(1);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            ROOT_FRAME,\n                            \"enumerated HIR root-items frame receivers\",\n                        )?;\n                        if let Some(item) = $path.observations.items.get(next) {\n                            $pair.$side.yielded = Some(Rc::clone(item));\n                            $pair\n                                .$side\n                                .pending\n                                .push(Frame::RootItems { next: next + 1 });\n                            break 'advance;\n                        }\n                    }\n                    Frame::SeqItems { node, next } => {\n                        #[cfg(test)]\n                        frame_event(2);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            SEQ_FRAME,\n                            \"enumerated HIR sequence-items frame receivers\",\n                        )?;\n                        let ObservationDagKind::Seq(_, items) = &node.kind else {\n                            unreachable!(\"sequence cursor frame retains its immutable node\")\n                        };\n                        if let Some(item) = items.get(next) {\n                            $pair.$side.yielded = Some(Rc::clone(item));\n                            $pair.$side.pending.push(Frame::SeqItems {\n                                node,\n                                next: next + 1,\n                            });\n                            break 'advance;\n                        }\n                    }\n                    Frame::Node(node) => {\n                        #[cfg(test)]\n                        frame_event(3);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            NODE_FRAME,\n                            \"enumerated HIR node frame receivers\",\n                        )?;\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            NODE_STEP,\n                            \"enumerated HIR node growth receiving renewal\",\n                        )?;\n                        match &node.kind {\n                            ObservationDagKind::Seq(prefix, _) => {\n                                $budget.reserve_compact_vec(\n                                    $function,\n                                    &mut $pair.$side.pending,\n                                    2,\n                                    \"enumerated HIR sequence cursor backing\",\n                                )?;\n                                let prefix = prefix.as_ref().map(Rc::clone);\n                                // Move this handle into the resume frame; do not clone\n                                // the Seq node merely to remember its items.\n                                $pair.$side.pending.push(Frame::SeqItems { node, next: 0 });\n                                if let Some(prefix) = prefix {\n                                    $pair.$side.pending.push(Frame::Node(prefix));\n                                }\n                            }\n                            ObservationDagKind::Cat(children) => {\n                                $budget.reserve_compact_vec(\n                                    $function,\n                                    &mut $pair.$side.pending,\n                                    children.len(),\n                                    \"enumerated HIR concatenation cursor backing\",\n                                )?;\n                                let mut children = children.iter().rev();\n                                loop {\n                                    $budget.reserve_compact_bytes(\n                                        $function,\n                                        CAT_CHILD_STEP,\n                                        \"enumerated HIR concatenation child receiving renewal\",\n                                    )?;\n                                    let Some(child) = children.next() else {\n                                        break;\n                                    };\n                                    $pair.$side.pending.push(Frame::Node(Rc::clone(child)));\n                                }\n                            }\n                            ObservationDagKind::Alt(_) => {\n                                return Err($budget.compact_refusal(\n                                    $function,\n                                    \"enumerated HIR history cannot contain merged alternatives\",\n                                    \"\",\n                                ))\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }};\n}\n\n",""],[12344,12361,"    #[cfg(test)]\n",""],[19382,19417,"                2 * ADVANCE_BLOCK,\n","                2 * ADVANCE_CALL,\n"],[19496,19610,"            #[cfg(test)]\n            advance_pair_event();\n            advance!(self, left, a, function, budget);\n","            self.left.next(&a.observations, function, budget)?;\n"],[19670,19726,"            advance!(self, right, b, function, budget);\n","            self.right.next(&b.observations, function, budget)?;\n"],[23985,24281,"    FRAME_UNWIND.with(|cut| {\n        if index == 0 {\n            if let Some(remaining) = cut.get() {\n                if remaining == 0 {\n                    std::panic::resume_unwind(Box::new(()));\n                }\n                cut.set(Some(remaining - 1));\n            }\n        }\n    });\n",""],[24283,25200,"\n#[cfg(test)]\n#[allow(dead_code, unused_imports, reason = \"complete immediate post-926 sorter with independent typed tariffs\")]\n#[rustfmt::skip]\npub(super) mod before_advance;\n#[cfg(test)]\nstd::thread_local! {\n    pub(super) static BEFORE_ADVANCE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };\n    static ADVANCE_PAIR_EVENTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };\n    static FRAME_UNWIND: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };\n}\n#[cfg(test)]\nfn advance_pair_event() {\n    ADVANCE_PAIR_EVENTS.with(|events| events.set(events.get().checked_add(1).unwrap()));\n}\n#[cfg(test)]\nstruct AdvanceEpoch(bool);\n#[cfg(test)]\nimpl Drop for AdvanceEpoch {\n    fn drop(&mut self) {\n        BEFORE_ADVANCE.with(|old| old.set(self.0));\n    }\n}\n#[cfg(test)]\nfn old_advance_epoch() -> AdvanceEpoch {\n    AdvanceEpoch(BEFORE_ADVANCE.with(|old| old.replace(true)))\n}\n",""]]"########),
-        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs" => (24353, "d6ce5ade786b2027c78ce173f548a0d9dacb09faba44e11435e55d467a2632f0", r########"[[6161,6208,"    let _before_advance = old_advance_epoch();\n",""],[7017,7064,"    let _before_advance = old_advance_epoch();\n",""],[8515,8562,"    let _before_advance = old_advance_epoch();\n",""],[10078,10125,"    let _before_advance = old_advance_epoch();\n",""],[11100,11147,"    let _before_advance = old_advance_epoch();\n",""],[12517,12601,"    let _before_advance = old_advance_epoch();\n    use super::before_advance::Pair;\n",""],[15003,15050,"    let _before_advance = old_advance_epoch();\n",""],[16297,16344,"    let _before_advance = old_advance_epoch();\n",""],[17515,17562,"    let _before_advance = old_advance_epoch();\n",""],[18462,18509,"    let _before_advance = old_advance_epoch();\n",""],[23608,23655,"    let _before_advance = old_advance_epoch();\n",""],[24907,24960,"\n#[path = \"lexical_advance.rs\"]\nmod lexical_advance;\n",""]]"########),
-        "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" => (10368, "000028e4120e98e590ea4c03d182f5a22ae58d402f3f16ed9e5aa87f42e97d89", r########"[[2203,2343,"    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v20\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n",""]]"########),
-        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs" => (30573, "422caa6bb19da7b623d3cc03077f2aa07853b91ddc8de928bf75a22b6a6609f2", r########"[[28778,28995,"            if matches!(row[\"file\"].as_str().unwrap(), \"src/workspace_graph/expected_projection/held_projection.rs\" | \"src/workspace_graph/expected_projection/uncached_peak.rs\") { physical_current } else { current },\n","            if row[\"file\"] == \"src/workspace_graph/expected_projection/held_projection.rs\" { physical_current } else { current },\n"]]"########),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs" => (
+            17353,
+            "e6ae7f63df349b2a4f8e260b8ec25312bf9362eed35882af10a3da3b2520c534",
+            r########"[[1788,1801,"#[cfg(test)]\n",""],[4713,11275,"// Direct place expressions introduce no cursor/observations alias, closure,\n// returned Result or array. Every binding inside this block is the exact old\n// frame/item/child binding and retains its original branch bank. A labelled\n// unit block replaces only next's successful return; errors return compare's\n// already-funded Result. PAYMENT still renews the same payment gateway.\nconst ADVANCE_BLOCK: usize = PAYMENT;\nmacro_rules! advance {\n    ($pair:ident, $side:ident, $path:ident, $function:ident, $budget:ident) => {{\n        'advance: {\n            $pair.$side.yielded = None;\n            if $budget.lent_skeleton {\n                return Err($budget.compact_refusal(\n                    $function,\n                    \"enumerated HIR cursor cannot spend a lent skeleton allowance\",\n                    \"\",\n                ));\n            }\n            loop {\n                $budget.reserve_compact_bytes(\n                    $function,\n                    FRAME_COMMON,\n                    \"enumerated HIR cursor common frame receiving renewal\",\n                )?;\n                #[cfg(test)]\n                frame_event(0);\n                $pair.$side.current = $pair.$side.pending.pop();\n                if $pair.$side.current.is_none() {\n                    break;\n                }\n                $budget.charge_compact($function, 1, \"enumerated HIR cursor traversal\")?;\n                match $pair\n                    .$side\n                    .current\n                    .take()\n                    .expect(\"the popped frame was present\")\n                {\n                    Frame::RootItems { next } => {\n                        #[cfg(test)]\n                        frame_event(1);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            ROOT_FRAME,\n                            \"enumerated HIR root-items frame receivers\",\n                        )?;\n                        if let Some(item) = $path.observations.items.get(next) {\n                            $pair.$side.yielded = Some(Rc::clone(item));\n                            $pair\n                                .$side\n                                .pending\n                                .push(Frame::RootItems { next: next + 1 });\n                            break 'advance;\n                        }\n                    }\n                    Frame::SeqItems { node, next } => {\n                        #[cfg(test)]\n                        frame_event(2);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            SEQ_FRAME,\n                            \"enumerated HIR sequence-items frame receivers\",\n                        )?;\n                        let ObservationDagKind::Seq(_, items) = &node.kind else {\n                            unreachable!(\"sequence cursor frame retains its immutable node\")\n                        };\n                        if let Some(item) = items.get(next) {\n                            $pair.$side.yielded = Some(Rc::clone(item));\n                            $pair.$side.pending.push(Frame::SeqItems {\n                                node,\n                                next: next + 1,\n                            });\n                            break 'advance;\n                        }\n                    }\n                    Frame::Node(node) => {\n                        #[cfg(test)]\n                        frame_event(3);\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            NODE_FRAME,\n                            \"enumerated HIR node frame receivers\",\n                        )?;\n                        $budget.reserve_compact_bytes(\n                            $function,\n                            NODE_STEP,\n                            \"enumerated HIR node growth receiving renewal\",\n                        )?;\n                        match &node.kind {\n                            ObservationDagKind::Seq(prefix, _) => {\n                                $budget.reserve_compact_vec(\n                                    $function,\n                                    &mut $pair.$side.pending,\n                                    2,\n                                    \"enumerated HIR sequence cursor backing\",\n                                )?;\n                                let prefix = prefix.as_ref().map(Rc::clone);\n                                // Move this handle into the resume frame; do not clone\n                                // the Seq node merely to remember its items.\n                                $pair.$side.pending.push(Frame::SeqItems { node, next: 0 });\n                                if let Some(prefix) = prefix {\n                                    $pair.$side.pending.push(Frame::Node(prefix));\n                                }\n                            }\n                            ObservationDagKind::Cat(children) => {\n                                $budget.reserve_compact_vec(\n                                    $function,\n                                    &mut $pair.$side.pending,\n                                    children.len(),\n                                    \"enumerated HIR concatenation cursor backing\",\n                                )?;\n                                let mut children = children.iter().rev();\n                                loop {\n                                    $budget.reserve_compact_bytes(\n                                        $function,\n                                        CAT_CHILD_STEP,\n                                        \"enumerated HIR concatenation child receiving renewal\",\n                                    )?;\n                                    let Some(child) = children.next() else {\n                                        break;\n                                    };\n                                    $pair.$side.pending.push(Frame::Node(Rc::clone(child)));\n                                }\n                            }\n                            ObservationDagKind::Alt(_) => {\n                                return Err($budget.compact_refusal(\n                                    $function,\n                                    \"enumerated HIR history cannot contain merged alternatives\",\n                                    \"\",\n                                ))\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }};\n}\n\n",""],[12344,12361,"    #[cfg(test)]\n",""],[19382,19417,"                2 * ADVANCE_BLOCK,\n","                2 * ADVANCE_CALL,\n"],[19496,19610,"            #[cfg(test)]\n            advance_pair_event();\n            advance!(self, left, a, function, budget);\n","            self.left.next(&a.observations, function, budget)?;\n"],[19670,19726,"            advance!(self, right, b, function, budget);\n","            self.right.next(&b.observations, function, budget)?;\n"],[23985,24281,"    FRAME_UNWIND.with(|cut| {\n        if index == 0 {\n            if let Some(remaining) = cut.get() {\n                if remaining == 0 {\n                    std::panic::resume_unwind(Box::new(()));\n                }\n                cut.set(Some(remaining - 1));\n            }\n        }\n    });\n",""],[24283,25200,"\n#[cfg(test)]\n#[allow(dead_code, unused_imports, reason = \"complete immediate post-926 sorter with independent typed tariffs\")]\n#[rustfmt::skip]\npub(super) mod before_advance;\n#[cfg(test)]\nstd::thread_local! {\n    pub(super) static BEFORE_ADVANCE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };\n    static ADVANCE_PAIR_EVENTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };\n    static FRAME_UNWIND: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };\n}\n#[cfg(test)]\nfn advance_pair_event() {\n    ADVANCE_PAIR_EVENTS.with(|events| events.set(events.get().checked_add(1).unwrap()));\n}\n#[cfg(test)]\nstruct AdvanceEpoch(bool);\n#[cfg(test)]\nimpl Drop for AdvanceEpoch {\n    fn drop(&mut self) {\n        BEFORE_ADVANCE.with(|old| old.set(self.0));\n    }\n}\n#[cfg(test)]\nfn old_advance_epoch() -> AdvanceEpoch {\n    AdvanceEpoch(BEFORE_ADVANCE.with(|old| old.replace(true)))\n}\n",""]]"########,
+        ),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs" => (
+            24353,
+            "d6ce5ade786b2027c78ce173f548a0d9dacb09faba44e11435e55d467a2632f0",
+            r########"[[6161,6208,"    let _before_advance = old_advance_epoch();\n",""],[7017,7064,"    let _before_advance = old_advance_epoch();\n",""],[8515,8562,"    let _before_advance = old_advance_epoch();\n",""],[10078,10125,"    let _before_advance = old_advance_epoch();\n",""],[11100,11147,"    let _before_advance = old_advance_epoch();\n",""],[12517,12601,"    let _before_advance = old_advance_epoch();\n    use super::before_advance::Pair;\n",""],[15003,15050,"    let _before_advance = old_advance_epoch();\n",""],[16297,16344,"    let _before_advance = old_advance_epoch();\n",""],[17515,17562,"    let _before_advance = old_advance_epoch();\n",""],[18462,18509,"    let _before_advance = old_advance_epoch();\n",""],[23608,23655,"    let _before_advance = old_advance_epoch();\n",""],[24907,24960,"\n#[path = \"lexical_advance.rs\"]\nmod lexical_advance;\n",""]]"########,
+        ),
+        "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" => (
+            10368,
+            "000028e4120e98e590ea4c03d182f5a22ae58d402f3f16ed9e5aa87f42e97d89",
+            r########"[[2203,2343,"    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v20\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n",""]]"########,
+        ),
+        "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs" => (
+            30573,
+            "422caa6bb19da7b623d3cc03077f2aa07853b91ddc8de928bf75a22b6a6609f2",
+            r########"[[28778,28995,"            if matches!(row[\"file\"].as_str().unwrap(), \"src/workspace_graph/expected_projection/held_projection.rs\" | \"src/workspace_graph/expected_projection/uncached_peak.rs\") { physical_current } else { current },\n","            if row[\"file\"] == \"src/workspace_graph/expected_projection/held_projection.rs\" { physical_current } else { current },\n"]]"########,
+        ),
         _ => return std::borrow::Cow::Borrowed(supplied),
     };
-    assert_eq!(physical(source), Some(supplied), "actual current member before whole prior join");
+    assert_eq!(
+        physical(source),
+        Some(supplied),
+        "actual current member before whole prior join"
+    );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let current_sha = digest(supplied);
-    assert_eq!(super::raw_reader::read(&root.join(format!("e/{current_sha}")), supplied.len(), &current_sha, 2_097_152).unwrap(), supplied);
-    let old = super::raw_reader::read(&root.join(format!("e/{sha}")), length, sha, 2_097_152).unwrap();
+    assert_eq!(
+        super::raw_reader::read(
+            &root.join(format!("e/{current_sha}")),
+            supplied.len(),
+            &current_sha,
+            2_097_152
+        )
+        .unwrap(),
+        supplied
+    );
+    let old =
+        super::raw_reader::read(&root.join(format!("e/{sha}")), length, sha, 2_097_152).unwrap();
     let edits: serde_json::Value = serde_json::from_str(packet).unwrap();
-    let edits = edits.as_array().unwrap(); assert!(edits.len() <= 512);
-    let mut restored = supplied.to_owned(); let mut next = restored.len();
+    let edits = edits.as_array().unwrap();
+    assert!(edits.len() <= 512);
+    let mut restored = supplied.to_owned();
+    let mut next = restored.len();
     for edit in edits.iter().rev() {
         assert_eq!(edit.as_array().unwrap().len(), 4);
         let lo = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
@@ -681,12 +713,29 @@ fn prior_current_part<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'
         assert!(lo <= hi && hi <= next);
         assert_eq!(restored.get(lo..hi), Some(edit[2].as_str().unwrap()));
         restored.replace_range(lo..hi, edit[3].as_str().unwrap());
-        assert!(restored.len() <= 2_097_152); next = lo;
+        assert!(restored.len() <= 2_097_152);
+        next = lo;
     }
     assert_eq!(restored, old, "ENTIRE unchanged member of prior146 join");
-    assert_eq!(super::raw_reader::read(&root.join(format!("e/{sha}")), length, sha, 2_097_152).unwrap(), old);
-    assert_eq!(super::raw_reader::read(&root.join(format!("e/{current_sha}")), supplied.len(), &current_sha, 2_097_152).unwrap(), supplied);
-    assert_eq!(physical(source), Some(supplied), "late actual member after prior join inverse");
+    assert_eq!(
+        super::raw_reader::read(&root.join(format!("e/{sha}")), length, sha, 2_097_152).unwrap(),
+        old
+    );
+    assert_eq!(
+        super::raw_reader::read(
+            &root.join(format!("e/{current_sha}")),
+            supplied.len(),
+            &current_sha,
+            2_097_152
+        )
+        .unwrap(),
+        supplied
+    );
+    assert_eq!(
+        physical(source),
+        Some(supplied),
+        "late actual member after prior join inverse"
+    );
     std::borrow::Cow::Owned(restored)
 }
 
@@ -713,7 +762,11 @@ pub(super) fn stages(
     for &(source, compiled, _, _) in CURRENT_PARTS {
         prior_current.push_str(&prior_current_part(source, compiled));
     }
-    assert_eq!((prior_current.len(), digest(&prior_current)), (PRIOR_CURRENT_LENGTH, PRIOR_CURRENT_SHA.to_owned()), "ENTIRE retained146-member current join before old chains");
+    assert_eq!(
+        (prior_current.len(), digest(&prior_current)),
+        (PRIOR_CURRENT_LENGTH, PRIOR_CURRENT_SHA.to_owned()),
+        "ENTIRE retained146-member current join before old chains"
+    );
     // Authenticate the complete immediate owning join before either old chain.
     // Only this registered child changed. Its ordinary current/compiled/archive
     // acquisition restores its whole predecessor; every other joined byte and
@@ -721,15 +774,32 @@ pub(super) fn stages(
     let mut immediate = String::new();
     for &(source, compiled, _, _) in CURRENT_PARTS {
         if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
-            let prior = invocation.value_direct(source, "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a", compiled);
+            let prior = invocation.value_direct(
+                source,
+                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a",
+                compiled,
+            );
             assert_eq!(prior.len(), 10073);
-            assert_eq!(digest(&prior), "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a");
+            assert_eq!(
+                digest(&prior),
+                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a"
+            );
             immediate.push_str(&prior);
-        } else { immediate.push_str(&prior_current_part(source, compiled)); }
+        } else {
+            immediate.push_str(&prior_current_part(source, compiled));
+        }
     }
-    assert_eq!((immediate.len(), digest(&immediate)), (2283206, "a298bf70cc8c5c8f6c7011d730e35c81ff8e1a2e83145ad9b60ff42eba7cf906".to_owned()));
+    assert_eq!(
+        (immediate.len(), digest(&immediate)),
+        (
+            2283206,
+            "a298bf70cc8c5c8f6c7011d730e35c81ff8e1a2e83145ad9b60ff42eba7cf906".to_owned()
+        )
+    );
     for &(source, compiled, _, _) in CURRENT_PARTS {
-        if !source.is_empty() { assert_eq!(physical(source), Some(compiled)); }
+        if !source.is_empty() {
+            assert_eq!(physical(source), Some(compiled));
+        }
     }
     let v10 = named_join(V10_CURRENT_PARTS, invocation);
     let old = include_str!(concat!(
@@ -871,15 +941,13 @@ mod tests {
             assert!(
                 named_part(source, length + 1, sha, &mut ProjectionInvocation::new()).is_none()
             );
-            assert!(
-                named_part(
-                    source,
-                    length,
-                    &"0".repeat(64),
-                    &mut ProjectionInvocation::new()
-                )
-                .is_none()
-            );
+            assert!(named_part(
+                source,
+                length,
+                &"0".repeat(64),
+                &mut ProjectionInvocation::new()
+            )
+            .is_none());
         }
         assert!(named_part("unlisted", 1, CURRENT_SHA, &mut ProjectionInvocation::new()).is_none());
         let mut v10_current = String::new();

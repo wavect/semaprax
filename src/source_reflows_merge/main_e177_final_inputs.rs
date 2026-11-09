@@ -472,7 +472,9 @@ fn held_4a6eb(path: &Path, length: usize, expected: &str) -> Result<String, &'st
         return Err("bound");
     }
     #[cfg(test)]
-    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }
+    if let Some(result) = historical_before_data::invocation_probe::read(path, length, expected) {
+        return result;
+    }
     let before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
     if before.file_type().is_symlink() || !before.is_file() {
         return Err("nonregular");
@@ -1088,7 +1090,6 @@ pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> Stri
 fn value_direct_before_nested_context(source: &str, expected: &str, supplied: &str) -> String {
     overlay_v2::value_direct(source, expected, supplied)
 }
-
 fn value_direct_4a6eb(source: &str, expected: &str, supplied: &str) -> String {
     let current = packet();
     if current["rows"]
@@ -1458,7 +1459,6 @@ _=>None,
         Some(Err("foreign successor tuple"))
     }
 }
-
 #[test]
 fn complete_current_compiled_sources_precede_strict_historical_stage_acquisition() {
     let packet = packet();

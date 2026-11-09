@@ -543,8 +543,7 @@ pub(crate) mod original_constructor;
 // Closed ABI census for the additional cfg(test) trailing-active preparation.
 // No reservation or identity authority is introduced by this numeric constant.
 impl IteratorOp {
-    pub(crate) const ID_CALL_CONTROLS: usize =
-        2 * std::mem::size_of::<Self>() // by-value actual/formal
+    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal
         + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum
         + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver
 }

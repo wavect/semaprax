@@ -83,14 +83,14 @@ pub(crate) fn restore(path: &str, supplied: &str) -> String {
     let packet = include_str!("inverse.json");
     assert_eq!(
         digest(packet.as_bytes()),
-        "e4ca531194e96430b44274ce394e8135c7b70f8d42f00d8496b82de11c302bfb"
+        "d8e777635c5658bc1373efde12e2be78f59759229d1ecdfdef1356337c7ed689"
     );
     let packet_path = physical.join("src/cleanup_plan/replay/oracle_closure_before/inverse.json");
     assert_eq!(
         exact(
             &packet_path,
-            154_225,
-            "e4ca531194e96430b44274ce394e8135c7b70f8d42f00d8496b82de11c302bfb"
+            188_504,
+            "d8e777635c5658bc1373efde12e2be78f59759229d1ecdfdef1356337c7ed689"
         ),
         packet
     );
@@ -159,8 +159,8 @@ pub(crate) fn restore(path: &str, supplied: &str) -> String {
     assert_eq!(
         exact(
             &packet_path,
-            154_225,
-            "e4ca531194e96430b44274ce394e8135c7b70f8d42f00d8496b82de11c302bfb"
+            188_504,
+            "d8e777635c5658bc1373efde12e2be78f59759229d1ecdfdef1356337c7ed689"
         ),
         packet
     );

@@ -1,8 +1,8 @@
 //! One invocation's explicitly paid insertion receivers and terminal report.
-use crate::cleanup_plan::replay::physical_storage::btree_node_upper;
 use super::{Diagnostic, ReplayBudget, ResolvedFunction};
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
+use crate::cleanup_plan::replay::physical_storage::btree_node_upper;
 use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
 pub(super) struct Insertions<T> {
@@ -184,4 +184,3 @@ impl<T: Ord> Insertions<T> {
             .expect("ownership insertion report moves once")
     }
 }
-

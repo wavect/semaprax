@@ -2,12 +2,12 @@
 //! This test-only view owns no compiler, budget or profiling authority.
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
-#[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
-mod reader;
 #[path = "ci_inputs_current_epoch.rs"]
 pub(crate) mod current_source_epoch;
 #[path = "../source_front_pool.rs"]
 pub(crate) mod front_pool;
+#[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod reader;
 fn digest(text: &str) -> String {
     format!(
         "{:x}",
@@ -329,7 +329,9 @@ fn rows() -> serde_json::Value {
     {
         let row = &mut rows[8];
         let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
-        let current = constructor903_before(row["source"].as_str().unwrap(), current).unwrap_or_else(|| current.to_owned()); let current = current.as_str();
+        let current = constructor903_before(row["source"].as_str().unwrap(), current)
+            .unwrap_or_else(|| current.to_owned());
+        let current = current.as_str();
         assert_eq!(current.len(), 59526);
         assert_eq!(
             digest(current),
@@ -377,7 +379,8 @@ fn rows() -> serde_json::Value {
         );
         assert_eq!(
             std::fs::read(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5")
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5")
             )
             .unwrap(),
             actual.as_bytes()
@@ -563,8 +566,13 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     )
     .unwrap();
     assert_eq!(fresh, current, "complete fresh physical CI history input");
-    let allocation943 = current_source_epoch::allocation_input(source, current); let source903 = constructor903_before(source, allocation943.as_ref());
-    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), source903.as_deref().unwrap_or(allocation943.as_ref()));
+    let allocation943 = current_source_epoch::allocation_input(source, current);
+    let source903 = constructor903_before(source, allocation943.as_ref());
+    let entered = historical_entry(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        source903.as_deref().unwrap_or(allocation943.as_ref()),
+    );
     assert_eq!(entered.len() as u64, row["current_length"]);
     assert_eq!(digest(&entered), row["current_sha256"]);
     let mut before = entered.into_owned();
@@ -576,7 +584,8 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     }
     assert_eq!(before.len() as u64, row["before_length"]);
     assert_eq!(digest(&before), row["before_sha256"]);
-    let _ = current_source_epoch::allocation_input(source, current); Cow::Owned(before)
+    let _ = current_source_epoch::allocation_input(source, current);
+    Cow::Owned(before)
 }
 pub(super) fn file_expected(
     path: &std::path::Path,
@@ -1343,5 +1352,10 @@ fn declared_intermediate_epochs_keep_current_authentication_and_the_complete_ori
 #[path = "ci_inputs/successor_fronts.rs"]
 mod successor_fronts;
 use successor_fronts::constructor903_before;
-#[allow(unused_imports, reason = "the other source-reflow fixture also compiles this reader")]
-pub(super) use successor_fronts::{lifecycle_visibility_entry, batch_913_entry, compact_frontier_entry, next_custody_before};
+#[allow(
+    unused_imports,
+    reason = "the other source-reflow fixture also compiles this reader"
+)]
+pub(super) use successor_fronts::{
+    batch_913_entry, compact_frontier_entry, lifecycle_visibility_entry, next_custody_before,
+};

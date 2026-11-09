@@ -188,7 +188,8 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
     identity_slots = identity_slots
         .checked_sub(raw.scalar_identity_discount)
         .expect("raw scalar discount retains each expression identity slot");
-    let generic_instances = generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
+    let generic_instances =
+        generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
     identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
     let hir_input = checked_usage(
         raw.total,

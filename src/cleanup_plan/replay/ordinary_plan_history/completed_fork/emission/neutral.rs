@@ -3,8 +3,14 @@
 //! emitter's temporary Observations, Failure/Emission or swap receivers.
 use super::*;
 
-// This bank precedes every new length/field/Option/continuation inspection.
-// Existing outer DISPATCH already owns the actual payer/lexical-domain test.
+// Inspect cardinality before buying either full field-selection bank.
+pub(in crate::cleanup_plan::replay) const CARDINALITY: usize = 2
+    * size_of::<&Vec<ExprSkeletonPath>>()
+    + 4 * size_of::<&[ExprSkeletonPath]>()
+    + 6 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + PAYMENT;
+// This bank owns the singleton field/Option/continuation inspection.
 pub(in crate::cleanup_plan::replay) const SELECT: usize = 4 * size_of::<&Vec<ExprSkeletonPath>>()
     + 4 * size_of::<&[ExprSkeletonPath]>()
     + 4 * size_of::<&ExprSkeletonPath>()
@@ -65,10 +71,24 @@ macro_rules! dispatch {
             }
             $work.budget.reserve_bytes(
                 $work.function,
+                neutral::CARDINALITY,
+                "neutral HIR prefix cardinality receivers",
+            )?;
+            if $prefixes.len() != 1 || $suffixes.is_empty() {
+                break 'neutral_dispatch match emission::emit!($prefixes, $suffixes, $work)? {
+                    emission::Emission::Complete(paths) => return Ok(paths),
+                    emission::Emission::Unsupported(paths) => paths,
+                };
+            }
+            if $suffixes.len() != 1 {
+                break 'neutral_dispatch neutral::multiple!($prefixes, $suffixes, $work);
+            }
+            $work.budget.reserve_bytes(
+                $work.function,
                 neutral::SELECT,
                 "neutral HIR prefix selector receivers",
             )?;
-            let eligible = if $prefixes.len() == 1 && $suffixes.len() == 1 {
+            let eligible = {
                 let prefix = &$prefixes[0];
                 let suffix = &$suffixes[0];
                 !prefix.failed
@@ -80,8 +100,6 @@ macro_rules! dispatch {
                     && suffix.observations.items.is_empty()
                     && suffix.owned_source.is_none()
                     && matches!(&suffix.continuation, lexical_skeleton::Continuation::Normal)
-            } else {
-                false
             };
             if eligible {
                 $work.budget.reserve_bytes(
@@ -131,7 +149,10 @@ macro_rules! dispatch {
                 }
                 $prefixes
             } else {
-                neutral::multiple!($prefixes, $suffixes, $work)
+                match emission::emit!($prefixes, $suffixes, $work)? {
+                    emission::Emission::Complete(paths) => return Ok(paths),
+                    emission::Emission::Unsupported(paths) => paths,
+                }
             }
         }
     }};
@@ -161,20 +182,26 @@ pub(in crate::cleanup_plan::replay) const MANY_PROBE: usize = 4 * size_of::<&[Ex
     + 10 * size_of::<usize>()
     + 12 * size_of::<bool>()
     + PAYMENT;
-// The singleton OUTPUT already contains the exact ledger, Vec/result/error,
-// clone_owned and work gateways. Renew it before EACH new output, together with
-// the actual observations/path construction, push ABI and scalar cursor roles.
-// No retained general bank is silently donated to this lexical receiver.
+// Renew the singleton's per-output roles, plus the multi-output publication
+// and cursor roles. The setup separately owns the persistent ledger and Vec.
 pub(in crate::cleanup_plan::replay) const MANY_OUTPUT: usize = OUTPUT
-    + 2 * size_of::<Observations>()
+    // The setup has already acquired these owners. No new ledger capture,
+    // output Vec initialization, or terminal result is formed for each item.
+    - 2 * size_of::<ClassifierLedger>()
+    - ClassifierLedger::capture_into_controls()
+    - 2 * size_of::<Vec<ExprSkeletonPath>>()
+    - 2 * size_of::<Result<Vec<ExprSkeletonPath>, Diagnostic>>()
+    + 12 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + PAYMENT;
+// The first output updates its existing path slot. Only subsequent outputs
+// construct a new path and send it to the Vec publication helper.
+pub(in crate::cleanup_plan::replay) const MANY_PUSH: usize = 2 * size_of::<Observations>()
     + 2 * size_of::<ExprSkeletonPath>()
     + 2 * size_of::<lexical_skeleton::Continuation>()
     + 4 * size_of::<&mut Vec<ExprSkeletonPath>>()
     + 2 * size_of::<Vec<Rc<crate::cleanup_plan::replay::SkeletonObservation>>>()
-    + 2 * size_of::<Result<(), Diagnostic>>()
-    + 12 * size_of::<usize>()
-    + 8 * size_of::<bool>()
-    + PAYMENT;
+    + 2 * size_of::<Result<(), Diagnostic>>();
 
 macro_rules! multiple {
     ($prefixes:ident, $suffixes:ident, $work:ident) => {{
@@ -196,15 +223,14 @@ macro_rules! multiple {
                 false
             };
             let mut index = 0;
-            loop {
+            // MANY_SELECT buys the first condition. Each reached member buys
+            // the next condition before advancing the same scalar cursor.
+            while eligible && index < $suffixes.len() {
                 $work.budget.reserve_bytes(
                     $work.function,
                     neutral::MANY_PROBE,
                     "neutral multi-output metadata receivers",
                 )?;
-                if !eligible || index == $suffixes.len() {
-                    break;
-                }
                 let suffix = &$suffixes[index];
                 eligible = suffix.observations.prefix.is_some()
                     && suffix.observations.items.is_empty()
@@ -238,15 +264,14 @@ macro_rules! multiple {
             }
             let mut paths = $prefixes;
             let mut index = 0;
-            loop {
+            // The setup buys the first condition. Each live publication
+            // buys the next condition, including the terminal comparison.
+            while index < $suffixes.len() {
                 $work.budget.reserve_bytes(
                     $work.function,
-                    neutral::MANY_OUTPUT,
+                    neutral::MANY_OUTPUT + if index == 0 { 0 } else { neutral::MANY_PUSH },
                     "neutral multi-output publication receivers",
                 )?;
-                if index == $suffixes.len() {
-                    break;
-                }
                 let suffix = &$suffixes[index];
                 // The first clone precedes the first ledger check; every later
                 // ledger check precedes that output's clone, as in both old

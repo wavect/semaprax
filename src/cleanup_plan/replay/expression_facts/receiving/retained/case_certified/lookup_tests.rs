@@ -1027,7 +1027,9 @@ fn default_factored_work_without_outer_preflight_is_paid_exact_short_and_dropped
                 // precedes its own account. Pay its exact typed backing FIRST
                 // from the finite fixture lease, even when no oracle starts.
                 reference_owner_fee = crate::bounded_output::test_budget_backing_bytes();
-                reference.lease().charge(reference_owner_fee)
+                reference
+                    .lease()
+                    .charge(reference_owner_fee)
                     .expect("finite fixture ledger backing before Rc construction");
                 let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
                 let selected = opt_in(reference.lease()).expect("one no-preflight reference lease");

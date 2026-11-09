@@ -433,12 +433,14 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
         "/e/e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4"
     ));
     assert_eq!(original.len(), 17171);
-    let old = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
-        source, expected, raw,
-    );
+    let old =
+        crate::source_reflows_merge::main_e177_final_inputs::value_direct(source, expected, raw);
     assert_eq!(old, original);
     assert_eq!(
-        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))),
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))
+        ),
         expected
     );
     for supplied in [

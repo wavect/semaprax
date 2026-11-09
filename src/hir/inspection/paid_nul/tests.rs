@@ -279,26 +279,80 @@ fn audit_source_before(path: &str, supplied: &str) -> String {
     let hash = |b: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(b)));
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let packet = include_str!("reuse_before/audit_acquisition.json");
-    assert_eq!(std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/audit_acquisition.json")).unwrap(), packet.as_bytes());
-    assert_eq!(hash(packet.as_bytes()), "e5fd4db07611e7a45a3b7dd9ee35fa946f74a30b05685c7b57ecdfd69c85692c");
+    assert_eq!(
+        std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/audit_acquisition.json"))
+            .unwrap(),
+        packet.as_bytes()
+    );
+    assert_eq!(
+        hash(packet.as_bytes()),
+        "e5fd4db07611e7a45a3b7dd9ee35fa946f74a30b05685c7b57ecdfd69c85692c"
+    );
     let packet: serde_json::Value = serde_json::from_str(packet).unwrap();
-    assert_eq!(packet["schema"], "semaprax.paid-nul-audit-source-acquisition.v1");
-    let targets = [("src/hir/inspection.rs", 52939u64, "5c80d0017ee96a092a80b7fe9c5b2ed263d0a91fe13cfca9a56f9674f27a1252"), ("src/hir/validation/constructor_seed/original.rs", 2250u64, "7869bcbceeee788e1fc5e7b5afba51a39c41e69561dcdb4b802a57d11dbf7804"), ("src/hir/validation/function_lookup/paid_custody.rs", 11113u64, "fa1983be234c53278d09665f762ba44feb15f88240ebd950df4d7f399c7a47ca")];
-    let rows = packet["rows"].as_array().unwrap(); assert_eq!(rows.len(), targets.len());
-    for (row, (name, length, sha)) in rows.iter().zip(targets) { assert_eq!(row["path"], name); assert_eq!(row["before_length"], length); assert_eq!(row["before_sha256"], sha); }
-    let row = rows.iter().find(|r| r["path"] == path).expect("fixed original audit acquisition");
+    assert_eq!(
+        packet["schema"],
+        "semaprax.paid-nul-audit-source-acquisition.v1"
+    );
+    let targets = [
+        (
+            "src/hir/inspection.rs",
+            52939u64,
+            "5c80d0017ee96a092a80b7fe9c5b2ed263d0a91fe13cfca9a56f9674f27a1252",
+        ),
+        (
+            "src/hir/validation/constructor_seed/original.rs",
+            2250u64,
+            "7869bcbceeee788e1fc5e7b5afba51a39c41e69561dcdb4b802a57d11dbf7804",
+        ),
+        (
+            "src/hir/validation/function_lookup/paid_custody.rs",
+            11113u64,
+            "fa1983be234c53278d09665f762ba44feb15f88240ebd950df4d7f399c7a47ca",
+        ),
+    ];
+    let rows = packet["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), targets.len());
+    for (row, (name, length, sha)) in rows.iter().zip(targets) {
+        assert_eq!(row["path"], name);
+        assert_eq!(row["before_length"], length);
+        assert_eq!(row["before_sha256"], sha);
+    }
+    let row = rows
+        .iter()
+        .find(|r| r["path"] == path)
+        .expect("fixed original audit acquisition");
     let compiled = match path {
         "src/hir/inspection.rs" => include_str!("../../inspection.rs"),
-        "src/hir/validation/constructor_seed/original.rs" => include_str!("../../validation/constructor_seed/original.rs"),
-        "src/hir/validation/function_lookup/paid_custody.rs" => include_str!("../../validation/function_lookup/paid_custody.rs"),
+        "src/hir/validation/constructor_seed/original.rs" => {
+            include_str!("../../validation/constructor_seed/original.rs")
+        }
+        "src/hir/validation/function_lookup/paid_custody.rs" => {
+            include_str!("../../validation/function_lookup/paid_custody.rs")
+        }
         _ => panic!("foreign original audit acquisition"),
     };
-    assert_eq!(supplied, compiled); assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
-    assert_eq!(compiled.len() as u64, row["current_length"]); assert_eq!(hash(compiled.as_bytes()), row["current_sha256"].as_str().unwrap());
+    assert_eq!(supplied, compiled);
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(compiled.len() as u64, row["current_length"]);
+    assert_eq!(
+        hash(compiled.as_bytes()),
+        row["current_sha256"].as_str().unwrap()
+    );
     let mut restored = compiled.to_owned();
-    for e in row["edits"].as_array().unwrap().iter().rev() { let start=e["start"].as_u64().unwrap() as usize; let end=e["end"].as_u64().unwrap() as usize; assert_eq!(&restored[start..end], e["current"].as_str().unwrap()); restored.replace_range(start..end, e["before"].as_str().unwrap()); }
-    assert_eq!(restored, row["full_before"].as_str().unwrap()); assert_eq!(restored.len() as u64, row["before_length"]); assert_eq!(hash(restored.as_bytes()), row["before_sha256"].as_str().unwrap());
-    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes()); restored
+    for e in row["edits"].as_array().unwrap().iter().rev() {
+        let start = e["start"].as_u64().unwrap() as usize;
+        let end = e["end"].as_u64().unwrap() as usize;
+        assert_eq!(&restored[start..end], e["current"].as_str().unwrap());
+        restored.replace_range(start..end, e["before"].as_str().unwrap());
+    }
+    assert_eq!(restored, row["full_before"].as_str().unwrap());
+    assert_eq!(restored.len() as u64, row["before_length"]);
+    assert_eq!(
+        hash(restored.as_bytes()),
+        row["before_sha256"].as_str().unwrap()
+    );
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    restored
 }
 
 #[test]
@@ -313,10 +367,21 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
         reuse_source_before("src/hir/inspection/paid_nul.rs", ci_str!("../paid_nul.rs"));
     let acquired = [
         audit_source_before("src/hir/inspection.rs", include_str!("../../inspection.rs")),
-        audit_source_before("src/hir/validation/constructor_seed/original.rs", include_str!("../../validation/constructor_seed/original.rs")),
-        audit_source_before("src/hir/validation/function_lookup/paid_custody.rs", include_str!("../../validation/function_lookup/paid_custody.rs")),
+        audit_source_before(
+            "src/hir/validation/constructor_seed/original.rs",
+            include_str!("../../validation/constructor_seed/original.rs"),
+        ),
+        audit_source_before(
+            "src/hir/validation/function_lookup/paid_custody.rs",
+            include_str!("../../validation/function_lookup/paid_custody.rs"),
+        ),
     ];
-    let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];
+    let currents = [
+        acquired[0].as_str(),
+        acquired[1].as_str(),
+        acquired[2].as_str(),
+        paid_nul_before.as_str(),
+    ];
     let originals = [
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
@@ -723,12 +788,27 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
         .split_once("// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS")
         .unwrap();
     // Both raw channels cover the whole current harness before any inverse.
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/hir/inspection/paid_nul/tests.rs")).unwrap(), harness.as_bytes());
-    let added_start = prefix.find("// Complete physical sources precede the unchanged four original audit inverses.\n").unwrap();
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/hir/inspection/paid_nul/tests.rs")
+        )
+        .unwrap(),
+        harness.as_bytes()
+    );
+    let added_start = prefix
+        .find("// Complete physical sources precede the unchanged four original audit inverses.\n")
+        .unwrap();
     let added_end = added_start + prefix[added_start..].find("#[test]\nfn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte()").unwrap();
     let added = &prefix[added_start..added_end];
     assert_eq!(added.len(), 2863);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(added.as_bytes()))), "fd8138e752f2ab846d3a3ff670199ffc11542a3f99e1df6a3613e7036651e24a");
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(added.as_bytes()))
+        ),
+        "fd8138e752f2ab846d3a3ff670199ffc11542a3f99e1df6a3613e7036651e24a"
+    );
     assert_eq!(prefix.matches(added).count(), 1);
     let prefix = prefix.replacen(added, "", 1);
     let acquired = "    let acquired = [\n        audit_source_before(\"src/hir/inspection.rs\", include_str!(\"../../inspection.rs\")),\n        audit_source_before(\"src/hir/validation/constructor_seed/original.rs\", include_str!(\"../../validation/constructor_seed/original.rs\")),\n        audit_source_before(\"src/hir/validation/function_lookup/paid_custody.rs\", include_str!(\"../../validation/function_lookup/paid_custody.rs\")),\n    ];\n    let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];\n";
@@ -737,7 +817,13 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
     let prefix = prefix.replacen(acquired, before_calls, 1);
     // Complete immediate pre-acquisition prefix; original four-byte inverses follow.
     assert_eq!(prefix.len(), 14917);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(prefix.as_bytes()))), "7878af4d95b891250a995f9e77b4be02d1c5cef96f6d761c167e394faa788a73");
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(prefix.as_bytes()))
+        ),
+        "7878af4d95b891250a995f9e77b4be02d1c5cef96f6d761c167e394faa788a73"
+    );
     let prefix = prefix.replace(
         "    let paid_nul_before =\n        reuse_source_before(\"src/hir/inspection/paid_nul.rs\", ci_str!(\"../paid_nul.rs\"));\n",
         "",
@@ -746,7 +832,14 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
         prefix.strip_suffix('\n').unwrap(),
         include_str!("reuse_before/tests.rs.txt")
     );
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/hir/inspection/paid_nul/tests.rs")).unwrap(), harness.as_bytes());
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/hir/inspection/paid_nul/tests.rs")
+        )
+        .unwrap(),
+        harness.as_bytes()
+    );
     let current = include_str!("../paid_nul.rs");
     let mutated = current.replacen("const REUSE_CALL", "const FOREIGN_CALL", 1);
     assert!(std::panic::catch_unwind(|| reuse_source_before(

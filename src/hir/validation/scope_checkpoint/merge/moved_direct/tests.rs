@@ -57,7 +57,8 @@ fn complete(metrics: Metrics, paid: usize) {
     assert_eq!(metrics.allocated, metrics.freed);
     assert!(metrics.allocated <= paid && metrics.highwater <= paid);
 }
-fn immediate_pre_retain_borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case() {
+fn immediate_pre_retain_borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case(
+) {
     for count in [0, 1, 2, 17] {
         for a in [
             Availability::Available,
@@ -95,7 +96,8 @@ fn immediate_pre_retain_borrowed_ordered_union_keeps_every_state_prefix_missing_
         }
     }
 }
-fn immediate_pre_retain_complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss() {
+fn immediate_pre_retain_complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss(
+) {
     for count in [1, 256] {
         let input = BTreeMap::from([(
             ValueId::new("moved.owner".to_owned()),
@@ -138,7 +140,8 @@ fn immediate_pre_retain_complete_nonempty_scope_receiver_has_honest_many_field_n
         }
     }
 }
-fn immediate_pre_retain_current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop() {
+fn immediate_pre_retain_current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop(
+) {
     let input = BTreeMap::from([(
         ValueId::new("moved.owner".to_owned()),
         binding(64, Availability::MaybeMoved),

@@ -542,7 +542,8 @@ fn current_projection_leading_acquisitions() -> &'static str {
 }
 fn current_hir_browser_leading_acquisitions() -> String {
     let first = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs");
-    let browser = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs");
+    let browser =
+        include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs");
     let original = current_hir_leading_acquisitions();
     assert!(!first.is_empty() && !browser.is_empty());
     assert_eq!(original.matches(first).count(), 1);
@@ -553,16 +554,30 @@ fn current_hir_browser_leading_acquisitions() -> String {
     format!("{first}{browser}{rest}")
 }
 fn assert_current_full_raw_relocated_prefix(raw: &str) {
-    let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
-    assert_eq!(raw.matches(moved_child).count(), 1, "the complete moved lexical child must remain present exactly once in actual raw");
+    let moved_child = include_str!(
+        "../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs"
+    );
+    assert_eq!(
+        raw.matches(moved_child).count(),
+        1,
+        "the complete moved lexical child must remain present exactly once in actual raw"
+    );
     let next_hir = current_hir_browser_leading_acquisitions();
-    for leading in [current_hir_leading_acquisitions(), current_projection_leading_acquisitions(), next_hir.as_str()] {
+    for leading in [
+        current_hir_leading_acquisitions(),
+        current_projection_leading_acquisitions(),
+        next_hir.as_str(),
+    ] {
         if let Some(original_tail) = raw.strip_prefix(leading) {
             let original = current_accepted_batch_relocated_prefix();
-            let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
+            let moved_child = include_str!(
+                "../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs"
+            );
             assert_eq!(original.matches(moved_child).count(), 1);
             let current_slot = original.replacen(moved_child, "", 1);
-            let rest = original_tail.strip_prefix(current_slot.as_str()).expect("all current thirty-two source chunks retain exact order and multiplicity");
+            let rest = original_tail
+                .strip_prefix(current_slot.as_str())
+                .expect("all current thirty-two source chunks retain exact order and multiplicity");
             assert!(!rest.is_empty());
             assert!(!rest.starts_with(current_slot.as_str()));
             // Only the historical guard view restores the child slot. The full
@@ -598,20 +613,44 @@ fn current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjec
     let prefix = current_accepted_batch_relocated_prefix();
     let next_hir = current_hir_browser_leading_acquisitions();
     for (leading, first, second) in [
-        (current_hir_leading_acquisitions(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),
-        (current_projection_leading_acquisitions(), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs")),
-        (next_hir.as_str(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")),
+        (
+            current_hir_leading_acquisitions(),
+            include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"),
+            include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"),
+        ),
+        (
+            current_projection_leading_acquisitions(),
+            include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"),
+            include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs"),
+        ),
+        (
+            next_hir.as_str(),
+            include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"),
+            include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs"),
+        ),
     ] {
         let first_two = format!("{first}{second}");
         let rest = leading.strip_prefix(first_two.as_str()).unwrap();
-        let relocated_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
+        let relocated_child = include_str!(
+            "../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs"
+        );
         assert_eq!(prefix.matches(relocated_child).count(), 1);
         let current_prefix = prefix.replacen(relocated_child, "", 1);
-        let actual_tail_child = if leading.matches(relocated_child).count() == 1 { "" } else { relocated_child };
+        let actual_tail_child = if leading.matches(relocated_child).count() == 1 {
+            ""
+        } else {
+            relocated_child
+        };
         let valid = format!("{leading}{current_prefix}{actual_tail_child}remaining raw inventory");
         assert_current_full_raw_relocated_prefix(&valid);
-        for bad in [valid.replacen(relocated_child, "", 1), format!("{valid}{relocated_child}")] {
-            assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad)).is_err());
+        for bad in [
+            valid.replacen(relocated_child, "", 1),
+            format!("{valid}{relocated_child}"),
+        ] {
+            assert!(
+                std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad))
+                    .is_err()
+            );
         }
         for changed in [
             format!("{second}{rest}"),
@@ -621,11 +660,20 @@ fn current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjec
             format!("foreign{leading}"),
         ] {
             assert_ne!(changed, leading);
-            let bad = format!("{changed}{current_prefix}{actual_tail_child}remaining raw inventory");
-            assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad)).is_err());
+            let bad =
+                format!("{changed}{current_prefix}{actual_tail_child}remaining raw inventory");
+            assert!(
+                std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&bad))
+                    .is_err()
+            );
         }
         let missing_nested = current_prefix.replacen(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/matched.rs"), "", 1);
-        assert!(std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&format!("{leading}{missing_nested}{actual_tail_child}remaining raw inventory"))).is_err());
+        assert!(
+            std::panic::catch_unwind(|| assert_current_full_raw_relocated_prefix(&format!(
+                "{leading}{missing_nested}{actual_tail_child}remaining raw inventory"
+            )))
+            .is_err()
+        );
     }
     let original = accepted_batch_relocated_prefix();
     let before_format = before_format_current_accepted_batch_relocated_prefix();

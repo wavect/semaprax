@@ -11,9 +11,9 @@ const NIL: usize = usize::MAX;
 
 // One immutable lexical insertion choice: actual/formal Option receiver loans,
 // primitive predicate return, receiving expression and branch discriminator.
-pub(super) const LEXICAL_INSERT_SELECTOR_BYTES: usize =
-    2 * std::mem::size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()
-        + 3 * std::mem::size_of::<bool>();
+pub(super) const LEXICAL_INSERT_SELECTOR_BYTES: usize = 2 * std::mem::size_of::<
+    &Option<Box<crate::cleanup_plan::LexicalControlPlan>>,
+>() + 3 * std::mem::size_of::<bool>();
 pub(super) const LEXICAL_INSERT_SELECTOR_WORK: usize = 1;
 #[cfg(test)]
 pub(super) const LEXICAL_INSERT_CONSTRUCTOR_BASE_BYTES: usize =

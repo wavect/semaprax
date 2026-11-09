@@ -23,45 +23,48 @@ fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, 
     let immediate438_counts = loaded::complete_immediate438_invoice_counts(row);
     let row = &immediate438_counts;
     let prior_generation = {
-    assert!(
-        old.complete && row.complete,
-        "complete invoice only, never a refused prefix"
-    );
-    assert_eq!(
-        old.identity_probes,
-        row.identity_probes + old.identity_empty_probes
-    );
-    assert_eq!(old.shared_boundaries, row.shared_boundaries);
-    // The authentic old paired loop enters the loaded-guard payment on every
-    // turn, even for ordinary tails. The fused inner loop retains all logical
-    // work but never re-enters that three-boolean boundary guard.
-    assert_eq!(old.shared_checks, row.shared_checks + row.fused_turns);
-    assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
-    let removed_boundary_checks =
-        certified_heads::BOUNDARY_CHECK * (old.shared_checks - row.shared_checks);
-    let selector_header = PAYMENT_HEADER;
-    let selector_payload = size_of::<bool>() * row.empty_selectors;
-    let removed_empty_probes =
-        (3 * size_of::<&[Rc<SkeletonObservation>]>()) * old.identity_empty_probes;
-    let removed_right_rest = size_of::<&[Rc<SkeletonObservation>]>() * row.shared_boundaries;
-    let current = super::super::paired_tail_added(row) + size_of::<ComparisonOwner<'static>>()
-        - size_of::<before_paired_tail::ComparisonOwner<'static>>()
-        + PAYMENT_HEADER
-        + super::super::reader_payload_added(row)
-        + selector_header
-        + selector_payload
-        + final_affine::delta(row).0;
-    let removed = row.fused_turns
-        * (super::super::legacy_matching()
-            + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
-        + super::super::reader_removed(row)
-        + removed_empty_probes
-        + removed_right_rest
-        + removed_boundary_checks
-        + final_affine::delta(row).1;
-    (current, removed)
+        assert!(
+            old.complete && row.complete,
+            "complete invoice only, never a refused prefix"
+        );
+        assert_eq!(
+            old.identity_probes,
+            row.identity_probes + old.identity_empty_probes
+        );
+        assert_eq!(old.shared_boundaries, row.shared_boundaries);
+        // The authentic old paired loop enters the loaded-guard payment on every
+        // turn, even for ordinary tails. The fused inner loop retains all logical
+        // work but never re-enters that three-boolean boundary guard.
+        assert_eq!(old.shared_checks, row.shared_checks + row.fused_turns);
+        assert_eq!(certified_heads::BOUNDARY_CHECK, 3 * size_of::<bool>());
+        let removed_boundary_checks =
+            certified_heads::BOUNDARY_CHECK * (old.shared_checks - row.shared_checks);
+        let selector_header = PAYMENT_HEADER;
+        let selector_payload = size_of::<bool>() * row.empty_selectors;
+        let removed_empty_probes =
+            (3 * size_of::<&[Rc<SkeletonObservation>]>()) * old.identity_empty_probes;
+        let removed_right_rest = size_of::<&[Rc<SkeletonObservation>]>() * row.shared_boundaries;
+        let current = super::super::paired_tail_added(row) + size_of::<ComparisonOwner<'static>>()
+            - size_of::<before_paired_tail::ComparisonOwner<'static>>()
+            + PAYMENT_HEADER
+            + super::super::reader_payload_added(row)
+            + selector_header
+            + selector_payload
+            + final_affine::delta(row).0;
+        let removed = row.fused_turns
+            * (super::super::legacy_matching()
+                + 2 * (paired_value::STEP + paired_value::EMPTY + paired_value::TAIL))
+            + super::super::reader_removed(row)
+            + removed_empty_probes
+            + removed_right_rest
+            + removed_boundary_checks
+            + final_affine::delta(row).1;
+        (current, removed)
     };
-    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
+    (
+        prior_generation.0 + loaded_delta.0,
+        prior_generation.1 + loaded_delta.1,
+    )
 }
 #[test]
 fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() {

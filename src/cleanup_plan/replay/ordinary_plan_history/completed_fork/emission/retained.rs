@@ -34,6 +34,21 @@ pub(in crate::cleanup_plan::replay) const PREFIX: usize = 2 * size_of::<ExprSkel
     + 2 * size_of::<(&ExprSkeletonPath, &[ExprSkeletonPath])>()
     + 8 * size_of::<bool>()
     + 2 * PAYMENT;
+// Singleton iteration borrows existing path slots. Only the multi-output
+// route takes path values and splits a suffix tail.
+pub(in crate::cleanup_plan::replay) const SINGLE_PREFIX: usize = PREFIX
+    - 2 * size_of::<ExprSkeletonPath>()
+    - 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()
+    - 2 * size_of::<&mut std::slice::Iter<'static, ExprSkeletonPath>>()
+    - 2 * size_of::<Option<&ExprSkeletonPath>>()
+    - 2 * size_of::<Option<(&ExprSkeletonPath, &[ExprSkeletonPath])>>()
+    - 2 * size_of::<(&ExprSkeletonPath, &[ExprSkeletonPath])>()
+    + 4 * size_of::<&mut ExprSkeletonPath>();
+// Moving paths uses the owned iterator, with no mutable slice iterator.
+pub(in crate::cleanup_plan::replay) const MULTI_PREFIX: usize = PREFIX
+    - 2 * size_of::<std::slice::IterMut<'static, ExprSkeletonPath>>()
+    - 2 * size_of::<&mut std::slice::IterMut<'static, ExprSkeletonPath>>()
+    - 2 * size_of::<Option<&mut ExprSkeletonPath>>();
 // Keep every surviving original clone/node/owned-source/publication transport
 // paid. Only the actually absent Option/take/expect roles and Enumerate/index
 // transport are removed; the new borrowed split/slot/swap roles are explicit.
@@ -53,8 +68,7 @@ pub(in crate::cleanup_plan::replay) const OUTPUT: usize = STEP
     + 2 * size_of::<Observations>()
     // Inline match scrutinee loan and Some(prefix) binding precede shared payment.
     + size_of::<&Option<Rc<ObservationDag>>>()
-    + size_of::<&Rc<ObservationDag>>()
-; // The append/extension Boolean return/receive boundaries are absent.
+    + size_of::<&Rc<ObservationDag>>(); // The append/extension Boolean return/receive boundaries are absent.
 pub(in crate::cleanup_plan::replay) const SELECT: usize = 2 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<&Vec<ExprSkeletonPath>>()
     + 2 * size_of::<Option<(&ExprSkeletonPath, &[ExprSkeletonPath])>>()
@@ -72,8 +86,7 @@ pub(in crate::cleanup_plan::replay) const EXTEND: usize = sequence::EXTEND_CONTR
     + 4 * size_of::<&mut Option<Rc<ObservationDag>>>()
     + 4 * size_of::<&mut Vec<Rc<SkeletonObservation>>>()
     + 4 * size_of::<Vec<Rc<SkeletonObservation>>>() // take: default, moved replacement and taken return/receive
-    + 2 * size_of::<Observations>()
-; // Lexical extension has no returned status owner.
+    + 2 * size_of::<Observations>(); // Lexical extension has no returned status owner.
 
 // A retained first error never crosses an Output/Failure forwarding ABI.
 // Every existing returning callee keeps its full original Result tariff.
@@ -99,68 +112,89 @@ macro_rules! pay {
 pub(in crate::cleanup_plan::replay) use pay;
 macro_rules! extend {
     ($target:ident, $suffix:ident, $work:ident, $error:ident, $exit:lifetime) => {{
-        use $crate::cleanup_plan::replay::note_skeleton_materialization;
-        use $crate::cleanup_plan::replay::skeleton_work::{ObservationDag, ObservationDagKind};
-        use $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix as sequence;
-        use $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained;
         use std::rc::Rc;
-    match &$suffix.observations.prefix {
-    None => {
-        retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
-        note_skeleton_materialization();
-        retained::receive!($error, $exit,
-            $work.budget.reserve_vec(
-                $work.function,
-                &mut $target.items,
-                $suffix.observations.items.len(),
-                "ordinary flat suffix"
-            )
-        );
-        $target.items.extend_from_slice(&$suffix.observations.items);
-    },
-    Some(prefix) => {
-    retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
-    note_skeleton_materialization();
-    retained::receive!($error, $exit,
-        $work.budget.reserve_bytes(
-            $work.function,
-            retained::EXTEND,
-            "complete HIR shared suffix call receivers"
-        )
-    );
-    let head = if $target.items.is_empty() {
-        $target.prefix.take()
-    } else {
-        Some(retained::receive!($error, $exit,
-            sequence::node(
-                $work,
-                ObservationDagKind::Seq($target.prefix.take(), std::mem::take(&mut $target.items))
-            )
-        ))
-    };
-    let joined = match head {
-        None => prefix.clone(),
-        Some(head) => {
-            retained::receive!($error, $exit,
-                $work.budget.reserve_array::<Rc<ObservationDag>>(
-                    $work.function,
-                    2,
-                    "enumerated HIR concatenation backing"
-                )
-            );
-            retained::receive!($error, $exit,
-                sequence::node($work, ObservationDagKind::Cat(vec![head, prefix.clone()]))
-            )
+        use $crate::cleanup_plan::replay::note_skeleton_materialization;
+        use $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained;
+        use $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix as sequence;
+        use $crate::cleanup_plan::replay::skeleton_work::{ObservationDag, ObservationDagKind};
+        match &$suffix.observations.prefix {
+            None => {
+                retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
+                note_skeleton_materialization();
+                retained::receive!(
+                    $error,
+                    $exit,
+                    $work.budget.reserve_vec(
+                        $work.function,
+                        &mut $target.items,
+                        $suffix.observations.items.len(),
+                        "ordinary flat suffix"
+                    )
+                );
+                $target.items.extend_from_slice(&$suffix.observations.items);
+            }
+            Some(prefix) => {
+                retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
+                note_skeleton_materialization();
+                retained::receive!(
+                    $error,
+                    $exit,
+                    $work.budget.reserve_bytes(
+                        $work.function,
+                        retained::EXTEND,
+                        "complete HIR shared suffix call receivers"
+                    )
+                );
+                let head = if $target.items.is_empty() {
+                    $target.prefix.take()
+                } else {
+                    Some(retained::receive!(
+                        $error,
+                        $exit,
+                        sequence::node(
+                            $work,
+                            ObservationDagKind::Seq(
+                                $target.prefix.take(),
+                                std::mem::take(&mut $target.items)
+                            )
+                        )
+                    ))
+                };
+                let joined = match head {
+                    None => prefix.clone(),
+                    Some(head) => {
+                        retained::receive!(
+                            $error,
+                            $exit,
+                            $work.budget.reserve_array::<Rc<ObservationDag>>(
+                                $work.function,
+                                2,
+                                "enumerated HIR concatenation backing"
+                            )
+                        );
+                        retained::receive!(
+                            $error,
+                            $exit,
+                            sequence::node(
+                                $work,
+                                ObservationDagKind::Cat(vec![head, prefix.clone()])
+                            )
+                        )
+                    }
+                };
+                retained::receive!(
+                    $error,
+                    $exit,
+                    $work.budget.reserve_clone(
+                        $work.function,
+                        &$suffix.observations.items,
+                        "ordinary DAG suffix tail"
+                    )
+                );
+                $target.prefix = Some(joined);
+                $target.items = $suffix.observations.items.clone();
+            }
         }
-    };
-    retained::receive!($error, $exit,
-        $work.budget
-            .reserve_clone($work.function, &$suffix.observations.items, "ordinary DAG suffix tail")
-    );
-    $target.prefix = Some(joined);
-    $target.items = $suffix.observations.items.clone();
-    },
-    }
     }};
 }
 pub(in crate::cleanup_plan::replay) use extend;
@@ -278,7 +312,7 @@ macro_rules! emit {
         // expose a reusable selector or arbitrary output sink to another payer.
         retained::receive!(error, 'retained,
             $work.budget
-                .reserve_bytes($work.function, retained::PREFIX, "complete HIR fork prefix receivers")
+                .reserve_bytes($work.function, retained::SINGLE_PREFIX, "complete HIR fork prefix receivers")
         );
         if path.failed || path.residual {
             retained::receive!(error, 'retained,
@@ -322,7 +356,7 @@ macro_rules! emit {
     }
     let prefixes = std::mem::take(&mut paths);
     for mut prefix in prefixes {
-        retained::pay!(error, 'retained, $work, retained::PREFIX, "complete HIR fork prefix receivers");
+        retained::pay!(error, 'retained, $work, retained::MULTI_PREFIX, "complete HIR fork prefix receivers");
         if prefix.failed || prefix.residual {
             if paths.len() >= MAX_REPLAY_PATHS {
                 error = Some($work.budget.budget_refusal(
@@ -415,7 +449,7 @@ pub(in crate::cleanup_plan::replay) use emit;
 // Full physical/compiled parent acquisition precedes its entire unchanged old
 // source inverse. No truncated-body authentication or new expected endpoint.
 #[cfg(test)]
-pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String {
+pub(super) fn before_neutral(current: &str) -> String {
     use sha2::{Digest, Sha256};
     let digest = |s: &str| {
         format!(
@@ -432,10 +466,43 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
         current.as_bytes()
     );
     // Full new cfg-test oracle epoch, before the unchanged immediate input.
-    assert_eq!(current.len(), 23389);
-    assert_eq!(digest(current), "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb");
-    let physical_current = current;
+    assert_eq!(current.len(), 24613);
+    assert_eq!(
+        digest(current),
+        "06ee0fe4b5a2d87a04ff0355bd86570602da97581393c357579d8488437833a1"
+    );
     let mut parent_epoch = current.to_owned();
+    // Recover the exact input before the neutral and cold flat selectors.
+    let current_edits = [
+        (3533, "#[allow(\n    dead_code,\n    reason = \"complete immediate-old sequence classifier stays independently executable\"\n)]\n", "#[allow(dead_code, reason = \"complete immediate-old sequence classifier stays independently executable\")]\n"),
+        (14370, "// At most eight flat suffixes are inspected once. For a short flat prefix,\n// copying its Rc handles costs less than the complete shared-history setup.\npub(in crate::cleanup_plan::replay) const COLD_FLAT_PROBE: usize = PAYMENT\n    + 4 * size_of::<&[ExprSkeletonPath]>()\n    + 2 * size_of::<&Vec<ExprSkeletonPath>>()\n    + 4 * size_of::<&Vec<Rc<SkeletonObservation>>>()\n    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()\n    + 4 * size_of::<usize>()\n    + 8 * size_of::<bool>()\n    + 9 * (2 * size_of::<Option<&ExprSkeletonPath>>()\n        + 2 * size_of::<&ExprSkeletonPath>()\n        + 2 * size_of::<&Option<Rc<ObservationDag>>>()\n        + 2 * size_of::<bool>());\n\n", ""),
+        (16491, "                $work.budget.reserve_bytes($work.function,\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::COLD_FLAT_PROBE,\n                    \"complete HIR cold flat fork receivers\")?;\n                let cold_flat = if let [prefix] = $prefixes.as_slice() {\n                    prefix.observations.prefix.is_none()\n                        && prefix.observations.items.len() <= 8\n                        && $suffixes.len() <= 8\n                        && $suffixes.iter().all(|suffix| suffix.observations.prefix.is_none())\n                } else {\n                    false\n                };\n                if cold_flat {\n                    $prefixes\n                } else {\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::neutral::dispatch!($prefixes, $suffixes, $work)\n", "                match $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit!($prefixes, $suffixes, $work)? {\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Complete(paths) => return Ok(paths),\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Unsupported(paths) => paths,\n"),
+        (23327, "    prefixes: &[ExprSkeletonPath],\n    suffixes: &[ExprSkeletonPath],\n", "    prefixes: &[ExprSkeletonPath], suffixes: &[ExprSkeletonPath],\n"),
+        (23466, "    work.budget.reserve_bytes(\n        work.function,\n        validation::CALL,\n        \"test complete sequence validation caller\",\n    )?;\n", "    work.budget.reserve_bytes(work.function, validation::CALL,\n        \"test complete sequence validation caller\")?;\n"),
+        (23819, "pub(in crate::cleanup_plan::replay) mod neutral;\n", ""),
+    ];
+    for &(at, after, before) in current_edits.iter().rev() {
+        assert_eq!(parent_epoch.get(at..at + after.len()), Some(after));
+        parent_epoch.replace_range(at..at + after.len(), before);
+    }
+    assert_eq!(parent_epoch.len(), 23389);
+    assert_eq!(
+        digest(&parent_epoch),
+        "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb"
+    );
+    parent_epoch
+}
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn before_emission(physical_current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = |s: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(s.as_bytes()))
+        )
+    };
+    let mut parent_epoch = before_neutral(physical_current);
     let epoch_edits: &[(usize, &str, &str)] = &[
         (5530, "            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::frozen_immediate_selected() {\n                $work.budget.reserve_bytes($work.function,\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::ENTRY,\n                    \"complete HIR fork caller receivers\")?;\n                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::emit_prepaid(\n                    $prefixes, $suffixes, $work,\n                )\n            } else if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {\n", "            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {\n"),
         (22933, "\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently executable frozen immediate emitter and validation invoices\")]\n#[rustfmt::skip]\npub(in crate::cleanup_plan::replay) mod immediate_before;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn frozen_immediate_selected() -> bool {\n    SELECTED.with(|selected| selected.get() == 4)\n}\n#[cfg(test)]\nfn with_frozen_immediate<T>(operation: impl FnOnce() -> T) -> T {\n    with_route(4, operation)\n}\n", ""),
@@ -446,11 +513,20 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
     }
     let current = parent_epoch.as_str();
     assert_eq!(current.len(), 22365);
-    assert_eq!(digest(current), "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834");
+    assert_eq!(
+        digest(current),
+        "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834"
+    );
     let mut immediate = current.to_owned();
-    assert_eq!(immediate.get(21476..21528), Some("pub(in crate::cleanup_plan::replay) mod validation;\n")); immediate.replace_range(21476..21528, "mod validation;\n");
-    assert_eq!(immediate.get(6988..7096), Some("            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n")); immediate.replace_range(6988..7096, "            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
-    assert_eq!(immediate.get(6417..6529), Some("                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n")); immediate.replace_range(6417..6529, "                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
+    assert_eq!(
+        immediate.get(21476..21528),
+        Some("pub(in crate::cleanup_plan::replay) mod validation;\n")
+    );
+    immediate.replace_range(21476..21528, "mod validation;\n");
+    assert_eq!(immediate.get(6988..7096), Some("            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n"));
+    immediate.replace_range(6988..7096, "            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
+    assert_eq!(immediate.get(6417..6529), Some("                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n"));
+    immediate.replace_range(6417..6529, "                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
     let current = immediate.as_str();
     assert_eq!(current.len(), 22343);
     assert_eq!(
@@ -480,6 +556,13 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
         digest(&restored),
         "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f"
     );
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).unwrap(), physical_current.as_bytes());
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")
+        )
+        .unwrap(),
+        physical_current.as_bytes()
+    );
     restored
 }

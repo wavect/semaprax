@@ -8,7 +8,7 @@ pub(super) fn predecessor_price_counts(row: &pair_scope_census::Row) -> pair_sco
     paired_segments::predecessor_price_counts(row)
 }
 use crate::bounded_output::with_limit_usage_refusal;
-use crate::test_allocation_observer::{Metrics, measure};
+use crate::test_allocation_observer::{measure, Metrics};
 fn observe_pair(
     function: &ResolvedFunction,
     expected: &[SkeletonPath],

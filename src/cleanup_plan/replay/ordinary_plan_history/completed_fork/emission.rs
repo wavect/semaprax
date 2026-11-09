@@ -68,7 +68,10 @@ const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static,
 // Inspect real node kinds, never a representation marker or shared identity.
 // Each borrowed traversal slot/backing is paid before publication. No recursive
 // traversal, observation copy, target scan or reusable classification authority.
-#[allow(dead_code, reason = "complete immediate-old sequence classifier stays independently executable")]
+#[allow(
+    dead_code,
+    reason = "complete immediate-old sequence classifier stays independently executable"
+)]
 pub(in crate::cleanup_plan::replay) fn sequence_only(
     observations: &Observations,
     work: &mut SkeletonWork<'_, '_>,
@@ -333,6 +336,20 @@ pub(in crate::cleanup_plan::replay) const DISPATCH: usize = 2 * size_of::<&[Expr
     + 2 * size_of::<usize>()
     + 8 * size_of::<bool>()
     + PAYMENT;
+// At most eight flat suffixes are inspected once. For a short flat prefix,
+// copying its Rc handles costs less than the complete shared-history setup.
+pub(in crate::cleanup_plan::replay) const COLD_FLAT_PROBE: usize = PAYMENT
+    + 4 * size_of::<&[ExprSkeletonPath]>()
+    + 2 * size_of::<&Vec<ExprSkeletonPath>>()
+    + 4 * size_of::<&Vec<Rc<SkeletonObservation>>>()
+    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()
+    + 4 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + 9 * (2 * size_of::<Option<&ExprSkeletonPath>>()
+        + 2 * size_of::<&ExprSkeletonPath>()
+        + 2 * size_of::<&Option<Rc<ObservationDag>>>()
+        + 2 * size_of::<bool>());
+
 macro_rules! dispatch {
     ($prefixes:ident, $suffixes:ident, $work:ident) => {{
         #[cfg(test)]
@@ -354,7 +371,22 @@ macro_rules! dispatch {
             if $suffixes.len() > 1 || match $suffixes.first() {
                     Some(path) => path.observations.prefix.is_some(), None => false,
                 } {
-                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::neutral::dispatch!($prefixes, $suffixes, $work)
+                $work.budget.reserve_bytes($work.function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::COLD_FLAT_PROBE,
+                    "complete HIR cold flat fork receivers")?;
+                let cold_flat = if let [prefix] = $prefixes.as_slice() {
+                    prefix.observations.prefix.is_none()
+                        && prefix.observations.items.len() <= 8
+                        && $suffixes.len() <= 8
+                        && $suffixes.iter().all(|suffix| suffix.observations.prefix.is_none())
+                } else {
+                    false
+                };
+                if cold_flat {
+                    $prefixes
+                } else {
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::neutral::dispatch!($prefixes, $suffixes, $work)
+                }
             } else { $prefixes }
             } else { $prefixes }
         } else { $prefixes }
@@ -483,18 +515,22 @@ pub(in crate::cleanup_plan::replay) mod validation;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(
-    prefixes: &[ExprSkeletonPath], suffixes: &[ExprSkeletonPath],
+    prefixes: &[ExprSkeletonPath],
+    suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<bool, Diagnostic> {
-    work.budget.reserve_bytes(work.function, validation::CALL,
-        "test complete sequence validation caller")?;
+    work.budget.reserve_bytes(
+        work.function,
+        validation::CALL,
+        "test complete sequence validation caller",
+    )?;
     validation::inputs(prefixes, suffixes, work)
 }
 
 // The complete immediate emitter, STEP/ENTRY invoices and dispatch above stay
 // independently executable. Only the selected shipping producer owns this frame.
-pub(in crate::cleanup_plan::replay) mod retained;
 pub(in crate::cleanup_plan::replay) mod neutral;
+pub(in crate::cleanup_plan::replay) mod retained;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn immediate_selected() -> bool {

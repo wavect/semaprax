@@ -163,17 +163,9 @@ fn neutral_old_caller_source_is_whole_and_unchanged() {
         ),
         "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb"
     );
-    let declaration = "pub(in crate::cleanup_plan::replay) mod neutral;\n";
-    assert_eq!(current.matches(declaration).count(), 1);
-    let mut restored = current.replacen(declaration, "", 1);
-    let call = "                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::neutral::dispatch!($prefixes, $suffixes, $work)";
-    assert_eq!(restored.matches(call).count(), 1);
-    restored = restored.replacen(call, r#"                match $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit!($prefixes, $suffixes, $work)? {
-                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Complete(paths) => return Ok(paths),
-                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Unsupported(paths) => paths,
-                }"#, 1);
     assert_eq!(
-        restored, saved,
+        super::super::retained::before_neutral(current),
+        saved,
         "entire independently executable immediate emitter, all fees and controls"
     );
     assert_eq!(std::fs::read(path).unwrap(), current.as_bytes());
@@ -373,7 +365,7 @@ fn neutral_many_complete_caller_preserves_all_work_cuts_cache_outputs_and_drop()
         if !flat_tail && width == 8 {
             assert!(
                 current.2 < old.2,
-                "complete old caller invoice, no baseline padding"
+                "complete old caller invoice, no baseline padding: current={current:?} old={old:?}"
             );
         }
         eprintln!("NEUTRAL_MANY width={width} repeat={repeat} flat_tail={flat_tail} current={current:?} old={old:?}");

@@ -27,8 +27,15 @@ fn restore(current: &str, before: &str, length: usize, edits: &[(usize, &str, &s
     result
 }
 pub(super) fn previous_owner(current: &str) -> String {
-    let stage = super::super::super::incoming_stage(current, "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs")));
+    let stage = super::super::super::incoming_stage(
+        current,
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs"
+        )),
+    );
     let current = stage.as_str();
     restore(
         current,
@@ -46,8 +53,15 @@ const OWNER: &[(usize, &str, &str)] = &[
     (243, "#[cfg(test)]\npub(super) mod paired_segments_before;\n", ""),
 ];
 pub(super) fn previous_macro(current: &str) -> String {
-    let stage = super::super::super::incoming_stage(current, "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs", "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs")));
+    let stage = super::super::super::incoming_stage(
+        current,
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+        "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs"
+        )),
+    );
     let current = stage.as_str();
     restore(
         current,
@@ -105,8 +119,15 @@ pub(super) fn previous_census(current: &str) -> String {
     } else {
         current
     };
-    let stage = super::super::super::incoming_stage(current, "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs", "e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs")));
+    let stage = super::super::super::incoming_stage(
+        current,
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs"
+        )),
+    );
     let current = stage.as_str();
     restore(
         current,
@@ -125,8 +146,15 @@ const CENSUS: &[(usize, &str, &str)] = &[
     (976, "    pub independent_checks: usize,\n    pub independent_runs: usize,\n    pub independent_turns: usize,\n", ""),
 ];
 pub(super) fn previous_pair_tests(current: &str) -> String {
-    let stage = super::super::super::incoming_stage(current, "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs", "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs")));
+    let stage = super::super::super::incoming_stage(
+        current,
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs"
+        )),
+    );
     let current = stage.as_str();
     restore(
         current,
@@ -144,8 +172,15 @@ const PAIR_TESTS: &[(usize, &str, &str)] = &[
     (86, "#[path = \"pair_scope_tests/paired_segments.rs\"]\nmod paired_segments;\n", ""),
 ];
 pub(super) fn previous_route(current: &str) -> String {
-    let stage = super::super::super::incoming_stage(current, "src/bounded_output/stage_debits/route_debits.rs", "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/stage_debits/route_debits.rs")));
+    let stage = super::super::super::incoming_stage(
+        current,
+        "src/bounded_output/stage_debits/route_debits.rs",
+        "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/bounded_output/stage_debits/route_debits.rs"
+        )),
+    );
     let current = stage.as_str();
     restore(
         current,

@@ -285,7 +285,10 @@ pub(super) fn owner(source: &str, current: &str) -> Option<String> {
             )
         }
         "src/workspace_graph/initial_report/build.rs" => (
-            report947_compiled("src/workspace_graph/initial_report/build.rs", include_str!("../workspace_graph/initial_report/build.rs")),
+            report947_compiled(
+                "src/workspace_graph/initial_report/build.rs",
+                include_str!("../workspace_graph/initial_report/build.rs"),
+            ),
             "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1",
         ),
         "src/workspace_graph/initial_report/tests.rs" => (
@@ -295,10 +298,7 @@ pub(super) fn owner(source: &str, current: &str) -> Option<String> {
         _ => return None,
     };
     assert_eq!(current, compiled);
-    assert_eq!(
-        current,
-        report947_physical(source)
-    );
+    assert_eq!(current, report947_physical(source));
     let before = if source == "src/workspace_graph/initial_report/tests.rs" {
         let edits: Vec<(usize, String, String)> = serde_json::from_str(include_str!(
             "../../docs/evidence/runtime-history-20261021/owner-inverse.json"
@@ -659,21 +659,50 @@ fn declared_cursor_epoch_binds_all_current_channels_before_the_complete_history(
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod held_projection_reader;
 // Only this already-declared constructor result enters the named held-projection stage.
-pub(super) fn held_projection_entry(source: &str, expected: &str, supplied: &str) -> Option<String> {
-    if source == "src/workspace_graph/expected_projection/uncached_peak.rs" && expected == "32427c03af500f5778ce103666cc43481069497993baba20646c0944165d8440" {
+pub(super) fn held_projection_entry(
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> Option<String> {
+    if source == "src/workspace_graph/expected_projection/uncached_peak.rs"
+        && expected == "32427c03af500f5778ce103666cc43481069497993baba20646c0944165d8440"
+    {
         let physical = include_str!("../workspace_graph/expected_projection/uncached_peak.rs");
-        assert_eq!(supplied, physical, "complete ordinary source before selecting the constructor stage");
+        assert_eq!(
+            supplied, physical,
+            "complete ordinary source before selecting the constructor stage"
+        );
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap(), physical);
+        assert_eq!(
+            held_projection_reader::read(
+                &root.join(source),
+                physical.len(),
+                &super::source_sha(physical),
+                2_097_152
+            )
+            .unwrap(),
+            physical
+        );
         let entry = super::main_e177_final_inputs::value_direct(source, expected, physical);
-        assert_eq!(entry.len(), 14181); assert_eq!(super::source_sha(&entry), expected);
-        assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
+        assert_eq!(entry.len(), 14181);
+        assert_eq!(super::source_sha(&entry), expected);
+        assert_eq!(
+            physical,
+            held_projection_reader::read(
+                &root.join(source),
+                physical.len(),
+                &super::source_sha(physical),
+                2_097_152
+            )
+            .unwrap()
+        );
         return Some(entry);
     }
     if source != "src/workspace_graph/expected_projection/held_projection.rs"
         || expected != "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356"
         || supplied.len() != 23082
-        || super::source_sha(supplied) != "e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5"
+        || super::source_sha(supplied)
+            != "e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5"
     {
         return None;
     }
@@ -683,14 +712,33 @@ pub(super) fn held_projection_entry(source: &str, expected: &str, supplied: &str
         23082,
         "e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5",
         2_097_152,
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(supplied, declared, "exact declared constructor stage");
     let physical = include_str!("../workspace_graph/expected_projection/held_projection.rs");
-    assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
+    assert_eq!(
+        physical,
+        held_projection_reader::read(
+            &root.join(source),
+            physical.len(),
+            &super::source_sha(physical),
+            2_097_152
+        )
+        .unwrap()
+    );
     let entry = super::main_e177_final_inputs::value_direct(source, expected, physical);
     assert_eq!(entry.len(), 21539);
     assert_eq!(super::source_sha(&entry), expected);
-    assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
+    assert_eq!(
+        physical,
+        held_projection_reader::read(
+            &root.join(source),
+            physical.len(),
+            &super::source_sha(physical),
+            2_097_152
+        )
+        .unwrap()
+    );
     Some(entry)
 }
 
@@ -814,7 +862,11 @@ pub(crate) fn main927_input(source: &str, current: &str) -> String {
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod report947_reader;
 const REPORT947_CAP: usize = 9_753_094;
-type Report947Row = (&'static str, &'static str, &'static [(usize, usize, &'static str)]);
+type Report947Row = (
+    &'static str,
+    &'static str,
+    &'static [(usize, usize, &'static str)],
+);
 fn report947_row(source: &str) -> Option<Report947Row> {
     match source {
         "src/cli_driver.rs" => Some((include_str!("../cli_driver.rs"), include_str!("../../e/2cc325a8ea74cfedb0c30fb93452969eae6f1f9ea295e8c4f3b3b1972d002af5"), &[(7131,7298,"                    let (name, revision) =\n                        project::with_authenticated_project(&manifest_path, |snapshot| {\n"),(7552,7776,"                        })\n                        .map_err(|errors| {\n                            let errors =\n                                cli::manifest_hint::hint_missing_manifest(errors, &manifest_path);\n                            report(&errors, json)\n                        })?;\n"),(27894,28001,"                    let output = project::with_authenticated_project(manifest_path, |snapshot| {\n"),(32589,32770,"                    })\n                    .map_err(|errors| {\n                        let errors =\n                            cli::manifest_hint::hint_missing_manifest(errors, manifest_path);\n                        report(&errors, options.json)\n                    })?;\n")])),
@@ -843,8 +895,12 @@ fn report947_read(path: &std::path::Path, length: usize, sha: &str) -> String {
 fn report947_check(source: &str, compiled: &str, prior: &str) {
     report947_check_using(source, compiled, prior, &mut report947_read);
 }
-fn report947_check_using(source: &str, compiled: &str, prior: &str,
-    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String) {
+fn report947_check_using(
+    source: &str,
+    compiled: &str,
+    prior: &str,
+    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String,
+) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert!(compiled.len() <= REPORT947_CAP && prior.len() <= REPORT947_CAP);
     for (path, expected) in [
@@ -859,26 +915,44 @@ fn report947_check_using(source: &str, compiled: &str, prior: &str,
     }
 }
 fn report947_sha(text: &str) -> String {
-    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())))
+    format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+    )
 }
-fn report947_restore(source: &str, compiled: &str, prior: &str, edits: &[(usize, usize, &str)]) -> String {
+fn report947_restore(
+    source: &str,
+    compiled: &str,
+    prior: &str,
+    edits: &[(usize, usize, &str)],
+) -> String {
     let mut restored = if source == "src/source_reflows_merge/constructor_stage.rs" {
         let marker = "\n// BEGIN OPT947 WHOLE76AD CUSTODY INGRESS\n";
-        let (prefix, _) = compiled.split_once(marker).expect("one closed custody section");
+        let (prefix, _) = compiled
+            .split_once(marker)
+            .expect("one closed custody section");
         assert_eq!(compiled.matches(marker).count(), 1);
         prefix.to_owned()
-    } else { compiled.to_owned() };
+    } else {
+        compiled.to_owned()
+    };
     for &(start, end, before) in edits.iter().rev() {
         assert!(start <= end && end <= restored.len());
         assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
-        assert!(restored.len().checked_sub(end-start).and_then(|n| n.checked_add(before.len())).is_some_and(|n| n <= REPORT947_CAP));
+        assert!(restored
+            .len()
+            .checked_sub(end - start)
+            .and_then(|n| n.checked_add(before.len()))
+            .is_some_and(|n| n <= REPORT947_CAP));
         restored.replace_range(start..end, before);
     }
     assert_eq!(restored, prior, "ENTIRE fixed76ad custody owner");
     restored
 }
 pub(super) fn report947_compiled(source: &str, supplied: &'static str) -> &'static str {
-    let Some((compiled, prior, edits)) = report947_row(source) else { return supplied; };
+    let Some((compiled, prior, edits)) = report947_row(source) else {
+        return supplied;
+    };
     assert_eq!(supplied, compiled, "trusted current compiled acquisition");
     report947_check(source, compiled, prior);
     assert_eq!(report947_restore(source, compiled, prior, edits), prior);
@@ -887,20 +961,36 @@ pub(super) fn report947_compiled(source: &str, supplied: &'static str) -> &'stat
 }
 fn report947_physical(source: &str) -> String {
     let Some((compiled, prior, edits)) = report947_row(source) else {
-        return std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source)).unwrap();
+        return std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source),
+        )
+        .unwrap();
     };
     report947_check(source, compiled, prior);
     let restored = report947_restore(source, compiled, prior, edits);
     report947_check(source, compiled, prior);
     restored
 }
-pub(super) fn report947_run<T>(source: &str, supplied: &str, operation: impl FnOnce(&str) -> T) -> T {
+pub(super) fn report947_run<T>(
+    source: &str,
+    supplied: &str,
+    operation: impl FnOnce(&str) -> T,
+) -> T {
     report947_run_using(source, supplied, operation, &mut report947_read)
 }
-fn report947_run_using<T>(source: &str, supplied: &str, operation: impl FnOnce(&str) -> T,
-    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String) -> T {
-    let Some((compiled, prior, edits)) = report947_row(source) else { return operation(supplied); };
-    assert_eq!(supplied, compiled, "actual supplied current owner, before selecting history");
+fn report947_run_using<T>(
+    source: &str,
+    supplied: &str,
+    operation: impl FnOnce(&str) -> T,
+    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String,
+) -> T {
+    let Some((compiled, prior, edits)) = report947_row(source) else {
+        return operation(supplied);
+    };
+    assert_eq!(
+        supplied, compiled,
+        "actual supplied current owner, before selecting history"
+    );
     report947_check_using(source, compiled, prior, read);
     let restored = report947_restore(source, compiled, prior, edits);
     let result = operation(&restored);
@@ -915,37 +1005,100 @@ fn report947_current_ingress_preserves_whole_targets_and_refuses_all_channels_ea
         "src/workspace_graph/constructor_failure/report.rs",
         "src/workspace_graph/constructor_failure/attempt.rs",
         "src/workspace_graph/initial_report/build.rs",
-        "src/workspace_report.rs", "src/diagnostic/writer.rs",
-        "src/cli_driver.rs", "src/source_reflows_merge.rs",
+        "src/workspace_report.rs",
+        "src/diagnostic/writer.rs",
+        "src/cli_driver.rs",
+        "src/source_reflows_merge.rs",
         "src/source_reflows_merge/constructor_stage.rs",
     ] {
         let (compiled, prior, _) = report947_row(source).unwrap();
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let previous = root.join("e").join(report947_sha(prior));
         let read = |path: &std::path::Path, _: usize, _: &str| {
-            if path == previous { prior.to_owned() } else { compiled.to_owned() }
+            if path == previous {
+                prior.to_owned()
+            } else {
+                compiled.to_owned()
+            }
         };
         let mut calls = 0;
         let actual = report947_run_using(source, compiled, str::to_owned, &mut |path, len, sha| {
-            calls += 1; read(path, len, sha)
+            calls += 1;
+            read(path, len, sha)
         });
         assert_eq!(actual, prior);
-        assert_eq!(calls, 6, "all three channels before AND after complete old operation");
-        for forged in [format!("{compiled}\n"), compiled[..compiled.len()-1].to_owned(), prior.to_owned()] {
-            assert!(catch_unwind(AssertUnwindSafe(|| report947_run_using(source, &forged, str::to_owned, &mut read.clone()))).is_err());
+        assert_eq!(
+            calls, 6,
+            "all three channels before AND after complete old operation"
+        );
+        for forged in [
+            format!("{compiled}\n"),
+            compiled[..compiled.len() - 1].to_owned(),
+            prior.to_owned(),
+        ] {
+            assert!(catch_unwind(AssertUnwindSafe(|| report947_run_using(
+                source,
+                &forged,
+                str::to_owned,
+                &mut read.clone()
+            )))
+            .is_err());
         }
         for corrupt_at in 0..6 {
             for truncate in [false, true] {
                 let mut index = 0;
-                assert!(catch_unwind(AssertUnwindSafe(|| report947_run_using(source, compiled, str::to_owned, &mut |path, len, sha| {
-                    let mut bytes = read(path, len, sha);
-                    if index == corrupt_at {
-                        if truncate { bytes.pop(); } else { bytes.replace_range(0..1, "!"); }
-                    }
-                    index += 1;
-                    bytes
-                }))).is_err(), "physical/current archive/prior archive drift at frontier {corrupt_at}");
+                assert!(
+                    catch_unwind(AssertUnwindSafe(|| report947_run_using(
+                        source,
+                        compiled,
+                        str::to_owned,
+                        &mut |path, len, sha| {
+                            let mut bytes = read(path, len, sha);
+                            if index == corrupt_at {
+                                if truncate {
+                                    bytes.pop();
+                                } else {
+                                    bytes.replace_range(0..1, "!");
+                                }
+                            }
+                            index += 1;
+                            bytes
+                        }
+                    )))
+                    .is_err(),
+                    "physical/current archive/prior archive drift at frontier {corrupt_at}"
+                );
             }
         }
     }
+}
+
+// Closed complete legacy ledger ENTRY after the authentic current #908 inverse.
+pub(super) fn initial845_ledger_entry(source: &str, current: &str) -> Option<String> {
+    if source != "src/bounded_output.rs" {
+        return None;
+    }
+    assert_eq!(current.len(), 51963);
+    assert_eq!(
+        super::source_sha(current),
+        "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a"
+    );
+    let mut entry = current.to_owned();
+    for &(new, old) in &[
+        ("pub(crate) mod cfg_reservation;\npub(crate) mod format_acceptance;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n", "pub(crate) mod format_acceptance;\npub(crate) mod cfg_reservation;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n"),
+        ("            ACTIVE.with(|active| {\n                active.replace(previous.clone());\n            });\n            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::workflow_profile::plan_comparison::observe_ledger_transition();\n            if let Some(parent) = previous {\n                if !reserve(Some(&parent), consumed) {\n                    record_refusal(&parent, consumed);\n", "            ACTIVE.with(|active| {\n                active.replace(previous.clone());\n            });\n            if let Some(parent) = previous {\n                if !reserve(Some(&parent), consumed) {\n                    record_refusal(&parent, consumed);\n"),
+        ("        stage: Cell::new(None),\n    });\n    let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::workflow_profile::plan_comparison::observe_ledger_transition();\n    let restore = Restore {\n        previous,\n        current: Rc::clone(&budget),\n", "        stage: Cell::new(None),\n    });\n    let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));\n    let restore = Restore {\n        previous,\n        current: Rc::clone(&budget),\n"),
+        ("    stage: ReservationStage,\n    operation: impl FnOnce() -> T,\n) -> T {\n    #[cfg(test)]\n    let _allocation_phase = crate::test_allocation_observer::phase_guard(stage);\n    let restore = reservation_stage_guard(stage);\n    let value = operation();\n    drop(restore);\n", "    stage: ReservationStage,\n    operation: impl FnOnce() -> T,\n) -> T {\n    let restore = reservation_stage_guard(stage);\n    let value = operation();\n    drop(restore);\n"),
+        ("    if let Some(budget) = active() {\n        budget.floor.set(0);\n    }\n}\n\n// Read-only feature evidence; no ledger reference or reservation authority escapes.\n#[cfg(feature = \"unstable-workflow-profiling\")]\npub(crate) fn active_ledger_snapshot()\n-> Option<crate::workflow_profile::plan_comparison::LedgerSnapshot> {\n    ACTIVE.with(|active| {\n        let active = active.try_borrow().ok()?;\n        let budget = active.as_ref()?;\n        crate::workflow_profile::plan_comparison::LedgerSnapshot::observe(\n            Rc::as_ptr(budget) as usize,\n            budget.remaining.get(),\n        )\n    })\n}\n\npub(crate) fn active_remaining() -> Option<usize> {\n", "    if let Some(budget) = active() {\n        budget.floor.set(0);\n    }\n}\n\npub(crate) fn active_remaining() -> Option<usize> {\n"),
+        ("        );\n    }\n}\n\n/// Keep the original clone's text debit and refusal/floor selection while\n/// borrowing its immutable input instead of allocating a temporary String.\n/// The caller must hold that input through the returned view. This grants no\n/// heap backing or authority and retains the original clone tariff unchanged.\npub(crate) fn borrowed_clone_view(value: &str) -> &str {\n    let budget = active();\n    if !reserve(budget.as_deref(), value.len()) {\n        return \"\";\n    }\n    value\n}\n\n// Same input, budget owner, reserve receiver and bool as budgeted_clone. Its\n// old String result slot covers this replacement borrowed-text result; no\n// unused bytes are credited and no heap-carrier allowance is borrowed.\nconst _: () = {\n    assert!(std::mem::size_of::<&str>() <= std::mem::size_of::<String>());\n    assert!(std::mem::align_of::<&str>() <= std::mem::align_of::<String>());\n};\n", "        );\n    }\n}\n"),
+] {
+        assert_eq!(entry.matches(new).count(), 1, "unique complete legacy ledger ENTRY hunk");
+        entry = entry.replacen(new, old, 1);
+    }
+    assert_eq!(entry.len(), 50190);
+    assert_eq!(
+        super::source_sha(&entry),
+        "d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5"
+    );
+    Some(entry)
 }

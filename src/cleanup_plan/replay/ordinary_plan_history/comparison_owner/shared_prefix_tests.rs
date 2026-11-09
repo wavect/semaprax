@@ -43,30 +43,30 @@ pub(super) fn added(r: &pair_scope_census::Row) -> usize {
     let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
     let r = &immediate438_counts;
     let prior_generation = {
-    let setup = size_of::<ComparisonOwner<'static>>()
-        - size_of::<before_identity_prefix::ComparisonOwner<'static>>()
-        + (15 + 23) * PAYMENT_HEADER
-        + 2 * paired_value::LINK_VIEW * r.pairs;
-    let event = 2 * size_of::<usize>() + size_of::<bool>();
-    let probe = 3 * size_of::<&[Rc<SkeletonObservation>]>();
-    let body =
-        2 * size_of::<&SkeletonObservation>() + 2 * size_of::<usize>() + size_of::<Ordering>();
-    setup
-        + event * r.identity_detectors
-        + probe * r.identity_probes
-        + size_of::<bool>() * r.empty_selectors
-        + body * r.identity_bodies
-        + certified_heads::BASE * r.certified_bases
-        + certified_heads::POP * r.certified_pops
-        + certified_heads::RHS * r.certified_rhs_assignments
-        + certified_heads::VIEW_HEAD * r.certified_views
-        + certified_heads::HEAD * r.certified_heads
-        + certified_heads::FIRST * r.certified_firsts
-        + boundary_run_added(r)
-        + paired_tail_added(r)
-        + PAYMENT_HEADER
-        + reader_payload_added(r)
-        + final_affine::delta(r).0
+        let setup = size_of::<ComparisonOwner<'static>>()
+            - size_of::<before_identity_prefix::ComparisonOwner<'static>>()
+            + (15 + 23) * PAYMENT_HEADER
+            + 2 * paired_value::LINK_VIEW * r.pairs;
+        let event = 2 * size_of::<usize>() + size_of::<bool>();
+        let probe = 3 * size_of::<&[Rc<SkeletonObservation>]>();
+        let body =
+            2 * size_of::<&SkeletonObservation>() + 2 * size_of::<usize>() + size_of::<Ordering>();
+        setup
+            + event * r.identity_detectors
+            + probe * r.identity_probes
+            + size_of::<bool>() * r.empty_selectors
+            + body * r.identity_bodies
+            + certified_heads::BASE * r.certified_bases
+            + certified_heads::POP * r.certified_pops
+            + certified_heads::RHS * r.certified_rhs_assignments
+            + certified_heads::VIEW_HEAD * r.certified_views
+            + certified_heads::HEAD * r.certified_heads
+            + certified_heads::FIRST * r.certified_firsts
+            + boundary_run_added(r)
+            + paired_tail_added(r)
+            + PAYMENT_HEADER
+            + reader_payload_added(r)
+            + final_affine::delta(r).0
     };
     prior_generation + loaded_delta.0
 }
@@ -110,8 +110,8 @@ pub(super) fn boundary_run_added(r: &pair_scope_census::Row) -> usize {
             + size_of::<&[Rc<SkeletonObservation>]>()
             + size_of::<Ordering>())
             * r.shared_boundaries
-        + (2 * size_of::<&[Rc<SkeletonObservation>]>()
-            + 8 * size_of::<usize>() + size_of::<bool>()) * r.shared_runs
+        + (2 * size_of::<&[Rc<SkeletonObservation>]>() + 8 * size_of::<usize>() + size_of::<bool>())
+            * r.shared_runs
         + (4 * size_of::<&[Rc<SkeletonObservation>]>()
             + 4 * size_of::<usize>()
             + size_of::<Ordering>())
@@ -147,28 +147,28 @@ pub(super) fn removed(r: &pair_scope_census::Row) -> usize {
     let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
     let r = &immediate438_counts;
     let prior_generation = {
-    // Complete old MATCH, two loaded STEP+EMPTY packets; no LOAD or tail credit.
-    let matching = 2 * size_of::<&SkeletonObservation>()
-        + 2 * size_of::<&SkeletonObservation>()
-        + 4 * size_of::<&SkeletonObservation>()
-        + 4 * size_of::<&SkeletonTerminal>()
-        + 2 * size_of::<Ordering>();
-    let step = 2 * size_of::<usize>()
-        + 3 * size_of::<bool>()
-        + size_of::<&Rc<SkeletonObservation>>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + 2 * size_of::<&Rc<SkeletonObservation>>()
-        + size_of::<&SkeletonObservation>()
-        + size_of::<usize>();
-    let empty = 2 * size_of::<usize>() + size_of::<bool>();
-    r.identity_observations * (matching + 2 * (step + empty))
-        + r.certified_bases * (step + empty)
-        + r.certified_pops * paired_value::LOAD
-        + r.certified_firsts * matching
-        + r.shared_boundary_complete * (matching + 4 * (step + empty) + 2 * paired_value::LOAD)
-        + r.fused_turns * (matching + 2 * (step + empty + paired_value::TAIL))
-        + reader_removed(r)
-        + final_affine::delta(r).1
+        // Complete old MATCH, two loaded STEP+EMPTY packets; no LOAD or tail credit.
+        let matching = 2 * size_of::<&SkeletonObservation>()
+            + 2 * size_of::<&SkeletonObservation>()
+            + 4 * size_of::<&SkeletonObservation>()
+            + 4 * size_of::<&SkeletonTerminal>()
+            + 2 * size_of::<Ordering>();
+        let step = 2 * size_of::<usize>()
+            + 3 * size_of::<bool>()
+            + size_of::<&Rc<SkeletonObservation>>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 2 * size_of::<&Rc<SkeletonObservation>>()
+            + size_of::<&SkeletonObservation>()
+            + size_of::<usize>();
+        let empty = 2 * size_of::<usize>() + size_of::<bool>();
+        r.identity_observations * (matching + 2 * (step + empty))
+            + r.certified_bases * (step + empty)
+            + r.certified_pops * paired_value::LOAD
+            + r.certified_firsts * matching
+            + r.shared_boundary_complete * (matching + 4 * (step + empty) + 2 * paired_value::LOAD)
+            + r.fused_turns * (matching + 2 * (step + empty + paired_value::TAIL))
+            + reader_removed(r)
+            + final_affine::delta(r).1
     };
     prior_generation + loaded_delta.1
 }
@@ -591,7 +591,7 @@ fn shared_identity_replay_has_exact_complete_cold_hot_invoices_and_actual_k() {
                 assert_eq!(before_affine.observed.0 .1, current.observed.0 .1);
                 assert_eq!(swaps(&before_affine), swaps(&current));
                 let (affine_added, affine_removed) = final_affine::delta(&current.row);
-                    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
+                let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
                 assert_eq!(
                     current.observed.2 + affine_removed + loaded_removed,
                     before_affine.observed.2 + affine_added + loaded_added
@@ -683,11 +683,14 @@ fn shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_stick
         "each complete prepaid run reaches every item and one terminal decision"
     );
     // Preserve the independent complete driver bank for its surviving caller.
-    assert_eq!(2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + 4 * size_of::<usize>()
-        + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
-        + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
-        + 2 * size_of::<Option<()>>(), certified_heads::RUN_CAPTURE);
+    assert_eq!(
+        2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 4 * size_of::<usize>()
+            + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
+            + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
+            + 2 * size_of::<Option<()>>(),
+        certified_heads::RUN_CAPTURE
+    );
     for (phase, count, price) in [
         (
             "ordinary plan shared suffix pattern probe",
@@ -698,7 +701,8 @@ fn shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_stick
             "ordinary plan certified numeric run capture",
             success.row.shared_runs,
             2 * size_of::<&[Rc<SkeletonObservation>]>()
-                + 8 * size_of::<usize>() + size_of::<bool>(),
+                + 8 * size_of::<usize>()
+                + size_of::<bool>(),
         ),
         (
             "ordinary plan certified numeric run publication",

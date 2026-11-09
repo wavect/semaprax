@@ -695,9 +695,9 @@ pub(super) const ACTIVE_REFUSAL_CONTROLS: usize = {
         + 2 * size_of::<&Cell<bool>>()
         + 4 * size_of::<bool>()
 };
-pub(super) const FITTING_REFUSAL_PROBE_CONTROLS: usize =
-    2 * std::mem::size_of::<&ReplayBudget>()
-        + 2 * std::mem::size_of::<bool>() + ACTIVE_REFUSAL_CONTROLS;
+pub(super) const FITTING_REFUSAL_PROBE_CONTROLS: usize = 2 * std::mem::size_of::<&ReplayBudget>()
+    + 2 * std::mem::size_of::<bool>()
+    + ACTIVE_REFUSAL_CONTROLS;
 pub(in crate::cleanup_plan::replay) const FITTING_SELECTOR_CONTROLS: usize = {
     use std::mem::size_of;
     // Selector and CFG call actual/formal loans; selector path arguments;

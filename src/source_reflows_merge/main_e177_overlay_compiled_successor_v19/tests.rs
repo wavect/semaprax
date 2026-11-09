@@ -855,7 +855,6 @@ fn compressed_overlay_keeps_both_whole_histories_and_refuses_damaged_streams() {
     }
 }
 
-
 #[test]
 fn base85_enforces_canonical_groups_and_tails() {
     for (encoded, bytes) in [

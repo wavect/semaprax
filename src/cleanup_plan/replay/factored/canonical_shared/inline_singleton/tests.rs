@@ -582,7 +582,10 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
         assert_eq!(prepaired.5.live, 0);
         assert_eq!(prepaired.5.allocated, prepaired.5.freed);
         assert!(prepaired.5.allocated <= prepaired.2 && prepaired.5.highwater <= prepaired.2);
-        eprintln!("OPT884 distinct prepaired remaining={} spent={} paid={} physical={:?}",prepaired.3,prepaired.4,prepaired.2,prepaired.5);
+        eprintln!(
+            "OPT884 distinct prepaired remaining={} spent={} paid={} physical={:?}",
+            prepaired.3, prepaired.4, prepaired.2, prepaired.5
+        );
         // A complete composition may pay more on a cold graph. This owner
         // checks real semantics and teardown without padding the old invoice.
         eprintln!(

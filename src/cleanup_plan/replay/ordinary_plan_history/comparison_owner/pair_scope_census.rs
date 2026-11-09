@@ -702,7 +702,8 @@ pub(super) fn finish() -> (Vec<Row>, usize) {
 pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn reset_for_frontier_test() {
     reset();
 }
-pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn finish_empty_for_frontier_test() -> (bool, usize) {
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn finish_empty_for_frontier_test(
+) -> (bool, usize) {
     let (rows, lost) = finish();
     (rows.is_empty(), lost)
 }

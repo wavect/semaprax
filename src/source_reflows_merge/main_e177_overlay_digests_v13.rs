@@ -255,7 +255,9 @@ pub(in super::super) fn expand_v13(
 #[path = "main_e177_overlay_digests_v13/tests.rs"]
 mod tests;
 #[cfg(test)]
-pub(in super::super) use tests::{before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16};
+pub(in super::super) use tests::{
+    before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16,
+};
 
 // Private V14 intermediate only; standalone V13 entry points above are unchanged.
 fn expand_to_v12_logical(page: &Value) -> Result<Value, &'static str> {
@@ -759,17 +761,32 @@ const SOURCE_PREFIXES: [&str; 44] = [
     "src/hir/validation/scope_checkpoint/marks/",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/",
 ];
-fn source_slots(page: &mut Value, convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>) -> Result<(), &'static str> {
-    fn row(value: &mut Value, convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>) -> Result<(), &'static str> {
+fn source_slots(
+    page: &mut Value,
+    convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>,
+) -> Result<(), &'static str> {
+    fn row(
+        value: &mut Value,
+        convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>,
+    ) -> Result<(), &'static str> {
         let object = value.as_object_mut().ok_or("v15 literal row")?;
-        if let Some(value) = object.get_mut("source") { *value = convert(value)?; }
+        if let Some(value) = object.get_mut("source") {
+            *value = convert(value)?;
+        }
         Ok(())
     }
-    fn fragments(value: &mut Value, convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>) -> Result<(), &'static str> {
-        if value.is_null() { return Ok(()); }
+    fn fragments(
+        value: &mut Value,
+        convert: &mut dyn FnMut(&Value) -> Result<Value, &'static str>,
+    ) -> Result<(), &'static str> {
+        if value.is_null() {
+            return Ok(());
+        }
         for item in value.as_array_mut().ok_or("v15 fragments")? {
             let object = item.as_object().ok_or("v15 fragment row")?;
-            if !object.contains_key("canonical_source") { row(item, convert)?; }
+            if !object.contains_key("canonical_source") {
+                row(item, convert)?;
+            }
         }
         Ok(())
     }
@@ -777,83 +794,147 @@ fn source_slots(page: &mut Value, convert: &mut dyn FnMut(&Value) -> Result<Valu
         for value in page[group].as_array_mut().ok_or("v15 rows")? {
             let object = value.as_object_mut().ok_or("v15 row")?;
             if object.contains_key("old519_index") {
-                if group != "replacements" || object.len() != 1 { return Err("v15 indexed row"); }
-                let tuple = object.get_mut("old519_index").unwrap().as_array_mut().ok_or("v15 old519 arity")?;
-                if tuple.len() != 4 { return Err("v15 old519 arity"); }
+                if group != "replacements" || object.len() != 1 {
+                    return Err("v15 indexed row");
+                }
+                let tuple = object
+                    .get_mut("old519_index")
+                    .unwrap()
+                    .as_array_mut()
+                    .ok_or("v15 old519 arity")?;
+                if tuple.len() != 4 {
+                    return Err("v15 old519 arity");
+                }
                 fragments(&mut tuple[3], convert)?;
             } else {
                 row(value, convert)?;
-                if let Some(items) = value.get_mut("fragments") { fragments(items, convert)?; }
+                if let Some(items) = value.get_mut("fragments") {
+                    fragments(items, convert)?;
+                }
             }
         }
     }
     Ok(())
 }
 fn source_prefix(path: &str) -> Option<usize> {
-    SOURCE_PREFIXES.iter().enumerate().filter(|(_, prefix)| path.starts_with(**prefix)).max_by_key(|(_, prefix)| prefix.len()).map(|(index, _)| index)
+    SOURCE_PREFIXES
+        .iter()
+        .enumerate()
+        .filter(|(_, prefix)| path.starts_with(**prefix))
+        .max_by_key(|(_, prefix)| prefix.len())
+        .map(|(index, _)| index)
 }
 fn source_path(value: &Value) -> Result<String, &'static str> {
     let text = value.as_str().ok_or("v15 source type")?;
     if !text.contains(':') {
-        if !super::super::normal(text) { return Err("v15 source path"); }
-        if source_prefix(text).is_some() { return Err("v15 uninterned source"); }
+        if !super::super::normal(text) {
+            return Err("v15 source path");
+        }
+        if source_prefix(text).is_some() {
+            return Err("v15 uninterned source");
+        }
         return Ok(text.to_owned());
     }
     let bytes = text.as_bytes();
-    if bytes.len() < 3 || bytes[1] != b':' { return Err("v15 source reference"); }
-    let index = V15_CODES.iter().position(|code| *code == bytes[0]).ok_or("v15 source reference")?;
+    if bytes.len() < 3 || bytes[1] != b':' {
+        return Err("v15 source reference");
+    }
+    let index = V15_CODES
+        .iter()
+        .position(|code| *code == bytes[0])
+        .ok_or("v15 source reference")?;
     let prefix = SOURCE_PREFIXES.get(index).ok_or("v15 source reference")?;
     let path = format!("{}{}", prefix, &text[2..]);
-    if !super::super::normal(&path) { return Err("v15 expanded source path"); }
-    if source_prefix(&path) != Some(index) { return Err("v15 noncanonical source prefix"); }
+    if !super::super::normal(&path) {
+        return Err("v15 expanded source path");
+    }
+    if source_prefix(&path) != Some(index) {
+        return Err("v15 noncanonical source prefix");
+    }
     Ok(path)
 }
 fn source_envelope(page: &Value, schema: &str) -> Result<(), &'static str> {
     let object = page.as_object().ok_or("v15 envelope")?;
-    if page["schema"] != schema || object.len() != KEYS.len()+2 || !KEYS.iter().all(|key| object.contains_key(*key)) || !object.contains_key("digest_table") || !object.contains_key("pin_tails") { return Err("v15 envelope"); }
+    if page["schema"] != schema
+        || object.len() != KEYS.len() + 2
+        || !KEYS.iter().all(|key| object.contains_key(*key))
+        || !object.contains_key("digest_table")
+        || !object.contains_key("pin_tails")
+    {
+        return Err("v15 envelope");
+    }
     Ok(())
 }
 fn expand_to_v14(page: &Value) -> Result<Value, &'static str> {
     source_envelope(page, SCHEMA_V15)?;
-    if canonical(page).len() > PAGE_CAP { return Err("v15 same one-page cap"); }
-    let mut result = page.clone(); result["schema"] = SCHEMA_V14.into();
+    if canonical(page).len() > PAGE_CAP {
+        return Err("v15 same one-page cap");
+    }
+    let mut result = page.clone();
+    result["schema"] = SCHEMA_V14.into();
     let mut expanded = canonical(&result).len();
     source_slots(&mut result, &mut |value| {
         let path = Value::String(source_path(value)?);
-        expanded = expanded.checked_sub(canonical(value).len()).and_then(|n| n.checked_add(canonical(&path).len())).ok_or("v15 expanded bound")?;
-        if expanded > SOURCE_CAP { return Err("v15 expanded bound"); }
+        expanded = expanded
+            .checked_sub(canonical(value).len())
+            .and_then(|n| n.checked_add(canonical(&path).len()))
+            .ok_or("v15 expanded bound")?;
+        if expanded > SOURCE_CAP {
+            return Err("v15 expanded bound");
+        }
         Ok(value.clone())
     })?;
-    if expanded > SOURCE_CAP { return Err("v15 expanded bound"); }
+    if expanded > SOURCE_CAP {
+        return Err("v15 expanded bound");
+    }
     source_slots(&mut result, &mut |value| Ok(source_path(value)?.into()))?;
-    if canonical(&result).len() != expanded { return Err("v15 expanded bound"); }
+    if canonical(&result).len() != expanded {
+        return Err("v15 expanded bound");
+    }
     expand_to_v13_logical(&result)?;
     Ok(result)
 }
 #[cfg_attr(not(test), allow(dead_code))]
 fn encode_v15_sources(page: &Value) -> Result<Value, &'static str> {
     source_envelope(page, SCHEMA_V14)?;
-    if canonical(page).len() > SOURCE_CAP { return Err("v15 logical input bound"); }
+    if canonical(page).len() > SOURCE_CAP {
+        return Err("v15 logical input bound");
+    }
     expand_to_v13_logical(page)?;
     let mut result = page.clone();
     source_slots(&mut result, &mut |value| {
         let path = value.as_str().ok_or("v15 source type")?;
-        if !super::super::normal(path) { return Err("v15 source path"); }
+        if !super::super::normal(path) {
+            return Err("v15 source path");
+        }
         Ok(match source_prefix(path) {
-            Some(index) => format!("{}:{}", char::from(V15_CODES[index]), &path[SOURCE_PREFIXES[index].len()..]).into(),
+            Some(index) => format!(
+                "{}:{}",
+                char::from(V15_CODES[index]),
+                &path[SOURCE_PREFIXES[index].len()..]
+            )
+            .into(),
             None => value.clone(),
         })
     })?;
     result["schema"] = SCHEMA_V15.into();
-    if canonical(&result).len() > PAGE_CAP { return Err("v15 same one-page cap"); }
-    if canonical(&expand_to_v14(&result)?) != canonical(page) { return Err("v15 ENTIRE V14 page inverse"); }
+    if canonical(&result).len() > PAGE_CAP {
+        return Err("v15 same one-page cap");
+    }
+    if canonical(&expand_to_v14(&result)?) != canonical(page) {
+        return Err("v15 ENTIRE V14 page inverse");
+    }
     Ok(result)
 }
 #[cfg_attr(not(test), allow(dead_code))]
 fn encode_v15(page: &Value) -> Result<Value, &'static str> {
     encode_v15_sources(&encode_v14_tails_logical(&encode_v13_logical(page)?)?)
 }
-pub(in super::super) fn expand_v15(before: &Value, policy: &Value, page: &Value) -> Result<Value, &'static str> {
+pub(in super::super) fn expand_v15(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
     let logical = expand_to_v12_logical(&expand_to_v13_logical(&expand_to_v14(page)?)?)?;
     super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
 }
@@ -861,38 +942,63 @@ pub(in super::super) fn expand_v15(before: &Value, policy: &Value, page: &Value)
 // Private V16 frontier: complete original public V15 entries remain unchanged.
 fn expand_to_v14_logical(page: &Value) -> Result<Value, &'static str> {
     source_envelope(page, SCHEMA_V15)?;
-    if canonical(page).len() > SOURCE_CAP { return Err("v15 same one-page cap"); }
-    let mut result = page.clone(); result["schema"] = SCHEMA_V14.into();
+    if canonical(page).len() > SOURCE_CAP {
+        return Err("v15 same one-page cap");
+    }
+    let mut result = page.clone();
+    result["schema"] = SCHEMA_V14.into();
     let mut expanded = canonical(&result).len();
     source_slots(&mut result, &mut |value| {
         let path = Value::String(source_path(value)?);
-        expanded = expanded.checked_sub(canonical(value).len()).and_then(|n| n.checked_add(canonical(&path).len())).ok_or("v15 expanded bound")?;
-        if expanded > SOURCE_CAP { return Err("v15 expanded bound"); }
+        expanded = expanded
+            .checked_sub(canonical(value).len())
+            .and_then(|n| n.checked_add(canonical(&path).len()))
+            .ok_or("v15 expanded bound")?;
+        if expanded > SOURCE_CAP {
+            return Err("v15 expanded bound");
+        }
         Ok(value.clone())
     })?;
-    if expanded > SOURCE_CAP { return Err("v15 expanded bound"); }
+    if expanded > SOURCE_CAP {
+        return Err("v15 expanded bound");
+    }
     source_slots(&mut result, &mut |value| Ok(source_path(value)?.into()))?;
-    if canonical(&result).len() != expanded { return Err("v15 expanded bound"); }
+    if canonical(&result).len() != expanded {
+        return Err("v15 expanded bound");
+    }
     expand_to_v13_logical(&result)?;
     Ok(result)
 }
 #[cfg_attr(not(test), allow(dead_code))]
 fn encode_v15_sources_logical(page: &Value) -> Result<Value, &'static str> {
     source_envelope(page, SCHEMA_V14)?;
-    if canonical(page).len() > SOURCE_CAP { return Err("v15 logical input bound"); }
+    if canonical(page).len() > SOURCE_CAP {
+        return Err("v15 logical input bound");
+    }
     expand_to_v13_logical(page)?;
     let mut result = page.clone();
     source_slots(&mut result, &mut |value| {
         let path = value.as_str().ok_or("v15 source type")?;
-        if !super::super::normal(path) { return Err("v15 source path"); }
+        if !super::super::normal(path) {
+            return Err("v15 source path");
+        }
         Ok(match source_prefix(path) {
-            Some(index) => format!("{}:{}", char::from(V15_CODES[index]), &path[SOURCE_PREFIXES[index].len()..]).into(),
+            Some(index) => format!(
+                "{}:{}",
+                char::from(V15_CODES[index]),
+                &path[SOURCE_PREFIXES[index].len()..]
+            )
+            .into(),
             None => value.clone(),
         })
     })?;
     result["schema"] = SCHEMA_V15.into();
-    if canonical(&result).len() > SOURCE_CAP { return Err("v15 same one-page cap"); }
-    if canonical(&expand_to_v14_logical(&result)?) != canonical(page) { return Err("v15 ENTIRE V14 page inverse"); }
+    if canonical(&result).len() > SOURCE_CAP {
+        return Err("v15 same one-page cap");
+    }
+    if canonical(&expand_to_v14_logical(&result)?) != canonical(page) {
+        return Err("v15 ENTIRE V14 page inverse");
+    }
     Ok(result)
 }
 
@@ -1361,9 +1467,13 @@ pub(in super::super) fn expand_v17(
 
 #[path = "main_e177_overlay_digests_v13/typed_refs_v18.rs"]
 mod typed_refs_v18;
-pub(in super::super) use typed_refs_v18::{expand_v18, expand_v19_indexed, preflight_indexed, SCHEMA_V18, SCHEMA_V19_INDEXED};
+pub(in super::super) use typed_refs_v18::{
+    expand_v18, expand_v19_indexed, preflight_indexed, SCHEMA_V18, SCHEMA_V19_INDEXED,
+};
 
 #[cfg(test)]
 pub(in super::super) use tests::{verify_current_v17, verify_current_v18};
 
-pub(in super::super) use typed_refs_v18::{expand_v20_compact, preflight_compact_with_bound, SCHEMA_V20_COMPACT};
+pub(in super::super) use typed_refs_v18::{
+    expand_v20_compact, preflight_compact_with_bound, SCHEMA_V20_COMPACT,
+};

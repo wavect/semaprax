@@ -6,10 +6,10 @@ use super::{
     ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
     ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
     ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
-    generic_instance_source_cost_with_imports, hir, import_stub, limit_error, prelude, private_layout,
-    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap, BTreeSet, Diagnostic,
-    ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,
-    HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
+    generic_instance_source_cost_with_imports, hir, import_stub, limit_error, prelude,
+    private_layout, synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap,
+    BTreeSet, Diagnostic, ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts,
+    HIR_IDENTITY_COPY_FACTOR, HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
 };
 
 pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
@@ -178,7 +178,8 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
     identity_slots = identity_slots
         .checked_sub(raw.scalar_identity_discount)
         .expect("raw scalar discount retains each expression identity slot");
-    let generic_instances = generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
+    let generic_instances =
+        generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
     identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
     let hir_input = checked_usage(
         raw.total,

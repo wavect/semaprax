@@ -210,7 +210,8 @@ pub(super) fn heads_run_generation(
                 None
             };
             assert_eq!(
-                result.as_ref().map(|_| ()).map_err(failure), saved,
+                result.as_ref().map(|_| ()).map_err(failure),
+                saved,
                 "the sticky retry cannot change any field of the first held diagnostic"
             );
             let outcome = Outcome {
@@ -260,108 +261,113 @@ fn invoice(r: &pair_scope_census::Row) -> (usize, usize) {
     let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
     let r = &immediate438_counts;
     let prior_generation = {
-    let header = 2 * size_of::<&ResolvedFunction>()
-        + 2 * size_of::<&mut ReplayBudget>()
-        + 2 * size_of::<&str>()
-        + 2 * size_of::<usize>()
-        + 2 * size_of::<Result<(), Diagnostic>>();
-    let matching = 2 * size_of::<&SkeletonObservation>()
-        + 2 * size_of::<&SkeletonObservation>()
-        + 4 * size_of::<&SkeletonObservation>()
-        + 4 * size_of::<&SkeletonTerminal>()
-        + 2 * size_of::<Ordering>();
-    assert_eq!(
-        (header, matching),
-        (PAYMENT_HEADER, super::legacy_matching())
-    );
-    let base =
-        2 * size_of::<usize>() + 3 * size_of::<bool>() + 2 * size_of::<usize>() + size_of::<bool>();
-    let pop = 2 * size_of::<&[usize]>() + size_of::<usize>() + 2 * size_of::<bool>();
-    let head = size_of::<&Rc<SkeletonObservation>>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + 2 * size_of::<&Rc<SkeletonObservation>>()
-        + size_of::<&SkeletonObservation>()
-        + size_of::<usize>();
-    let view = 2 * size_of::<&[Segment]>()
-        + 2 * size_of::<usize>()
-        + size_of::<&Segment>()
-        + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + head;
-    let rhs = size_of::<&[Rc<SkeletonObservation>]>()
-        + size_of::<usize>()
-        + 2 * size_of::<&Rc<SkeletonObservation>>()
-        + size_of::<&SkeletonObservation>();
-    let first = 2 * size_of::<&SkeletonObservation>() + size_of::<Ordering>();
-    let old_step = 2 * size_of::<usize>()
-        + 3 * size_of::<bool>()
-        + size_of::<&Rc<SkeletonObservation>>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + 2 * size_of::<&Rc<SkeletonObservation>>()
-        + size_of::<&SkeletonObservation>()
-        + size_of::<usize>()
-        + 2 * size_of::<usize>()
-        + size_of::<bool>();
-    let old_load = 2 * size_of::<&mut Vec<usize>>()
-        + size_of::<Option<usize>>()
-        + size_of::<usize>()
-        + size_of::<bool>()
-        + 2 * size_of::<&[Segment]>()
-        + 2 * size_of::<usize>()
-        + size_of::<&Segment>()
-        + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
-        + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-        + size_of::<bool>();
-    assert_eq!(
-        (base, pop, head, view, rhs, first),
+        let header = 2 * size_of::<&ResolvedFunction>()
+            + 2 * size_of::<&mut ReplayBudget>()
+            + 2 * size_of::<&str>()
+            + 2 * size_of::<usize>()
+            + 2 * size_of::<Result<(), Diagnostic>>();
+        let matching = 2 * size_of::<&SkeletonObservation>()
+            + 2 * size_of::<&SkeletonObservation>()
+            + 4 * size_of::<&SkeletonObservation>()
+            + 4 * size_of::<&SkeletonTerminal>()
+            + 2 * size_of::<Ordering>();
+        assert_eq!(
+            (header, matching),
+            (PAYMENT_HEADER, super::legacy_matching())
+        );
+        let base = 2 * size_of::<usize>()
+            + 3 * size_of::<bool>()
+            + 2 * size_of::<usize>()
+            + size_of::<bool>();
+        let pop = 2 * size_of::<&[usize]>() + size_of::<usize>() + 2 * size_of::<bool>();
+        let head = size_of::<&Rc<SkeletonObservation>>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 2 * size_of::<&Rc<SkeletonObservation>>()
+            + size_of::<&SkeletonObservation>()
+            + size_of::<usize>();
+        let view = 2 * size_of::<&[Segment]>()
+            + 2 * size_of::<usize>()
+            + size_of::<&Segment>()
+            + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + head;
+        let rhs = size_of::<&[Rc<SkeletonObservation>]>()
+            + size_of::<usize>()
+            + 2 * size_of::<&Rc<SkeletonObservation>>()
+            + size_of::<&SkeletonObservation>();
+        let first = 2 * size_of::<&SkeletonObservation>() + size_of::<Ordering>();
+        let old_step = 2 * size_of::<usize>()
+            + 3 * size_of::<bool>()
+            + size_of::<&Rc<SkeletonObservation>>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + 2 * size_of::<&Rc<SkeletonObservation>>()
+            + size_of::<&SkeletonObservation>()
+            + size_of::<usize>()
+            + 2 * size_of::<usize>()
+            + size_of::<bool>();
+        let old_load = 2 * size_of::<&mut Vec<usize>>()
+            + size_of::<Option<usize>>()
+            + size_of::<usize>()
+            + size_of::<bool>()
+            + 2 * size_of::<&[Segment]>()
+            + 2 * size_of::<usize>()
+            + size_of::<&Segment>()
+            + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
+            + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+            + size_of::<bool>();
+        assert_eq!(
+            (base, pop, head, view, rhs, first),
+            (
+                certified_heads::BASE,
+                certified_heads::POP,
+                certified_heads::HEAD,
+                certified_heads::VIEW_HEAD,
+                certified_heads::RHS,
+                certified_heads::FIRST
+            )
+        );
+        assert_eq!(
+            (old_step, old_load),
+            (paired_value::STEP + paired_value::EMPTY, paired_value::LOAD)
+        );
+        assert_eq!(
+            base + head,
+            old_step,
+            "loaded and exhausted noncertified right envelopes retain the whole old STEP"
+        );
+        assert_eq!(
+            base + pop + view,
+            old_step + old_load,
+            "foreign right views retain the complete old STEP and LOAD, including empty segments"
+        );
         (
-            certified_heads::BASE,
-            certified_heads::POP,
-            certified_heads::HEAD,
-            certified_heads::VIEW_HEAD,
-            certified_heads::RHS,
-            certified_heads::FIRST
+            23 * header
+                + 2 * paired_value::LINK_VIEW * r.pairs
+                + base * r.certified_bases
+                + pop * r.certified_pops
+                + head * r.certified_heads
+                + view * r.certified_views
+                + rhs * r.certified_rhs_assignments
+                + first * r.certified_firsts
+                + size_of::<bool>() * r.empty_selectors
+                + super::boundary_run_added(r)
+                + super::paired_tail_added(r)
+                + header
+                + super::reader_payload_added(r)
+                + final_affine::delta(r).0,
+            old_step * r.certified_bases
+                + old_load * r.certified_pops
+                + matching * r.certified_firsts
+                + r.shared_boundary_complete * (matching + 4 * old_step + 2 * old_load)
+                + r.fused_turns * (matching + 2 * (old_step + paired_value::TAIL))
+                + super::reader_removed(r)
+                + final_affine::delta(r).1,
         )
-    );
-    assert_eq!(
-        (old_step, old_load),
-        (paired_value::STEP + paired_value::EMPTY, paired_value::LOAD)
-    );
-    assert_eq!(
-        base + head,
-        old_step,
-        "loaded and exhausted noncertified right envelopes retain the whole old STEP"
-    );
-    assert_eq!(
-        base + pop + view,
-        old_step + old_load,
-        "foreign right views retain the complete old STEP and LOAD, including empty segments"
-    );
-    (
-        23 * header
-            + 2 * paired_value::LINK_VIEW * r.pairs
-            + base * r.certified_bases
-            + pop * r.certified_pops
-            + head * r.certified_heads
-            + view * r.certified_views
-            + rhs * r.certified_rhs_assignments
-            + first * r.certified_firsts
-            + size_of::<bool>() * r.empty_selectors
-            + super::boundary_run_added(r)
-            + super::paired_tail_added(r)
-            + header
-            + super::reader_payload_added(r)
-            + final_affine::delta(r).0,
-        old_step * r.certified_bases
-            + old_load * r.certified_pops
-            + matching * r.certified_firsts
-            + r.shared_boundary_complete * (matching + 4 * old_step + 2 * old_load)
-            + r.fused_turns * (matching + 2 * (old_step + paired_value::TAIL))
-            + super::reader_removed(r)
-            + final_affine::delta(r).1,
-    )
     };
-    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
+    (
+        prior_generation.0 + loaded_delta.0,
+        prior_generation.1 + loaded_delta.1,
+    )
 }
 fn observe_heads(
     function: &ResolvedFunction,
@@ -537,7 +543,8 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                                         + paired_value::TAIL))
                     );
                     let (affine_added, affine_removed) = final_affine::delta(&current.row);
-                    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
+                    let (loaded_added, loaded_removed) =
+                        loaded::complete_loaded_delta(&current.row);
                     assert_eq!(
                         current.observed.2 + affine_removed + loaded_removed,
                         before_affine.observed.2 + affine_added + loaded_added
@@ -1486,7 +1493,6 @@ fn composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_al
         }
     }
 }
-
 #[path = "final_affine_tests.rs"]
 mod final_affine_tests;
 

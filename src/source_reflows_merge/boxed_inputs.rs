@@ -88,225 +88,777 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     };
     super::super::compile_fixture_input(source, &normalized)
 }
-fn bundle(current: &str) -> String { let next1058_physical_current=current; let next1058_epoch; let current=if digest(current)=="bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536" { authenticate("docs/AGENT-SKILL-BUNDLE-V1.json",current,include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536");let mut prior=current.to_owned();replace(&mut prior,"\"code_count\":1520","\"code_count\":1517",1);replace(&mut prior,"sha256:8949d3fd78a8372d2e5b83e08379bbb2925bbe7f8a86ce192358c9c847a71894","sha256:d458fc426ee02db1181d9a11086d49a3339bc866f14c1ac00737ca154db955a2",1);replace(&mut prior,"sha256:fd4cff9cbeaab095a8388c93828926b1ad1f84b065d94766500d33c91fa96190","sha256:885a3ff95b4ce7e6093c3f4b9922cc49892b0177f5a6d84f7c352ea2ad636589",1);assert_eq!(prior.len(),5544);assert_eq!(digest(&prior),"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32");assert_eq!(prior,include_str!("../../e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"));assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap(),prior);next1058_epoch=prior;next1058_epoch.as_str()}else{current}; let next1051_physical_current=current; let next1051_epoch; let current=if digest(current)=="fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32" { if next1058_physical_current==current {authenticate("docs/AGENT-SKILL-BUNDLE-V1.json",current,include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32");}else{authenticate("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",current,include_str!("../../e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32");}let mut prior=current.to_owned();replace(&mut prior,"sha256:d458fc426ee02db1181d9a11086d49a3339bc866f14c1ac00737ca154db955a2","sha256:c3a7d3af7a1757deff405e4a99c9d8b6567fa2b9dc50a6361e14f6ac03a80da1",1);replace(&mut prior,"sha256:885a3ff95b4ce7e6093c3f4b9922cc49892b0177f5a6d84f7c352ea2ad636589","sha256:96d6a523bdbef2375f08ff0b32f916a18761181678a6eb74769052e7204c399f",1);assert_eq!(prior.len(),5544);assert_eq!(digest(&prior),"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467");assert_eq!(prior,include_str!("../../e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"));assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",65536).unwrap(),prior);next1051_epoch=prior;next1051_epoch.as_str()}else{current}; let next1047_physical_current = current; let next1047_epoch; let current = if digest(current) == "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467" { if next1051_physical_current==current {authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current, include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467");}else{authenticate("e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",current,include_str!("../../e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467");} let mut prior=current.to_owned(); replace(&mut prior, "sha256:96d6a523bdbef2375f08ff0b32f916a18761181678a6eb74769052e7204c399f", "sha256:bb4c255fd3ea39190db513f91c5bb265e6146d4b3e3e289298af1318a2977703", 1); replace(&mut prior, "sha256:c3a7d3af7a1757deff405e4a99c9d8b6567fa2b9dc50a6361e14f6ac03a80da1", "sha256:ab4e5593a82579eaa70847a8ed0df2672817c9d10bf28ae08fc97cf5064738ba", 1); assert_eq!(prior.len(),5544); assert_eq!(digest(&prior),"b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"); let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")); assert_eq!(prior,include_str!("../../e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5")); assert_eq!(reader::read(&root.join("e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"),5544,"b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",65536).unwrap(),prior); next1047_epoch=prior; next1047_epoch.as_str() } else { current };  let postrun1045_physical_current = current; let postrun1045_epoch; let current = if digest(current) == "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5" { if next1047_physical_current == current { authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current, include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"); } else { authenticate("e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",current,include_str!("../../e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"),5544,"b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"); } let mut prior = current.to_owned(); replace(&mut prior, "sha256:bb4c255fd3ea39190db513f91c5bb265e6146d4b3e3e289298af1318a2977703", "sha256:8d4ce3e78d3e31640468f338c46bb5a1cf451c203ec4beebb8df6e84df693146", 1); replace(&mut prior, "sha256:ab4e5593a82579eaa70847a8ed0df2672817c9d10bf28ae08fc97cf5064738ba", "sha256:4f2920b7f825da8420e6e39f4ddf2c394fbd9dd28b6fb4514ab626b49697f012", 1); assert_eq!(prior.len(), 5544); assert_eq!(digest(&prior), "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"); let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")); assert_eq!(prior, include_str!("../../e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03")); assert_eq!(reader::read(&root.join("e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", 65536).unwrap(), prior); postrun1045_epoch = prior; postrun1045_epoch.as_str() } else { current };  let next488_physical_current = current; let next488_epoch; let current = if digest(current) == "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03" { if postrun1045_physical_current == current { authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current, include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"); } else { authenticate("e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", current, include_str!("../../e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"); } let mut prior = current.to_owned(); replace(&mut prior, "sha256:8d4ce3e78d3e31640468f338c46bb5a1cf451c203ec4beebb8df6e84df693146", "sha256:a041275d58191e4e29ea94c565e29d604dfd4ab0ca186fa2ab8316f1c9d20de2", 1); replace(&mut prior, "sha256:4f2920b7f825da8420e6e39f4ddf2c394fbd9dd28b6fb4514ab626b49697f012", "sha256:4f3b1979d609cadf9154d7caa1e0859f04acd83bca89eeb010f64b9600d439a9", 1); assert_eq!(prior.len(), 5544); assert_eq!(digest(&prior), "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"); let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")); assert_eq!(prior, include_str!("../../e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d")); assert_eq!(reader::read(&root.join("e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"), 5544, "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d", 65536).unwrap(), prior); next488_epoch = prior; next488_epoch.as_str() } else { current };  let direct1031_physical_current = current; let direct1031_epoch; let current = if digest(current) == "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d" { if next488_physical_current == current { authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current, include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"); } else { authenticate("e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d", current, include_str!("../../e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"), 5544, "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"); } let mut prior = current.to_owned(); replace(&mut prior, "sha256:a041275d58191e4e29ea94c565e29d604dfd4ab0ca186fa2ab8316f1c9d20de2", "sha256:4ca5fd0773a7c1190068b1dc9f4f51f981fbb6afaf716fce2578e7b304bf9251", 1); replace(&mut prior, "sha256:4f3b1979d609cadf9154d7caa1e0859f04acd83bca89eeb010f64b9600d439a9", "sha256:4e3574bc753d9e3dcca9b2bb3176536b485eeabb44045f9a5e0a52516e870e5a", 1); assert_eq!(prior.len(), 5544); assert_eq!(digest(&prior), "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"); let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")); assert_eq!(prior, include_str!("../../e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301")); assert_eq!(reader::read(&root.join("e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"), 5544, "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301", 65536).unwrap(), prior); direct1031_epoch = prior; direct1031_epoch.as_str() } else { current };
-    // Source-only structural1012 epoch; fresh production must confirm these bytes.
-    let boundary1012_physical_current = current;
-    let boundary1012_epoch;
-    let current = if digest(current) == "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301" {
-        if direct1031_physical_current == current { authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-            "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"); } else { assert_eq!(digest(direct1031_physical_current), "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"); assert_eq!(current, include_str!("../../e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301")); }
-        let mut prior = current.to_owned();
-        replace(&mut prior, "sha256:4ca5fd0773a7c1190068b1dc9f4f51f981fbb6afaf716fce2578e7b304bf9251", "sha256:d3fbde442377a3e9f72b4f05d96e33e8ceba46523a5f52a88c9e5044c3396ca4", 1);
-        replace(&mut prior, "sha256:4e3574bc753d9e3dcca9b2bb3176536b485eeabb44045f9a5e0a52516e870e5a", "sha256:479123c567e380c66cc6618e88ed5b1ef8e430558e341a2cae95c6edf2ab86a7", 1);
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(digest(&prior), "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9");
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(prior, include_str!("../../e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"));
-        assert_eq!(reader::read(&root.join("e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"), 5544,
-            "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9", 65536).unwrap(), prior);
-        boundary1012_epoch = prior;
-        boundary1012_epoch.as_str()
-    } else { current };
-    // Source-only prospective1011 epoch; fresh production must confirm these bytes.
-    let combined1011_physical_current = current;
-    let combined1011_epoch;
-    let current = if digest(current) == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9" {
-        if boundary1012_physical_current == current {
-        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-            "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9");
-        } else {
-            assert_eq!(digest(boundary1012_physical_current), "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301");
-            assert_eq!(current, include_str!("../../e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"));
-        }
-        let mut prior = current.to_owned();
-        replace(&mut prior, "sha256:d3fbde442377a3e9f72b4f05d96e33e8ceba46523a5f52a88c9e5044c3396ca4", "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4", 1);
-        replace(&mut prior, "sha256:479123c567e380c66cc6618e88ed5b1ef8e430558e341a2cae95c6edf2ab86a7", "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419", 1);
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(digest(&prior), "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(prior, include_str!("../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"));
-        assert_eq!(reader::read(&root.join("e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"), 5544,
-            "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15", 65536).unwrap(), prior);
-        combined1011_epoch = prior;
-        combined1011_epoch.as_str()
-    } else { current };
-    // Source-only prospective epoch: the fresh public producer must confirm these bytes.
-    let next_physical_current = current;
-    let next_epoch;
-    let current = if digest(current) == "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15" {
-        if combined1011_physical_current == current {
-        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-            "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
-        } else {
-            assert_eq!(digest(combined1011_physical_current), "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9");
-            assert_eq!(current, include_str!("../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"));
-        }
-        let mut prior = current.to_owned();
-        replace(&mut prior, "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4", "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", 1);
-        replace(&mut prior, "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419", "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", 1);
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(digest(&prior), "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(reader::read(&root.join("e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"), 5544,
-            "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b", 65536).unwrap(), prior);
-        next_epoch = prior;
-        next_epoch.as_str()
-    } else { current };
-    // One complete repair epoch before every unchanged historical GUIDE inverse.
-    let repair_physical_current = current;
-    let repair_epoch;
-    let current = if digest(current) == "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b" {
-        if next_physical_current == current {
-        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-            "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
-        } else {
-            assert_eq!(digest(next_physical_current), "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
-            assert_eq!(current, include_str!("../../e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"));
-        }
-        let mut prior = current.to_owned();
-        replace(&mut prior, "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55", 1);
-        replace(&mut prior, "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400", 1);
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(digest(&prior), "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c");
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(reader::read(&root.join("e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"), 5544,
-            "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c", 65536).unwrap(), prior);
-        repair_epoch = prior;
-        repair_epoch.as_str()
-    } else { current };
-    let physical_current = current;
-    // Prospective source epoch only; fresh public production must confirm these bytes.
-    let incoming_b7_guide_epoch;
-    let current = if digest(current)
-        == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
-    {
-        if repair_physical_current == current {
-        authenticate(
-            "docs/AGENT-SKILL-BUNDLE-V1.json",
-            current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
-            5544,
-            "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c",
-        );
-        } else {
-            assert_eq!(digest(repair_physical_current), "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
-            assert_eq!(current, include_str!("../../e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"));
-        }
-        let mut prior = current.to_owned();
-        replace(
-            &mut prior,
-            "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55",
-            "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
-            1,
-        );
-        replace(
-            &mut prior,
-            "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400",
-            "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
-            1,
-        );
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(digest(&prior), "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e");
-        incoming_b7_guide_epoch = prior;
-        incoming_b7_guide_epoch.as_str()
-    } else { current };
-    let predicted_guide_epoch;
-    let current = if digest(current)
-        == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
-    {
-        if physical_current == current {
-        authenticate(
-            "docs/AGENT-SKILL-BUNDLE-V1.json",
-            current,
-            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
-            5544,
-            "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e",
-        );
-        } else {
-            assert_eq!(physical_current.len(), 5544);
-            assert_eq!(digest(physical_current), "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c");
-            assert_eq!(current.len(), 5544);
-            assert_eq!(digest(current), "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e");
-        }
-        let mut prior = current.to_owned();
-        replace(
-            &mut prior,
-            "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
-            "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
-            1,
-        );
-        replace(
-            &mut prior,
-            "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
-            "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
-            1,
-        );
-        assert_eq!(prior.len(), 5544);
-        assert_eq!(
-            digest(&prior),
-            "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
-        );
-        predicted_guide_epoch = prior;
-        predicted_guide_epoch.as_str()
-    } else {
-        current
-    };
-    // Authenticate the actual public epoch before constructing a named historical input.
-    let guide_epoch;
-    let current = if digest(current)
-        == "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
-    {
-        if physical_current == current {
+fn bundle(current: &str) -> String {
+    let next1058_physical_current = current;
+    let next1058_epoch;
+    let current =
+        if digest(current) == "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536" {
             authenticate(
                 "docs/AGENT-SKILL-BUNDLE-V1.json",
                 current,
                 include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
                 5544,
-                "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a",
+                "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",
+            );
+            let mut prior = current.to_owned();
+            replace(&mut prior, "\"code_count\":1520", "\"code_count\":1517", 1);
+            replace(
+                &mut prior,
+                "sha256:8949d3fd78a8372d2e5b83e08379bbb2925bbe7f8a86ce192358c9c847a71894",
+                "sha256:d458fc426ee02db1181d9a11086d49a3339bc866f14c1ac00737ca154db955a2",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:fd4cff9cbeaab095a8388c93828926b1ad1f84b065d94766500d33c91fa96190",
+                "sha256:885a3ff95b4ce7e6093c3f4b9922cc49892b0177f5a6d84f7c352ea2ad636589",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"
+            );
+            assert_eq!(
+                prior,
+                include_str!(
+                    "../../e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"
+                )
+            );
+            assert_eq!(
+                reader::read(
+                    &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),
+                    5544,
+                    "fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",
+                    65536
+                )
+                .unwrap(),
+                prior
+            );
+            next1058_epoch = prior;
+            next1058_epoch.as_str()
+        } else {
+            current
+        };
+    let next1051_physical_current = current;
+    let next1051_epoch;
+    let current =
+        if digest(current) == "fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32" {
+            if next1058_physical_current == current {
+                authenticate(
+                    "docs/AGENT-SKILL-BUNDLE-V1.json",
+                    current,
+                    include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",
+                );
+            } else {
+                authenticate(
+                    "e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",
+                    current,
+                    include_str!(
+                        "../../e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"
+                    ),
+                    5544,
+                    "fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",
+                );
+            }
+            let mut prior = current.to_owned();
+            replace(
+                &mut prior,
+                "sha256:d458fc426ee02db1181d9a11086d49a3339bc866f14c1ac00737ca154db955a2",
+                "sha256:c3a7d3af7a1757deff405e4a99c9d8b6567fa2b9dc50a6361e14f6ac03a80da1",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:885a3ff95b4ce7e6093c3f4b9922cc49892b0177f5a6d84f7c352ea2ad636589",
+                "sha256:96d6a523bdbef2375f08ff0b32f916a18761181678a6eb74769052e7204c399f",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"
+            );
+            assert_eq!(
+                prior,
+                include_str!(
+                    "../../e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"
+                )
+            );
+            assert_eq!(
+                reader::read(
+                    &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"),
+                    5544,
+                    "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",
+                    65536
+                )
+                .unwrap(),
+                prior
+            );
+            next1051_epoch = prior;
+            next1051_epoch.as_str()
+        } else {
+            current
+        };
+    let next1047_physical_current = current;
+    let next1047_epoch;
+    let current = if digest(current)
+        == "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"
+    {
+        if next1051_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",
             );
         } else {
-            assert_eq!(physical_current.len(), 5544);
-            if digest(physical_current) == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c" {
-                assert_eq!(physical_current.len(), 5544);
-            } else {
-            assert_eq!(
-                digest(physical_current),
-                "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
-            );
-            }
-            assert_eq!(current.len(), 5544);
-            assert_eq!(
-                digest(current),
-                "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+            authenticate(
+                "e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",
+                current,
+                include_str!(
+                    "../../e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"
+                ),
+                5544,
+                "b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",
             );
         }
         let mut prior = current.to_owned();
         replace(
             &mut prior,
-            "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
-            "sha256:91f9c6c07e143a11d4b9c837395c775f143d438d163f8474aa7356998125fb07",
+            "sha256:96d6a523bdbef2375f08ff0b32f916a18761181678a6eb74769052e7204c399f",
+            "sha256:bb4c255fd3ea39190db513f91c5bb265e6146d4b3e3e289298af1318a2977703",
             1,
         );
         replace(
             &mut prior,
-            "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
-            "sha256:68bf89cdc667b569778de5905df8ebd4c4cf4d1a5f76774b734fa2d74d15cfde",
+            "sha256:c3a7d3af7a1757deff405e4a99c9d8b6567fa2b9dc50a6361e14f6ac03a80da1",
+            "sha256:ab4e5593a82579eaa70847a8ed0df2672817c9d10bf28ae08fc97cf5064738ba",
             1,
         );
         assert_eq!(prior.len(), 5544);
         assert_eq!(
             digest(&prior),
-            "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d"
+            "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"
         );
-        guide_epoch = prior;
-        guide_epoch.as_str()
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"),
+                5544,
+                "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        next1047_epoch = prior;
+        next1047_epoch.as_str()
     } else {
         current
     };
+    let postrun1045_physical_current = current;
+    let postrun1045_epoch;
+    let current = if digest(current)
+        == "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"
+    {
+        if next1047_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",
+            );
+        } else {
+            authenticate(
+                "e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",
+                current,
+                include_str!(
+                    "../../e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"
+                ),
+                5544,
+                "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:bb4c255fd3ea39190db513f91c5bb265e6146d4b3e3e289298af1318a2977703",
+            "sha256:8d4ce3e78d3e31640468f338c46bb5a1cf451c203ec4beebb8df6e84df693146",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:ab4e5593a82579eaa70847a8ed0df2672817c9d10bf28ae08fc97cf5064738ba",
+            "sha256:4f2920b7f825da8420e6e39f4ddf2c394fbd9dd28b6fb4514ab626b49697f012",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"),
+                5544,
+                "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        postrun1045_epoch = prior;
+        postrun1045_epoch.as_str()
+    } else {
+        current
+    };
+    let next488_physical_current = current;
+    let next488_epoch;
+    let current = if digest(current)
+        == "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"
+    {
+        if postrun1045_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03",
+            );
+        } else {
+            authenticate(
+                "e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03",
+                current,
+                include_str!(
+                    "../../e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"
+                ),
+                5544,
+                "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03",
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:8d4ce3e78d3e31640468f338c46bb5a1cf451c203ec4beebb8df6e84df693146",
+            "sha256:a041275d58191e4e29ea94c565e29d604dfd4ab0ca186fa2ab8316f1c9d20de2",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:4f2920b7f825da8420e6e39f4ddf2c394fbd9dd28b6fb4514ab626b49697f012",
+            "sha256:4f3b1979d609cadf9154d7caa1e0859f04acd83bca89eeb010f64b9600d439a9",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"),
+                5544,
+                "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        next488_epoch = prior;
+        next488_epoch.as_str()
+    } else {
+        current
+    };
+    let direct1031_physical_current = current;
+    let direct1031_epoch;
+    let current = if digest(current)
+        == "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+    {
+        if next488_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+            );
+        } else {
+            authenticate(
+                "e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+                current,
+                include_str!(
+                    "../../e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+                ),
+                5544,
+                "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:a041275d58191e4e29ea94c565e29d604dfd4ab0ca186fa2ab8316f1c9d20de2",
+            "sha256:4ca5fd0773a7c1190068b1dc9f4f51f981fbb6afaf716fce2578e7b304bf9251",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:4f3b1979d609cadf9154d7caa1e0859f04acd83bca89eeb010f64b9600d439a9",
+            "sha256:4e3574bc753d9e3dcca9b2bb3176536b485eeabb44045f9a5e0a52516e870e5a",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"),
+                5544,
+                "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        direct1031_epoch = prior;
+        direct1031_epoch.as_str()
+    } else {
+        current
+    };
+    // Source-only structural1012 epoch; fresh production must confirm these bytes.
+    let boundary1012_physical_current = current;
+    let boundary1012_epoch;
+    let current = if digest(current)
+        == "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+    {
+        if direct1031_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301",
+            );
+        } else {
+            assert_eq!(
+                digest(direct1031_physical_current),
+                "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+            );
+            assert_eq!(
+                current,
+                include_str!(
+                    "../../e/4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+                )
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:4ca5fd0773a7c1190068b1dc9f4f51f981fbb6afaf716fce2578e7b304bf9251",
+            "sha256:d3fbde442377a3e9f72b4f05d96e33e8ceba46523a5f52a88c9e5044c3396ca4",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:4e3574bc753d9e3dcca9b2bb3176536b485eeabb44045f9a5e0a52516e870e5a",
+            "sha256:479123c567e380c66cc6618e88ed5b1ef8e430558e341a2cae95c6edf2ab86a7",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"),
+                5544,
+                "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        boundary1012_epoch = prior;
+        boundary1012_epoch.as_str()
+    } else {
+        current
+    };
+    // Source-only prospective1011 epoch; fresh production must confirm these bytes.
+    let combined1011_physical_current = current;
+    let combined1011_epoch;
+    let current = if digest(current)
+        == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+    {
+        if boundary1012_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9",
+            );
+        } else {
+            assert_eq!(
+                digest(boundary1012_physical_current),
+                "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+            );
+            assert_eq!(
+                current,
+                include_str!(
+                    "../../e/efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+                )
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:d3fbde442377a3e9f72b4f05d96e33e8ceba46523a5f52a88c9e5044c3396ca4",
+            "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:479123c567e380c66cc6618e88ed5b1ef8e430558e341a2cae95c6edf2ab86a7",
+            "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            prior,
+            include_str!(
+                "../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"
+            )
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"),
+                5544,
+                "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        combined1011_epoch = prior;
+        combined1011_epoch.as_str()
+    } else {
+        current
+    };
+    // Source-only prospective epoch: the fresh public producer must confirm these bytes.
+    let next_physical_current = current;
+    let next_epoch;
+    let current = if digest(current)
+        == "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"
+    {
+        if combined1011_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15",
+            );
+        } else {
+            assert_eq!(
+                digest(combined1011_physical_current),
+                "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+            );
+            assert_eq!(
+                current,
+                include_str!(
+                    "../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"
+                )
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4",
+            "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419",
+            "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            reader::read(
+                &root.join("e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"),
+                5544,
+                "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        next_epoch = prior;
+        next_epoch.as_str()
+    } else {
+        current
+    };
+    // One complete repair epoch before every unchanged historical GUIDE inverse.
+    let repair_physical_current = current;
+    let repair_epoch;
+    let current = if digest(current)
+        == "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"
+    {
+        if next_physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b",
+            );
+        } else {
+            assert_eq!(
+                digest(next_physical_current),
+                "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"
+            );
+            assert_eq!(
+                current,
+                include_str!(
+                    "../../e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"
+                )
+            );
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f",
+            "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a",
+            "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            reader::read(
+                &root.join("e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"),
+                5544,
+                "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c",
+                65536
+            )
+            .unwrap(),
+            prior
+        );
+        repair_epoch = prior;
+        repair_epoch.as_str()
+    } else {
+        current
+    };
+    let physical_current = current;
+    // Prospective source epoch only; fresh public production must confirm these bytes.
+    let incoming_b7_guide_epoch;
+    let current =
+        if digest(current) == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c" {
+            if repair_physical_current == current {
+                authenticate(
+                    "docs/AGENT-SKILL-BUNDLE-V1.json",
+                    current,
+                    include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c",
+                );
+            } else {
+                assert_eq!(
+                    digest(repair_physical_current),
+                    "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"
+                );
+                assert_eq!(
+                    current,
+                    include_str!(
+                        "../../e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+                    )
+                );
+            }
+            let mut prior = current.to_owned();
+            replace(
+                &mut prior,
+                "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55",
+                "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400",
+                "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+            );
+            incoming_b7_guide_epoch = prior;
+            incoming_b7_guide_epoch.as_str()
+        } else {
+            current
+        };
+    let predicted_guide_epoch;
+    let current =
+        if digest(current) == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e" {
+            if physical_current == current {
+                authenticate(
+                    "docs/AGENT-SKILL-BUNDLE-V1.json",
+                    current,
+                    include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e",
+                );
+            } else {
+                assert_eq!(physical_current.len(), 5544);
+                assert_eq!(
+                    digest(physical_current),
+                    "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+                );
+                assert_eq!(current.len(), 5544);
+                assert_eq!(
+                    digest(current),
+                    "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+                );
+            }
+            let mut prior = current.to_owned();
+            replace(
+                &mut prior,
+                "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
+                "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
+                "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+            );
+            predicted_guide_epoch = prior;
+            predicted_guide_epoch.as_str()
+        } else {
+            current
+        };
+    // Authenticate the actual public epoch before constructing a named historical input.
+    let guide_epoch;
+    let current =
+        if digest(current) == "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a" {
+            if physical_current == current {
+                authenticate(
+                    "docs/AGENT-SKILL-BUNDLE-V1.json",
+                    current,
+                    include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a",
+                );
+            } else {
+                assert_eq!(physical_current.len(), 5544);
+                if digest(physical_current)
+                    == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+                {
+                    assert_eq!(physical_current.len(), 5544);
+                } else {
+                    assert_eq!(
+                        digest(physical_current),
+                        "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+                    );
+                }
+                assert_eq!(current.len(), 5544);
+                assert_eq!(
+                    digest(current),
+                    "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+                );
+            }
+            let mut prior = current.to_owned();
+            replace(
+                &mut prior,
+                "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
+                "sha256:91f9c6c07e143a11d4b9c837395c775f143d438d163f8474aa7356998125fb07",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
+                "sha256:68bf89cdc667b569778de5905df8ebd4c4cf4d1a5f76774b734fa2d74d15cfde",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d"
+            );
+            guide_epoch = prior;
+            guide_epoch.as_str()
+        } else {
+            current
+        };
     let projected_current;
     let current =
         if digest(current) == "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d" {
@@ -321,7 +873,9 @@ fn bundle(current: &str) -> String { let next1058_physical_current=current; let 
             } else {
                 // The physical epoch was authenticated before its exact two-field inverse.
                 assert_eq!(physical_current.len(), 5544);
-                if digest(physical_current) == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c" {
+                if digest(physical_current)
+                    == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+                {
                     assert_eq!(physical_current.len(), 5544);
                 } else if digest(physical_current)
                     == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
@@ -585,25 +1139,115 @@ fn bundle(current: &str) -> String { let next1058_physical_current=current; let 
         digest(&before),
         "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f"
     );
-    if digest(direct1031_physical_current) == "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d" { assert_eq!({ if next488_physical_current == direct1031_physical_current { reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d", 65536).unwrap() } else { assert_eq!({ if postrun1045_physical_current == next488_physical_current { reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", 65536).unwrap() } else { assert_eq!({ if next1047_physical_current == postrun1045_physical_current { reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5", 65536).unwrap() } else { assert_eq!({if next1051_physical_current==next1047_physical_current {reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",65536).unwrap()}else{assert_eq!({if next1058_physical_current==next1051_physical_current {reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()}else{assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",65536).unwrap(),next1058_physical_current);reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()}},next1051_physical_current);reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",65536).unwrap()}},next1047_physical_current); reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"),5544,"b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",65536).unwrap() } }, postrun1045_physical_current); reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", 65536).unwrap() } }, next488_physical_current); reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"), 5544, "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d", 65536).unwrap() } }, direct1031_physical_current); } else { assert_eq!(
-        if digest(boundary1012_physical_current) == "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301" {
-            reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-                "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301", 65536).unwrap()
-        } else {
-            if digest(combined1011_physical_current) == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9" {
-            reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
-                "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9", 65536).unwrap()
-        } else {
-            std::fs::read_to_string(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("docs/AGENT-SKILL-BUNDLE-V1.json")
-            )
-            .unwrap()
-        }
-        },
-        boundary1012_physical_current,
-    ); }
+    if digest(direct1031_physical_current)
+        == "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d"
+    {
+        assert_eq!(
+            {
+                if next488_physical_current == direct1031_physical_current {
+                    reader::read(
+                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                            .join("docs/AGENT-SKILL-BUNDLE-V1.json"),
+                        5544,
+                        "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+                        65536,
+                    )
+                    .unwrap()
+                } else {
+                    assert_eq!(
+                        {
+                            if postrun1045_physical_current == next488_physical_current {
+                                reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", 65536).unwrap()
+                            } else {
+                                assert_eq!(
+                                    {
+                                        if next1047_physical_current == postrun1045_physical_current
+                                        {
+                                            reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544, "b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5", 65536).unwrap()
+                                        } else {
+                                            assert_eq!(
+                                                {
+                                                    if next1051_physical_current
+                                                        == next1047_physical_current
+                                                    {
+                                                        reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",65536).unwrap()
+                                                    } else {
+                                                        assert_eq!(
+                                                            {
+                                                                if next1058_physical_current
+                                                                    == next1051_physical_current
+                                                                {
+                                                                    reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()
+                                                                } else {
+                                                                    assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",65536).unwrap(),next1058_physical_current);
+                                                                    reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()
+                                                                }
+                                                            },
+                                                            next1051_physical_current
+                                                        );
+                                                        reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467"),5544,"b6772198bf6f9baca920c41dee38574db6fc8d17aca72f1d931c492352905467",65536).unwrap()
+                                                    }
+                                                },
+                                                next1047_physical_current
+                                            );
+                                            reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5"),5544,"b9d4d245b8297bf32b9bd371e8202f5d948461167867978040d8c956250dc3f5",65536).unwrap()
+                                        }
+                                    },
+                                    postrun1045_physical_current
+                                );
+                                reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03"), 5544, "282c7d4eba939d34b7a6fcf94cc3c45d9dcfbba0f7075668f7f98080962e8d03", 65536).unwrap()
+                            }
+                        },
+                        next488_physical_current
+                    );
+                    reader::read(
+                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+                            "e/fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+                        ),
+                        5544,
+                        "fb8d1f3d35e195eaf39a22a6cc1e3e6f1f03ab90e497c885d782e32809564a6d",
+                        65536,
+                    )
+                    .unwrap()
+                }
+            },
+            direct1031_physical_current
+        );
+    } else {
+        assert_eq!(
+            if digest(boundary1012_physical_current)
+                == "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301"
+            {
+                reader::read(
+                    &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "4ec03ff7a164c0f48a37ace16c206de7f096ae84e05c70c7409159beb65cf301",
+                    65536,
+                )
+                .unwrap()
+            } else {
+                if digest(combined1011_physical_current)
+                    == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9"
+                {
+                    reader::read(
+                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                            .join("docs/AGENT-SKILL-BUNDLE-V1.json"),
+                        5544,
+                        "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9",
+                        65536,
+                    )
+                    .unwrap()
+                } else {
+                    std::fs::read_to_string(
+                        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                            .join("docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    )
+                    .unwrap()
+                }
+            },
+            boundary1012_physical_current,
+        );
+    }
     before
 }

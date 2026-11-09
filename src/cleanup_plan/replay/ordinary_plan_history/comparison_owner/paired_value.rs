@@ -313,8 +313,9 @@ pub(super) const INDEPENDENT_PRIMITIVES: usize = 8 * PAYMENT_HEADER;
 // Compare already-loaded immutable segments without rebuilding the normal
 // cursor transport or sharing decisions for each interior observation. Every
 // original semantic work request remains in its original order.
-pub(super) const INDEPENDENT_RUN_SETUP: usize =
-    certified_heads::RUN_CAPTURE + 2 * size_of::<&[Rc<SkeletonObservation>]>() + size_of::<[usize; 8]>();
+pub(super) const INDEPENDENT_RUN_SETUP: usize = certified_heads::RUN_CAPTURE
+    + 2 * size_of::<&[Rc<SkeletonObservation>]>()
+    + size_of::<[usize; 8]>();
 pub(super) const INDEPENDENT_RUN_PAYLOAD: usize = 2 * size_of::<&Rc<SkeletonObservation>>()
     + 4 * size_of::<&[Rc<SkeletonObservation>]>()
     + 4 * size_of::<&Rc<SkeletonObservation>>()

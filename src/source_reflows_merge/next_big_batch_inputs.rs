@@ -204,12 +204,18 @@ fn read_view(view: &serde_json::Value) -> String {
     )
     .unwrap()
 }
-#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
+#[allow(
+    dead_code,
+    reason = "Complete standalone source-custody entry retains its own invocation"
+)]
 fn actual(row: &serde_json::Value) -> String {
     let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
     actual_with(&mut invocation, row)
 }
-fn actual_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, row: &serde_json::Value) -> String {
+fn actual_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    row: &serde_json::Value,
+) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
@@ -325,16 +331,19 @@ pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String>
     let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
     file_with(&mut invocation, path, length, expected)
 }
-pub(crate) fn file_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, path: &Path, length: usize, expected: &str) -> Option<String> {
-    if let Some(value) = declared_file(path, length, expected) { return value; }
-    if let Some(value) = invocation.combined_side_file(
-        path, length, expected,
-    ) {
+pub(crate) fn file_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    path: &Path,
+    length: usize,
+    expected: &str,
+) -> Option<String> {
+    if let Some(value) = declared_file(path, length, expected) {
+        return value;
+    }
+    if let Some(value) = invocation.combined_side_file(path, length, expected) {
         return Some(value);
     }
-    if let Some(value) =
-        invocation.file(path, length, expected)
-    {
+    if let Some(value) = invocation.file(path, length, expected) {
         return Some(value);
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -364,11 +373,16 @@ pub(crate) fn value(source: &str, expected: &str, supplied: &str) -> String {
     let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
     value_with(&mut invocation, source, expected, supplied)
 }
-pub(crate) fn value_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, supplied: &str) -> String {
-    if let Some(value) = declared_value(source, expected, supplied) { return value; }
-    let side = invocation.combined_side_expected_value(
-        source, expected, supplied,
-    );
+pub(crate) fn value_with(
+    invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    if let Some(value) = declared_value(source, expected, supplied) {
+        return value;
+    }
+    let side = invocation.combined_side_expected_value(source, expected, supplied);
     let outer = invocation.value(source, expected, &side);
     let supplied = outer.as_str();
     let packet = packet();
@@ -390,11 +404,7 @@ pub(crate) fn value_with(invocation: &mut super::main_e177_final_inputs::Project
     };
     let current = actual_with(invocation, row);
     let previous = read_view(prior);
-    let supplied = invocation.value(
-        source,
-        row["current"]["sha256"].as_str().unwrap(),
-        supplied,
-    );
+    let supplied = invocation.value(source, row["current"]["sha256"].as_str().unwrap(), supplied);
     if supplied == current || supplied == previous {
         previous
     } else {

@@ -73,7 +73,10 @@ fn prefixes(binding: &ValidationBinding) -> Option<usize> {
     }
     Some(bytes)
 }
-pub(in crate::hir::validation) fn join_scratch(left: &ValidationBinding, right: &ValidationBinding) -> Result<(), Diagnostic> {
+pub(in crate::hir::validation) fn join_scratch(
+    left: &ValidationBinding,
+    right: &ValidationBinding,
+) -> Result<(), Diagnostic> {
     charge::reserve(Some(moved_direct::CONTROL))?;
     let count = left
         .moved_places

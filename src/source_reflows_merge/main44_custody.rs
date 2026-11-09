@@ -13,13 +13,20 @@ pub(super) struct Spec {
 impl Fixture {
     pub(crate) fn prior_source(source: &str, current: &str) -> Option<String> {
         use sha2::{Digest, Sha256};
-        let hash = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
-        let binding: serde_json::Value =
-            serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/lexical_exit/arm_context_inverse.json"))).unwrap();
+        let hash =
+            |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+        let binding: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/hir/validation/lexical_exit/arm_context_inverse.json"
+        )))
+        .unwrap();
         let rows = binding["rows"].as_array().unwrap();
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["source"], "src/hir/validation/lexical_exit.rs");
-        assert_eq!(rows[1]["source"], "src/source_reflows_merge/main44_custody.rs");
+        assert_eq!(
+            rows[1]["source"],
+            "src/source_reflows_merge/main44_custody.rs"
+        );
         let row = rows
             .iter()
             .find(|row| row["source"].as_str() == Some(source))?;
@@ -57,25 +64,67 @@ impl Fixture {
     // complete fixed targets. A historical image never becomes current authority.
     fn authenticate_context_source(source: &str, supplied: &str, binding: &serde_json::Value) {
         let current = match source {
-            "src/hir/validation/lexical_exit.rs" => include_str!("../hir/validation/lexical_exit.rs"),
+            "src/hir/validation/lexical_exit.rs" => {
+                include_str!("../hir/validation/lexical_exit.rs")
+            }
             "src/source_reflows_merge/main44_custody.rs" => include_str!("main44_custody.rs"),
             _ => panic!("unlisted arm context source"),
         };
-        assert_eq!(supplied, current, "complete compiled current arm-context owner");
+        assert_eq!(
+            supplied, current,
+            "complete compiled current arm-context owner"
+        );
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let current_sha = super::source_sha(current);
-        assert_eq!(current_file(&root.join(source), current.len(), &current_sha).unwrap(), current);
-        assert_eq!(current_file(&root.join(format!("e/{current_sha}")), current.len(), &current_sha).unwrap(), current);
+        assert_eq!(
+            current_file(&root.join(source), current.len(), &current_sha).unwrap(),
+            current
+        );
+        assert_eq!(
+            current_file(
+                &root.join(format!("e/{current_sha}")),
+                current.len(),
+                &current_sha
+            )
+            .unwrap(),
+            current
+        );
         let metadata_source = "src/hir/validation/lexical_exit/arm_context_inverse.json";
         let metadata = include_str!("../hir/validation/lexical_exit/arm_context_inverse.json");
         let metadata_sha = super::source_sha(metadata);
-        assert_eq!(current_file(&root.join(metadata_source), metadata.len(), &metadata_sha).unwrap(), metadata);
-        assert_eq!(current_file(&root.join(format!("e/{metadata_sha}")), metadata.len(), &metadata_sha).unwrap(), metadata);
-        const OLD_METADATA: &str = include_str!("../../e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3");
-        assert_eq!(current_file(&root.join("e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"), OLD_METADATA.len(), "97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3").unwrap(), OLD_METADATA);
+        assert_eq!(
+            current_file(&root.join(metadata_source), metadata.len(), &metadata_sha).unwrap(),
+            metadata
+        );
+        assert_eq!(
+            current_file(
+                &root.join(format!("e/{metadata_sha}")),
+                metadata.len(),
+                &metadata_sha
+            )
+            .unwrap(),
+            metadata
+        );
+        const OLD_METADATA: &str = include_str!(
+            "../../e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"
+        );
+        assert_eq!(
+            current_file(
+                &root.join("e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"),
+                OLD_METADATA.len(),
+                "97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"
+            )
+            .unwrap(),
+            OLD_METADATA
+        );
         let retained: serde_json::Value = serde_json::from_str(OLD_METADATA).unwrap();
         assert_eq!(binding["retained_whole_arm_context_inverse"], retained);
-        let row = binding["rows"].as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+        let row = binding["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["source"] == source)
+            .unwrap();
         let length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
         let sha = row["before_sha256"].as_str().unwrap();
         let historical = current_file(&root.join(format!("e/{sha}")), length, sha).unwrap();
@@ -194,7 +243,12 @@ impl Fixture {
         let context_source = if source == "src/hir/validation/lexical_exit.rs" {
             let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
             assert_eq!(
-                current_file(&root.join(source), compiled.len(), &super::source_sha(compiled)).unwrap(),
+                current_file(
+                    &root.join(source),
+                    compiled.len(),
+                    &super::source_sha(compiled)
+                )
+                .unwrap(),
                 compiled
             );
             Self::prior_source(source, compiled)
@@ -227,7 +281,11 @@ impl Fixture {
                 supplied,
             )
         } else if has_export_epoch {
-            Self::closure_epoch(source, "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2", supplied)
+            Self::closure_epoch(
+                source,
+                "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2",
+                supplied,
+            )
         } else {
             (std::borrow::Cow::Borrowed(compiled), Vec::new())
         };
@@ -244,7 +302,12 @@ impl Fixture {
         let acquired = if context_source.is_some() {
             // Preserve the original late physical acquisition as well as the
             // early one; a source change between the two remains a refusal.
-            let actual = current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).unwrap();
+            let actual = current_file(
+                &root.join(source),
+                physical_compiled.len(),
+                &super::source_sha(physical_compiled),
+            )
+            .unwrap();
             assert_eq!(actual, physical_compiled);
             Self::prior_source(source, &actual).expect("exact late arm-context source")
         } else {
@@ -303,7 +366,10 @@ impl Fixture {
                 assert_eq!(complete.get(at..at + after.len()), Some(after));
                 complete.replace_range(at..at + after.len(), before);
             }
-            assert_eq!(complete, restored, "entire composed physical-current inverse");
+            assert_eq!(
+                complete, restored,
+                "entire composed physical-current inverse"
+            );
         }
         (std::borrow::Cow::Owned(restored), composed)
     }
@@ -593,7 +659,10 @@ pub(crate) fn before_phase_probes<'a>(
     let compiled = workspace_epoch.as_ref();
     let receiving_epoch = if source == "src/cleanup_plan/replay/factored/continuation_receiver.rs" {
         assert_eq!(compiled.len(), 3211);
-        assert_eq!(super::source_sha(compiled), "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b");
+        assert_eq!(
+            super::source_sha(compiled),
+            "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b"
+        );
         let mut prior = compiled.to_owned();
         for &(at, after, before) in &[
             (1631, "\n        }", ""),
@@ -604,11 +673,20 @@ pub(crate) fn before_phase_probes<'a>(
             assert_eq!(prior.get(at..at + after.len()), Some(after));
             prior.replace_range(at..at + after.len(), before);
         }
-        let fixture = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"));
-        assert_eq!(prior, fixture); assert_eq!(prior.len(), 2919);
-        assert_eq!(super::source_sha(&prior), "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a");
+        let fixture = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"
+        ));
+        assert_eq!(prior, fixture);
+        assert_eq!(prior.len(), 2919);
+        assert_eq!(
+            super::source_sha(&prior),
+            "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"
+        );
         std::borrow::Cow::Owned(prior)
-    } else { std::borrow::Cow::Borrowed(compiled) };
+    } else {
+        std::borrow::Cow::Borrowed(compiled)
+    };
     let compiled = receiving_epoch.as_ref();
     // Each later implementation is acquired in full before the unchanged
     // incoming-main and diagnostic-probe epochs below. Fixed endpoints remain
@@ -808,17 +886,29 @@ pub(crate) fn phase_probe_stage<'a>(
 
 // Authenticate the complete joint replay source before the retained workspace epoch.
 fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> {
-    if source != "src/cleanup_plan/replay.rs" { return None; }
+    if source != "src/cleanup_plan/replay.rs" {
+        return None;
+    }
     let physical_current = supplied;
     let (entire_pre_943, _) = crate::source_reflows::replay_before_943(physical_current);
     let supplied = entire_pre_943.as_str();
-    const CURRENT: &str = include_str!("../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a");
-    const BEFORE: &str = include_str!("../../e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+    const CURRENT: &str =
+        include_str!("../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a");
+    const BEFORE: &str =
+        include_str!("../../e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
     const CURRENT_SHA: &str = "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a";
     assert_eq!(supplied, CURRENT);
-    assert_eq!((supplied.len(), super::source_sha(supplied)), (326143, CURRENT_SHA.to_owned()));
+    assert_eq!(
+        (supplied.len(), super::source_sha(supplied)),
+        (326143, CURRENT_SHA.to_owned())
+    );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = current_file(&root.join(format!("e/{CURRENT_SHA}")), CURRENT.len(), CURRENT_SHA).unwrap();
+    let physical = current_file(
+        &root.join(format!("e/{CURRENT_SHA}")),
+        CURRENT.len(),
+        CURRENT_SHA,
+    )
+    .unwrap();
     assert_eq!(physical, CURRENT);
     let edits: &[(usize, usize, &str, &str)] = &[
         (849, 869, "mod fact_preflight;\n", ""),
@@ -837,10 +927,35 @@ fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> 
         assert_eq!(&restored[start..end], after);
         restored.replace_range(start..end, before);
     }
-    assert_eq!((restored.len(), super::source_sha(&restored)), (327551, "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5".to_owned()));
+    assert_eq!(
+        (restored.len(), super::source_sha(&restored)),
+        (
+            327551,
+            "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5".to_owned()
+        )
+    );
     assert_eq!(restored, BEFORE);
-    assert_eq!(current_file(&root.join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"), BEFORE.len(), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5").unwrap(), BEFORE);
-    assert_eq!(current_file(&root.join(format!("e/{CURRENT_SHA}")), CURRENT.len(), CURRENT_SHA).unwrap(), physical);
-    assert_eq!(crate::source_reflows::replay_before_943(physical_current).0, entire_pre_943);
+    assert_eq!(
+        current_file(
+            &root.join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"),
+            BEFORE.len(),
+            "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"
+        )
+        .unwrap(),
+        BEFORE
+    );
+    assert_eq!(
+        current_file(
+            &root.join(format!("e/{CURRENT_SHA}")),
+            CURRENT.len(),
+            CURRENT_SHA
+        )
+        .unwrap(),
+        physical
+    );
+    assert_eq!(
+        crate::source_reflows::replay_before_943(physical_current).0,
+        entire_pre_943
+    );
     Some(restored)
 }

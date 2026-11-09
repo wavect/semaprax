@@ -69,7 +69,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         // Bound the changed continuation route against its compiled current
         // image before the complete inherited inverse/dependency checks.
         let mut actual = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
-            let physical = oracle_closure_custody::exact_compiled(&root.join(&path), include_str!("../../continuation_storage.rs"));
+            let physical = oracle_closure_custody::exact_compiled(
+                &root.join(&path),
+                include_str!("../../continuation_storage.rs"),
+            );
             crate::bounded_output::census_before(&path, physical.as_bytes())
         } else {
             crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap())
@@ -210,12 +213,21 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let continuation_before = if matches!(path.as_str(), "src/cleanup_plan/replay/continuation_storage/tests.rs" | "src/cleanup_plan/replay/continuation_storage.rs")
-        {
-            let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" { include_bytes!("../../continuation_storage.rs").as_slice() } else { include_bytes!("../../continuation_storage/tests.rs").as_slice() };
+        let continuation_before = if matches!(
+            path.as_str(),
+            "src/cleanup_plan/replay/continuation_storage/tests.rs"
+                | "src/cleanup_plan/replay/continuation_storage.rs"
+        ) {
+            let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+                include_bytes!("../../continuation_storage.rs").as_slice()
+            } else {
+                include_bytes!("../../continuation_storage/tests.rs").as_slice()
+            };
             assert_eq!(actual.as_slice(), compiled);
             if path == "src/cleanup_plan/replay/continuation_storage.rs" {
-                actual = oracle_closure_custody::restore(&path, std::str::from_utf8(&actual).unwrap()).into_bytes();
+                actual =
+                    oracle_closure_custody::restore(&path, std::str::from_utf8(&actual).unwrap())
+                        .into_bytes();
             }
             let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
             assert_eq!(
@@ -241,9 +253,22 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 );
                 before.splice(start..end, e["before"].as_str().unwrap().bytes());
             }
-            let (fixture, length, sha): (&[u8], usize, &str) = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
-                (include_bytes!("../../continuation_storage/reached_before/continuation_storage.rs.txt"), 14296, "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f")
-            } else { (include_bytes!("../../continuation_storage/reached_before/tests.rs.txt"), 27342, "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2") };
+            let (fixture, length, sha): (&[u8], usize, &str) =
+                if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+                    (
+                        include_bytes!(
+                            "../../continuation_storage/reached_before/continuation_storage.rs.txt"
+                        ),
+                        14296,
+                        "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f",
+                    )
+                } else {
+                    (
+                        include_bytes!("../../continuation_storage/reached_before/tests.rs.txt"),
+                        27342,
+                        "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+                    )
+                };
             assert_eq!(before.as_slice(), fixture);
             assert_eq!(before.len(), length);
             assert_eq!(digest(&before), sha);
@@ -404,48 +429,86 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
         ]),
         _ => return current.to_vec(),
     };
-    let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+    let physical =
+        std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
     assert_eq!(physical.as_slice(), compiled);
     assert_eq!(current, compiled);
     assert_eq!(current.len(), length);
     assert_eq!(digest(current), expected);
-    let mut before = if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" {
+    let mut before = if path
+        == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs"
+    {
         crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()
-    } else { current.to_vec() };
+    } else {
+        current.to_vec()
+    };
     for &(at, after, prior) in edits.iter().rev() {
         assert_eq!(before.get(at..at + after.len()), Some(after.as_bytes()));
         before.splice(at..at + after.len(), prior.bytes());
     }
     assert_eq!(before.len(), before_length);
     assert_eq!(digest(&before), before_digest);
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+    assert_eq!(
+        std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(),
+        physical
+    );
     before
 }
 // Finite exact successor inputs; original42 packet and all946 targets stay whole.
 fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
     let lookup_epoch = path == "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs";
     let current = if lookup_epoch {
-        let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+        let physical =
+            std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
         let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs")).as_slice();
         assert_eq!(physical.as_slice(), compiled);
         assert_eq!(current, compiled);
         // Complete fixture-owner funding precedes the unchanged prior lookup chain.
         assert_eq!(current.len(), 45009);
-        assert_eq!(digest(current), "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd");
-        let current = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a")).as_slice();
+        assert_eq!(
+            digest(current),
+            "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd"
+        );
+        let current = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a"
+        ))
+        .as_slice();
         // Bind the complete repaired physical lookup before acquiring the
         // entire authenticated mainb7 input for the unchanged older fronts.
         assert_eq!(current.len(), 44359);
-        assert_eq!(digest(current), "29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a");
-        let current = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394")).as_slice();
+        assert_eq!(
+            digest(current),
+            "29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a"
+        );
+        let current = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394"
+        ))
+        .as_slice();
         assert_eq!(current.len(), 41729);
-        assert_eq!(digest(current), "8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394");
-        let prior = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d")).as_slice();
+        assert_eq!(
+            digest(current),
+            "8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394"
+        );
+        let prior = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d"
+        ))
+        .as_slice();
         assert_eq!(prior.len(), 39177);
-        assert_eq!(digest(prior), "48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d");
-        assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+        assert_eq!(
+            digest(prior),
+            "48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d"
+        );
+        assert_eq!(
+            std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(),
+            physical
+        );
         prior
-    } else { current };
+    } else {
+        current
+    };
     let (compiled, length, sha, before, before_length, before_sha):
         (&[u8], usize, &str, &[u8], usize, &str) = match path {
         "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs" => (
@@ -598,7 +661,14 @@ fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
     let physical = std::fs::read(root.join(path)).unwrap();
     assert_eq!(physical.as_slice(), compiled);
     if lookup_epoch {
-        assert_eq!(current, include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d")).as_slice());
+        assert_eq!(
+            current,
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d"
+            ))
+            .as_slice()
+        );
     } else {
         assert_eq!(current, compiled);
     }

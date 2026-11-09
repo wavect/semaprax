@@ -88,7 +88,8 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
     // The complete pre-format source must still satisfy every original pin.
     let formatted_operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
         assert_eq!(current, include_str!("fixed_operation_tests.rs"));
-        let formatted = "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),";
+        let formatted =
+            "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),";
         let original = "        \"src/hir/ids.rs\", ci_str!(\"../../../src/hir/ids.rs\"),";
         assert_eq!(current.matches(formatted).count(), 1);
         Some(current.replacen(formatted, original, 1))

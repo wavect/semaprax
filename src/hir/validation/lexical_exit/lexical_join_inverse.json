@@ -29,8 +29,8 @@
     {
       "source": "src/hir/validation/frame_reuse/source_inverse.rs",
       "current": {
-        "length": 10750,
-        "sha256": "399da632af0c3c1d6920b969b32f15f46ac6a3d72cab07248f0d2752f60851da"
+        "length": 13756,
+        "sha256": "0a963af50647911a762ae4a6e1981a762945ba8357a0733d85c6d13f86de00a5"
       },
       "before": {
         "length": 10055,

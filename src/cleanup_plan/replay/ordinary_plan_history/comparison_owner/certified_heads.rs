@@ -53,12 +53,16 @@ std::thread_local! {
     static IMMEDIATE_COUNTDOWN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 #[cfg(test)]
-pub(super) fn immediate_countdown_selected() -> bool { IMMEDIATE_COUNTDOWN.with(|mode| mode.get()) }
+pub(super) fn immediate_countdown_selected() -> bool {
+    IMMEDIATE_COUNTDOWN.with(|mode| mode.get())
+}
 #[cfg(test)]
 pub(super) struct CountdownMode(bool);
 #[cfg(test)]
 impl Drop for CountdownMode {
-    fn drop(&mut self) { IMMEDIATE_COUNTDOWN.with(|mode| mode.set(self.0)); }
+    fn drop(&mut self) {
+        IMMEDIATE_COUNTDOWN.with(|mode| mode.set(self.0));
+    }
 }
 #[cfg(test)]
 pub(super) fn countdown_mode(immediate: bool) -> CountdownMode {

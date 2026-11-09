@@ -1,21 +1,34 @@
-    pub(crate) use crate::{main_e177_final_inputs, next_big_batch_inputs};
+pub(crate) use crate::{main_e177_final_inputs, next_big_batch_inputs};
 
-    fn source_sha(text: &str) -> String {
-        use sha2::{Digest, Sha256};
-        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())))
-    }
-    pub(crate) struct Main44Fixture;
-    impl Main44Fixture {
-        pub(crate) fn closure_epoch<'a>(source: &str, expected: &str, supplied: &'a str) -> (std::borrow::Cow<'a, str>, Vec<(usize, &'static str, &'static str)>) {
-            assert_complete_main44_entries();
-            main44_entries::Fixture::closure_epoch(source, expected, supplied)
-        }
-    }
-    pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+fn source_sha(text: &str) -> String {
+    use sha2::{Digest, Sha256};
+    format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+    )
+}
+pub(crate) struct Main44Fixture;
+impl Main44Fixture {
+    pub(crate) fn closure_epoch<'a>(
+        source: &str,
+        expected: &str,
+        supplied: &'a str,
+    ) -> (
+        std::borrow::Cow<'a, str>,
+        Vec<(usize, &'static str, &'static str)>,
+    ) {
         assert_complete_main44_entries();
-        main44_entries::before_phase_probes(source, supplied)
+        main44_entries::Fixture::closure_epoch(source, expected, supplied)
     }
-    const INCLUDE_PATHS: &[(&str, &str)] = &[
+}
+pub(crate) fn before_phase_probes<'a>(
+    source: &str,
+    supplied: &'a str,
+) -> std::borrow::Cow<'a, str> {
+    assert_complete_main44_entries();
+    main44_entries::before_phase_probes(source, supplied)
+}
+const INCLUDE_PATHS: &[(&str, &str)] = &[
         ("include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\"))"),
         ("include_str!(\"../../e/9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay/factored.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored.rs\"))"),
@@ -30,30 +43,100 @@
         ("include_str!(\"../../src/cleanup_plan/replay.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay.rs\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver.rs\"))"),
     ];
-    fn assert_complete_main44_entries() {
-        const OWNER: &str = include_str!("../../src/source_reflows_merge/main44_custody.rs");
-        const HARNESS: &str = include_str!("main44_wasm_entries.rs");
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        for (path, text) in [("src/source_reflows_merge/main44_custody.rs", OWNER), ("tests/support/main44_wasm_entries.rs", HARNESS)] {
-            assert_eq!(crate::source_binding_reader::read(&root.join(path), text.len(), &source_sha(text), 2_097_152).unwrap(), text);
-        }
-        let originals = [
-            OWNER.split_once("pub(super) struct Spec").unwrap().0.to_owned(),
-            "impl Fixture {\n".to_owned() + OWNER.split_once("impl Fixture {\n").unwrap().1.split_once("    pub(super) fn spec(self) -> Spec {").unwrap().0 + "}\n",
-            "fn same_file(".to_owned() + OWNER.split_once("fn same_file(").unwrap().1.split_once("// Closed diagnostic-only scopes:").unwrap().0,
-            "pub(crate) fn before_phase_probes".to_owned() + OWNER.split_once("pub(crate) fn before_phase_probes").unwrap().1.split_once("// Select an explicitly authenticated historical parent view").unwrap().0,
-        ];
-        for (tag, mut expected) in ["HEADER", "CLOSURE", "READER", "PROBES"].into_iter().zip(originals) {
-            for (old, new) in INCLUDE_PATHS { expected = expected.replace(old, new); }
-            let begin = format!("\n// WORKSPACE_MAIN44_{tag}_BEGIN\n");
-            let end = format!("// WORKSPACE_MAIN44_{tag}_END\n");
-            let copied = HARNESS.split_once(&begin).unwrap().1.split_once(&end).unwrap().0;
-            assert_eq!(copied, expected, "complete canonical Main44 helper section: {tag}");
-        }
-        assert_eq!(crate::source_binding_reader::read(&root.join("src/source_reflows_merge/main44_custody.rs"), OWNER.len(), &source_sha(OWNER), 2_097_152).unwrap(), OWNER);
-        assert_eq!(crate::source_binding_reader::read(&root.join("tests/support/main44_wasm_entries.rs"), HARNESS.len(), &source_sha(HARNESS), 2_097_152).unwrap(), HARNESS);
+fn assert_complete_main44_entries() {
+    const OWNER: &str = include_str!("../../src/source_reflows_merge/main44_custody.rs");
+    const HARNESS: &str = include_str!("main44_wasm_entries.rs");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for (path, text) in [
+        ("src/source_reflows_merge/main44_custody.rs", OWNER),
+        ("tests/support/main44_wasm_entries.rs", HARNESS),
+    ] {
+        assert_eq!(
+            crate::source_binding_reader::read(
+                &root.join(path),
+                text.len(),
+                &source_sha(text),
+                2_097_152
+            )
+            .unwrap(),
+            text
+        );
     }
-    #[allow(dead_code, reason = "Complete source-only historical helper namespace retained in this independent harness.")]
+    let originals = [
+        OWNER
+            .split_once("pub(super) struct Spec")
+            .unwrap()
+            .0
+            .to_owned(),
+        "impl Fixture {\n".to_owned()
+            + OWNER
+                .split_once("impl Fixture {\n")
+                .unwrap()
+                .1
+                .split_once("    pub(super) fn spec(self) -> Spec {")
+                .unwrap()
+                .0
+            + "}\n",
+        "fn same_file(".to_owned()
+            + OWNER
+                .split_once("fn same_file(")
+                .unwrap()
+                .1
+                .split_once("// Closed diagnostic-only scopes:")
+                .unwrap()
+                .0,
+        "pub(crate) fn before_phase_probes".to_owned()
+            + OWNER
+                .split_once("pub(crate) fn before_phase_probes")
+                .unwrap()
+                .1
+                .split_once("// Select an explicitly authenticated historical parent view")
+                .unwrap()
+                .0,
+    ];
+    for (tag, mut expected) in ["HEADER", "CLOSURE", "READER", "PROBES"]
+        .into_iter()
+        .zip(originals)
+    {
+        for (old, new) in INCLUDE_PATHS {
+            expected = expected.replace(old, new);
+        }
+        let begin = format!("\n// WORKSPACE_MAIN44_{tag}_BEGIN\n");
+        let end = format!("// WORKSPACE_MAIN44_{tag}_END\n");
+        let copied = HARNESS
+            .split_once(&begin)
+            .unwrap()
+            .1
+            .split_once(&end)
+            .unwrap()
+            .0;
+        assert_eq!(
+            copied, expected,
+            "complete canonical Main44 helper section: {tag}"
+        );
+    }
+    assert_eq!(
+        crate::source_binding_reader::read(
+            &root.join("src/source_reflows_merge/main44_custody.rs"),
+            OWNER.len(),
+            &source_sha(OWNER),
+            2_097_152
+        )
+        .unwrap(),
+        OWNER
+    );
+    assert_eq!(
+        crate::source_binding_reader::read(
+            &root.join("tests/support/main44_wasm_entries.rs"),
+            HARNESS.len(),
+            &source_sha(HARNESS),
+            2_097_152
+        )
+        .unwrap(),
+        HARNESS
+    );
+}
+#[allow(dead_code, reason = "Complete source-only historical helper namespace retained in this independent harness.")]
     #[rustfmt::skip]
     mod main44_entries {
 

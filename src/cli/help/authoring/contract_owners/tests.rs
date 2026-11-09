@@ -1,5 +1,5 @@
 //! The displayed program and corrections stay bound to ordinary checked source.
-use super::super::{MAX_BYTES, lookup};
+use super::super::{lookup, MAX_BYTES};
 use super::CARD;
 
 fn source() -> &'static str {
@@ -62,12 +62,10 @@ fn displayed_contract_locals_and_both_result_views_check_roundtrip_and_replay() 
     let resolved = semaprax::hir::resolve(&reparsed).unwrap();
     semaprax::hir::validate(&resolved).unwrap();
     for name in ["help.consume", "help.make", "help.text", "main"] {
-        assert!(
-            resolved
-                .functions
-                .iter()
-                .any(|function| function.id.as_str() == name)
-        );
+        assert!(resolved
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == name));
     }
 }
 

@@ -203,11 +203,9 @@ fn original_payer_exact_short_zero_floor_and_all_partial_owners_drop() {
                 if result.is_err() {
                     // Even a zero reservation must authenticate the already-refused
                     // original lender; cleanup cannot replace the first refusal.
-                    assert!(
-                        budget
-                            .reserve_bytes(function, 0, "complete emitter sticky zero")
-                            .is_err()
-                    );
+                    assert!(budget
+                        .reserve_bytes(function, 0, "complete emitter sticky zero")
+                        .is_err());
                 }
                 drop(budget);
                 result.map_err(|error| {

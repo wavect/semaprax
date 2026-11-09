@@ -179,16 +179,32 @@ pub(super) use held_edge;
 // The selector and one actual zero-or-positive payment are funded by the
 // block bank before forming this borrowed local, len receiver or Result.
 pub(super) const SINGLE_HISTORY_SELECT: usize = size_of::<(
-    &Box<PathState>, &Box<PathState>, // Box::as_ref actual/formal
-    &PathState, &PathState, // returned borrow and lexical receiver
-    &ResolvedFunction, &ResolvedFunction,
-    &mut ReplayBudget, &mut ReplayBudget,
-    &str, &str,
-    &Vec<LivenessFlagId>, &Vec<LivenessFlagId>,
-    usize, usize, usize, usize, usize, usize, // len, threshold, payment amount pairs
-    &usize, &usize, &usize, &usize, // comparison operands actual/formal
-    bool, bool,
-    Result<(), Diagnostic>, Result<(), Diagnostic>,
+    &Box<PathState>,
+    &Box<PathState>, // Box::as_ref actual/formal
+    &PathState,
+    &PathState, // returned borrow and lexical receiver
+    &ResolvedFunction,
+    &ResolvedFunction,
+    &mut ReplayBudget,
+    &mut ReplayBudget,
+    &str,
+    &str,
+    &Vec<LivenessFlagId>,
+    &Vec<LivenessFlagId>,
+    usize,
+    usize,
+    usize,
+    usize,
+    usize,
+    usize, // len, threshold, payment amount pairs
+    &usize,
+    &usize,
+    &usize,
+    &usize, // comparison operands actual/formal
+    bool,
+    bool,
+    Result<(), Diagnostic>,
+    Result<(), Diagnostic>,
 )>();
 macro_rules! singleton_history {
     ($function:ident, $incoming:expr, $block:ident, $budget:ident) => {{
@@ -202,7 +218,8 @@ macro_rules! singleton_history {
             tests::trivial_history(incoming.live_order.len());
         } else {
             $budget.reserve_bytes(
-                $function, boxed_flow::SINGLE_HISTORY_CALL,
+                $function,
+                boxed_flow::SINGLE_HISTORY_CALL,
                 "ordinary singleton history call and scratch controls",
             )?;
             #[cfg(test)]

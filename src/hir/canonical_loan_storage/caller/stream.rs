@@ -6,20 +6,21 @@ use crate::loan_plan::canonical_sink::{self, Source};
 
 // These exact original roles are formed only by the nonempty append path.
 // Their counts/tariffs are retained; None never constructs their carriers.
-pub(super) const APPEND_PRESENT_BYTES: usize = 2 * std::mem::size_of::<(
-    &crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>,
-)>() + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()
-    + 4 * std::mem::size_of::<Scratch>()
-    + 4 * std::mem::size_of::<Option<(usize, bool)>>()
-    + 8 * std::mem::size_of::<usize>()
-    + 16 * std::mem::size_of::<bool>();
+pub(super) const APPEND_PRESENT_BYTES: usize =
+    2 * std::mem::size_of::<(&crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>)>()
+        + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()
+        + 4 * std::mem::size_of::<Scratch>()
+        + 4 * std::mem::size_of::<Option<(usize, bool)>>()
+        + 8 * std::mem::size_of::<usize>()
+        + 16 * std::mem::size_of::<bool>();
 // Only Option::is_some's actual/formal references, returned/received bool,
 // and the branch/receiving usize are new. The original first reserve call
 // retains its complete original payer/active/required/Result chain; there is
 // no extra reserve invocation and no credit borrowed from another bank.
 pub(super) const BRANCH_SELECTION_BYTES: usize = 2 * std::mem::size_of::<
     &Option<&mut crate::loan_plan::canonical_sink::Source<'_, '_>>,
->() + 2 * std::mem::size_of::<bool>() + 2 * std::mem::size_of::<usize>();
+>() + 2 * std::mem::size_of::<bool>()
+    + 2 * std::mem::size_of::<usize>();
 const EMPTY_CLEAR_BYTES: usize = 2 * std::mem::size_of::<&mut Vec<(LoanId, usize)>>()
     + 2 * std::mem::size_of::<&mut Vec<(LiveKey, usize)>>()
     + 2 * std::mem::size_of::<&mut Vec<(IdKey, LoanId, usize)>>();
@@ -36,7 +37,11 @@ impl<'a, 'p> Receiver<'a, '_, 'p> {
         source: Option<&mut Source<'a, 'p>>,
         matched: bool,
     ) -> Result<(), Diagnostic> {
-        let charge = if source.is_some() { APPEND_PRESENT_BYTES } else { EMPTY_CLEAR_BYTES };
+        let charge = if source.is_some() {
+            APPEND_PRESENT_BYTES
+        } else {
+            EMPTY_CLEAR_BYTES
+        };
         self.payer.reserve(charge)?;
         let _stage = crate::bounded_output::reservation_stage_guard(
             crate::bounded_output::ReservationStage::LoanCanonicalAppend,
@@ -52,11 +57,17 @@ impl<'a, 'p> Receiver<'a, '_, 'p> {
             self.storage._scratch.liveness.clear();
             self.storage._scratch.ids.clear();
             #[cfg(test)]
-            EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty + 1, present)); });
+            EMPTY_COUNTS.with(|counts| {
+                let (empty, present) = counts.get();
+                counts.set((empty + 1, present));
+            });
             return Ok(());
         };
         #[cfg(test)]
-        EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty, present + 1)); });
+        EMPTY_COUNTS.with(|counts| {
+            let (empty, present) = counts.get();
+            counts.set((empty, present + 1));
+        });
         if !source.is_current(
             self.storage.program,
             self.function,
@@ -166,10 +177,7 @@ fn append_source<'a, 'p>(
         // paid once before emission, with no geometric replacement credit.
         for loan in live {
             let ordinal = live_probe.len();
-            live_probe.push((
-                (point.expression.clone(), point.phase, *loan),
-                ordinal,
-            ));
+            live_probe.push(((point.expression.clone(), point.phase, *loan), ordinal));
         }
     }
     for (index, (from, to)) in parts.edges.iter().enumerate() {
@@ -187,7 +195,7 @@ fn append_source<'a, 'p>(
     // private lookup index never reorders canonical rows or error precedence.
     let mut first_bad: Option<(usize, bool)> = None;
     for (index, entry) in live_probe.iter().enumerate() {
-        let unknown = origin(&entry.0.2).is_none();
+        let unknown = origin(&entry.0 .2).is_none();
         let duplicate =
             storage.live(&entry.0).is_some() || (index != 0 && live_probe[index - 1].0 == entry.0);
         if unknown || duplicate {
@@ -378,22 +386,29 @@ impl<'a, 'p> BeforeEmptyReceiver<'a, '_, 'p> {
     }
 }
 
-
 #[cfg(test)]
 thread_local! {
     static EMPTY_BEFORE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static EMPTY_COUNTS: std::cell::Cell<(usize, usize)> = const { std::cell::Cell::new((0, 0)) };
 }
 #[cfg(test)]
-pub(super) fn empty_before_selected() -> bool { EMPTY_BEFORE.with(|flag| flag.get()) }
+pub(super) fn empty_before_selected() -> bool {
+    EMPTY_BEFORE.with(|flag| flag.get())
+}
 #[cfg(test)]
 fn with_before_empty_terminal<T>(operation: impl FnOnce() -> T) -> T {
     struct Reset(bool);
-    impl Drop for Reset { fn drop(&mut self) { EMPTY_BEFORE.with(|flag| flag.set(self.0)); } }
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            EMPTY_BEFORE.with(|flag| flag.set(self.0));
+        }
+    }
     let reset = Reset(EMPTY_BEFORE.with(|flag| flag.replace(true)));
     let output = operation();
     drop(reset);
     output
 }
 #[cfg(test)]
-fn take_empty_counts() -> (usize, usize) { EMPTY_COUNTS.with(|counts| counts.replace((0, 0))) }
+fn take_empty_counts() -> (usize, usize) {
+    EMPTY_COUNTS.with(|counts| counts.replace((0, 0)))
+}

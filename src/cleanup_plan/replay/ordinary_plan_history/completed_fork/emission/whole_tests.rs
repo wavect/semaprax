@@ -41,10 +41,22 @@ fn joint(
 #[test]
 fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
     let raw_source = include_str!("../../../../replay.rs");
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")).unwrap(), raw_source.as_bytes());
-    let digest = |bytes: &[u8]| { use sha2::{Digest, Sha256}; format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes))) };
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")
+        )
+        .unwrap(),
+        raw_source.as_bytes()
+    );
+    let digest = |bytes: &[u8]| {
+        use sha2::{Digest, Sha256};
+        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+    };
     assert_eq!(raw_source.len(), 327551);
-    assert_eq!(digest(raw_source.as_bytes()), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+    assert_eq!(
+        digest(raw_source.as_bytes()),
+        "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"
+    );
     let mut source = raw_source.to_owned();
     let prefix_edits: &[(usize, &str, &str)] = &[
         (1097, "mod plan_prefix;\n", ""),
@@ -77,8 +89,17 @@ fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
         source.replace_range(at..at + current.len(), previous);
     }
     assert_eq!(source.len(), 326623);
-    assert_eq!(digest(source.as_bytes()), "027903ce7f76fd0a9883e2736adfa1214bdb1e687303d939c0e40751c6130320");
-    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")).unwrap(), raw_source.as_bytes());
+    assert_eq!(
+        digest(source.as_bytes()),
+        "027903ce7f76fd0a9883e2736adfa1214bdb1e687303d939c0e40751c6130320"
+    );
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")
+        )
+        .unwrap(),
+        raw_source.as_bytes()
+    );
     // Reverse exactly the new public shared-call receiver before composing
     // the independent DAG and HIR feature inverses (full f1d66/3666 root).
     let current_call = r#####"            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
@@ -225,11 +246,9 @@ fn whole_nested_hir_plan_exact_short_sticky_floor_and_full_drop() {
                     reserve_program_skeleton_work(&program, std::iter::once(function), &mut budget)
                         .and_then(|_reserved| joint(&program, function, &mut budget));
                 if result.is_err() {
-                    assert!(
-                        budget
-                            .reserve_bytes(function, 0, "whole history sticky zero")
-                            .is_err()
-                    );
+                    assert!(budget
+                        .reserve_bytes(function, 0, "whole history sticky zero")
+                        .is_err());
                 }
                 drop(budget);
                 result.map_err(|error| {

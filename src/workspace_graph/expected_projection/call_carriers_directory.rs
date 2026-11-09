@@ -606,7 +606,7 @@ fn indexed<const N: usize>(
 ) -> Proof {
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::closed_roots::before_selected() {
-        return before_directory_closed_roots_body!(N,program,authored,imports,selector);
+        return before_directory_closed_roots_body!(N, program, authored, imports, selector);
     }
 
     #[cfg(test)]
@@ -670,7 +670,9 @@ fn indexed<const N: usize>(
             proof.bytes = proof.bytes.saturating_add(
                 crate::workspace_graph::expected_projection::call_carriers::closed_roots::SELECTOR,
             );
-            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(root, &mut proof) {
+            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(
+                root, &mut proof,
+            ) {
                 continue;
             }
             // Fixed walker scratch is retained for this complete pass, including

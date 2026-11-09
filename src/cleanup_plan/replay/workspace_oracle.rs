@@ -28,7 +28,10 @@ impl<'a> ReferenceReceiptOnUnwind<'a> {
 impl Drop for ReferenceReceiptOnUnwind<'_> {
     fn drop(&mut self) {
         if std::thread::panicking() {
-            eprintln!(
+            // Keep the libtest capture buffer outside allocation observations.
+            use std::io::Write;
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "reference scope unwinding: max_receivers={} complete_receipt={:?}",
                 self.receivers,
                 self.scope.receipt()

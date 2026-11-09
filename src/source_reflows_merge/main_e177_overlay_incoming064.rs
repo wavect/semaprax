@@ -69,11 +69,17 @@ fn authenticate_current_sources() {
             assert_eq!(edit.len(), 3);
             let start = edit[0].as_u64().unwrap() as usize;
             let end = edit[1].as_u64().unwrap() as usize;
-            assert!(start <= end && current.is_char_boundary(start) && current.is_char_boundary(end));
+            assert!(
+                start <= end && current.is_char_boundary(start) && current.is_char_boundary(end)
+            );
             assert_eq!(&restored[start..end], &current.as_bytes()[start..end]);
             restored.splice(start..end, edit[2].as_str().unwrap().bytes());
         }
-        assert_eq!(restored, epoch.as_bytes(), "complete incoming inverse input");
+        assert_eq!(
+            restored,
+            epoch.as_bytes(),
+            "complete incoming inverse input"
+        );
         for edit in row["edits"].as_array().unwrap().iter().rev() {
             let start = edit["start"].as_u64().unwrap() as usize;
             let end = edit["end"].as_u64().unwrap() as usize;

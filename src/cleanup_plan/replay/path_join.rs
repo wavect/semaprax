@@ -1,11 +1,9 @@
 //! Topological cleanup-CFG replay and ownership-only join normalization.
 
-use super::*;
-use std::borrow::Borrow;
 #[cfg(test)]
 use super::transition;
-#[cfg(test)]
-mod main3d81_before;
+use super::*;
+use std::borrow::Borrow;
 #[cfg(test)]
 #[allow(dead_code, reason = "complete original path-state replay receiver")]
 mod before;
@@ -39,6 +37,8 @@ mod frontier_tests;
 mod held_edge_before;
 #[cfg(test)]
 mod held_edge_tests;
+#[cfg(test)]
+mod main3d81_before;
 #[cfg(test)]
 mod receiver_tests;
 #[cfg(test)]

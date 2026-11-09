@@ -589,6 +589,142 @@ fn sift(
         root = child;
     }
 }
+// Flattening a short batch replaces repeated history cursor construction
+// with a single traversal per path. Count both members and nodes before
+// choosing it, so a small number of paths cannot hide a large shared DAG.
+const FLAT_VISITS: usize = 8192;
+const FLAT_SETUP: usize = RECEIVERS
+    + 2 * size_of::<Vec<&ObservationDag>>()
+    + 4 * size_of::<&mut [SkeletonPath]>()
+    + 2 * size_of::<Result<bool, ByteFailure>>()
+    + 4 * size_of::<usize>()
+    + 4 * PAYMENT;
+const FLAT_STEP: usize = PAYMENT
+    + 4 * size_of::<&ObservationDag>()
+    + 4 * size_of::<Option<&ObservationDag>>()
+    + 4 * size_of::<Option<usize>>()
+    + 4 * size_of::<usize>()
+    + 4 * size_of::<bool>()
+    + 4 * size_of::<&mut Vec<&ObservationDag>>();
+const FLAT_OUTPUT: usize = PREPARE_CALL
+    + 2 * size_of::<Vec<Observation>>()
+    + 2 * size_of::<Observations>()
+    + 4 * size_of::<&mut SkeletonPath>()
+    + 4 * PAYMENT;
+const FLAT_MEMBER: usize = ADVANCE_BLOCK
+    + PAYMENT
+    + 4 * size_of::<Option<Observation>>()
+    + 2 * size_of::<Observation>()
+    + 4 * size_of::<&mut Vec<Observation>>();
+
+fn try_flat_sort(
+    paths: &mut [SkeletonPath],
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<bool, ByteFailure> {
+    budget.reserve_compact_bytes(function, FLAT_SETUP, "shared history flat batch receivers")?;
+    let mut pending = Vec::new();
+    let mut remaining = FLAT_VISITS;
+    for path in paths.iter() {
+        budget.reserve_compact_bytes(function, FLAT_STEP, "shared history flat path probe")?;
+        budget.charge_compact(function, 1, "shared history flat path count")?;
+        let Some(next) = remaining.checked_sub(
+            path.observations.items.len() + usize::from(path.observations.prefix.is_some()),
+        ) else {
+            return Ok(false);
+        };
+        remaining = next;
+        if let Some(node) = &path.observations.prefix {
+            budget.reserve_compact_vec(
+                function,
+                &mut pending,
+                1,
+                "shared history probe backing",
+            )?;
+            pending.push(node.as_ref());
+        }
+        while let Some(node) = pending.pop() {
+            budget.reserve_compact_bytes(function, FLAT_STEP, "shared history flat node probe")?;
+            budget.charge_compact(function, 1, "shared history flat node count")?;
+            match &node.kind {
+                ObservationDagKind::Seq(prefix, items) => {
+                    let Some(next) =
+                        remaining.checked_sub(items.len() + usize::from(prefix.is_some()))
+                    else {
+                        return Ok(false);
+                    };
+                    remaining = next;
+                    if let Some(prefix) = prefix {
+                        budget.reserve_compact_vec(
+                            function,
+                            &mut pending,
+                            1,
+                            "shared history probe backing",
+                        )?;
+                        pending.push(prefix.as_ref());
+                    }
+                }
+                ObservationDagKind::Cat(children) => {
+                    let Some(next) = remaining.checked_sub(children.len()) else {
+                        return Ok(false);
+                    };
+                    remaining = next;
+                    budget.reserve_compact_vec(
+                        function,
+                        &mut pending,
+                        children.len(),
+                        "shared history probe backing",
+                    )?;
+                    for child in children {
+                        budget.reserve_compact_bytes(
+                            function,
+                            FLAT_STEP,
+                            "shared history flat child probe",
+                        )?;
+                        budget.charge_compact(function, 1, "shared history flat child count")?;
+                        pending.push(child.as_ref());
+                    }
+                }
+                ObservationDagKind::Alt(_) => return Ok(false),
+            }
+        }
+    }
+    drop(pending);
+    let mut pair = Pair::new();
+    for path in paths
+        .iter_mut()
+        .filter(|path| path.observations.prefix.is_some())
+    {
+        budget.reserve_compact_bytes(
+            function,
+            FLAT_OUTPUT,
+            "shared history flat output receivers",
+        )?;
+        pair.left.prepare(&path.observations, function, budget)?;
+        let mut items = Vec::new();
+        loop {
+            budget.reserve_compact_bytes(function, FLAT_MEMBER, "shared history flat member")?;
+            advance!(pair, left, path, function, budget);
+            let Some(item) = pair.left.yielded.take() else {
+                break;
+            };
+            budget.reserve_compact_vec(function, &mut items, 1, "shared history flat backing")?;
+            items.push(item);
+        }
+        path.observations = Observations {
+            prefix: None,
+            items,
+        };
+    }
+    budget.reserve_compact_array::<SkeletonPath>(
+        function,
+        paths.len(),
+        "shared history flat sort backing",
+    )?;
+    paths.sort();
+    Ok(true)
+}
+
 pub(super) fn sort(
     paths: &mut [SkeletonPath],
     function: &ResolvedFunction,
@@ -604,8 +740,14 @@ pub(super) fn sort(
         "enumerated HIR trivial content sort guard",
     )?;
     let len = paths.len();
-    if len < 2 {
-        return Ok(());
+    match len {
+        0 | 1 => return Ok(()),
+        32..=128 => {
+            if try_flat_sort(paths, function, budget)? {
+                return Ok(());
+            }
+        }
+        _ => {}
     }
     budget.reserve_compact_bytes(
         function,

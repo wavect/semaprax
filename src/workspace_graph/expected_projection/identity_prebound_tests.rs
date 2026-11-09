@@ -609,7 +609,11 @@ fn uncached_sequential_forecast_attributes_its_own_cumulative_one_short_step() {
         // separately paid second receiver; the peak is the final retained sum.
         let renewed_read = historical_renewed_read_fee();
         assert_eq!(
-            oracle.full.iter().map(|full| full + renewed_read).collect::<Vec<_>>(),
+            oracle
+                .full
+                .iter()
+                .map(|full| full + renewed_read)
+                .collect::<Vec<_>>(),
             oracle.retained
         );
         assert_eq!(oracle.forecast, oracle.retained.iter().sum::<usize>());
@@ -759,7 +763,10 @@ fn uncached_sequential_refusal_follows_the_independent_overhead_order() {
         assert!(before.full[consumer] > before.retained[consumer]);
         assert!(oracle.full[consumer] > oracle.retained[consumer]);
     }
-    assert_eq!(before.full[0] + historical_renewed_read_fee(), before.retained[0]);
+    assert_eq!(
+        before.full[0] + historical_renewed_read_fee(),
+        before.retained[0]
+    );
     assert_eq!(
         before.order.last(),
         Some(&0),
@@ -812,16 +819,20 @@ fn exact_public_workspace_fixture_current_typed_invoice_reconciles_every_stage()
     use crate::bounded_output::{stage_debits, ReservationStage};
     use crate::workspace_graph as graph;
     use std::io::Read;
-    let fixture = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph.rs"));
-    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/workspace/semantic_graph.rs");
+    let fixture = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/workspace/semantic_graph.rs"
+    ));
+    let fixture_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/workspace/semantic_graph.rs");
     let acquire = || {
         assert!(fixture.len() <= 262144);
         let named = std::fs::symlink_metadata(&fixture_path).unwrap();
         assert!(named.is_file() && !named.file_type().is_symlink());
         let mut options = std::fs::OpenOptions::new();
         options.read(true);
-        #[cfg(unix)] {
+        #[cfg(unix)]
+        {
             use std::os::unix::fs::OpenOptionsExt;
             options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC);
         }
@@ -830,21 +841,28 @@ fn exact_public_workspace_fixture_current_typed_invoice_reconciles_every_stage()
         assert!(before.is_file());
         assert_eq!(before.len(), fixture.len() as u64);
         let mut held = Vec::new();
-        (&file).take(fixture.len() as u64 + 1).read_to_end(&mut held).unwrap();
+        (&file)
+            .take(fixture.len() as u64 + 1)
+            .read_to_end(&mut held)
+            .unwrap();
         assert_eq!(held, fixture.as_bytes());
         let after = file.metadata().unwrap();
         let last = std::fs::symlink_metadata(&fixture_path).unwrap();
         assert!(last.is_file() && !last.file_type().is_symlink());
-        assert_eq!((before.len(), before.modified().unwrap()),
-                   (after.len(), after.modified().unwrap()));
-        assert_eq!((before.len(), before.modified().unwrap()),
-                   (last.len(), last.modified().unwrap()));
+        assert_eq!(
+            (before.len(), before.modified().unwrap()),
+            (after.len(), after.modified().unwrap())
+        );
+        assert_eq!(
+            (before.len(), before.modified().unwrap()),
+            (last.len(), last.modified().unwrap())
+        );
     };
     acquire();
     let sources = [
-            (
-                "z/app.spx",
-                r#"
+        (
+            "z/app.spx",
+            r#"
 module public.app;
 use type @id("public.point") from public.provider as Point;
 use function @id("public.work") from public.provider as work;
@@ -858,10 +876,10 @@ fn main() -> i64 uses { audit.write } {
     local + work(Point { value: 1 })
 }
 "#,
-            ),
-            (
-                "a/provider.spx",
-                r#"
+        ),
+        (
+            "a/provider.spx",
+            r#"
 module public.provider;
 permit { audit.write }
 
@@ -874,30 +892,58 @@ fn work(value: Point) -> i64 uses { audit.write } { value.value }
 @id("public.provider.main")
 fn main() -> i64 { 0 }
 "#,
-            ),
-        ];
+        ),
+    ];
 
     for (path, source) in sources {
         let exact_tuple = format!("\"{path}\",\n                r#\"{source}\"#");
-        assert_eq!(fixture.matches(&exact_tuple).count(), 1,
-                   "same complete raw fixture and path, before canonical formatting");
+        assert_eq!(
+            fixture.matches(&exact_tuple).count(),
+            1,
+            "same complete raw fixture and path, before canonical formatting"
+        );
     }
-    let sources: Vec<_> = sources.into_iter().map(|(path, source)| {
-        let program = crate::parse(source, path).unwrap();
-        graph::WorkspaceSource { path: path.to_owned(), source: crate::format::canonical(&program) }
-    }).collect();
-    assert_eq!(sources.iter().map(|source| source.source.len()).sum::<usize>(), 606);
-    let mut programs: Vec<_> = sources.iter().map(|source|
-        crate::parse(&source.source, &source.path).unwrap()).collect();
+    let sources: Vec<_> = sources
+        .into_iter()
+        .map(|(path, source)| {
+            let program = crate::parse(source, path).unwrap();
+            graph::WorkspaceSource {
+                path: path.to_owned(),
+                source: crate::format::canonical(&program),
+            }
+        })
+        .collect();
+    assert_eq!(
+        sources
+            .iter()
+            .map(|source| source.source.len())
+            .sum::<usize>(),
+        606
+    );
+    let mut programs: Vec<_> = sources
+        .iter()
+        .map(|source| crate::parse(&source.source, &source.path).unwrap())
+        .collect();
     programs.sort_by(|left, right| left.path.cmp(&right.path));
     let authored = graph::index_authored(&programs).unwrap();
     let paths = graph::index_modules(&programs).unwrap();
     let layouts = super::private_layout::registry::LayoutRegistry::new(&programs, &authored);
-    graph::import_validation::validate_uses_with_registry(&programs, &paths, &authored, Some(&layouts)).unwrap();
+    graph::import_validation::validate_uses_with_registry(
+        &programs,
+        &paths,
+        &authored,
+        Some(&layouts),
+    )
+    .unwrap();
     graph::validate_dependency_dag(&programs).unwrap();
     let initial = super::cached_exact::initial_with_registry(
-        &programs, &authored, true, super::cached_exact::Retention::Parsed, Some(&layouts),
-    ).unwrap();
+        &programs,
+        &authored,
+        true,
+        super::cached_exact::Retention::Parsed,
+        Some(&layouts),
+    )
+    .unwrap();
     let layout_fee = layouts.receipt();
     let _ = stage_debits::take_completed();
     let attempts_before = graph::CORE_BUILD_ATTEMPTS.with(|value| value.get());
@@ -905,9 +951,18 @@ fn main() -> i64 { 0 }
     let attempts = graph::CORE_BUILD_ATTEMPTS.with(|value| value.get()) - attempts_before;
     let built = result.unwrap();
     let trace = stage_debits::take_completed().expect("actual complete public builder core");
-    assert_eq!(attempts, 1, "one complete actual public builder core, no fallback hidden");
-    assert_eq!((trace.mode, trace.prebound, trace.layouts), (initial.3, initial.0, layout_fee));
-    assert_eq!(trace.debits[ReservationStage::CorePrebound as usize + 1], initial.0);
+    assert_eq!(
+        attempts, 1,
+        "one complete actual public builder core, no fallback hidden"
+    );
+    assert_eq!(
+        (trace.mode, trace.prebound, trace.layouts),
+        (initial.3, initial.0, layout_fee)
+    );
+    assert_eq!(
+        trace.debits[ReservationStage::CorePrebound as usize + 1],
+        initial.0
+    );
     assert_eq!(trace.sum(), trace.consumed);
     assert_eq!(trace.operation_debits.sum(), trace.consumed);
     assert_eq!(built.usage.builder_bytes, 606usize.max(trace.consumed));

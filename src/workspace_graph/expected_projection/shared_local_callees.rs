@@ -301,10 +301,10 @@ pub(super) use reused::Session;
 #[path = "shared_local_callees/paired.rs"]
 pub(super) mod paired;
 
-#[path = "shared_local_callees/modular_session.rs"]
-pub(super) mod modular_session;
 #[path = "shared_local_callees/modular_pair.rs"]
 pub(super) mod modular_pair;
+#[path = "shared_local_callees/modular_session.rs"]
+pub(super) mod modular_session;
 
 #[cfg(test)]
 // Preserve the frozen test bodies and their disabled duplicate test paths.

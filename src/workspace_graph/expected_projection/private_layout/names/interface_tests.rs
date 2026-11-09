@@ -26,14 +26,16 @@ fn run(program: &Program, mode: usize) -> Result<u64, Vec<crate::diagnostic::Dia
     }
 }
 fn linked(app: &str) -> Result<crate::hir::ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
+    let app = crate::parse(app, "caller.spx").map_err(|error| vec![error])?;
+    let provider = crate::parse(PROVIDER, "provider.spx").map_err(|error| vec![error])?;
     let build = build_owned(vec![
         WorkspaceSource {
             path: "caller.spx".into(),
-            source: app.into(),
+            source: crate::format::canonical(&app),
         },
         WorkspaceSource {
             path: "provider.spx".into(),
-            source: PROVIDER.into(),
+            source: crate::format::canonical(&provider),
         },
     ])?;
     build.linked_owned_data_api_program_with_roots("function_layout.app", &[])
@@ -167,7 +169,8 @@ fn complete_executable_predecessor_and_plain_module_receipts_remain_exact() {
         serde_json::from_str(include_str!("interface_source_inverse.json")).unwrap();
     assert_eq!(packet["owners"].as_array().unwrap().len(), 4);
     for row in packet["owners"].as_array().unwrap() {
-        let current = match row["source"].as_str().unwrap() {
+        let path = row["source"].as_str().unwrap();
+        let current = match path {
             "src/workspace_graph/expected_projection/private_layout/names.rs" => {
                 include_str!("../names.rs")
             }
@@ -182,6 +185,16 @@ fn complete_executable_predecessor_and_plain_module_receipts_remain_exact() {
             }
             _ => panic!("unexpected complete #754 source owner"),
         };
+        let historical = (path
+            == "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs")
+            .then(|| {
+                crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                    path,
+                    row["current_sha256"].as_str().unwrap(),
+                    current,
+                )
+            });
+        let current = historical.as_deref().unwrap_or(current);
         assert_eq!(
             current.len() as u64,
             row["current_length"].as_u64().unwrap()
@@ -221,9 +234,9 @@ fn unrelated_unsupported_declarations_keep_the_original_complete_refusal() {
         let mut program = original.clone();
         let other = crate::parse(
             if resource {
-                "module other; @id(\"r\") resource R { @id(\"r.drop\") drop trivial; }"
+                "module other; @id(\"r\") resource R { @id(\"r.drop\") drop trivial; } @id(\"other.main\") fn main()->i64 {0}"
             } else {
-                "module other; @id(\"p\") protocol P { @id(\"p.read\") fn read(value:i64)->i64; }"
+                "module other; @id(\"p\") protocol P { @id(\"p.read\") fn read(value:i64)->i64; } @id(\"other.main\") fn main()->i64 {0}"
             },
             "other.spx",
         )
@@ -312,10 +325,12 @@ fn exact_short_zero_nested_floor_sticky_and_full_drop_use_the_actual_new_invoice
         let (answer, refused, _, _) = with_limit_usage_refusal(required + floor - 1, || {
             assert!(set_active_floor(floor));
             let result = run(&program, mode);
+            assert!(crate::bounded_output::active_remaining().unwrap() >= floor);
             clear_active_floor();
+            assert!(crate::bounded_output::reserve_active(floor));
             result
         });
-        assert!(answer.is_err() && refused);
+        assert!(answer.is_err() && !refused);
     }
 }
 

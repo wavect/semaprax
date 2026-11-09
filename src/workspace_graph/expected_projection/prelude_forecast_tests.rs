@@ -168,43 +168,113 @@ fn receiving_pre286_source(path: &str, current: &str) -> String {
     let entry = crate::source_reflows::next_custody_before("prelude286", path, current);
     let current = entry.as_str();
     use sha2::{Digest, Sha256};
-    let hash = |source: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes())));
+    let hash = |source: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+        )
+    };
     let (length, digest, before_length, before_digest) = match path {
-        "src/prelude.rs" => (46154, "e7ad3dacb0541f2c4558a6826aaef49f05a3cbdec2ae358061f6e387017f6a51", 46130, "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478"),
-        "src/workspace_graph/expected_projection.rs" => (59903, "6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e", 59698, "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4"),
-        "src/workspace_graph/expected_projection/held_projection.rs" => (22889, "8443e4086088b9a623df9f7b7cd9755a0e69664fc4a60066bf5e8da2e6797710", 21826, "6c53a3d48bbd7bd7d269c18d0214fead0908c582a3dcad46a24ce14c9cdd28ed"),
-        "src/source_verify/constructor_tests.rs" => (17238, "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d", 17125, "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3"),
-        "tests/workspace/semantic_graph/source_inventory.rs" => (174167, "d80ad38594194381610e5d99c491883678e7acdb8209dd913c23a04b45d6a6fa", 45102, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14"),
+        "src/prelude.rs" => (
+            46154,
+            "e7ad3dacb0541f2c4558a6826aaef49f05a3cbdec2ae358061f6e387017f6a51",
+            46130,
+            "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478",
+        ),
+        "src/workspace_graph/expected_projection.rs" => (
+            59903,
+            "6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e",
+            59698,
+            "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4",
+        ),
+        "src/workspace_graph/expected_projection/held_projection.rs" => (
+            22889,
+            "8443e4086088b9a623df9f7b7cd9755a0e69664fc4a60066bf5e8da2e6797710",
+            21826,
+            "6c53a3d48bbd7bd7d269c18d0214fead0908c582a3dcad46a24ce14c9cdd28ed",
+        ),
+        "src/source_verify/constructor_tests.rs" => (
+            17238,
+            "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d",
+            17125,
+            "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3",
+        ),
+        "tests/workspace/semantic_graph/source_inventory.rs" => (
+            174167,
+            "d80ad38594194381610e5d99c491883678e7acdb8209dd913c23a04b45d6a6fa",
+            45102,
+            "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14",
+        ),
         _ => panic!("foreign prelude-forecast source owner"),
     };
     assert_eq!((current.len(), hash(current)), (length, digest.to_owned()));
     let mut restored = current.to_owned();
     match path {
         "src/prelude.rs" => {
-            assert_eq!(restored.matches(r########"program.functions().profile_iter().any(function_uses_box)"########).count(), 1);
-            restored = restored.replacen(r########"program.functions().profile_iter().any(function_uses_box)"########, r########"program.functions().iter().any(function_uses_box)"########, 1);
+            assert_eq!(
+                restored
+                    .matches(
+                        r########"program.functions().profile_iter().any(function_uses_box)"########
+                    )
+                    .count(),
+                1
+            );
+            restored = restored.replacen(
+                r########"program.functions().profile_iter().any(function_uses_box)"########,
+                r########"program.functions().iter().any(function_uses_box)"########,
+                1,
+            );
             assert_eq!(restored.matches(r########"program.functions().profile_iter().any(function_uses_vec_v3)"########).count(), 1);
-            restored = restored.replacen(r########"program.functions().profile_iter().any(function_uses_vec_v3)"########, r########"program.functions().iter().any(function_uses_vec_v3)"########, 1);
-            assert_eq!(restored.matches(r########"program.functions().profile_iter().any(function_uses_vec)"########).count(), 1);
-            restored = restored.replacen(r########"program.functions().profile_iter().any(function_uses_vec)"########, r########"program.functions().iter().any(function_uses_vec)"########, 1);
+            restored = restored.replacen(
+                r########"program.functions().profile_iter().any(function_uses_vec_v3)"########,
+                r########"program.functions().iter().any(function_uses_vec_v3)"########,
+                1,
+            );
+            assert_eq!(
+                restored
+                    .matches(
+                        r########"program.functions().profile_iter().any(function_uses_vec)"########
+                    )
+                    .count(),
+                1
+            );
+            restored = restored.replacen(
+                r########"program.functions().profile_iter().any(function_uses_vec)"########,
+                r########"program.functions().iter().any(function_uses_vec)"########,
+                1,
+            );
         }
         "src/workspace_graph/expected_projection.rs" => {
-            assert_eq!(restored.matches(r########"#[path = "expected_projection/shared_local_callees.rs"]
+            assert_eq!(
+                restored
+                    .matches(
+                        r########"#[path = "expected_projection/shared_local_callees.rs"]
 mod shared_local_callees;
 #[cfg(test)]
 #[path = "expected_projection/shared_local_callees/before_projection.rs"]
 mod before_shared_local_projection;
-"########).count(), 1);
-            restored = restored.replacen(r########"#[path = "expected_projection/shared_local_callees.rs"]
+"########
+                    )
+                    .count(),
+                1
+            );
+            restored = restored.replacen(
+                r########"#[path = "expected_projection/shared_local_callees.rs"]
 mod shared_local_callees;
 #[cfg(test)]
 #[path = "expected_projection/shared_local_callees/before_projection.rs"]
 mod before_shared_local_projection;
-"########, r########""########, 1);
+"########,
+                r########""########,
+                1,
+            );
         }
         "src/workspace_graph/expected_projection/held_projection.rs" => {
             restored = super::super::call_carriers::inverse::pre916_held_dc45(current);
-            assert_eq!(restored.matches(r########"    #[cfg(test)]
+            assert_eq!(
+                restored
+                    .matches(
+                        r########"    #[cfg(test)]
     super::super::forecast_observation::record_components(
         &program.path,
         layout_mode,
@@ -232,8 +302,13 @@ mod before_shared_local_projection;
             hir_upper,
         ],
     );
-"########).count(), 1);
-            restored = restored.replacen(r########"    #[cfg(test)]
+"########
+                    )
+                    .count(),
+                1
+            );
+            restored = restored.replacen(
+                r########"    #[cfg(test)]
     super::super::forecast_observation::record_components(
         &program.path,
         layout_mode,
@@ -261,7 +336,8 @@ mod before_shared_local_projection;
             hir_upper,
         ],
     );
-"########, r########"    #[cfg(test)]
+"########,
+                r########"    #[cfg(test)]
     super::super::forecast_observation::record(
         &program.path,
         layout_mode,
@@ -286,22 +362,42 @@ mod before_shared_local_projection;
             original_mode7_fixed_upper,
         ],
     );
-"########, 1);
+"########,
+                1,
+            );
         }
         "src/source_verify/constructor_tests.rs" => {
-            assert_eq!(restored.matches(r########"        include_str!("declaration/record_shape.rs"),
+            assert_eq!(
+                restored
+                    .matches(
+                        r########"        include_str!("declaration/record_shape.rs"),
         include_str!("declaration/record_shape_before.rs"),
-"########).count(), 1);
-            restored = restored.replacen(r########"        include_str!("declaration/record_shape.rs"),
+"########
+                    )
+                    .count(),
+                1
+            );
+            restored = restored.replacen(
+                r########"        include_str!("declaration/record_shape.rs"),
         include_str!("declaration/record_shape_before.rs"),
-"########, r########""########, 1);
+"########,
+                r########""########,
+                1,
+            );
         }
         "tests/workspace/semantic_graph/source_inventory.rs" => {
-            restored = crate::source_reflows_merge::main_e177_final_inputs::value_direct(path, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14", physical_current);
+            restored = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                path,
+                "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14",
+                physical_current,
+            );
         }
         _ => unreachable!(),
     }
-    assert_eq!((restored.len(), hash(&restored)), (before_length, before_digest.to_owned()));
+    assert_eq!(
+        (restored.len(), hash(&restored)),
+        (before_length, before_digest.to_owned())
+    );
     restored
 }
 
@@ -365,8 +461,12 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
         assert_eq!(record["sha256"].as_str().unwrap(), digest);
         let received =
             crate::source_reflows::declared_guard_stage(file!(), current, original, record);
-        let branch_stage = receiving_pre286_record_source(record["path"].as_str().unwrap(), current, record);
-        assert_eq!(branch_stage, received, "both complete receiving checkpoints agree");
+        let branch_stage =
+            receiving_pre286_record_source(record["path"].as_str().unwrap(), current, record);
+        assert_eq!(
+            branch_stage, received,
+            "both complete receiving checkpoints agree"
+        );
         let mut restored = super::super::call_carriers::inverse::pre898(&received);
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
@@ -375,7 +475,14 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
         }
         assert_eq!(restored, original);
     }
-    assert_eq!(crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/expected_projection/prelude_forecast_original.rs", include_str!("prelude_forecast_original.rs")), originals[2]);
+    assert_eq!(
+        crate::source_reflows::next_custody_before(
+            "constructor903",
+            "src/workspace_graph/expected_projection/prelude_forecast_original.rs",
+            include_str!("prelude_forecast_original.rs")
+        ),
+        originals[2]
+    );
 }
 
 #[test]
@@ -413,25 +520,72 @@ mod forecast_joint_physical_reader;
 // Four recorded whole transports must enter the unchanged inverse exactly once.
 fn receiving_pre286_record_source(path: &str, current: &str, record: &serde_json::Value) -> String {
     use sha2::{Digest, Sha256};
-    let hash = |raw: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes())));
+    let hash = |raw: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
+        )
+    };
     let compiled = match path {
         "src/prelude.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prelude.rs")),
-        "src/workspace_graph/expected_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")),
-        "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")),
-        "src/source_verify/constructor_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/constructor_tests.rs")),
-        "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+        "src/workspace_graph/expected_projection.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/workspace_graph/expected_projection.rs"
+        )),
+        "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/workspace_graph/expected_projection/held_projection.rs"
+        )),
+        "src/source_verify/constructor_tests.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/source_verify/constructor_tests.rs"
+        )),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/workspace/semantic_graph/source_inventory.rs"
+        )),
         _ => panic!("foreign complete forecast source"),
     };
     assert_eq!(current, compiled);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = forecast_joint_physical_reader::read(&root.join(path), current.len(), &hash(current), 9_753_094).unwrap();
+    let physical = forecast_joint_physical_reader::read(
+        &root.join(path),
+        current.len(),
+        &hash(current),
+        9_753_094,
+    )
+    .unwrap();
     assert_eq!(physical, current);
     let receiving = receiving_pre286_source(path, current);
     let stage = match path {
-        "src/prelude.rs" => Some((4, 46154, "e7ad3dacb0541f2c4558a6826aaef49f05a3cbdec2ae358061f6e387017f6a51", 46130, "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478")),
-        "src/source_verify/constructor_tests.rs" => Some((3, 17238, "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d", 17125, "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3")),
-        "tests/workspace/semantic_graph/source_inventory.rs" => Some((17, 167349, "27679536bd5660b4d4928b5cbf96a5d0ff30748ad306218d7f4a1bab12639f00", 45102, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14")),
-        "src/workspace_graph/expected_projection/held_projection.rs" => Some((2, 21629, "1530f578236abe624f92941698def06f8de44d9deba0003936fb60206afe74bd", 21539, "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356")),
+        "src/prelude.rs" => Some((
+            4,
+            46154,
+            "e7ad3dacb0541f2c4558a6826aaef49f05a3cbdec2ae358061f6e387017f6a51",
+            46130,
+            "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478",
+        )),
+        "src/source_verify/constructor_tests.rs" => Some((
+            3,
+            17238,
+            "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d",
+            17125,
+            "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3",
+        )),
+        "tests/workspace/semantic_graph/source_inventory.rs" => Some((
+            17,
+            167349,
+            "27679536bd5660b4d4928b5cbf96a5d0ff30748ad306218d7f4a1bab12639f00",
+            45102,
+            "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14",
+        )),
+        "src/workspace_graph/expected_projection/held_projection.rs" => Some((
+            2,
+            21629,
+            "1530f578236abe624f92941698def06f8de44d9deba0003936fb60206afe74bd",
+            21539,
+            "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356",
+        )),
         _ => None,
     };
     let result = if let Some((index, length, sha, before_length, before_sha)) = stage {
@@ -440,13 +594,32 @@ fn receiving_pre286_record_source(path: &str, current: &str, record: &serde_json
         let after = edits[index]["after"].as_str().unwrap();
         let before = edits[index]["before"].as_str().unwrap();
         assert_eq!((after.len(), hash(after)), (length, sha.to_owned()));
-        assert_eq!((before.len(), hash(before)), (before_length, before_sha.to_owned()));
+        assert_eq!(
+            (before.len(), hash(before)),
+            (before_length, before_sha.to_owned())
+        );
         let receiving = if path == "src/workspace_graph/expected_projection/held_projection.rs" {
             super::super::call_carriers::inverse::pre898(&receiving)
-        } else { receiving };
-        assert_eq!(receiving, before, "entire original receiving result before the retained full transport");
+        } else {
+            receiving
+        };
+        assert_eq!(
+            receiving, before,
+            "entire original receiving result before the retained full transport"
+        );
         after.to_owned()
-    } else { receiving };
-    assert_eq!(forecast_joint_physical_reader::read(&root.join(path), current.len(), &hash(current), 9_753_094).unwrap(), physical);
+    } else {
+        receiving
+    };
+    assert_eq!(
+        forecast_joint_physical_reader::read(
+            &root.join(path),
+            current.len(),
+            &hash(current),
+            9_753_094
+        )
+        .unwrap(),
+        physical
+    );
     result
 }

@@ -400,9 +400,11 @@ fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages(
                         Ok(selected)
                     }
                     Err(error) => {
-                        assert_eq!(error, replay_error(function,
-                            format_args!("ordinary builder already failed")),
-                            "all six unopted diagnostic fields");
+                        assert_eq!(
+                            error,
+                            replay_error(function, format_args!("ordinary builder already failed")),
+                            "all six unopted diagnostic fields"
+                        );
                         assert!(refused && receipt.is_some());
                         assert_eq!(remaining, (0, 0));
                         drop(error);
@@ -439,7 +441,10 @@ fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages(
             assert_eq!(result.unwrap(), decisions > 7);
             assert!(!refused && receipt.is_none());
             assert!(paid <= PRODUCTION_BYTES);
-            assert_eq!((oracle.allowance, oracle.work_allowance), (ORACLE_BYTES, ORACLE_WORK));
+            assert_eq!(
+                (oracle.allowance, oracle.work_allowance),
+                (ORACLE_BYTES, ORACLE_WORK)
+            );
             assert_eq!((oracle.started, oracle.completed), (2, 2));
             assert!(oracle.charged > 0 && oracle.charged <= ORACLE_BYTES);
             assert!(oracle.work > 0 && oracle.work <= ORACLE_WORK);
@@ -452,7 +457,10 @@ fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages(
             eprintln!("moderate independently funded decisions={decisions} owned={owned} production_paid={paid} work_left={remaining:?} oracle={oracle:?} allocation={metrics:?}");
         }
     }
-    assert!(unopted_refusals > 0, "retain the actual unopted ACTIVE refusal");
+    assert!(
+        unopted_refusals > 0,
+        "retain the actual unopted ACTIVE refusal"
+    );
 }
 
 #[test]
@@ -654,10 +662,18 @@ fn cold_selector_probe(
             "ordinary builder representation selector receivers",
         )?;
         before_cold_threshold::selected_builder_paid(
-            function, cfg_paths, semantic_paths, &mut ReplayBudget::new(),
+            function,
+            cfg_paths,
+            semantic_paths,
+            &mut ReplayBudget::new(),
         )
     } else {
-        Ok(ordinary_builder_selected!(function, cfg_paths, semantic_paths, budget))
+        Ok(ordinary_builder_selected!(
+            function,
+            cfg_paths,
+            semantic_paths,
+            budget
+        ))
     }
 }
 fn cold_complete(metrics: crate::test_allocation_observer::Metrics, paid: usize) {
@@ -670,34 +686,60 @@ fn cold_builder_threshold_both_operands_and_hot_routes_keep_complete_invoices() 
     use crate::test_allocation_observer::measure;
     let program = fixture(0, false);
     let function = &program.functions[0];
-    assert_eq!(BUILDER_SELECTOR_CONTROLS, before_cold_threshold::BUILDER_SELECTOR_CONTROLS);
+    assert_eq!(
+        BUILDER_SELECTOR_CONTROLS,
+        before_cold_threshold::BUILDER_SELECTOR_CONTROLS
+    );
     assert!(COLD_BUILDER_THRESHOLD_CONTROLS < BUILDER_SELECTOR_CONTROLS);
     for (cfg_paths, semantic_paths) in [
-        (0, 0), (128, 128), (129, 0), (0, 129), (129, 129),
-        (usize::MAX, 0), (0, usize::MAX),
+        (0, 0),
+        (128, 128),
+        (129, 0),
+        (0, 129),
+        (129, 129),
+        (usize::MAX, 0),
+        (0, usize::MAX),
     ] {
         let cold = cfg_paths <= 128 && semantic_paths <= 128;
         let mut observations = Vec::new();
         for before in [true, false] {
-            let ((remaining, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-                let mut budget = ReplayBudget::new();
-                let result = cold_selector_probe(function, cfg_paths, semantic_paths, &mut budget, before);
-                assert_eq!(result, Ok(!cold));
-                let remaining = budget.remaining;
-                drop(result); drop(budget); remaining
-            }));
+            let ((remaining, metrics), refused, paid, first) =
+                with_limit_usage_refusal(64 << 20, || {
+                    measure(|| {
+                        let mut budget = ReplayBudget::new();
+                        let result = cold_selector_probe(
+                            function,
+                            cfg_paths,
+                            semantic_paths,
+                            &mut budget,
+                            before,
+                        );
+                        assert_eq!(result, Ok(!cold));
+                        let remaining = budget.remaining;
+                        drop(result);
+                        drop(budget);
+                        remaining
+                    })
+                });
             assert!(!refused && first.is_none());
             cold_complete(metrics, paid);
             observations.push((remaining, metrics, paid));
         }
-        assert_eq!(observations[0].0, observations[1].0, "selector work remains on its original temporary account");
+        assert_eq!(
+            observations[0].0, observations[1].0,
+            "selector work remains on its original temporary account"
+        );
         assert_eq!(observations[0].1.allocated, observations[1].1.allocated);
         if cold {
-            assert_eq!(observations[0].2 - observations[1].2,
-                BUILDER_SELECTOR_CONTROLS - COLD_BUILDER_THRESHOLD_CONTROLS);
+            assert_eq!(
+                observations[0].2 - observations[1].2,
+                BUILDER_SELECTOR_CONTROLS - COLD_BUILDER_THRESHOLD_CONTROLS
+            );
         } else {
-            assert_eq!(observations[1].2 - observations[0].2,
-                COLD_BUILDER_THRESHOLD_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS);
+            assert_eq!(
+                observations[1].2 - observations[0].2,
+                COLD_BUILDER_THRESHOLD_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS
+            );
         }
     }
     // Inspect the actual expansion, rather than substitute an eager predicate.
@@ -716,48 +758,91 @@ fn cold_builder_threshold_exact_short_zero_floor_and_sticky_fields_remain_owned(
         for before in [true, false] {
             let observe = |available: usize, floor: usize| {
                 with_limit_usage_refusal(available.checked_add(floor).unwrap(), || {
-                    if floor != 0 { assert!(crate::bounded_output::set_active_floor(floor)); }
+                    if floor != 0 {
+                        assert!(crate::bounded_output::set_active_floor(floor));
+                    }
                     measure(|| {
                         let mut budget = ReplayBudget::new();
-                        let result = cold_selector_probe(function, paths.0, paths.1, &mut budget, before);
+                        let result =
+                            cold_selector_probe(function, paths.0, paths.1, &mut budget, before);
                         let okay = result.is_ok();
                         if let Err(error) = &result {
                             assert_eq!(error.code, "SPX-H006");
                             assert_eq!(error.severity, crate::diagnostic::Severity::Error);
-                            assert!(error.path.is_none() && error.span.is_none() && error.help.is_none());
+                            assert!(
+                                error.path.is_none()
+                                    && error.span.is_none()
+                                    && error.help.is_none()
+                            );
                             // A hot callee can select failure on its own old
                             // temporary budget. The outer owner then publishes
                             // its retained first receipt exactly once on retry.
                             let was_selected = budget.refusal_spent;
-                            let retry = cold_selector_probe(function, paths.0, paths.1, &mut budget, before).unwrap_err();
-                            assert_eq!(&retry, if was_selected { &consumed_retry } else { &retained_retry }, "all six sticky fields");
-                            let again = cold_selector_probe(function, paths.0, paths.1, &mut budget, before).unwrap_err();
-                            assert_eq!(again, consumed_retry, "no second receipt or fallback allocation");
+                            let retry = cold_selector_probe(
+                                function,
+                                paths.0,
+                                paths.1,
+                                &mut budget,
+                                before,
+                            )
+                            .unwrap_err();
+                            assert_eq!(
+                                &retry,
+                                if was_selected {
+                                    &consumed_retry
+                                } else {
+                                    &retained_retry
+                                },
+                                "all six sticky fields"
+                            );
+                            let again = cold_selector_probe(
+                                function,
+                                paths.0,
+                                paths.1,
+                                &mut budget,
+                                before,
+                            )
+                            .unwrap_err();
+                            assert_eq!(
+                                again, consumed_retry,
+                                "no second receipt or fallback allocation"
+                            );
                             assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
-                            drop(again); drop(retry);
+                            drop(again);
+                            drop(retry);
                         }
-                        drop(result); drop(budget); okay
+                        drop(result);
+                        drop(budget);
+                        okay
                     })
                 })
             };
             let ((success, metrics), refused, paid, first) = observe(64 << 20, 0);
-            assert!(success && !refused && first.is_none()); cold_complete(metrics, paid);
+            assert!(success && !refused && first.is_none());
+            cold_complete(metrics, paid);
             for floor in [0, 37] {
                 let ((success, metrics), refused, exact, first) = observe(paid, floor);
-                assert!(success && !refused && first.is_none()); assert_eq!(exact, paid); cold_complete(metrics, exact);
+                assert!(success && !refused && first.is_none());
+                assert_eq!(exact, paid);
+                cold_complete(metrics, exact);
                 for available in [0, paid - 1] {
                     let ((success, metrics), refused, used, first) = observe(available, floor);
-                    assert!(!success && refused && first.is_some()); assert!(used <= available);
-                    assert_eq!(first.unwrap().floor, floor); cold_complete(metrics, used);
+                    assert!(!success && refused && first.is_some());
+                    assert!(used <= available);
+                    assert_eq!(first.unwrap().floor, floor);
+                    cold_complete(metrics, used);
                 }
             }
         }
     }
     // The unchanged first bootstrap refusal has exactly the old six fields.
-    let fail = |before| with_limit_usage_refusal(0, || {
-        let mut budget = ReplayBudget::new();
-        cold_selector_probe(function, 128, 128, &mut budget, before).unwrap_err()
-    }).0;
+    let fail = |before| {
+        with_limit_usage_refusal(0, || {
+            let mut budget = ReplayBudget::new();
+            cold_selector_probe(function, 128, 128, &mut budget, before).unwrap_err()
+        })
+        .0
+    };
     assert_eq!(fail(false), fail(true));
 }
 #[test]
@@ -765,26 +850,40 @@ fn cold_builder_threshold_expired_foreign_and_unwind_keep_current_authority_and_
     use crate::test_allocation_observer::measure;
     let program = fixture(0, false);
     let function = &program.functions[0];
-    let stale = crate::cleanup_plan::replay::allocation::OracleScope::open(1 << 20).unwrap().lease();
-    let (((), metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-        let mut old = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, stale);
-        let mut new = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, stale);
-        let a = cold_selector_probe(function, 128, 128, &mut old, true).unwrap_err();
-        let b = cold_selector_probe(function, 128, 128, &mut new, false).unwrap_err();
-        assert_eq!(a, b, "all six expired-payer fields without ACTIVE fallback");
-        drop(a); drop(b); drop(old); drop(new);
-    }));
+    let stale = crate::cleanup_plan::replay::allocation::OracleScope::open(1 << 20)
+        .unwrap()
+        .lease();
+    let (((), metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || {
+        measure(|| {
+            let mut old = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, stale);
+            let mut new = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, stale);
+            let a = cold_selector_probe(function, 128, 128, &mut old, true).unwrap_err();
+            let b = cold_selector_probe(function, 128, 128, &mut new, false).unwrap_err();
+            assert_eq!(a, b, "all six expired-payer fields without ACTIVE fallback");
+            drop(a);
+            drop(b);
+            drop(old);
+            drop(new);
+        })
+    });
     assert!(!refused && paid == 0 && first.is_none());
     assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
     for before in [true, false] {
-        let ((unwind, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let mut budget = ReplayBudget::new();
-                assert_eq!(cold_selector_probe(function, 129, 128, &mut budget, before), Ok(true));
-                std::panic::resume_unwind(Box::new("after complete paid threshold selection"));
-            })).is_err()
-        }));
-        assert!(unwind && !refused && first.is_none()); cold_complete(metrics, paid);
+        let ((unwind, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || {
+            measure(|| {
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    let mut budget = ReplayBudget::new();
+                    assert_eq!(
+                        cold_selector_probe(function, 129, 128, &mut budget, before),
+                        Ok(true)
+                    );
+                    std::panic::resume_unwind(Box::new("after complete paid threshold selection"));
+                }))
+                .is_err()
+            })
+        });
+        assert!(unwind && !refused && first.is_none());
+        cold_complete(metrics, paid);
     }
 }
 fn cold_full_caller(
@@ -810,21 +909,32 @@ fn cold_builder_threshold_complete_old_current_languages_work_and_drop_remain_eq
             assert!(enumerated(&program, function).unwrap());
             let mut observations = Vec::new();
             for before in [true, false] {
-                let ((remaining, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-                    // Exact original moderate owner oracle ceilings; production
-                    // ACTIVE remains64MiB and both complete comparison legs run.
-                    let scope = OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS).unwrap();
-                    let opted = opt_in(scope.lease()).unwrap();
-                    let mut budget = ReplayBudget::new();
-                    let result = cold_full_caller(&program, function, &mut budget, before);
-                    assert_eq!(result, Ok(decisions > 7));
-                    let remaining = (budget.remaining, budget.skeleton_remaining);
-                    drop(result); drop(budget); drop(opted);
-                    let receipt = scope.finish();
-                    assert!(receipt.first_refusal.is_none() && receipt.first_work_refusal.is_none() && receipt.physical_failure.is_none());
-                    assert_eq!(receipt.started, receipt.completed);
-                    (remaining, receipt.charged)
-                }));
+                let ((remaining, metrics), refused, paid, first) =
+                    with_limit_usage_refusal(64 << 20, || {
+                        measure(|| {
+                            // Exact original moderate owner oracle ceilings; production
+                            // ACTIVE remains64MiB and both complete comparison legs run.
+                            let scope =
+                                OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS)
+                                    .unwrap();
+                            let opted = opt_in(scope.lease()).unwrap();
+                            let mut budget = ReplayBudget::new();
+                            let result = cold_full_caller(&program, function, &mut budget, before);
+                            assert_eq!(result, Ok(decisions > 7));
+                            let remaining = (budget.remaining, budget.skeleton_remaining);
+                            drop(result);
+                            drop(budget);
+                            drop(opted);
+                            let receipt = scope.finish();
+                            assert!(
+                                receipt.first_refusal.is_none()
+                                    && receipt.first_work_refusal.is_none()
+                                    && receipt.physical_failure.is_none()
+                            );
+                            assert_eq!(receipt.started, receipt.completed);
+                            (remaining, receipt.charged)
+                        })
+                    });
                 assert!(!refused && first.is_none());
                 // The observer spans both fully executed algorithms; each
                 // independently pays its own unchanged finite account.
@@ -832,13 +942,20 @@ fn cold_builder_threshold_complete_old_current_languages_work_and_drop_remain_eq
                 observations.push((remaining.0, paid, remaining.1));
             }
             assert_eq!(observations[0].0, observations[1].0);
-            assert_eq!(observations[0].2, observations[1].2, "complete independent oracle invoice");
+            assert_eq!(
+                observations[0].2, observations[1].2,
+                "complete independent oracle invoice"
+            );
             if decisions <= 7 {
-                assert_eq!(observations[0].1 - observations[1].1,
-                    BUILDER_SELECTOR_CONTROLS - COLD_BUILDER_THRESHOLD_CONTROLS);
+                assert_eq!(
+                    observations[0].1 - observations[1].1,
+                    BUILDER_SELECTOR_CONTROLS - COLD_BUILDER_THRESHOLD_CONTROLS
+                );
             } else {
-                assert_eq!(observations[1].1 - observations[0].1,
-                    COLD_BUILDER_THRESHOLD_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS);
+                assert_eq!(
+                    observations[1].1 - observations[0].1,
+                    COLD_BUILDER_THRESHOLD_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS
+                );
             }
         }
     }
@@ -851,50 +968,93 @@ fn cold_builder_threshold_full_changed_boolean_keeps_all_six_diagnostic_fields()
     for decisions in [1, 8] {
         let program = fixture(decisions, false);
         let mut changed = program.functions[0].clone();
-        let condition = changed.cleanup_plan.edges.iter_mut().find_map(|edge| match &mut edge.condition {
-            EdgeCondition::BooleanResult(_, value) => Some(value), _ => None,
-        }).unwrap();
+        let condition = changed
+            .cleanup_plan
+            .edges
+            .iter_mut()
+            .find_map(|edge| match &mut edge.condition {
+                EdgeCondition::BooleanResult(_, value) => Some(value),
+                _ => None,
+            })
+            .unwrap();
         *condition = !*condition;
         let expected = with_limit_usage_refusal(64 << 20, || {
             let scope = OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS).unwrap();
             let opted = opt_in(scope.lease()).unwrap();
             let mut budget = ReplayBudget::new();
             let result = cold_full_caller(&program, &changed, &mut budget, true);
-            drop(budget); drop(opted); let receipt = scope.finish();
+            drop(budget);
+            drop(opted);
+            let receipt = scope.finish();
             assert!(receipt.first_refusal.is_none() && receipt.first_work_refusal.is_none());
             result
         });
         assert!(!expected.1 && expected.3.is_none());
-        if decisions <= 7 { assert_eq!(expected.0, Ok(false), "nonselection grants no verdict"); }
-        else { assert!(expected.0.is_err()); }
+        if decisions <= 7 {
+            assert_eq!(expected.0, Ok(false), "nonselection grants no verdict");
+        } else {
+            assert!(expected.0.is_err());
+        }
         for before in [true, false] {
-            let ((oracle_paid, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-                let scope = OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS).unwrap();
-                let opted = opt_in(scope.lease()).unwrap();
-                let mut budget = ReplayBudget::new();
-                let result = cold_full_caller(&program, &changed, &mut budget, before);
-                assert_eq!(result, expected.0, "whole old/current boolean mismatch and all six fields");
-                drop(result); drop(budget); drop(opted); let receipt = scope.finish();
-                assert!(receipt.first_refusal.is_none() && receipt.first_work_refusal.is_none() && receipt.physical_failure.is_none());
-                assert_eq!(receipt.started, receipt.completed); receipt.charged
-            }));
-            assert!(!refused && first.is_none()); cold_complete(metrics, paid.checked_add(oracle_paid).unwrap());
+            let ((oracle_paid, metrics), refused, paid, first) =
+                with_limit_usage_refusal(64 << 20, || {
+                    measure(|| {
+                        let scope = OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS)
+                            .unwrap();
+                        let opted = opt_in(scope.lease()).unwrap();
+                        let mut budget = ReplayBudget::new();
+                        let result = cold_full_caller(&program, &changed, &mut budget, before);
+                        assert_eq!(
+                            result, expected.0,
+                            "whole old/current boolean mismatch and all six fields"
+                        );
+                        drop(result);
+                        drop(budget);
+                        drop(opted);
+                        let receipt = scope.finish();
+                        assert!(
+                            receipt.first_refusal.is_none()
+                                && receipt.first_work_refusal.is_none()
+                                && receipt.physical_failure.is_none()
+                        );
+                        assert_eq!(receipt.started, receipt.completed);
+                        receipt.charged
+                    })
+                });
+            assert!(!refused && first.is_none());
+            cold_complete(metrics, paid.checked_add(oracle_paid).unwrap());
         }
         // A cold false is not acceptance. Run the complete ordinary driver,
         // including the unchanged enumerating fallthrough and final verdict,
         // against its independent Legacy route's six-field diagnostic.
         let legacy = validate_structure(&program, &changed).unwrap_err();
-        let ((oracle_paid, metrics), refused, paid, first) = with_limit_usage_refusal(64 << 20, || measure(|| {
-            let scope = OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS).unwrap();
-            let opted = opt_in(scope.lease()).unwrap();
-            let mut budget = ReplayBudget::new();
-            let result = validate_structure_with_budget(&program, &changed, &mut budget, None);
-            assert_eq!(result.as_ref().err(), Some(&legacy), "complete driver keeps every diagnostic field");
-            drop(result); drop(budget); drop(opted); let receipt = scope.finish();
-            assert!(receipt.first_refusal.is_none() && receipt.first_work_refusal.is_none());
-            assert_eq!(receipt.started, receipt.completed); receipt.charged
-        }));
-        assert!(!refused && first.is_none()); cold_complete(metrics, paid.checked_add(oracle_paid).unwrap());
+        let ((oracle_paid, metrics), refused, paid, first) =
+            with_limit_usage_refusal(64 << 20, || {
+                measure(|| {
+                    let scope =
+                        OracleScope::open_with_work(1 << 29, 2 * MAX_REPLAY_WORK_UNITS).unwrap();
+                    let opted = opt_in(scope.lease()).unwrap();
+                    let mut budget = ReplayBudget::new();
+                    let result =
+                        validate_structure_with_budget(&program, &changed, &mut budget, None);
+                    assert_eq!(
+                        result.as_ref().err(),
+                        Some(&legacy),
+                        "complete driver keeps every diagnostic field"
+                    );
+                    drop(result);
+                    drop(budget);
+                    drop(opted);
+                    let receipt = scope.finish();
+                    assert!(
+                        receipt.first_refusal.is_none() && receipt.first_work_refusal.is_none()
+                    );
+                    assert_eq!(receipt.started, receipt.completed);
+                    receipt.charged
+                })
+            });
+        assert!(!refused && first.is_none());
+        cold_complete(metrics, paid.checked_add(oracle_paid).unwrap());
     }
 }
 
@@ -902,7 +1062,12 @@ fn cold_builder_threshold_full_changed_boolean_keeps_all_six_diagnostic_fields()
 #[path = "../../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod cold949_reader;
 const COLD949_SOURCE_CAP: usize = 9_753_094;
-type Cold949Row = (&'static str, &'static str, &'static str, &'static [(usize, usize, &'static str)]);
+type Cold949Row = (
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static [(usize, usize, &'static str)],
+);
 const COLD949_ROWS: &[Cold949Row] = &[
     ("docs/PAIRED-WEIGHTED-COMPARISON-V1.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PAIRED-WEIGHTED-COMPARISON-V1.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/004fa1e7b90c37dae3cc4a4921faefba03d78197e89431836de4e0e98d68be94")), &[(4114,5703,"")]),
     ("docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b595aa192e83ad59d2842be236ebfbc97413539d0faa67c6c0ad1d4c6590bd09")), &[(25233,25805,"selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe\nreceivers before testing thresholds, including on tiny nonselecting paths.\nThe existing builder crossover above 128 paths runs first; this fitting selector\n")]),
@@ -927,12 +1092,16 @@ const COLD949_ROWS: &[Cold949Row] = &[
     ("src/str_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/str_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f681546ee58598288095926f2c76a25a26665770258eb25dea221e5c38cbbf8a")), &[(5932,5932,"#[cfg(test)]\n")]),
     ("src/vec_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vec_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c880a46547d9385e12ea75f4577eef5e059fde9a189a17839951be22e278f5f2")), &[(30160,30160,"#[cfg(test)]\n")]),
 ];
-fn cold949_sha(text: &str) -> String { joined_digest(text.as_bytes()) }
+fn cold949_sha(text: &str) -> String {
+    joined_digest(text.as_bytes())
+}
 fn cold949_read(path: &std::path::Path, len: usize, sha: &str) -> Option<String> {
     cold949_reader::read(path, len, sha, COLD949_SOURCE_CAP).ok()
 }
 fn cold949_check(
-    source: &str, compiled: &str, prior: &str,
+    source: &str,
+    compiled: &str,
+    prior: &str,
     read: &mut impl FnMut(&std::path::Path, usize, &str) -> Option<String>,
 ) -> Option<()> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -941,30 +1110,48 @@ fn cold949_check(
         (root.join("e").join(cold949_sha(compiled)), compiled),
         (root.join("e").join(cold949_sha(prior)), prior),
     ] {
-        if text.len() > COLD949_SOURCE_CAP { return None; }
+        if text.len() > COLD949_SOURCE_CAP {
+            return None;
+        }
         let actual = read(&path, text.len(), &cold949_sha(text))?;
-        if actual != text { return None; }
+        if actual != text {
+            return None;
+        }
     }
     Some(())
 }
 fn cold949_restore(
-    source: &str, supplied: &str,
+    source: &str,
+    supplied: &str,
     read: &mut impl FnMut(&std::path::Path, usize, &str) -> Option<String>,
 ) -> Option<String> {
     let (_, compiled, prior, edits) = COLD949_ROWS.iter().find(|r| r.0 == source)?;
-    if supplied != *compiled { return None; }
+    if supplied != *compiled {
+        return None;
+    }
     cold949_check(source, compiled, prior, read)?;
     let mut restored = if source == "src/cleanup_plan/replay/factored/moderate_tests.rs" {
-        let marker = "\n// Complete immediate predecessor. Literal bodies and tariff expression are\n";
-        if compiled.matches(marker).count() != 1 { return None; }
+        let marker =
+            "\n// Complete immediate predecessor. Literal bodies and tariff expression are\n";
+        if compiled.matches(marker).count() != 1 {
+            return None;
+        }
         compiled.split_once(marker)?.0.to_owned()
-    } else { supplied.to_owned() };
+    } else {
+        supplied.to_owned()
+    };
     for &(start, end, before) in edits.iter().rev() {
-        if start > end || restored.get(start..end).is_none() { return None; }
+        if start > end || restored.get(start..end).is_none() {
+            return None;
+        }
         restored.replace_range(start..end, before);
-        if restored.len() > COLD949_SOURCE_CAP { return None; }
+        if restored.len() > COLD949_SOURCE_CAP {
+            return None;
+        }
     }
-    if restored != *prior { return None; }
+    if restored != *prior {
+        return None;
+    }
     cold949_check(source, compiled, prior, read)?;
     Some(restored)
 }
@@ -976,27 +1163,70 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
         &source[start..end]
     }
     let current = include_str!("moderate_tests.rs");
-    let independent = current.split_once("mod before_cold_threshold {\nuse super::*;\n").unwrap().1
-        .split_once("\n}\n\n// The test receiver").unwrap().0;
-    let old_factored = COLD949_ROWS.iter().find(|r| r.0 == "src/cleanup_plan/replay/factored.rs").unwrap().2;
-    let old_paired = COLD949_ROWS.iter().find(|r| r.0 == "src/cleanup_plan/replay/factored/paired.rs").unwrap().2;
+    let independent = current
+        .split_once("mod before_cold_threshold {\nuse super::*;\n")
+        .unwrap()
+        .1
+        .split_once("\n}\n\n// The test receiver")
+        .unwrap()
+        .0;
+    let old_factored = COLD949_ROWS
+        .iter()
+        .find(|r| r.0 == "src/cleanup_plan/replay/factored.rs")
+        .unwrap()
+        .2;
+    let old_paired = COLD949_ROWS
+        .iter()
+        .find(|r| r.0 == "src/cleanup_plan/replay/factored/paired.rs")
+        .unwrap()
+        .2;
     for (old, marker) in [
-        (old_factored, "pub(super) fn validate_with_index_storage<'hir>("),
+        (
+            old_factored,
+            "pub(super) fn validate_with_index_storage<'hir>(",
+        ),
         (old_paired, "pub(super) fn selected_builder_paid("),
-        (old_paired, "pub(super) const BUILDER_SELECTOR_CONTROLS: usize = {"),
-        (old_paired, "const FITTING_REFUSAL_PROBE_CONTROLS: usize = {"),
-    ] { assert_eq!(definition(independent, marker), definition(old, marker)); }
+        (
+            old_paired,
+            "pub(super) const BUILDER_SELECTOR_CONTROLS: usize = {",
+        ),
+        (
+            old_paired,
+            "const FITTING_REFUSAL_PROBE_CONTROLS: usize = {",
+        ),
+    ] {
+        assert_eq!(definition(independent, marker), definition(old, marker));
+    }
     assert_eq!(paired::BUILDER_FACTORED_PATH_THRESHOLD, 128);
     assert!(independent.contains("const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;"));
     assert_eq!(COLD949_ROWS.len(), 22);
     for &(path, compiled, prior, _) in COLD949_ROWS {
-        assert_eq!(cold949_restore(path, compiled, &mut cold949_read).as_deref(), Some(prior));
-        let half = compiled.char_indices().map(|(i,_)| i).take_while(|i| *i <= compiled.len()/2).last().unwrap_or(0);
-        for wrong in [String::new(), compiled[..half].to_owned(), format!("{compiled} "), format!("!{}", &compiled[1..])] {
-            assert!(cold949_restore(path, &wrong, &mut |_,_,_| panic!("forged current before acquisition")).is_none());
+        assert_eq!(
+            cold949_restore(path, compiled, &mut cold949_read).as_deref(),
+            Some(prior)
+        );
+        let half = compiled
+            .char_indices()
+            .map(|(i, _)| i)
+            .take_while(|i| *i <= compiled.len() / 2)
+            .last()
+            .unwrap_or(0);
+        for wrong in [
+            String::new(),
+            compiled[..half].to_owned(),
+            format!("{compiled} "),
+            format!("!{}", &compiled[1..]),
+        ] {
+            assert!(cold949_restore(path, &wrong, &mut |_, _, _| panic!(
+                "forged current before acquisition"
+            ))
+            .is_none());
         }
         if compiled != prior {
-            assert!(cold949_restore(path, prior, &mut |_,_,_| panic!("historical source cannot impersonate current")).is_none());
+            assert!(cold949_restore(path, prior, &mut |_, _, _| panic!(
+                "historical source cannot impersonate current"
+            ))
+            .is_none());
         }
         // Corrupt each actual physical/current-archive/prior-archive frontier,
         // both before and after the entire inverse. No gate or read is skipped.
@@ -1006,24 +1236,37 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
                 let mut injected = |p: &std::path::Path, len, sha: &str| {
                     let mut text = cold949_read(p, len, sha)?;
                     if calls == corrupt_at {
-                        if truncate { text.pop(); } else { text.push('!'); }
+                        if truncate {
+                            text.pop();
+                        } else {
+                            text.push('!');
+                        }
                     }
-                    calls += 1; Some(text)
+                    calls += 1;
+                    Some(text)
                 };
                 assert!(cold949_restore(path, compiled, &mut injected).is_none());
-                assert_eq!(calls, corrupt_at+1);
+                assert_eq!(calls, corrupt_at + 1);
             }
         }
     }
-    assert!(cold949_restore("src/foreign.rs", "foreign", &mut |_,_,_| panic!("unknown source has no read authority")).is_none());
+    assert!(
+        cold949_restore("src/foreign.rs", "foreign", &mut |_, _, _| panic!(
+            "unknown source has no read authority"
+        ))
+        .is_none()
+    );
 }
 
 // This is an exact historical view for the unchanged trailing-probe consumer,
 // never a replacement for its live source/compiled/archive authentication.
 pub(in crate::cleanup_plan::replay) fn cold949_previous_input(
-    source: &str, supplied: &str, length: usize, sha: &str,
+    source: &str,
+    supplied: &str,
+    length: usize,
+    sha: &str,
 ) -> String {
-    assert!(supplied.len() <= 2*1024*1024 && length <= 2*1024*1024);
+    assert!(supplied.len() <= 2 * 1024 * 1024 && length <= 2 * 1024 * 1024);
     let previous = cold949_restore(source, supplied, &mut cold949_read)
         .expect("actual current helper and complete immediate predecessor");
     assert_eq!(previous.len(), length);

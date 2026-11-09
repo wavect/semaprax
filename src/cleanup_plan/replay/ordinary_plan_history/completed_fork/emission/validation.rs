@@ -110,8 +110,12 @@ macro_rules! pay {
             $scope.failed = true;
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
-        match $scope.work.budget.reserve_bytes($scope.work.function, $bytes + AUTH, $phase) {
-            Ok(()) => {},
+        match $scope
+            .work
+            .budget
+            .reserve_bytes($scope.work.function, $bytes + AUTH, $phase)
+        {
+            Ok(()) => {}
             Err(error) => {
                 $scope.failed = true;
                 return Err(error);
@@ -203,20 +207,30 @@ impl Validation<'_, '_, '_> {
     }
 
     fn classify(&mut self, root: &Rc<ObservationDag>) -> Result<(bool, usize), Diagnostic> {
-        self.work.queries.selector(self.work.function, &mut *self.work.budget,
+        self.work.queries.selector(
+            self.work.function,
+            &mut *self.work.budget,
             crate::cleanup_plan::replay::skeleton_work::query_proof::SELECTOR,
-            "shared sequence cold partition receivers")?;
-        if matches!(self.work.budget.payer,
+            "shared sequence cold partition receivers",
+        )?;
+        if matches!(
+            self.work.budget.payer,
             crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder
-                | crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved)
-            && self.work.budget.admission == crate::cleanup_plan::replay::AdmissionMode::Ordinary
-            && !self.work.budget.lent_skeleton && !self.work.budget.merge_paths
+                | crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved
+        ) && self.work.budget.admission == crate::cleanup_plan::replay::AdmissionMode::Ordinary
+            && !self.work.budget.lent_skeleton
+            && !self.work.budget.merge_paths
             && self.work.function.cleanup_plan.lexical_control.is_none()
         {
-            self.work.queries.preflight(self.work.function, &mut *self.work.budget,
+            self.work.queries.preflight(
+                self.work.function,
+                &mut *self.work.budget,
                 crate::cleanup_plan::replay::skeleton_work::query_proof::CLASSIFY_CALL,
-                "shared sequence classifier call receivers")?;
-            return crate::cleanup_plan::replay::skeleton_work::query_proof::classify_paid(root, self.work);
+                "shared sequence classifier call receivers",
+            )?;
+            return crate::cleanup_plan::replay::skeleton_work::query_proof::classify_paid(
+                root, self.work,
+            );
         }
         let mut pending = Vec::new();
         let mut visits = 0usize;

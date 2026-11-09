@@ -285,8 +285,13 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         // Authenticate complete physical/compiled current before acquiring its
         // named historical input. Foreign current bytes cannot reach an inverse.
         if !path.is_empty() {
-            let physical = reader::read(&root.join(path), compiled.len(), &digest(compiled), 2_097_152)
-                .expect("fresh complete current projection audit part");
+            let physical = reader::read(
+                &root.join(path),
+                compiled.len(),
+                &digest(compiled),
+                2_097_152,
+            )
+            .expect("fresh complete current projection audit part");
             assert_eq!(physical, compiled);
         }
         let named = super::merged_projection::v10_current_part(
@@ -298,12 +303,18 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         let next_current = next_part_before(path, &invoice_previous);
         let prior_current = post83_part_before(path, &next_current);
         let previous = current_part_before(path, &prior_current);
-        assert_eq!((previous.len(), digest(&previous)), (length, sha.to_owned()));
+        assert_eq!(
+            (previous.len(), digest(&previous)),
+            (length, sha.to_owned())
+        );
         complete.push_str(compiled);
         previous_complete.push_str(&previous);
     }
     assert_eq!(previous_complete.len(), 1835716);
-    assert_eq!(digest(&previous_complete), "2d23fd56d8bf76d9c6f5b995d4a18bb593e2cc58d00fd0fc4f009614d75b50ef");
+    assert_eq!(
+        digest(&previous_complete),
+        "2d23fd56d8bf76d9c6f5b995d4a18bb593e2cc58d00fd0fc4f009614d75b50ef"
+    );
     assert_eq!(
         complete, supplied,
         "every actual current audit part and join byte"
@@ -321,12 +332,20 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-pub(super) fn previous_part_for_control(path: &str, length: usize, sha: &str, current: &str) -> String {
+pub(super) fn previous_part_for_control(
+    path: &str,
+    length: usize,
+    sha: &str,
+    current: &str,
+) -> String {
     let invoice = super::invoice_compiled_stage(path, length, sha, current);
     let next = next_part_before(path, &invoice);
     let post83 = post83_part_before(path, &next);
     let previous = current_part_before(path, &post83);
-    assert_eq!((previous.len(), digest(&previous)), (length, sha.to_owned()));
+    assert_eq!(
+        (previous.len(), digest(&previous)),
+        (length, sha.to_owned())
+    );
     previous
 }
 
@@ -358,5 +377,72 @@ mod tests {
             assert!(audit_join(&foreign).is_none());
         }
         assert!(audit_join(BEFORE).is_none());
+    }
+}
+
+pub(super) fn invoice_previous_file(
+    path: &std::path::Path,
+    length: usize,
+    sha: &str,
+) -> Option<String> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let source = path.strip_prefix(root).ok()?.to_str()?.replace('\\', "/");
+    if super::updated_projection_part(&source, length, sha).is_some() {
+        return crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new()
+            .file(path, length, sha);
+    }
+    match (source.as_str(), length, sha) {
+        (
+            "src/workspace_graph/expected_projection/borrowed_imports.rs",
+            16948,
+            "da6714b4bd67b30038a39e4d958849e850a75208a7b932d5268024c641711e8f",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+            14941,
+            "a6b2c250cda981f4a7130884582d3e8a4184e51819ce572ebf32677e16823ed3",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs",
+            29466,
+            "45400d59682efc6576eb7e45aa8f37bc9f33b1015776b7e4d9bd572f66d3836c",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports.rs",
+            16722,
+            "9b70751b6d20536b964bf0739ba74e312f0fb1be03ef37037054cf274ca29a99",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
+            14714,
+            "f2c4873ebc9e093e5d837490cc5b5573a282c9b7efa9fd5bb258af81910917e2",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs",
+            28982,
+            "024618aff23bc6e1135b9d3c453fc660f42b59ef4dbfc2d2a01148e3ea6f3bb1",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+            9662,
+            "c12827317afbd1d6217092d47e6881513ada701c5aa51512842553b4d5de5145",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+            23207,
+            "94aa760de11d6317cebdc638946b4d2a76d822b7b9249ea8a8789d6c681777e9",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs",
+            27568,
+            "f7ada2db950526d26e0c8e91ef90548c3a5154216b42d61e8c30a89beb978ef2",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+            9293,
+            "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149",
+        ) => crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new()
+            .file(path, length, sha),
+        _ => None,
     }
 }

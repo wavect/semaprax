@@ -1,7 +1,9 @@
 //! Ordinary independent-segment transport, checked against the complete immediate kernel.
 use super::*;
 
-pub(super) fn complete_immediate438_invoice_counts(row: &pair_scope_census::Row) -> pair_scope_census::Row {
+pub(super) fn complete_immediate438_invoice_counts(
+    row: &pair_scope_census::Row,
+) -> pair_scope_census::Row {
     assert!(row.complete && row.ended && !row.unwound && !row.truncated && !row.overflow);
     assert!(!row.old);
     let skipped = row
@@ -58,7 +60,8 @@ fn prices_unchecked(row: &pair_scope_census::Row) -> (usize, usize) {
         + certified_heads::BOUNDARY_EMPTY;
     (
         old_pair * row.independent_turns + old_loop * skipped,
-        paired_value::INDEPENDENT_PRIMITIVES * row.independent_frames + 3 * size_of::<bool>() * row.independent_checks
+        paired_value::INDEPENDENT_PRIMITIVES * row.independent_frames
+            + 3 * size_of::<bool>() * row.independent_checks
             + paired_value::INDEPENDENT_RUN_SETUP * row.independent_runs
             + paired_value::INDEPENDENT_RUN_PAYLOAD * row.independent_turns,
     )
@@ -183,7 +186,8 @@ fn loaded_segments_keep_complete_immediate438_values_work_drop_and_typed_equatio
             Capture::begin(Binding::caller_labelled(
                 "loaded independent shipping rounds",
                 Sha256::digest(include_bytes!("loaded_segment_composition_tests.rs")).into(),
-            )).unwrap()
+            ))
+            .unwrap()
         };
         let (new, new_heap, new_paid) = observe_immediate_shaped_pair(
             function,
@@ -206,7 +210,10 @@ fn loaded_segments_keep_complete_immediate438_values_work_drop_and_typed_equatio
         }
         assert_eq!(new, old);
         assert_eq!(new_heap, old_heap);
-        assert_eq!(counts(&complete_immediate438_invoice_counts(&row)), counts(&old_row));
+        assert_eq!(
+            counts(&complete_immediate438_invoice_counts(&row)),
+            counts(&old_row)
+        );
         assert_eq!(
             (row.pairs, row.rounds, row.steps, row.loads, row.tails),
             (
@@ -358,7 +365,10 @@ fn loaded_segments_preserve_exact_short_floor_zero_sticky_and_projection_refusal
                     3 => bad.overflow = true,
                     _ => bad.independent_runs = bad.independent_turns + 1,
                 }
-                assert!(std::panic::catch_unwind(|| super::pair_scope_tests::predecessor_price_counts(&bad)).is_err());
+                assert!(std::panic::catch_unwind(|| {
+                    super::pair_scope_tests::predecessor_price_counts(&bad)
+                })
+                .is_err());
             }
         }
         for (limit, floor, success) in [
@@ -425,11 +435,13 @@ fn loaded_segments_keep_entire_immediate_and_puremain_sources_and_all_unchanged_
         "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
     );
     assert_eq!(
-        hash(&crate::source_reflows_merge::main_e177_final_inputs::value_direct(
-            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
-            "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0",
-            include_str!("shared_prefix.rs"),
-        )),
+        hash(
+            &crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+                "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0",
+                include_str!("shared_prefix.rs"),
+            )
+        ),
         "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
     );
     assert_eq!(

@@ -584,7 +584,7 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
 ) -> Result<(Proof, Costs), Error> {
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::closed_roots::before_selected() {
-        return before_joint_closed_roots_body!(context,imports,proof,lookup);
+        return before_joint_closed_roots_body!(context, imports, proof, lookup);
     }
 
     #[cfg(test)]
@@ -666,7 +666,9 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
             proof.bytes = proof.bytes.saturating_add(
                 crate::workspace_graph::expected_projection::call_carriers::closed_roots::SELECTOR,
             );
-            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(root, &mut proof) {
+            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(
+                root, &mut proof,
+            ) {
                 continue;
             }
             proof.bytes = proof

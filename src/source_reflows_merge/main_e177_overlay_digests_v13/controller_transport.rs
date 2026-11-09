@@ -511,7 +511,14 @@ fn joint_compiled_source_before(supplied: &str) -> Option<String> {
     let edits: serde_json::Value = serde_json::from_str(INVERSE).unwrap();
     let edits = edits.as_array().unwrap();
     assert!(edits.len() <= 512);
-    let mut restored = supplied.to_owned();
+    // Replay this immutable inverse against the exact PR generation it binds.
+    // The live complete source remains authenticated on both sides of the replay.
+    const ENTRY_SHA: &str = "445f2e610a64a939e19da67fd1c80e83098e9e105cf6f419c0fe6fba1495c306";
+    let mut restored = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        SOURCE, ENTRY_SHA, supplied,
+    );
+    assert_eq!(restored.len(), 227403);
+    assert_eq!(super::hash(restored.as_bytes()), ENTRY_SHA);
     let mut end_bound = restored.len();
     for edit in edits.iter().rev() {
         let edit = edit.as_array().unwrap(); assert_eq!(edit.len(), 4);

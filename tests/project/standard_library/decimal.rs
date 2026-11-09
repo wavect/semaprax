@@ -141,3 +141,37 @@ fn decimal_does_not_claim_the_frozen_standalone_string_wasm_profile() {
     .unwrap_err();
     assert_eq!(error.code, "SPX-W111");
 }
+
+#[test]
+#[cfg_attr(windows, ignore = "native command fixture is Unix-only")]
+fn bounded_division_preserves_large_dividends_on_native_o0_o2() {
+    let library = include_str!("../../../std/int-decimal/src/decimal.spx");
+    let scratch = temporary("decimal-large-division");
+    for digits in [33_000, 65_536] {
+        for (divisor, expected_digit) in [("1", '9'), ("3", '3')] {
+            let dividend = "9".repeat(digits);
+            let expected = expected_digit.to_string().repeat(digits);
+            let source = format!(
+                r#"{library}
+@id("decimal.large-division.main")
+fn main() -> i64 {{
+    let divisor = "{divisor}";
+    let quotient = divide("{dividend}", string_as_str(divisor));
+    if string_len(quotient) == {digits} && quotient == "{expected}" {{ 0 }} else {{ 1 }}
+}}
+"#
+            );
+            let program = semaprax::check(&source, "decimal-large-division.spx").unwrap();
+            let canonical = format::canonical(&program);
+            let reparsed = semaprax::check(&canonical, "decimal-large-division.spx").unwrap();
+            assert_eq!(canonical, format::canonical(&reparsed));
+            let c = codegen::emit_c(&reparsed).unwrap();
+            for optimization in ["-O0", "-O2"] {
+                let binary = scratch.join(format!("decimal-{digits}-{divisor}-{optimization}"));
+                compile_c(&c, &binary, optimization);
+                run_returns_zero(&binary);
+            }
+        }
+    }
+    std::fs::remove_dir_all(scratch).unwrap();
+}

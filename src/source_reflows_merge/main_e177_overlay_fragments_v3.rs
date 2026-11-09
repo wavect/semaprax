@@ -590,14 +590,14 @@ pub(super) use pins_v10::{expand_v10, expand_v10_compatible, SCHEMA_V10};
 
 #[path = "main_e177_overlay_pins_v11.rs"]
 mod pins_v11;
-pub(super) use pins_v11::{expand_v10_public_compatible, expand_v11_compatible, SCHEMA_V11};
+pub(super) use pins_v11::{expand_v10_public_compatible, expand_v11, expand_v11_compatible, SCHEMA_V11};
 // Complete independent incoming V10/named-view V11 decoder and controls.
 #[path = "main_e177_overlay_names_v11/main_e177_overlay_pins_v10.rs"]
 mod names_v11;
 
 #[path = "main_e177_overlay_labels_v12.rs"]
 mod labels_v12;
-pub(super) use labels_v12::branches::{expand_v11, expand_v12, expand_v13};
+pub(super) use labels_v12::branches::{expand_v12, expand_v13};
 pub(super) use labels_v12::SCHEMA_V12;
 #[cfg(test)]
 mod tests {
@@ -1497,4 +1497,4 @@ pub(super) use digests_v13::{
 #[cfg(test)]
 pub(super) use digests_v13::{verify_current_v17, verify_current_v18};
 
-pub(super) use digests_v13::{expand_v20_compact, preflight_compact, SCHEMA_V20_COMPACT};
+pub(super) use digests_v13::{expand_v20_compact, preflight_compact_with_bound, SCHEMA_V20_COMPACT};

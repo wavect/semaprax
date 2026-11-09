@@ -519,6 +519,8 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
         let program = fixture(rows, true);
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
+        super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.set(0));
+        super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.set(0));
         // Original #889 transition equation uses its full independently compiled
         // generation, before the later #903 last-use scratch transport.
         let current = block_run_driver(
@@ -529,6 +531,10 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
             MAX_REPLAY_WORK_UNITS,
         );
         let generation_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
+        let reference_routes =
+            super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.get());
+        let new_reference =
+            super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.get());
         let shipping = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
         let shipping_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
         assert_eq!(shipping.0, current.0); // complete current six-field verdict

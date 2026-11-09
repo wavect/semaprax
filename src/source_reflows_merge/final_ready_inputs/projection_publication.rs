@@ -281,45 +281,6 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_tests.rs"), 19239, "ee9bebd2537779b373c67a2e16334664cb13d594ef97761d3f987257c1f4c101"),
         ("src/cleanup_plan/replay_tests/factored.rs", include_str!("../../cleanup_plan/replay_tests/factored.rs"), 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
     ];
-
-// Whole current audit join only. The original production purity check runs
-// before this historical facade route, and every original phase inverse runs
-// after it. No source component is omitted from the current input.
-pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    let current: String = PARTS.iter().map(|(_, compiled, _, _)| *compiled).collect();
-    if supplied != current {
-        return audit_join_at_publication(supplied);
-    }
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    for &(path, compiled, _, _) in PARTS {
-        if path.is_empty() {
-            continue;
-        }
-        let physical = reader::read(
-            &root.join(path),
-            compiled.len(),
-            &digest(compiled),
-            2_097_152,
-        )
-        .expect("complete latest compiled/physical projection publication part");
-        assert_eq!(physical, compiled);
-    }
-    // The unchanged fifty-part oracle below authenticates each declared whole
-    // predecessor and replays the entire original phase inverse.
-    audit_join_at_publication(include_str!(
-        "../../../docs/evidence/projection-current-entry-20261022/whole-current.txt"
-    ))
-}
-fn audit_join_at_publication(supplied: &str) -> Option<String> {
-    if supplied.len() != 650350
-        || digest(supplied) != "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
-    {
-        return None;
-    }
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let mut complete = String::new();
-    // Literal generated from the actual owning macro, in original order.
-    // Data pieces remain read-only source evidence, never compiled authority.
     for &(path, compiled, length, sha) in PARTS {
         // Authenticate complete physical/compiled current before acquiring its
         // named historical input. Foreign current bytes cannot reach an inverse.

@@ -1,5 +1,8 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/source_reflows/ci_inputs/successor_fronts.rs" => Some(include_str!("../../src/source_reflows/ci_inputs/successor_fronts.rs")),
+        "src/cleanup_plan/replay/path_join/main_before_frontier.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/main_before_frontier.rs")),
+        "tests/support/main44_wasm_entries.rs" => Some(include_str!("../../tests/support/main44_wasm_entries.rs")),
         "src/cleanup_plan/replay/allocation/tests/accounting_scope.rs" => Some(include_str!("../../src/cleanup_plan/replay/allocation/tests/accounting_scope.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/edge_tests.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs")),

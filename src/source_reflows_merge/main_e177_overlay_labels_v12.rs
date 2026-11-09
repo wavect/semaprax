@@ -214,17 +214,6 @@ pub(super) mod branches {
     // The two branches published distinct positional envelopes under the same
     // historical version names. Select by their disjoint, closed envelope shapes;
     // each original decoder retains its full validation and materialization bounds.
-    pub(in super::super::super) fn expand_v11(
-        before: &Value,
-        policy: &Value,
-        page: &Value,
-    ) -> Result<Value, &'static str> {
-        if page.get("names").is_some() {
-            super::super::pins_v10::expand_v11(before, policy, page)
-        } else {
-            super::super::pins_v11::expand_v11(before, policy, page)
-        }
-    }
     pub(in super::super::super) fn expand_v12(
         before: &Value,
         policy: &Value,

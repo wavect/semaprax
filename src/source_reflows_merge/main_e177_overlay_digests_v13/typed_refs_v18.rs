@@ -675,9 +675,16 @@ fn compact_table_delta(page: &Value) -> Result<usize, &'static str> {
 }
 
 pub(in super::super::super) fn preflight_compact(page: &Value, limit: usize) -> Result<usize, &'static str> {
+    preflight_compact_with_bound(page, limit, PAGE_CAP)
+}
+pub(in super::super::super) fn preflight_compact_with_bound(
+    page: &Value,
+    limit: usize,
+    transport_cap: usize,
+) -> Result<usize, &'static str> {
     source_envelope(page, SCHEMA_V20_COMPACT)?;
     let physical = canonical(page).len();
-    if physical > PAGE_CAP {
+    if physical > transport_cap {
         return Err("v20 same one-page cap");
     }
     let table_delta = compact_table_delta(page)?;
@@ -754,7 +761,10 @@ fn restore_compact_tables(result: &mut Value) -> Result<(), &'static str> {
 }
 
 pub(super) fn expand_compact_to_v15(page: &Value) -> Result<Value, &'static str> {
-    let expanded = preflight_compact(page, SOURCE_CAP)?;
+    expand_compact_to_v15_with_bound(page, PAGE_CAP)
+}
+fn expand_compact_to_v15_with_bound(page: &Value, transport_cap: usize) -> Result<Value, &'static str> {
+    let expanded = preflight_compact_with_bound(page, SOURCE_CAP, transport_cap)?;
     let total = 519usize
         .checked_add(page["additions"].as_array().ok_or("v18 rows")?.len())
         .ok_or("v18 expanded bound")?;
@@ -865,9 +875,10 @@ pub(in super::super::super) fn expand_v20_compact(
     before: &Value,
     policy: &Value,
     page: &Value,
+    transport_cap: usize,
 ) -> Result<Value, &'static str> {
     let logical = expand_to_v12_logical(&expand_to_v13_logical(&expand_to_v14_logical(
-        &expand_compact_to_v15(page)?,
+        &expand_compact_to_v15_with_bound(page, transport_cap)?,
     )?)?)?;
     super::super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
 }

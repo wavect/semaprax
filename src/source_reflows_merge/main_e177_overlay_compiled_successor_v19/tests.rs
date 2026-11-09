@@ -307,10 +307,17 @@ fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes()
         );
     }
     let admitted = compose(before.clone(), &policy, &page).unwrap();
-    let owner_index = admitted["rows"].as_array().unwrap().iter()
-        .position(|row| row["source"] == OWNER).expect("actual canonical OWNER");
+    let owner_index = admitted["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|row| row["source"] == OWNER)
+        .expect("actual canonical OWNER");
     let base_rows = before["rows"].as_array().unwrap().len();
-    assert!(owner_index >= base_rows, "OWNER is an actual current addition");
+    assert!(
+        owner_index >= base_rows,
+        "OWNER is an actual current addition"
+    );
     let mut owner_page = page.clone();
     // Mutate the actual producer-emitted V18 typed row through its admitted
     // public 0/1 compiled slot; every ordinary decoder and cap check still runs.
@@ -347,32 +354,92 @@ fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes()
     );
 }
 
-fn actual() -> (Value,Value,Value) {
-    let (policy,page)=super::super::load_current().unwrap();
-    if page["schema"] != SCHEMA_V20 { return actual_before_v20(); }
-    let before=super::super::super::packet_before_overlay();
-    compose20(before.clone(),&policy,&page).unwrap();
-    let raw_page=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6"));
-    let raw_policy=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0"));
-    for (raw,length,sha) in [(raw_page.as_slice(),261145,"9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6"),(raw_policy.as_slice(),196922,"c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0")] {
-        assert_eq!(raw.len(),length);assert_eq!(digest(raw),sha);
-        let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("e/{sha}"));
-        assert_eq!(super::super::held_4a6eb(&path,length,sha).unwrap().as_bytes(),raw);
+fn actual() -> (Value, Value, Value) {
+    let (policy, page) = super::super::load_current().unwrap();
+    if !is_successor20(&page) {
+        return actual_before_v20();
     }
-    let retained_page:Value=serde_json::from_slice(raw_page).unwrap();let retained_policy:Value=serde_json::from_slice(raw_policy).unwrap();
-    assert_eq!(canonical(&retained_page).as_slice(),raw_page.as_slice());assert_eq!(canonical(&retained_policy).as_slice(),raw_policy.as_slice());
-    assert_eq!(retained_page["schema"],SCHEMA);compose(before.clone(),&retained_policy,&retained_page).unwrap();
-    (before,retained_policy,retained_page)
+    let before = super::super::super::packet_before_overlay();
+    compose20(before.clone(), &policy, &page).unwrap();
+    let raw_page = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6"
+    ));
+    let raw_policy = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0"
+    ));
+    for (raw, length, sha) in [
+        (
+            raw_page.as_slice(),
+            261145,
+            "9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6",
+        ),
+        (
+            raw_policy.as_slice(),
+            196922,
+            "c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0",
+        ),
+    ] {
+        assert_eq!(raw.len(), length);
+        assert_eq!(digest(raw), sha);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("e/{sha}"));
+        assert_eq!(
+            super::super::held_4a6eb(&path, length, sha)
+                .unwrap()
+                .as_bytes(),
+            raw
+        );
+    }
+    let retained_page: Value = serde_json::from_slice(raw_page).unwrap();
+    let retained_policy: Value = serde_json::from_slice(raw_policy).unwrap();
+    assert_eq!(canonical(&retained_page).as_slice(), raw_page.as_slice());
+    assert_eq!(
+        canonical(&retained_policy).as_slice(),
+        raw_policy.as_slice()
+    );
+    assert_eq!(retained_page["schema"], SCHEMA);
+    compose(before.clone(), &retained_policy, &retained_page).unwrap();
+    (before, retained_policy, retained_page)
 }
 
-fn auth_fixture20(owner:&str)->Value {
-    let mut fixture=auth_fixture(owner);fixture["schema"]=SCHEMA_V20.into();
-    let current:Value=serde_json::from_slice(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/page.json"))).unwrap();
-    assert_eq!(current["schema"],SCHEMA_V20);fixture["page"]=current["page"].clone();fixture
+fn auth_fixture20(owner: &str) -> Value {
+    let mut fixture = auth_fixture(owner);
+    fixture["schema"] = SCHEMA_V20.into();
+    let (_, _, current) = actual20();
+    fixture["page"] = current["page"].clone();
+    fixture
 }
-fn actual20()->(Value,Value,Value) {
-    let (policy,page)=super::super::load_current().unwrap();assert_eq!(page["schema"],SCHEMA_V20);
-    (super::super::super::packet_before_overlay(),policy,(*page).clone())
+fn actual20() -> (Value, Value, Value) {
+    let (policy, page) = super::super::load_current().unwrap();
+    let before = super::super::super::packet_before_overlay();
+    if page["schema"] == SCHEMA_V20 {
+        return (before, policy, (*page).clone());
+    }
+    assert_eq!(page["schema"], SCHEMA_V21);
+    compose20(before.clone(), &policy, &page).unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let sealed = |length, sha| {
+        json(&held_4a6eb(&root.join(format!("e/{sha}")), length, sha).unwrap()).unwrap()
+    };
+    let page = sealed(
+        261257,
+        "5a2793a4da2c6447a9b2942148de346b0b5750e06207efe23477c05408f78944",
+    );
+    let policy = sealed(
+        204884,
+        "3702f3b3e89e58bb66cd205f312792b75ec7469487dc5a0a22cd27f70767cfa3",
+    );
+    compose20(before.clone(), &policy, &page).unwrap();
+    (before, policy, page)
+}
+fn compressed_fixture20(page: &Value) -> Value {
+    use base64::Engine as _;
+    let raw = canonical(page);
+    let mut stream = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+    stream.write_all(&raw).unwrap();
+    let payload = base64::engine::general_purpose::STANDARD.encode(stream.finish().unwrap());
+    serde_json::json!({"schema":SCHEMA_V21,"length":raw.len(),"sha256":digest(&raw),"payload":payload})
 }
 fn packed20(page: &Value) -> Value {
     let entry = header20(page).unwrap();
@@ -388,7 +455,8 @@ fn packed20(page: &Value) -> Value {
     ]);
     result
 }
-fn exercise20_singleton_registration_authenticates_both_trusted_current_channels_before_declaration() {
+fn exercise20_singleton_registration_authenticates_both_trusted_current_channels_before_declaration(
+) {
     let page = auth_fixture20(OWNER_TEXT);
     let reads = Cell::new(0);
     let registry = |source: &str| match source {
@@ -588,10 +656,17 @@ fn exercise20_actual_v19_refuses_unknown_multiple_stale_and_legacy_classificatio
         );
     }
     let admitted = compose20(before.clone(), &policy, &page).unwrap();
-    let owner_index = admitted["rows"].as_array().unwrap().iter()
-        .position(|row| row["source"] == OWNER).expect("actual canonical OWNER");
+    let owner_index = admitted["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|row| row["source"] == OWNER)
+        .expect("actual canonical OWNER");
     let base_rows = before["rows"].as_array().unwrap().len();
-    assert!(owner_index >= base_rows, "OWNER is an actual current addition");
+    assert!(
+        owner_index >= base_rows,
+        "OWNER is an actual current addition"
+    );
     let mut owner_page = page.clone();
     // Mutate the actual producer-emitted V18 typed row through its admitted
     // public 0/1 compiled slot; every ordinary decoder and cap check still runs.
@@ -633,22 +708,131 @@ fn v20_entire_authority_hostile_corpus_and_warm_injected_reader_stay_fail_closed
     exercise20_singleton_registration_authenticates_both_trusted_current_channels_before_declaration();
     exercise20_singleton_declaration_rejects_hidden_attributes_duplicates_and_nonbyte_spans();
     exercise20_actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes();
-    let (_,_,page)=actual20();
-    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let reads=Cell::new(0usize);
-    let read=|path:&std::path::Path,n:usize,h:&str|{reads.set(reads.get()+1);super::super::held_4a6eb(path,n,h)};
-    authenticate20_using(&page,&read).unwrap();assert_eq!(reads.get(),4);
-    let entry=header20(&page).unwrap();
-    for path in [SOURCE,OWNER,entry["current"]["archive"].as_str().unwrap(),entry["registration"]["current"]["archive"].as_str().unwrap()] {
-        let fail=root.join(path);
-        assert!(authenticate20_using(&page,&|p,n,h|if p==fail{Err("hostile injected drift")}else{super::super::held_4a6eb(p,n,h)}).is_err());
+    let (_, page) = super::super::load_current().unwrap();
+    let (logical, cap) = decoded20(&page).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let reads = Cell::new(0usize);
+    let read = |path: &std::path::Path, n: usize, h: &str| {
+        reads.set(reads.get() + 1);
+        super::super::held_4a6eb(path, n, h)
+    };
+    authenticate20_using(&page, &read).unwrap();
+    assert_eq!(reads.get(), 4);
+    let entry = header20_with_bound(&logical, cap).unwrap();
+    for path in [
+        SOURCE,
+        OWNER,
+        entry["current"]["archive"].as_str().unwrap(),
+        entry["registration"]["current"]["archive"]
+            .as_str()
+            .unwrap(),
+    ] {
+        let fail = root.join(path);
+        assert!(authenticate20_using(&page, &|p, n, h| if p == fail {
+            Err("hostile injected drift")
+        } else {
+            super::super::held_4a6eb(p, n, h)
+        })
+        .is_err());
     }
     // The same trusted-binding-before-I/O condition applies to the injected
     // warm reader; complete early/late routing is exercised by owning940 tests.
     {
-        let mut stale=page.clone();stale["compiled_successor"]=header20(&page).unwrap().into_owned();
-        stale["compiled_successor"]["current"]["sha256"]="0".repeat(64).into();stale["compiled_successor"]["current"]["archive"]=format!("e/{}","0".repeat(64)).into();
-        let reads=Cell::new(0usize);
-        assert!(authenticate20_using(&stale,&|_,_,_|{reads.set(reads.get()+1);Err("must not acquire")}).is_err());assert_eq!(reads.get(),0);
+        let mut stale = (*logical).clone();
+        stale["compiled_successor"] = entry.into_owned();
+        stale["compiled_successor"]["current"]["sha256"] = "0".repeat(64).into();
+        stale["compiled_successor"]["current"]["archive"] = format!("e/{}", "0".repeat(64)).into();
+        let stale = if page["schema"] == SCHEMA_V21 {
+            compressed_fixture20(&stale)
+        } else {
+            stale
+        };
+        let reads = Cell::new(0usize);
+        assert!(authenticate20_using(&stale, &|_, _, _| {
+            reads.set(reads.get() + 1);
+            Err("must not acquire")
+        })
+        .is_err());
+        assert_eq!(reads.get(), 0);
+    }
+}
+
+#[test]
+fn compressed_overlay_keeps_both_whole_histories_and_refuses_damaged_streams() {
+    use base64::Engine as _;
+    let (policy, wire) = super::super::load_current().unwrap();
+    let before = super::super::super::packet_before_overlay();
+    let (logical, cap) = decoded20(&wire).unwrap();
+    assert_eq!(cap, V21_OUTPUT_CAP);
+    assert!(canonical(&logical).len() > PAGE_CAP);
+    assert!(compose20(before.clone(), &policy, &logical).is_err());
+    let joined = compose20(before.clone(), &policy, &wire).unwrap();
+    let joined_rows: std::collections::BTreeMap<_, _> = joined["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| (row["source"].as_str().unwrap(), row))
+        .collect();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let sealed = |length, sha| {
+        let text = held_4a6eb(&root.join(format!("e/{sha}")), length, sha).unwrap();
+        json(&text).unwrap()
+    };
+    for (page, old_policy) in [
+        (
+            sealed(
+                237379,
+                "52d7d59a0f6423e8da8bb3b0b9c9b0d5952af3c94e65d80ea531970f2b53d3a4",
+            ),
+            sealed(
+                119583,
+                "ded96b1a93ead67f80663037c8e8458ee57a3fdd03a807a1887d84192d1eeaef",
+            ),
+        ),
+        (
+            sealed(
+                261257,
+                "5a2793a4da2c6447a9b2942148de346b0b5750e06207efe23477c05408f78944",
+            ),
+            sealed(
+                204884,
+                "3702f3b3e89e58bb66cd205f312792b75ec7469487dc5a0a22cd27f70767cfa3",
+            ),
+        ),
+    ] {
+        let prior = compose_values(before.clone(), &old_policy, &page).unwrap();
+        for old in prior["rows"].as_array().unwrap() {
+            let row = joined_rows[old["source"].as_str().unwrap()];
+            let views = row["views"].as_array().unwrap();
+            assert!(old["views"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|view| views.contains(view)));
+            let current = old["current"].as_object().unwrap();
+            assert!(std::iter::once(&row["current"])
+                .chain(views)
+                .any(|pin| current.iter().all(|(key, value)| pin[key] == *value)));
+        }
+    }
+    let mut inverse = joined;
+    inverse["rows"] = before["rows"].clone();
+    assert_eq!(inverse, before);
+
+    let engine = base64::engine::general_purpose::STANDARD;
+    let mut compressed = engine.decode(wire["payload"].as_str().unwrap()).unwrap();
+    compressed.push(0);
+    for (key, value) in [
+        ("length", 0.into()),
+        ("length", (V21_OUTPUT_CAP + 1).into()),
+        ("length", (canonical(&logical).len() - 1).into()),
+        ("sha256", "0".repeat(64).into()),
+        ("payload", engine.encode(compressed).into()),
+        ("payload", "AAAA!".into()),
+        ("unknown", true.into()),
+    ] {
+        let mut bad = (*wire).clone();
+        bad[key] = value;
+        assert!(compose20(before.clone(), &policy, &bad).is_err(), "{key}");
     }
 }

@@ -1498,7 +1498,3 @@ fn source_sha(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-
-fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
-    project_before(source, expected, current)
-}

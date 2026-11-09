@@ -314,8 +314,66 @@ pub(super) fn authenticate_using(
 }
 
 pub(super) const SCHEMA_V20: &str = "semaprax.finite-source-overlay-page.v20";
+const SCHEMA_V21: &str = "semaprax.finite-source-overlay-page.v21";
+const V21_OUTPUT_CAP: usize = 524_288;
+
+pub(super) fn is_successor20(page: &Value) -> bool {
+    matches!(page["schema"].as_str(), Some(SCHEMA_V20 | SCHEMA_V21))
+}
+
+fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'static str> {
+    if page["schema"] != SCHEMA_V21 {
+        return Ok((Cow::Borrowed(page), PAGE_CAP));
+    }
+    use base64::Engine as _;
+    use flate2::{Decompress, FlushDecompress, Status};
+
+    require!(
+        keys(page, &["schema", "length", "sha256", "payload"]),
+        "v21 closed envelope"
+    );
+    require!(canonical(page).len() <= PAGE_CAP, "v21 same one-page cap");
+    let length = page["length"]
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .filter(|n| (1..=V21_OUTPUT_CAP).contains(n))
+        .ok_or("v21 output bound")?;
+    let encoded = page["payload"].as_str().ok_or("v21 payload type")?;
+    let engine = base64::engine::general_purpose::STANDARD;
+    let compressed = engine.decode(encoded).map_err(|_| "v21 canonical base64")?;
+    require!(
+        engine.encode(&compressed) == encoded,
+        "v21 canonical base64"
+    );
+    let mut raw = vec![0; length + 1];
+    let mut decoder = Decompress::new(true);
+    let status = decoder
+        .decompress(&compressed, &mut raw, FlushDecompress::Finish)
+        .map_err(|_| "v21 complete single stream")?;
+    require!(
+        status == Status::StreamEnd && decoder.total_in() == compressed.len() as u64,
+        "v21 complete single stream"
+    );
+    require!(
+        decoder.total_out() == length as u64,
+        "v21 complete logical bytes"
+    );
+    raw.truncate(length);
+    require!(digest(&raw) == page["sha256"], "v21 complete logical bytes");
+    let value = json(std::str::from_utf8(&raw).map_err(|_| "v21 logical UTF-8")?)?;
+    require!(value["schema"] == SCHEMA_V20, "v21 complete v20 page");
+    Ok((Cow::Owned(value), V21_OUTPUT_CAP))
+}
+
+#[cfg(test)]
 fn header20(page: &Value) -> Result<Cow<'_, Value>, &'static str> {
-    require!(canonical(page).len() <= PAGE_CAP, "v19 same one-page cap");
+    header20_with_bound(page, PAGE_CAP)
+}
+fn header20_with_bound(page: &Value, transport_cap: usize) -> Result<Cow<'_, Value>, &'static str> {
+    require!(
+        canonical(page).len() <= transport_cap,
+        "v19 same one-page cap"
+    );
     require!(
         keys(page, &["schema", "compiled_successor", "page"]) && page["schema"] == SCHEMA_V20,
         "v19 closed envelope"
@@ -324,7 +382,11 @@ fn header20(page: &Value) -> Result<Cow<'_, Value>, &'static str> {
         page["page"]["schema"] == super::fragments_v3::SCHEMA_V20_COMPACT,
         "v19 complete V18 page"
     );
-    super::fragments_v3::preflight_compact(&page["page"], super::SOURCE_CAP)?;
+    super::fragments_v3::preflight_compact_with_bound(
+        &page["page"],
+        super::SOURCE_CAP,
+        transport_cap,
+    )?;
     let successor = if page["compiled_successor"].is_array() {
         Cow::Owned(tuple_entry(&page["compiled_successor"])?)
     } else {
@@ -376,7 +438,8 @@ fn authenticate20_with<'a>(
     compiled: &impl Fn(&str) -> Option<&'a str>,
     acquire: &impl Fn(&Value) -> Result<String, &'static str>,
 ) -> Result<(), &'static str> {
-    let successor = header20(page)?;
+    let (page, transport_cap) = decoded20(page)?;
+    let successor = header20_with_bound(&page, transport_cap)?;
     let registration = &successor["registration"];
     // Rebind both fixed sources to the trusted compiled registry before the
     // first physical or archive read; an entry cannot authorize a new channel.
@@ -421,7 +484,7 @@ fn authenticate20_with<'a>(
     Ok(())
 }
 pub(super) fn authenticate20(page: &Value) -> Result<(), &'static str> {
-    if page["schema"] != SCHEMA_V20 {
+    if !is_successor20(page) {
         return Ok(());
     }
     authenticate20_with(page, &super::super::compiled, &super::current)
@@ -431,7 +494,8 @@ pub(super) fn compose20(
     policy: &Value,
     page: &Value,
 ) -> Result<Value, &'static str> {
-    let successor = header20(page)?;
+    let (page, transport_cap) = decoded20(page)?;
+    let successor = header20_with_bound(&page, transport_cap)?;
     require!(
         keys(
             policy,
@@ -486,8 +550,12 @@ pub(super) fn compose20(
     internal_policy["predecessor"]["logical_sha256"] = digest(&canonical(&derived)).into();
     let mut internal_page = page["page"].clone();
     internal_page["predecessor"] = internal_policy["predecessor"].clone();
-    let expanded =
-        super::fragments_v3::expand_v20_compact(&derived, &internal_policy, &internal_page)?;
+    let expanded = super::fragments_v3::expand_v20_compact(
+        &derived,
+        &internal_policy,
+        &internal_page,
+        transport_cap,
+    )?;
     let result = super::compose_values_v2(derived, &internal_policy, &expanded)?;
     let rows = result["rows"].as_array().ok_or("v19 result rows")?;
     let current = &rows[POSITION];
@@ -517,7 +585,7 @@ pub(super) fn authenticate20_using(
     page: &Value,
     read: &impl Fn(&std::path::Path, usize, &str) -> Result<String, &'static str>,
 ) -> Result<(), &'static str> {
-    if page["schema"] != SCHEMA_V20 {
+    if !is_successor20(page) {
         return Ok(());
     }
     authenticate20_with(page, &super::super::compiled, &|row| {
@@ -545,44 +613,6 @@ pub(super) fn authenticate20_using(
     })
 }
 
-// Retain the complete V20 composition when building the cache's logical V2
-// page. Every cache hit still runs the original full V2 composition, inverse,
-// and fresh policy/page acquisition. No row or unknown field is projected away.
-pub(super) fn expanded_for_cache(
-    before: &Value,
-    policy: &Value,
-    page: &Value,
-) -> Result<Value, &'static str> {
-    let complete = super::compose_values(before.clone(), policy, page)?;
-    let rows: std::collections::BTreeMap<_, _> = complete["rows"]
-        .as_array()
-        .ok_or("cache rows")?
-        .iter()
-        .map(|row| Ok((row["source"].as_str().ok_or("cache source")?, row)))
-        .collect::<Result<_, &'static str>>()?;
-    let group = |name: &str| -> Result<Vec<Value>, &'static str> {
-        policy[name]
-            .as_array()
-            .ok_or("cache scope")?
-            .iter()
-            .map(|entry| {
-                let source = if name == "replacements" {
-                    entry.as_str()
-                } else {
-                    entry["source"].as_str()
-                }
-                .ok_or("cache scope source")?;
-                Ok((*rows.get(source).ok_or("cache scoped row")?).clone())
-            })
-            .collect()
-    };
-    Ok(serde_json::json!({
-        "schema":"semaprax.finite-source-overlay-page.v2", "index":1, "total_pages":1,
-        "predecessor":policy["predecessor"], "replacements":group("replacements")?,
-        "additions":group("additions")?
-    }))
-}
-
 use super::{
     held_4a6eb, json, page_bytes, page_data, ADDITIONS, EXTENSION_LENGTH, EXTENSION_PATH,
     EXTENSION_SHA256, PAGE_PATH, POLICY_LENGTH, POLICY_PATH, POLICY_SHA256, REPLACEMENTS,
@@ -597,15 +627,9 @@ pub(super) fn cacheable(page: &Value) -> bool {
             "semaprax.finite-source-overlay-page.v11"
                 | "semaprax.finite-source-overlay-page.v12"
                 | "semaprax.finite-source-overlay-page.v13"
-                | "semaprax.finite-source-overlay-page.v19"
-                | "semaprax.finite-source-overlay-page.v20"
         )
     )
 }
-pub(super) fn successor(page: &Value) -> bool {
-    page["schema"] == SCHEMA || page["schema"] == SCHEMA_V20
-}
-
 // The controller now owns both physical source files. Its child is acquired
 // with the same bounded no-follow reader before ordinary composition begins.
 pub(super) fn authenticate_source() -> Result<(), &'static str> {
@@ -704,34 +728,94 @@ use super::{
     compiled_successor_v19, compose_values, compose_values_v2, fragments_v3, load_current,
 };
 
+fn cached_predecessor(before: &Value, policy: &Value) -> (Value, Value) {
+    let mut derived = before.clone();
+    derived["rows"][POSITION]["compiled"] = true.into();
+    let mut adjusted = policy.clone();
+    adjusted["predecessor"]["logical_sha256"] = digest(&canonical(&derived)).into();
+    (derived, adjusted)
+}
+
+fn expand_authenticated_successor(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
+    let result = compose_values(before.clone(), policy, page)?;
+    let (_, adjusted) = cached_predecessor(before, policy);
+    let rows: std::collections::BTreeMap<_, _> = result["rows"]
+        .as_array()
+        .ok_or("successor rows")?
+        .iter()
+        .filter_map(|row| Some((row["source"].as_str()?, row)))
+        .collect();
+    let group = |name: &str| -> Result<Vec<&Value>, &'static str> {
+        policy[name]
+            .as_array()
+            .ok_or("successor policy group")?
+            .iter()
+            .map(|entry| {
+                let source = entry
+                    .as_str()
+                    .or_else(|| entry["source"].as_str())
+                    .ok_or("successor policy source")?;
+                rows.get(source).copied().ok_or("successor result source")
+            })
+            .collect()
+    };
+    Ok(serde_json::json!({
+        "schema":"semaprax.finite-source-overlay-page.v2", "index":1, "total_pages":1,
+        "predecessor":adjusted["predecessor"], "replacements":group("replacements")?,
+        "additions":group("additions")?
+    }))
+}
+
+fn replay_cached(
+    before: Value,
+    policy: &Value,
+    expanded: &Value,
+    successor: bool,
+) -> Result<Value, &'static str> {
+    if !successor {
+        return compose_values_v2(before, policy, expanded);
+    }
+    let (derived, adjusted) = cached_predecessor(&before, policy);
+    let result = compose_values_v2(derived, &adjusted, expanded)?;
+    let mut inverse = result.clone();
+    inverse["rows"] = before["rows"].clone();
+    require!(inverse == before, "v19 complete predecessor object inverse");
+    Ok(result)
+}
+
 pub(super) fn compose_with_expansion_cache(
     before: Value,
     cache: &std::sync::OnceLock<(Value, Arc<Value>)>,
 ) -> Result<Value, &'static str> {
     // Keep the complete current policy/page acquisition on every invocation.
     let (policy, page) = load_current()?;
-    if !compiled_successor_v19::cacheable(&page) {
+    let successor = page["schema"] == SCHEMA || is_successor20(&page);
+    if !successor && !compiled_successor_v19::cacheable(&page) {
         return compose_values(before, &policy, &page);
     }
     if let Some((authenticated_before, expanded)) = cache.get() {
         // A different predecessor keeps the complete original validation and
         // its first refusal; it cannot replace or poison the cached owner.
         return if &before == authenticated_before {
-            compose_values_v2(before, &policy, expanded)
+            replay_cached(before, &policy, expanded, successor)
         } else {
             compose_values(before, &policy, &page)
         };
     }
-    let expanded = if compiled_successor_v19::successor(&page) {
-        compiled_successor_v19::expanded_for_cache(&before, &policy, &page)?
+    let expanded = if successor {
+        expand_authenticated_successor(&before, &policy, &page)?
     } else if page["schema"] == fragments_v3::SCHEMA_V13 {
         fragments_v3::expand_v13(&before, &policy, &page)?
     } else if page["schema"] == fragments_v3::SCHEMA_V12 {
         fragments_v3::expand_v12(&before, &policy, &page)?
     } else {
-        fragments_v3::expand_v11(&before, &policy, &page)?
+        fragments_v3::expand_v11_compatible(&before, &policy, &page)?
     };
-    let result = compose_values_v2(before.clone(), &policy, &expanded)?;
+    let result = replay_cached(before.clone(), &policy, &expanded, successor)?;
     // Both complete metadata objects remain owned. No row or unknown field is
     // projected away, and a refused predecessor never initializes the cache.
     let _ = cache.set((before, Arc::new(expanded)));

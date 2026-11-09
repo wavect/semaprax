@@ -45,8 +45,7 @@ mod dag_memo;
 mod early_release;
 #[cfg(test)]
 mod instrumentation;
-// Retired from production; see compare_with_index_storage.
-#[cfg(test)]
+// The representation selectors are live; the weighted proof is retained for its tests.
 mod paired;
 #[cfg(test)]
 pub(super) use paired::tests::{

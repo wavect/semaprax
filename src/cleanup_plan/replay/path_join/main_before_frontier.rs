@@ -2,7 +2,7 @@
 use super::*;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
-pub(super) fn validate_path_states<E: semantic_refusal::Error>(
+pub(in crate::cleanup_plan::replay) fn validate_path_states<E: semantic_refusal::Error>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
@@ -906,8 +906,3 @@ type ControlKey = (
     bool,
     Option<ReturnedSource>,
 );
-
-/// The borrowed prefix is exactly the sorted set previously copied into
-/// `checked`. Keep the complete history union: pairwise checks alone miss a
-/// cycle assembled from three or more individually compatible histories.
-#[cfg(test)]

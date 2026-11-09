@@ -48,17 +48,32 @@ pub(super) fn many_block() {
 pub(super) fn carry_block() {
     bump(|n| &mut n.carries);
 }
-pub(super) fn history_call() { bump(|n| &mut n.history_calls); }
+pub(super) fn history_call() {
+    bump(|n| &mut n.history_calls);
+}
 pub(super) fn trivial_history(count: usize) {
     assert!(count <= 1);
-    let node = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, ()>().unwrap();
-    let successors = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, BTreeSet<LivenessFlagId>>().unwrap();
-    let degrees = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, usize>().unwrap();
+    let node =
+        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, ()>()
+            .unwrap();
+    let successors = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<
+        LivenessFlagId,
+        BTreeSet<LivenessFlagId>,
+    >()
+    .unwrap();
+    let degrees =
+        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, usize>()
+            .unwrap();
     // Full old history-reference backing and flags/successor/degree/ready nodes
     // physically do not form. Selector/zero payment remains in the block bank.
     let saving = size_of::<&Vec<LivenessFlagId>>() as i128
         + count as i128 * (node + successors + degrees + node) as i128;
-    COUNTS.with(|c| { let mut n=c.get(); n.trivial_histories+=1; n.history_saving+=saving; c.set(n); });
+    COUNTS.with(|c| {
+        let mut n = c.get();
+        n.trivial_histories += 1;
+        n.history_saving += saving;
+        c.set(n);
+    });
 }
 pub(super) fn unique_history(count: usize) {
     // The original algorithm always allocates one history-reference slot.
@@ -230,6 +245,15 @@ fn replay(
             None,
         ),
         2 => super::validate_path_states(p, f, &storage, &leaves, b, auth.as_ref(), None),
+        3 => super::super::validate_main_avl_path_states(
+            p,
+            f,
+            &storage,
+            &leaves,
+            b,
+            auth.as_ref(),
+            None,
+        ),
         _ => unreachable!(),
     }
 }
@@ -293,7 +317,10 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
             // must be earned on the whole ORIGINAL ordinary composition, not
             // inferred from an isolated receiver or immediate-fusion bank.
             if f.id.as_str() == "probe" {
-                assert!(COUNTS.with(Cell::get).carries > 0, "probe caller executes retained Box carry");
+                assert!(
+                    COUNTS.with(Cell::get).carries > 0,
+                    "probe caller executes retained Box carry"
+                );
                 actual_carry = true;
             }
             if f.id.as_str() == "dense.f" {
@@ -1228,5 +1255,40 @@ fn unique_single_history_retires_only_absent_graphs_and_duplicates_keep_the_whol
             assert!(row.0 .1.allocated <= row.2 && row.2 <= limit);
         }
         assert_eq!(state, old_state);
+    }
+}
+
+#[test]
+fn merged_frontier_matches_the_independent_main_avl_receiver() {
+    const MAIN: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/c52331938afde5cff72b35fd95fdbe34b5c818872f4be1215d1edaf64290a271"
+    ));
+    const RETAINED: &str = include_str!("../main_before_frontier.rs");
+    let start =
+        "#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.";
+    let end = "\n/// The borrowed prefix is exactly the sorted set previously copied into";
+    let source = MAIN.split_once(start).unwrap().1.split_once(end).unwrap().0;
+    let body = RETAINED.split_once(start).unwrap().1.trim_end();
+    let restored = body
+        .replace(
+            "pub(in crate::cleanup_plan::replay) fn validate_path_states",
+            "pub(super) fn validate_path_states",
+        )
+        .replace(
+            "super::super::transition::state_for_held_edge",
+            "super::transition::state_for_held_edge",
+        );
+    assert_eq!(restored, source.trim_end());
+
+    for source in [TINY, SOURCE, LEXICAL, RENEWAL] {
+        let p = crate::hir::resolve(&crate::check(source, "merged-frontier.spx").unwrap()).unwrap();
+        for f in &p.functions {
+            let run = |kind| {
+                let mut budget = ReplayBudget::unobserved();
+                replay(&p, f, kind, &mut budget)
+            };
+            assert_eq!(run(2), run(3), "function {}", f.id.as_str());
+        }
     }
 }

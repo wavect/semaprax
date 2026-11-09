@@ -270,7 +270,7 @@ mod tests {
 
 // V11_VIEW_NAMES_BEGIN: all preceding V10 code remains byte-exact.
 pub(in super::super) const SCHEMA_V11: &str = "semaprax.finite-source-overlay-page.v11";
-fn expand_v11_names(envelope: &Value) -> Result<Value, &'static str> {
+pub(in super::super) fn expand_v11_names(envelope: &Value) -> Result<Value, &'static str> {
     use std::cell::{Cell, RefCell};
     if !super::super::keys(envelope, &["schema", "names", "page"])
         || envelope["schema"] != SCHEMA_V11

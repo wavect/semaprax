@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1408488, 'sha256': '8f07ea37410b7c1901077be2f784a8fb4601efeda65f58fed311541a160b67c4'}
+_FRONT_PIN = {'length': 1699399, 'sha256': '7a2537fa67e80894583554efc622fd56dfe866524dfec558c4166c93ccccb281'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -782,6 +782,17 @@ class TypedFragmentReferences(unittest.TestCase):
 
     def test_current_real_page_keeps_entire_v15_preimage(self):
         current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
+        if current['schema']==codec.V21_SCHEMA:
+            logical=codec.expand_v21(current)
+            self.assertEqual(codec.encode_v21(logical),current)
+            cap=codec.V21_OUTPUT_CAP
+            codec._v20_successor(logical,cap)
+            compact=logical['page']
+            before=codec.expand_v20_compact_fragment_refs(compact,cap)
+            self.assertEqual(codec.encode_v20_compact_rows(before,cap),compact)
+            for decoder in (codec.expand_v18_fragment_refs,codec.expand_v20_compact_fragment_refs):
+                with self.assertRaises(AssertionError):decoder(compact)
+            return
         if current['schema']==codec.V20_SCHEMA:
             codec._v20_successor(current);current=current['page']
             before=codec.expand_v20_compact_fragment_refs(current)
@@ -1156,6 +1167,10 @@ class CompactDictionaryV20(unittest.TestCase):
     @staticmethod
     def current():
         outer=codec.parse((Path(__file__).parent/'page.json').read_bytes())
+        if outer['schema']==codec.V21_SCHEMA:
+            codec.expand_v21(outer)
+            prior='5a2793a4da2c6447a9b2942148de346b0b5750e06207efe23477c05408f78944'
+            outer=codec.parse(_pin_bytes(_source_bytes('e/'+prior),dict(length=261257,sha256=prior)))
         if outer['schema']==codec.V20_SCHEMA:
             codec._v20_successor(outer);return outer['page']
         codec._v19_successor(outer)

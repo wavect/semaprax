@@ -1040,7 +1040,7 @@ fn both_new_first_positive_receiver_requests_refuse_before_any_terminal_or_appen
         let function = &program.functions[index];
         let id = ExpressionId::from_owned("first-payment.sentinel".into());
         let local = vec![(LoanId(9), 10)];
-        let liveness = vec![((id.clone(), LoanPointPhase::Before, LoanId(9)), Some(10), 11)];
+        let liveness = vec![((id.clone(), LoanPointPhase::Before, LoanId(9)), 11)];
         let ids = vec![((id, crate::loan_plan::LoanCause::StrView), LoanId(9), 11)];
         let expected_local = local.clone();let expected_liveness = liveness.clone();let expected_ids = ids.clone();
         let mut storage = Storage { program: &program, ids: Vec::new(), liveness: Vec::new(), origins: Vec::new(),

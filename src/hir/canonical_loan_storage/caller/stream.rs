@@ -21,7 +21,7 @@ pub(super) const BRANCH_SELECTION_BYTES: usize = 2 * std::mem::size_of::<
     &Option<&mut crate::loan_plan::canonical_sink::Source<'_, '_>>,
 >() + 2 * std::mem::size_of::<bool>() + 2 * std::mem::size_of::<usize>();
 const EMPTY_CLEAR_BYTES: usize = 2 * std::mem::size_of::<&mut Vec<(LoanId, usize)>>()
-    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, Option<usize>, usize)>>()
+    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, usize)>>()
     + 2 * std::mem::size_of::<&mut Vec<(IdKey, LoanId, usize)>>();
 
 pub(super) struct Receiver<'a, 's, 'p> {
@@ -168,7 +168,6 @@ fn append_source<'a, 'p>(
             let ordinal = live_probe.len();
             live_probe.push((
                 (point.expression.clone(), point.phase, *loan),
-                origin(loan),
                 ordinal,
             ));
         }
@@ -183,12 +182,12 @@ fn append_source<'a, 'p>(
         }
     }
     deferred.compare_match(function, matched);
-    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));
+    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
     // Select exactly the earliest original source occurrence. Sorting the
     // private lookup index never reorders canonical rows or error precedence.
     let mut first_bad: Option<(usize, bool)> = None;
     for (index, entry) in live_probe.iter().enumerate() {
-        let unknown = entry.1.is_none();
+        let unknown = origin(&entry.0.2).is_none();
         let duplicate =
             storage.live(&entry.0).is_some() || (index != 0 && live_probe[index - 1].0 == entry.0);
         if unknown || duplicate {
@@ -200,8 +199,8 @@ fn append_source<'a, 'p>(
                     + 4 * std::mem::size_of::<usize>()
                     + 8 * std::mem::size_of::<bool>(),
             )?;
-            if first_bad.is_none_or(|prior| entry.2 < prior.0) {
-                first_bad = Some((entry.2, unknown));
+            if first_bad.is_none_or(|prior| entry.1 < prior.0) {
+                first_bad = Some((entry.1, unknown));
             }
         }
     }
@@ -233,6 +232,12 @@ fn append_source<'a, 'p>(
             ));
         }
     }
+    payer.reserve(
+        2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()
+            + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()
+            + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()
+            + 2 * std::mem::size_of::<usize>(),
+    )?;
     let id_needed = count(storage.ids.len(), id_probe.len(), payer)?;
     let live_needed = count(storage.liveness.len(), live_probe.len(), payer)?;
     let origin_needed = count(storage.origins.len(), source.loan_count(), payer)?;
@@ -242,11 +247,10 @@ fn append_source<'a, 'p>(
     storage
         .ids
         .extend(id_probe.drain(..).map(|(key, id, _)| (key, id)));
-    storage.liveness.extend(
-        live_probe
-            .drain(..)
-            .map(|(key, ordinal, _)| (key, ordinal.expect("checked every source endpoint"))),
-    );
+    for (key, ordinal) in live_probe.iter_mut() {
+        *ordinal = origin(&key.2).expect("checked every source endpoint");
+    }
+    storage.liveness.append(live_probe);
     // All immutable source loans end before consuming owned independent roots.
     source.move_origins(&mut storage.origins)?;
     storage.ids.sort_unstable_by(|a, b| a.0.cmp(&b.0));

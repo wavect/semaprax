@@ -232,7 +232,7 @@ def expand_v12_view_labels(page):
  del result['view_labels'];result['schema']=V11_SCHEMA
  return result
 
-def encode_v12_view_labels(page):
+def encode_v12_view_labels(page, transport_cap=PAGE_CAP):
  assert keys(page,V12_KEYS) and page['schema']==V11_SCHEMA, 'v12 input envelope'
  result=copy.deepcopy(page);labels=[];indices={}
  def encode(label):
@@ -241,8 +241,9 @@ def encode_v12_view_labels(page):
   return indices[label]
  v12_view_slots(result,encode)
  result['schema']=V12_SCHEMA;result['view_labels']=[[i,label]for i,label in enumerate(labels)]
- assert len(canonical(result))<=PAGE_CAP, 'v12 same one-page cap'
- assert canonical(expand_v12_view_labels(result))==canonical(page), 'v12 ENTIRE V11 page inverse'
+ assert len(canonical(result))<=transport_cap, 'v12 same one-page cap'
+ decoder=expand_v12_view_labels if transport_cap==PAGE_CAP else _expand_v12_logical_view_labels
+ assert canonical(decoder(result))==canonical(page), 'v12 ENTIRE V11 page inverse'
  return result
 
 # V13 transports only repeated digests in V12's known positional pin slots.
@@ -1341,9 +1342,9 @@ def _v20_table_delta(page):
    else:assert type(archive)is str, 'v20 archive type'
  return delta
 
-def _v20_preflight(page, limit):
+def _v20_preflight(page, limit, transport_cap=PAGE_CAP):
  assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V20_COMPACT_SCHEMA, 'v18 envelope'
- physical=len(canonical(page));assert physical<=PAGE_CAP, 'v20 same one-page cap'
+ physical=len(canonical(page));assert physical<=transport_cap, 'v20 same one-page cap'
  expanded=physical+len(V18_SCHEMA)-len(V20_COMPACT_SCHEMA)+_v20_table_delta(page)
  assert type(page['additions']) is list, 'v18 rows'
  total=519+len(page['additions'])
@@ -1372,8 +1373,8 @@ def _v20_restore_tables(result):
  for tail in result['pin_tails']:
   if len(tail)==3 and type(tail[2])is int:tail[2]=[tail[2],_v20_tail_digest(result,tail)+'.txt']
 
-def expand_v20_compact_fragment_refs(page):
- expanded=_v20_preflight(page,SOURCE_CAP)
+def expand_v20_compact_fragment_refs(page, transport_cap=PAGE_CAP):
+ expanded=_v20_preflight(page,SOURCE_CAP,transport_cap)
  result=copy.deepcopy(page);_v20_restore_tables(result);result['schema']=V15_SCHEMA
  def decode(value):
   if type(value)is dict:return value
@@ -1394,7 +1395,7 @@ def _v20_compact_tables(result):
    assert len(archive)==2 and type(archive[0])is int and 0<=archive[0]<len(result['archive_prefixes']) and type(archive[1])is str, 'v20 archive pair'
    if archive[1]==sha+'.txt':tail[2]=archive[0]
 
-def encode_v20_compact_rows(logical):
+def encode_v20_compact_rows(logical, transport_cap=PAGE_CAP):
  restored=_encode_v19_source_fragment_refs(logical)
  result=copy.deepcopy(restored);result['schema']=V20_COMPACT_SCHEMA
  for index,value in enumerate(result['replacements']):
@@ -1403,19 +1404,19 @@ def encode_v20_compact_rows(logical):
    items=value['old519_index'];assert type(items)is list and len(items)==4 and type(items[0])is int and 0<=items[0]<519, 'v19 indexed old519 reference'
    result['replacements'][index]=items
  _v20_compact_tables(result)
- assert len(canonical(result))<=PAGE_CAP, 'v20 same one-page cap'
- assert canonical(expand_v20_compact_fragment_refs(result))==canonical(logical), 'v20 ENTIRE logical inverse'
+ assert len(canonical(result))<=transport_cap, 'v20 same one-page cap'
+ assert canonical(expand_v20_compact_fragment_refs(result,transport_cap))==canonical(logical), 'v20 ENTIRE logical inverse'
  return result
 
-def encode_v20_compact_inner(page):
- return encode_v20_compact_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
+def encode_v20_compact_inner(page, transport_cap=PAGE_CAP):
+ return encode_v20_compact_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))),transport_cap)
 
-def _v20_successor(page):
- assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
+def _v20_successor(page, transport_cap=PAGE_CAP):
+ assert len(canonical(page)) <= transport_cap, 'v19 same one-page cap'
  assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V20_SCHEMA, 'v19 envelope'
  inner=page['page']
  assert type(inner) is dict and inner.get('schema')==V20_COMPACT_SCHEMA, 'v19 complete v18 page'
- _v20_preflight(inner,SOURCE_CAP)
+ _v20_preflight(inner,SOURCE_CAP,transport_cap)
  entry=page['compiled_successor']
  if type(entry)is list:
   assert len(entry)==7 and entry[0]=='m', 'v19 compact singleton'
@@ -1428,8 +1429,8 @@ def _v20_successor(page):
          'registration':{'owner':_V19_OWNER,'current':{'length':entry[4],'sha256':entry[5],'archive':'e/'+entry[5]},'start':entry[6],'text':_V19_DECLARATION}}
  return _v19_descriptor(entry)
 
-def authenticate_v20_registration(overlay,page):
- entry=_v20_successor(page);registration=entry['registration']
+def authenticate_v20_registration(overlay,page,transport_cap=PAGE_CAP):
+ entry=_v20_successor(page,transport_cap);registration=entry['registration']
  assert callable(overlay.compiled_current), 'v19 trusted registration binding required'
  for source,current in ((entry['source'],entry['current']),(registration['owner'],registration['current'])):
   expected=overlay.compiled_current(source)
@@ -1444,8 +1445,8 @@ def authenticate_v20_registration(overlay,page):
  assert owner[start-2:start]==b'\n\n', 'v19 declaration attribute boundary'
  return entry
 
-def compose_v20(before,policy,page):
- entry=_v20_successor(page)
+def compose_v20(before,policy,page,transport_cap=PAGE_CAP):
+ entry=_v20_successor(page,transport_cap)
  assert keys(policy, ('schema','page','predecessor','replacements','additions','new_fragment_edges')), 'v19 policy fields'
  assert policy['schema']=='semaprax.finite-source-overlay-policy.v2', 'v19 policy schema'
  assert policy['replacements'].count(entry['source'])==1, 'v19 explicit replacement'
@@ -1462,7 +1463,7 @@ def compose_v20(before,policy,page):
  adjusted_policy['predecessor']['logical_sha256']=H(canonical(derived))
  adjusted_page['predecessor']=copy.deepcopy(adjusted_policy['predecessor'])
  if adjusted_page['schema']==V20_COMPACT_SCHEMA:
-  adjusted_page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v20_compact_fragment_refs(adjusted_page)))))
+  adjusted_page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v20_compact_fragment_refs(adjusted_page,transport_cap)))))
  # The old decoder still owns every view, unknown-field, order, fragment,
  # whole-row inverse and cap check. The derived base is never physical history.
  result=compose_values(derived,adjusted_policy,adjusted_page)
@@ -1475,12 +1476,67 @@ def compose_v20(before,policy,page):
  assert canonical(inverse)==canonical(before), 'v19 complete predecessor object inverse'
  return result
 
-def encode_v20(page,compiled_successor):
+def encode_v20(page,compiled_successor,transport_cap=PAGE_CAP):
  entry=_v19_descriptor(compiled_successor);registration=entry['registration']
  assert page.get('schema')==V20_COMPACT_SCHEMA, 'v20 complete compact page'
- _v20_preflight(page,SOURCE_CAP)
+ _v20_preflight(page,SOURCE_CAP,transport_cap)
  compact=['m',entry['prior_row_sha256'],entry['current']['length'],entry['current']['sha256'],registration['current']['length'],registration['current']['sha256'],registration['start']]
  result={'schema':V20_SCHEMA,'compiled_successor':compact,'page':copy.deepcopy(page)}
- restored=_v20_successor(result)
+ restored=_v20_successor(result,transport_cap)
  assert canonical(result['page'])==canonical(page) and canonical(restored)==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
  return result
+
+
+# V21 compresses the complete canonical V20 transport. The physical page
+# cap is unchanged and the decompressor has a separate finite output bound.
+V21_SCHEMA = 'semaprax.finite-source-overlay-page.v21'
+V21_OUTPUT_CAP = 524288
+
+def expand_v21(page):
+ import zlib
+ assert keys(page, ('schema','length','sha256','payload')) and page['schema']==V21_SCHEMA, 'v21 closed envelope'
+ assert len(canonical(page))<=PAGE_CAP, 'v21 same one-page cap'
+ length=page['length']
+ assert type(length) is int and 0<length<=V21_OUTPUT_CAP, 'v21 output bound'
+ encoded=page['payload']
+ assert type(encoded) is str, 'v21 payload type'
+ compressed=base64.b64decode(encoded,validate=True)
+ assert base64.b64encode(compressed).decode()==encoded, 'v21 canonical base64'
+ stream=zlib.decompressobj()
+ raw=stream.decompress(compressed,length+1)
+ assert stream.eof and not stream.unused_data and not stream.unconsumed_tail, 'v21 complete single stream'
+ assert len(raw)==length and H(raw)==page['sha256'], 'v21 complete logical bytes'
+ value=parse(raw)
+ assert value.get('schema')==V20_SCHEMA, 'v21 complete v20 page'
+ return value
+
+def encode_v21(page):
+ import zlib
+ assert page.get('schema')==V20_SCHEMA, 'v21 complete v20 page'
+ raw=canonical(page)
+ assert len(raw)<=V21_OUTPUT_CAP, 'v21 output bound'
+ result=dict(schema=V21_SCHEMA,length=len(raw),sha256=H(raw),
+             payload=base64.b64encode(zlib.compress(raw,9)).decode())
+ assert expand_v21(result)==page, 'v21 ENTIRE v20 inverse'
+ return result
+
+# Main also published two named-view envelopes under V12 and V13. Select
+# them only by their disjoint closed envelope and use the sealed full decoder.
+def compose_named_view_page(before,policy,page):
+ import os,stat
+ from pathlib import Path
+ sha='77da677a72ec0275167bf0ecc7696e1482c9afd15da4212d5fcfe02e64f95b03'
+ length=65063
+ path=Path(__file__).resolve().parents[3]/'e'/sha
+ fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
+ try:
+  info=os.fstat(fd)
+  assert stat.S_ISREG(info.st_mode) and info.st_size==length, 'named codec regular fixed length'
+  with os.fdopen(fd,'rb',closefd=False) as stream:raw=stream.read(length+1)
+  identity=lambda s:(s.st_dev,s.st_ino,s.st_mode,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+  assert identity(info)==identity(os.fstat(fd))==identity(os.lstat(path)), 'named codec postread identity'
+  assert len(raw)==length and H(raw)==sha, 'named codec fixed bytes'
+ finally:os.close(fd)
+ namespace={}
+ exec(compile(raw,str(path),'exec'),namespace)
+ return namespace['compose_values'](before,policy,page)

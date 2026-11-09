@@ -644,9 +644,9 @@ pub(super) fn validate_path_states_before_field_local<E: semantic_refusal::Error
                 )
                 .into());
             }
-            validate_avl_control_group_with_budget(function, &states, block_id, budget)?;
+            validate_control_group_with_budget(function, &states, block_id, budget)?;
             let (live_order, mut conditional_variants) =
-                joined_avl_ownership_state(program, function, &states, budget)?;
+                joined_ownership_state(program, function, &states, budget)?;
             // Identical branch arms deduplicate to one state; the producer
             // still joined them. An exact break rejoin is never re-keyed.
             if states.len() == 1 {

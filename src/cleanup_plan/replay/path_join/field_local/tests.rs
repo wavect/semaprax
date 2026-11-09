@@ -990,6 +990,25 @@ fn restore_source(row: &serde_json::Value, current: &[u8]) -> Vec<u8> {
     assert_eq!(source_digest(&old), row["before_sha256"].as_str().unwrap());
     old
 }
+// Reacquire the incoming root through the closed whole-source registry
+// before applying the sealed pre-merge inverse. The other owners already
+// match the original packet and are checked directly by restore_source.
+fn acquisition_epoch<'a>(
+    path: &str,
+    bytes: &'a [u8],
+    row: &serde_json::Value,
+) -> std::borrow::Cow<'a, [u8]> {
+    if path != "src/cleanup_plan/replay/path_join.rs" {
+        return std::borrow::Cow::Borrowed(bytes);
+    }
+    let epoch = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        path,
+        row["sha256"].as_str().unwrap(),
+        std::str::from_utf8(bytes).unwrap(),
+    );
+    std::borrow::Cow::Owned(epoch.into_bytes())
+}
+
 // Closed source acquisition before the untouched earlier generation packets.
 // The supplied whole source must equal compiled and freshly physical current;
 // every edit has an exact index and the complete b23 endpoint is pinned.
@@ -1022,7 +1041,7 @@ pub(in crate::cleanup_plan::replay::path_join) fn source_before(
     let physical = std::fs::read(root.join(path)).unwrap();
     assert_eq!(physical, compiled);
     assert_eq!(supplied, compiled);
-    let old = restore_source(row, &physical);
+    let old = restore_source(row, &acquisition_epoch(path, &physical, row));
     assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
     assert_eq!(
         std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
@@ -1065,15 +1084,16 @@ fn all_shipping_bodies_and_complete_generation_sources_authenticate_before_every
         let mut changed = raw.clone();
         changed.push(0);
         assert!(std::panic::catch_unwind(|| source_before(path, &changed)).is_err());
+        let epoch = acquisition_epoch(path, &raw, row);
         let mut missing = row.clone();
         missing["edits"].as_array_mut().unwrap().pop();
-        assert!(std::panic::catch_unwind(|| restore_source(&missing, &raw)).is_err());
+        assert!(std::panic::catch_unwind(|| restore_source(&missing, &epoch)).is_err());
         let mut extra = row.clone();
         extra["edits"]
             .as_array_mut()
             .unwrap()
             .push(serde_json::json!([0, "FOREIGN", "x"]));
-        assert!(std::panic::catch_unwind(|| restore_source(&extra, &raw)).is_err());
+        assert!(std::panic::catch_unwind(|| restore_source(&extra, &epoch)).is_err());
     }
     let oldroot = source_before(
         "src/cleanup_plan/replay/path_join.rs",

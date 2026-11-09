@@ -900,3 +900,51 @@ pub(super) fn load_before_page_data() -> Result<(Value, Value), &'static str> {
     page_bytes(compiled, &physical, length, sha)?;
     Ok((policy, json(&physical)?))
 }
+
+#[cfg(test)]
+pub(super) mod source_sections {
+    use std::ops::Range;
+
+    pub(in super::super) fn constant(code: &str, name: &str) -> Range<usize> {
+        let prefix = format!("const {name}:");
+        assert_eq!(code.matches(&prefix).count(), 1);
+        let start = code.find(&prefix).unwrap();
+        let terminator = if matches!(name, "ADDITIONS" | "REPLACEMENTS") {
+            "];"
+        } else {
+            ";"
+        };
+        let end = start + code[start..].find(terminator).unwrap() + terminator.len();
+        start..end
+    }
+
+    pub(in super::super) fn array(code: &str, name: &str) -> Vec<String> {
+        let declaration = &code[constant(code, name)];
+        let contents = declaration
+            .split_once("= &[")
+            .unwrap()
+            .1
+            .strip_suffix("];")
+            .unwrap();
+        contents
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim();
+                if line.is_empty() {
+                    None
+                } else {
+                    Some(serde_json::from_str(line.strip_suffix(',').unwrap()).unwrap())
+                }
+            })
+            .collect()
+    }
+
+    pub(in super::super) fn lookup(code: &str) -> &str {
+        let prefix = "pub(super) fn compiled(source: &str) -> Option<&'static str> {\n";
+        assert_eq!(code.matches(prefix).count(), 1);
+        let start = code.find(prefix).unwrap();
+        let end = start + code[start..].find("\n}\n").unwrap() + "\n}\n".len();
+        &code[start..end]
+    }
+
+}

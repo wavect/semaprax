@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=211089
-POLICY_SHA256='bca9f2a307d0134893dd95b4fc54ec5a91f6e94a67aad2371e9efccd01392b25'
+POLICY_SHA256='81022467f8331b8823408d36016dfd090812ed509aff1b599b678d0847957c55'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -509,8 +509,9 @@ class Overlay:
   # Each call authenticates the complete policy/page and both current
   # registration sources first. Only the pure composition is shared.
   key=(canonical(before),POLICY_SHA256,policy['page']['sha256'])
-  if _V21_COMPOSITION is not None and _V21_COMPOSITION[0]==key:
-   return copy.deepcopy(_V21_COMPOSITION[1])
+  cached=_V21_COMPOSITION
+  if cached is not None and cached[0]==key:
+   return copy.deepcopy(cached[1])
   result=compose_values(before,policy,page)
   _V21_COMPOSITION=(key,copy.deepcopy(result))
   return result

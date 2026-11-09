@@ -898,7 +898,6 @@ fn projection344_publication_part(compiled: &str) -> String {
     );
     previous
 }
-
 fn projection344_live_descriptor() -> serde_json::Value {
     let data = include_str!("../../docs/evidence/current339-source-custody-repair-20261017/projection344-live-join.json");
     assert_eq!(data.len(), 8735);
@@ -1381,7 +1380,6 @@ fn current_call_site_facade_keeps_complete_modules_production_and_foreign_refusa
         assert!(std::panic::catch_unwind(|| projection_call_sites_facade(&bad)).is_err());
     }
 }
-
 // Complete declared 35e and 48ad stages are routed through the ordinary
 // current physical/compiled/archive acquisition before any old stage guard.
 // Both versions of each changed source are pinned. The historical readers

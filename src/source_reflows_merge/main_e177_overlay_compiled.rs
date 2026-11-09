@@ -6,7 +6,7 @@ pub(super) use lookup::compiled;
 #[rustfmt::skip]
 mod tests {
     use sha2::{Digest, Sha256};
-    use std::ops::Range;
+    use super::super::compiled_successor_v19::source_sections::{array, constant, lookup};
     const ROOT: &str = include_str!("main_e177_overlay_v2.rs");
     const CHILD: &str = include_str!("main_e177_overlay_compiled.rs");
     const BEFORE: &str =
@@ -23,48 +23,6 @@ mod tests {
         );
         BEFORE
     }
-    fn constant(code: &str, name: &str) -> Range<usize> {
-        let prefix = format!("const {name}:");
-        assert_eq!(code.matches(&prefix).count(), 1);
-        let start = code.find(&prefix).unwrap();
-        let terminator = if matches!(name, "ADDITIONS" | "REPLACEMENTS") {
-            "];"
-        } else {
-            ";"
-        };
-        let end = start + code[start..].find(terminator).unwrap() + terminator.len();
-        start..end
-    }
-
-    fn array(code: &str, name: &str) -> Vec<String> {
-        let declaration = &code[constant(code, name)];
-        let contents = declaration
-            .split_once("= &[")
-            .unwrap()
-            .1
-            .strip_suffix("];")
-            .unwrap();
-        contents
-            .lines()
-            .filter_map(|line| {
-                let line = line.trim();
-                if line.is_empty() {
-                    None
-                } else {
-                    Some(serde_json::from_str(line.strip_suffix(',').unwrap()).unwrap())
-                }
-            })
-            .collect()
-    }
-
-    fn lookup(code: &str) -> &str {
-        let prefix = "pub(super) fn compiled(source: &str) -> Option<&'static str> {\n";
-        assert_eq!(code.matches(prefix).count(), 1);
-        let start = code.find(prefix).unwrap();
-        let end = start + code[start..].find("\n}\n").unwrap() + "\n}\n".len();
-        &code[start..end]
-    }
-
     fn root_before_invocation_metadata(root: &str) -> String {
         let mut restored = root.to_owned();
         for (after, before) in [

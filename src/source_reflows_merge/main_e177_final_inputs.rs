@@ -1494,7 +1494,6 @@ fn complete_current_compiled_sources_precede_strict_historical_stage_acquisition
         assert!(clippy_stage::requested(source, &"0".repeat(64), compiled).is_none());
     }
 }
-
 #[test]
 fn registered_digest_reads_keep_current_history_and_each_original_file_bound() {
     packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();

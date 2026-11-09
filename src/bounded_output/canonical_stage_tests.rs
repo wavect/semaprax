@@ -799,9 +799,18 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
         assert_eq!(row["path"], owner);
     }
     let row = rows.iter().find(|r| r["path"] == path).unwrap();
-    assert_eq!(physical.len() as u64, row["length"]);
-    assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
-    let mut before = physical.clone();
+    let mut before = if path == "src/cleanup_plan/replay/path_join.rs" {
+        crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            path,
+            row["sha256"].as_str().unwrap(),
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .into_bytes()
+    } else {
+        physical
+    };
+    assert_eq!(before.len() as u64, row["length"]);
+    assert_eq!(digest(&before), row["sha256"].as_str().unwrap());
     for edit in row["edits"].as_array().unwrap() {
         let at = edit[0].as_u64().unwrap() as usize;
         let from = edit[1].as_str().unwrap().as_bytes();

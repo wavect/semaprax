@@ -452,45 +452,7 @@ fn main043_before_successors(
     key: &str,
     outer: &mut Vec<serde_json::Value>,
 ) -> String {
-    let checkpoint = match source {
-        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => {
-            Some("dfda5c8a4e70539ccedc8dfbee0adabcf2ec7e5696d97db0c6b3c583f47ba25f")
-        }
-        "src/cleanup_plan/replay/selected_entry/paid.rs" => {
-            Some("807dc71528f353dc7ff49ec568c78cac7f9c9d8a5abd0dd5ff658b3fe77ca669")
-        }
-        "src/cleanup_plan/replay/selected_profile.rs" => {
-            Some("dc436ef85505b73d04cda47a9a2b68878ac0bdcc4e36e371d9f65268e3142a05")
-        }
-        "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs" => {
-            Some("ace17b7f4e44235a0e058e169934da367fa1d4f96f8cddcfa19200eea9fa9552")
-        }
-        _ => None,
-    };
-    if let Some(expected) = checkpoint {
-        let (_, compiled, _) = main043_raw_subject(source);
-        let current_sha = format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
-        );
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
-        let physical = main043_raw_file(&path, compiled.len(), &current_sha).unwrap();
-        assert_eq!(
-            raw, compiled,
-            "complete latest supplied/compiled selected RAW source"
-        );
-        assert_eq!(
-            physical, compiled,
-            "complete latest physical/compiled selected RAW source"
-        );
-        let previous = super::main_e177_final_inputs::value_direct(source, expected, raw);
-        assert_eq!(
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(previous.as_bytes()))
-            ),
-            expected
-        );
+    if let Some(previous) = membership::selected_raw_predecessor(source, raw) {
         let mut edit = serde_json::Map::new();
         edit.insert(key.to_owned(), raw.into());
         edit.insert("before".to_owned(), previous.clone().into());

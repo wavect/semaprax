@@ -332,105 +332,6 @@ pub(super) fn compare_with_index(
 }
 // Resource selection follows the existing comparison predicates. It grants
 // no schema, ownership or language-equality authority.
-fn select_resource_representation(
-    function: &ResolvedFunction,
-    cfg_paths: usize,
-    semantic_paths: usize,
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    if matches!(budget.payer, AllocationPayer::ActiveBuilder) {
-        selected_builder_paid(function, cfg_paths, semantic_paths, budget)
-    } else {
-        selected_paid(function, cfg_paths, semantic_paths, budget)
-    }
-}
-
-pub(super) fn defer_enumerating_reservation(
-    function: &ResolvedFunction,
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    let cfg_paths = cfg_bounds::bounds(function, budget)?.terminal_paths;
-    let semantic_paths = hir_terminal_path_bound(function)?;
-    select_resource_representation(function, cfg_paths, semantic_paths, budget)
-}
-
-pub(super) fn validate_with_deferred_index_storage<'hir>(
-    program: &'hir dyn crate::cleanup::ReplayContext,
-    function: &'hir ResolvedFunction,
-    budget: &mut ReplayBudget,
-    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
-    continuations: Option<&mut continuation_storage::Storage<'hir>>,
-) -> Result<bool, Diagnostic> {
-    #[cfg(test)]
-    let _operation = crate::bounded_output::stage_debits::operation_guard(
-        crate::bounded_output::stage_debits::Operation::ReplayFactored,
-    );
-    #[cfg(feature = "unstable-workflow-profiling")]
-    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
-        crate::bounded_output::exclusive_debits::Operation::ReplayFactored,
-    );
-    let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
-    let semantic_paths = hir_terminal_path_bound(function)?;
-    let selected = select_resource_representation(function, cfg_paths, semantic_paths, budget)?;
-    #[cfg(test)]
-    let continuations = {
-        let mut continuations = continuations;
-        if !selected
-            || (cfg_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD
-                && semantic_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD)
-        {
-            oracle_hook::cross_check_with_storage(
-                program,
-                function,
-                budget,
-                continuations.as_deref_mut(),
-            )?;
-        }
-        continuations
-    };
-    if !selected {
-        return Ok(false);
-    }
-    match compare_with_index_storage(program, function, budget, helpers, continuations) {
-        Ok(Some(true)) => Ok(true),
-        Ok(Some(false)) => Err(skeleton_mismatch(function)),
-        Err(error)
-            if cfg_paths <= MAX_REPLAY_PATHS
-                && semantic_paths <= MAX_REPLAY_PATHS
-                && (budget.refusal_spent || crate::bounded_output::active_refused()) =>
-        {
-            Err(error)
-        }
-        verdict => {
-            if cfg_paths <= MAX_REPLAY_PATHS && semantic_paths <= MAX_REPLAY_PATHS {
-                // Enumeration still fits; an attempted factored comparison
-                // keeps every work and physical debit already spent.
-                // This function's enumeration was deliberately not held at
-                // program entry. Keep all factored debits and acquire its full
-                // original reservation before the fallback can consume it.
-                let upper = skeleton_work_upper(program, function)?;
-                strategy::reserve_enumerated(function, budget, upper)?;
-                return Ok(false);
-            }
-            // Any resource refusal of the factored attempt (work text names a
-            // "budget"; a physical/builder refusal is recorded as spent or
-            // ACTIVE-refused) is the same over-limit verdict. Which resource
-            // runs out first must not select the reported reason.
-            match verdict {
-                Err(error)
-                    if !error.message.contains("budget")
-                        && !budget.refusal_spent
-                        && !crate::bounded_output::active_refused() =>
-                {
-                    Err(error)
-                }
-                _ => path_summary::path_budget_errors(function, cfg_paths, semantic_paths)
-                    .map(|()| false),
-            }
-        }
-    }
-}
-
 fn compare_with_index_storage<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
@@ -796,6 +697,7 @@ fn build_comparison<'hir>(
 
 #[path = "factored/strategy.rs"]
 pub(super) mod strategy;
+pub(super) use strategy::{defer_enumerating_reservation, validate_with_deferred_index_storage};
 
 #[derive(Default)]
 struct Automaton {

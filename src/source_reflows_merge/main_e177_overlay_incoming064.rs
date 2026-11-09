@@ -40,25 +40,40 @@ fn authenticate_current_sources() {
     assert_eq!(rows.as_array().unwrap().len(), cases.len());
     for (row, (path, current, historical)) in rows.as_array().unwrap().iter().zip(cases) {
         assert_eq!(row["path"], path);
-        assert_eq!(
-            row["current_length"].as_u64().unwrap() as usize,
-            current.len()
-        );
-        assert_eq!(
-            row["current_sha256"].as_str().unwrap(),
-            digest(current.as_bytes())
-        );
+        let current_sha = digest(current.as_bytes());
+        let live = &row["live"];
+        assert_eq!(live["length"].as_u64().unwrap() as usize, current.len());
+        assert_eq!(live["sha256"].as_str().unwrap(), current_sha);
+        let entry_sha = row["current_sha256"].as_str().unwrap();
+        let entry_length = row["current_length"].as_u64().unwrap() as usize;
+        let epoch = reader::read(
+            &root.join("e").join(entry_sha),
+            entry_length,
+            entry_sha,
+            2 * 1024 * 1024,
+        )
+        .unwrap();
         assert_eq!(
             reader::read(
                 &root.join(path),
                 current.len(),
-                row["current_sha256"].as_str().unwrap(),
+                &current_sha,
                 2 * 1024 * 1024
             )
             .unwrap(),
             current
         );
         let mut restored = current.as_bytes().to_vec();
+        for edit in live["edits"].as_array().unwrap().iter().rev() {
+            let edit = edit.as_array().unwrap();
+            assert_eq!(edit.len(), 3);
+            let start = edit[0].as_u64().unwrap() as usize;
+            let end = edit[1].as_u64().unwrap() as usize;
+            assert!(start <= end && current.is_char_boundary(start) && current.is_char_boundary(end));
+            assert_eq!(&restored[start..end], &current.as_bytes()[start..end]);
+            restored.splice(start..end, edit[2].as_str().unwrap().bytes());
+        }
+        assert_eq!(restored, epoch.as_bytes(), "complete incoming inverse input");
         for edit in row["edits"].as_array().unwrap().iter().rev() {
             let start = edit["start"].as_u64().unwrap() as usize;
             let end = edit["end"].as_u64().unwrap() as usize;
@@ -92,7 +107,7 @@ fn authenticate_current_sources() {
             reader::read(
                 &root.join(path),
                 current.len(),
-                row["current_sha256"].as_str().unwrap(),
+                &current_sha,
                 2 * 1024 * 1024
             )
             .unwrap(),

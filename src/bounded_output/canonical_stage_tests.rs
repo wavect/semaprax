@@ -667,6 +667,14 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
     // b23 predecessor before entering the unchanged older census rows.
     let physical_full = physical.clone();
     let mut physical = field_local_census_before(path, &physical);
+    if path == "src/bounded_output.rs" {
+        physical = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            path,
+            row["sha256"].as_str().unwrap(),
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .into_bytes();
+    }
     let stages = packet["post_c189_acquisitions"].as_array().unwrap();
     let post_paths=["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/bounded_output/canonical_stage_tests.rs", "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs"];
     assert_eq!(stages.len(), post_paths.len());

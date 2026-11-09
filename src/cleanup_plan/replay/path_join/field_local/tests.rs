@@ -883,10 +883,9 @@ fn shipping_ordinary_and_group_entries_keep_all_six_authority_and_restored_ledge
 
 #[test]
 fn real_shipping_partial_promotion_unwind_drops_both_original_owners() {
-    // Rust 1.97's default assertion reporter initializes a pthread-once global
-    // outside the compiler allocation observer, equally before both measured
-    // arms. Keep the default hook and every measured injected panic unchanged.
-    let report = std::panic::catch_unwind(|| assert!(false, "field-local panic reporter setup"));
+    // Warm the unwind runtime outside the allocation observer. Resume the
+    // injected unwind directly so test-output capture stays outside the test.
+    let report = std::panic::catch_unwind(|| std::panic::resume_unwind(Box::new(())));
     assert!(report.is_err());
     drop(report);
     thread_local! {
@@ -899,7 +898,9 @@ fn real_shipping_partial_promotion_unwind_drops_both_original_owners() {
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
             COMPARES.with(|n| {
                 n.set(n.get() + 1);
-                assert_ne!(n.get(), 2, "injected publication comparison unwind");
+                if n.get() == 2 {
+                    std::panic::resume_unwind(Box::new(()));
+                }
             });
             self.0.cmp(&other.0)
         }

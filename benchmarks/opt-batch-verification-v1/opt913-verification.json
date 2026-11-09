@@ -394,5 +394,110 @@
       "expected_refusals": 67,
       "historical_overlay_rows_preserved": 1088
     }
+  },
+  "final_qualification": {
+    "compiler_base": "da5bab5311b2a706d7851467ff59a7d46e30c264",
+    "scanner_sha256": "7c5d52dde5bc66697a7b4c1d854301edeea2f522ff1019ab4358fa69788aeca8",
+    "frozen_reference_fixture_and_gate_digests_verified": 23,
+    "historical_default_builder_limit_bytes": 67108864,
+    "historical_build": "Ordinary feature set. The private build changed the global default and its matching fixed diagnostic literal so the normal retry chain ran at 64 MiB. The committed compiler default is 128 MiB.",
+    "historical_build_sha256": "4584211c1e3393347e079e94a71589edcc89b06b8a9729a43ad2f6f91d6e719e",
+    "references": {
+      "selected": {
+        "cli49_accepted": true,
+        "historical_checks_passed": 33,
+        "boundary_checks_passed": 16,
+        "execution": "native_executable_via_wrapper",
+        "check_process_maximum_rss_bytes": 75988992,
+        "observed_check_ledger": {
+          "attempts": 1,
+          "successful_mode": 1,
+          "prebound_bytes": 16678172,
+          "construction_debit_bytes": 20100660,
+          "remaining_bytes": 47008204,
+          "separate_nested_ledger_debits_bytes": 90304915
+        }
+      },
+      "matcher": {
+        "cli49_accepted": true,
+        "historical_checks_passed": 33,
+        "boundary_checks_passed": 16,
+        "execution": "native_executable_via_wrapper",
+        "check_process_maximum_rss_bytes": 100417536,
+        "observed_check_ledger": {
+          "attempts": 5,
+          "successful_mode": 6,
+          "prebound_bytes": 49624675,
+          "construction_debit_bytes": 65847721,
+          "remaining_bytes": 1261143,
+          "separate_nested_ledger_debits_bytes": 502372804
+        }
+      }
+    },
+    "matcher_prebound_comparison_bytes": {
+      "before_shared_scans": 54268219,
+      "after_shared_scans": 49624675,
+      "reduction": 4643544
+    },
+    "measurement_scope": "Ledger observations use a separate instrumented build with the same scanner and historical default. The successful attempt debit is cumulative reservation. Nested ledgers are reported separately. Whole-process maximum RSS comes from the ordinary check executable. Application retained heap was not measured. The earlier allocation observer covers the source-move fixtures through Drop.",
+    "scanner_checks": {
+      "byte_span": {
+        "byte_values": 256,
+        "span_widths": [
+          8,
+          48
+        ],
+        "native_and_interpreter_passed": true,
+        "interpreter_steps_before": 645324,
+        "interpreter_steps_after": 746087
+      },
+      "work_boundaries": {
+        "cases": 132,
+        "native_and_interpreter_passed": true,
+        "interpreter_steps_before": 71382,
+        "interpreter_steps_after": 79212
+      },
+      "borrowed_path_capture": {
+        "input_bytes": 65536,
+        "capture": [
+          0,
+          65536
+        ],
+        "logical_work": 67184,
+        "interpreter_default_fuel": 1000000,
+        "interpreter_steps_before": 810439,
+        "interpreter_steps_after": 921066
+      },
+      "canonical_source_and_catalogs": "Passed. Catalog regeneration produced no changes.",
+      "ci_pinned_production_clippy": "Passed on Rust 1.97.1 with warnings denied.",
+      "focused_language_tests": {
+        "passed": 3,
+        "independent_interpreter_fixtures": 19,
+        "header_targets": [
+          "interpreter",
+          "native C11 -O0",
+          "native C11 -O2",
+          "Core Wasm"
+        ],
+        "default_fuel_full_input": true
+      }
+    },
+    "shipping_default": {
+      "builder_limit_bytes": 134217728,
+      "compiler_sha256": "bb79f32c9ed512346d49708e3193d35b0ca7f423bfc47238339a02c692ded64f",
+      "references": {
+        "selected": {
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 75956224
+        },
+        "matcher": {
+          "historical_checks_passed": 33,
+          "boundary_checks_passed": 16,
+          "check_process_maximum_rss_bytes": 98844672
+        }
+      }
+    },
+    "observation_executable_sha256": "3dbd0fb64d9d125e330df200daddefaa2f84243b08f59dc4a9981657c31634a2"
   }
 }

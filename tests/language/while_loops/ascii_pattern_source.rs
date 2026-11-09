@@ -485,6 +485,47 @@ for(let i=0;i<4;i++) { const value=instance.exports.semaprax_main(); if(value!==
 }
 
 #[test]
+fn standard_library_ascii_pattern_path_uses_full_input_under_default_fuel() {
+    use super::super::owned_string_loops_v1::support::Fixture;
+
+    let pattern = bytes("pattern", br"([^\x00-\x20\x22\x5C\x7F]+)");
+    let input = "v".repeat(65_536);
+    let expected = expect_std_packet(1, &[[0, 65_536]], Some(67_184), 0, 0, 0);
+    let source = format!(
+        r#"{STD_ENGINE}
+@id("std.pattern.witness.full-path")
+fn main() -> i64
+{{
+    {pattern}
+    let input = str"{input}";
+    let view = str_as_bytes(input);
+    let compiled = compile(make(), pattern_view, 262144usize);
+    if result_valid(compiled) && status(compiled) == 0usize {{
+        let matcher = full_match(compiled, view, 262144usize);
+        {expected}
+    }} else {{ -2 }}
+}}
+"#
+    );
+    let fixture = Fixture::new(&source);
+    let run = interpreter::internal_strings::interpret(
+        &fixture.source,
+        "std.pattern.witness.full-path",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap();
+    let document: serde_json::Value = serde_json::from_str(&run.envelope).unwrap();
+    assert!(run.returned, "{}", run.envelope);
+    assert_eq!(
+        document["payload"]["outcome"]["value"], "1",
+        "{}",
+        run.envelope
+    );
+    fixture.cleanup();
+}
+
+#[test]
 fn standard_library_ascii_pattern_header_source_backend_parity_and_settlement() {
     use super::super::owned_string_loops_v1::support::Fixture;
     let expected = expect_std_packet(1, &[[0, 5], [7, 12]], None, 0, 0, 0);

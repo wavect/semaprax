@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=211089
-POLICY_SHA256='0c9afac37cf23e578897084d350f1869ed60eec4ced64e4b22ff960e8f1fabd2'
+POLICY_SHA256='bca9f2a307d0134893dd95b4fc54ec5a91f6e94a67aad2371e9efccd01392b25'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -476,6 +476,8 @@ def compose_values_v2(before, policy, page):
  restored=copy.deepcopy(result); restored['rows']=copy.deepcopy(old); assert restored==before, 'ENTIRE predecessor object inverse'
  return result
 
+_V21_COMPOSITION=None
+
 class Overlay:
  def __init__(self, root, bounded, read, configuration_current, predecessor, stage_rows, compiled_current=None):
   self.root=root; self.bounded=bounded; self.read=read; self.configuration_current=configuration_current
@@ -501,7 +503,17 @@ class Overlay:
   if page['schema']==V19_SCHEMA:authenticate_v19_registration(self,page)
   return policy,page
  def compose(self, before):
-  policy,page=self.load_current(); return compose_values(before,policy,page)
+  global _V21_COMPOSITION
+  policy,page=self.load_current()
+  if page['schema']!=V21_SCHEMA:return compose_values(before,policy,page)
+  # Each call authenticates the complete policy/page and both current
+  # registration sources first. Only the pure composition is shared.
+  key=(canonical(before),POLICY_SHA256,policy['page']['sha256'])
+  if _V21_COMPOSITION is not None and _V21_COMPOSITION[0]==key:
+   return copy.deepcopy(_V21_COMPOSITION[1])
+  result=compose_values(before,policy,page)
+  _V21_COMPOSITION=(key,copy.deepcopy(result))
+  return result
  def affected_row(self, source):
   if source not in REPLACEMENTS and source not in ADDITIONS:return None
   packet=self.compose(self.predecessor())

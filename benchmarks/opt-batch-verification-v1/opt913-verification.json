@@ -266,7 +266,7 @@
     },
     "original_ceiling_build": {
       "cumulative_builder_ceiling_bytes": 67108864,
-      "build_override": "The temporary CLI build supplied a 64 MiB finite builder limit to the ordinary authenticated Project reporting route used by check and build. The global maximum, diagnostics, and Project sources retained their committed values.",
+      "build_override": "The temporary CLI build supplied a nondefault 64 MiB limit to the authenticated Project reporting route used by check and build. That route disables fallback attempts at nondefault limits, so these results cover the initial attempt only. The compiler default remained 128 MiB.",
       "compiler_sha256": "a8d1e9f94a8dd2ed91838c635cd3b2af05de934666e604406f86ca67dc1a9528",
       "references": [
         {
@@ -326,5 +326,73 @@
       ]
     }
   },
-  "scope": "Focused local verification. CLI RSS covers the check process. The successful CLI runs did not expose cumulative debits. No whole-suite, hosted, model-token, or billed-cost measurement."
+  "scope": "Focused local verification. CLI RSS covers the check process. The successful CLI runs did not expose cumulative debits. No whole-suite, hosted, model-token, or billed-cost measurement.",
+  "follow_up": {
+    "profile_source_commit": "5e0a9d508a378e00803fba0c9a4fa327ef6d536a",
+    "profile_scope": "Local observation-only Rust build. The 64 MiB diagnostic build changed the compiler default and its matching diagnostic constant. The ordinary default-only fallback selector remained intact.",
+    "matcher_default_128_mib_profile": [
+      {
+        "attempt": 0,
+        "mode": 1,
+        "limit_bytes": 134217728,
+        "remaining_bytes": 28265685,
+        "construction_debit_bytes": 105952043,
+        "nested_ledger_debits_bytes": 565282105,
+        "outcome": "Succeeded",
+        "prebound_bytes": 89569201
+      }
+    ],
+    "matcher_default_64_mib_profile": [
+      {
+        "attempt": 0,
+        "mode": 1,
+        "limit_bytes": 67108864,
+        "remaining_bytes": 61,
+        "construction_debit_bytes": 67108803,
+        "nested_ledger_debits_bytes": 44145225,
+        "outcome": "Refused",
+        "prebound_bytes": 65452074
+      },
+      {
+        "attempt": 1,
+        "mode": 6,
+        "limit_bytes": 67108864,
+        "remaining_bytes": 62,
+        "construction_debit_bytes": 67108802,
+        "nested_ledger_debits_bytes": 56960014,
+        "outcome": "Refused",
+        "prebound_bytes": 54268219
+      }
+    ],
+    "expression_forecast_probe": "The existing cached exact expression bundle produced a byte-identical construction trace to the uncached expression discount.",
+    "default_64_mib_references": {
+      "selected": {
+        "cli49_accepted": true,
+        "historical_checks": 33,
+        "boundary_checks": 16,
+        "check_process_maximum_rss_bytes": 76316672,
+        "diagnostics": []
+      },
+      "matcher": {
+        "cli49_accepted": false,
+        "historical_checks": 0,
+        "boundary_checks": 0,
+        "check_process_maximum_rss_bytes": 74727424,
+        "diagnostics": [
+          "error[SPX-G171]: Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+          "help: live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 54268219 bytes for 4 module(s) and fit within 67108864, with `dependencies/std.pattern/0.1.0/pattern.spx` the largest at 43395069 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 96 bytes with 38 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown. Reservation caller: src/hir/validation/scope_checkpoint/charge.rs:37:8."
+        ]
+      }
+    },
+    "ci_pinned_clippy": "Passed with Rust 1.97.1 and warnings denied after the sorter lint repair.",
+    "rust_tests": {
+      "sorter_controls_passed": 30,
+      "source_move_controls_passed": 15
+    },
+    "strict_source_controls": {
+      "result": "passed",
+      "expected_refusals": 67,
+      "historical_overlay_rows_preserved": 1088
+    }
+  }
 }

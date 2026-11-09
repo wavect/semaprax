@@ -342,6 +342,26 @@ def compact_v11_names(ov, page, codec='v11'):
     return result
 
 
+def refresh_strict_module_pins(repo, guard, updates):
+    config = copy.deepcopy(guard['CONFIG'])
+    for source, data in updates.items():
+        if source in config['modules']:
+            config['modules'][source] = dict(length=len(data), sha256=sha(data))
+    if config != guard['CONFIG']:
+        candidate = guard['_encode_configuration'](config)
+        assert guard['_decode_configuration'](copy.deepcopy(candidate)) == config
+        path = str(guard['_CONFIG_PATH'].relative_to(repo.root))
+        old_config = repo.raw(path)
+        new_config = (json.dumps(candidate, ensure_ascii=False, separators=(',', ':')) + '\n').encode()
+        assert len(new_config) <= guard['_OVERLAY_NS']['PAGE_CAP']
+        repo.write(f'e/{sha(old_config)}', old_config)
+        repo.write(path, new_config)
+        raw = repo.raw(GUARD).decode()
+        raw = replace_once(raw, f'_CONFIG_LENGTH={len(old_config)}', f'_CONFIG_LENGTH={len(new_config)}', GUARD)
+        raw = replace_once(raw, f"_CONFIG_SHA256='{sha(old_config)}'", f"_CONFIG_SHA256='{sha(new_config)}'", GUARD)
+        repo.write(GUARD, raw)
+
+
 def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
     """Refresh the V21 transport while keeping both historical input sets."""
     ov = guard['_OVERLAY_NS']
@@ -449,7 +469,9 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     v11 = ov['transform_v11_digest_slots'](v10, True)
     v11['schema'] = ov['V11_SCHEMA']
     cap = ov['V21_OUTPUT_CAP']
-    v12 = ov['encode_v12_view_labels'](v11, cap)
+    # V12 is an intermediate source representation. V20 and the compressed
+    # page below still enforce their own decoded and physical transport caps.
+    v12 = ov['encode_v12_view_labels'](v11, ov['SOURCE_CAP'])
     v20 = ov['encode_v20'](ov['encode_v20_compact_inner'](v12, cap), successor, cap)
     page = ov['canonical'](ov['encode_compressed_page'](v20))
     policy['page'] = dict(path=PAGE, length=len(page), sha256=sha(page))
@@ -483,23 +505,10 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     assert len(py.encode()) <= 65536
     assert sha(policy_bytes) in py and sha(policy_bytes) in rs
 
-    config = copy.deepcopy(guard['CONFIG'])
-    for source in (successor['source'], owner):
-        current = rows[source]['current']
-        config['modules'][source] = {key: current[key] for key in ('length', 'sha256')}
-    if config != guard['CONFIG']:
-        candidate = guard['_encode_configuration'](config)
-        assert guard['_decode_configuration'](copy.deepcopy(candidate)) == config
-        path = str(guard['_CONFIG_PATH'].relative_to(repo.root))
-        old_config = repo.raw(path)
-        new_config = (json.dumps(candidate, ensure_ascii=False, separators=(',', ':')) + '\n').encode()
-        assert len(new_config) <= ov['PAGE_CAP']
-        repo.write(f'e/{sha(old_config)}', old_config)
-        repo.write(path, new_config)
-        raw = repo.raw(GUARD).decode()
-        raw = replace_once(raw, f'_CONFIG_LENGTH={len(old_config)}', f'_CONFIG_LENGTH={len(new_config)}', GUARD)
-        raw = replace_once(raw, f"_CONFIG_SHA256='{sha(old_config)}'", f"_CONFIG_SHA256='{sha(new_config)}'", GUARD)
-        repo.write(GUARD, raw)
+    strict_sources = {source: repo.raw(source) for source in (*changed, successor['source'], owner)
+                      if source in guard['CONFIG']['modules']}
+    strict_sources[OVERLAY_RS] = rs.encode()
+    refresh_strict_module_pins(repo, guard, strict_sources)
 
     for path, data in ((PAGE, page), (POLICY, policy_bytes), (OVERLAY_PY, py), (OVERLAY_RS, rs)):
         repo.write(path, data)

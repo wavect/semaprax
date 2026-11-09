@@ -342,7 +342,7 @@ def compact_v11_names(ov, page, codec='v11'):
     return result
 
 
-def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit):
+def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
     """Refresh the V21 transport while keeping both historical input sets."""
     ov = guard['_OVERLAY_NS']
     original = ov['compose_values'](before, policy, wire)
@@ -358,16 +358,26 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit):
         repo.write(lookup, replace_once(repo.raw(lookup).decode(), header, header + arms, lookup))
     changed = []
     for source, previous in admit:
-        assert source not in rows and repo.raw(source) != previous
         current = repo.raw(source)
-        for data in (current, previous):
-            repo.write(f'e/{sha(data)}', data)
+        assert source not in rows and current != previous
+        current_sha = sha(current)
+        repo.write(f'e/{current_sha}', current)
+        views = []
+        if previous is not None:
+            previous_sha = sha(previous)
+            repo.write(f'e/{previous_sha}', previous)
+            views.append(dict(name=label, length=len(previous), sha256=previous_sha, archive=f'e/{previous_sha}'))
         rows[source] = dict(
             source=source, compiled=True,
-            current=dict(length=len(current), sha256=sha(current), archive=f'e/{sha(current)}'),
-            views=[dict(name=label, length=len(previous), sha256=sha(previous), archive=f'e/{sha(previous)}')],
+            current=dict(length=len(current), sha256=current_sha, archive=f'e/{current_sha}'),
+            views=views,
         )
         changed.append(source)
+    for parent, children in (attach_fragments or {}).items():
+        assert parent in ov['V3_ROOTS']
+        fragments = rows[parent].setdefault('fragments', [])
+        assert not {child['source'] for child in fragments}.intersection(children)
+        fragments.extend(rows[child] for child in children)
     for source, row in rows.items():
         path = repo.root / source
         if not path.is_file():

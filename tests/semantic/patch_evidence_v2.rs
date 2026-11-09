@@ -521,6 +521,8 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     ];
     let mut capsule_hashes = Vec::new();
     let mut receipt_hashes = Vec::new();
+    let mut validator_261_capsule_hashes = Vec::new();
+    let mut validator_261_receipt_hashes = Vec::new();
     let mut previous_capsule_hashes = Vec::new();
     let mut previous_receipt_hashes = Vec::new();
     for fixture in &fixtures {
@@ -545,18 +547,34 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
             "patch evidence byte audit is bounded"
         );
         println!("SEMAPRAX_PATCH_EVIDENCE_BYTE_AUDIT={row}");
-        let previous_report = report.replace("0.261.0", "0.256.0");
+        let current_version = r#""validator_version":"0.263.0""#;
+        assert_eq!(report.matches(current_version).count(), 1);
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
         let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
         let report_digest = domain_digest(report_domain, report.as_bytes());
-        let previous_report_digest = domain_digest(report_domain, previous_report.as_bytes());
-        let previous_capsule = capsule.replace(&report_digest, &previous_report_digest);
-        let previous_receipt = receipt
-            .replace(&report_digest, &previous_report_digest)
-            .replace(
-                &domain_digest(artifact_domain, capsule.as_bytes()),
-                &domain_digest(artifact_domain, previous_capsule.as_bytes()),
+        let artifact_digest = domain_digest(artifact_domain, capsule.as_bytes());
+        assert_eq!(capsule.matches(&report_digest).count(), 1);
+        assert_eq!(receipt.matches(&report_digest).count(), 1);
+        assert_eq!(receipt.matches(&artifact_digest).count(), 1);
+        let bind_prior = |version: &str| {
+            let previous_report = report.replace(
+                current_version,
+                &format!(r#""validator_version":"{version}""#),
             );
+            let previous_report_digest = domain_digest(report_domain, previous_report.as_bytes());
+            let previous_capsule = capsule.replace(&report_digest, &previous_report_digest);
+            let previous_receipt = receipt
+                .replace(&report_digest, &previous_report_digest)
+                .replace(
+                    &artifact_digest,
+                    &domain_digest(artifact_domain, previous_capsule.as_bytes()),
+                );
+            (previous_capsule, previous_receipt)
+        };
+        let (validator_261_capsule, validator_261_receipt) = bind_prior("0.261.0");
+        validator_261_capsule_hashes.push(sha256(&validator_261_capsule));
+        validator_261_receipt_hashes.push(sha256(&validator_261_receipt));
+        let (previous_capsule, previous_receipt) = bind_prior("0.256.0");
         previous_capsule_hashes.push(sha256(&previous_capsule));
         previous_receipt_hashes.push(sha256(&previous_receipt));
         let before = std::fs::read(&fixture.source).unwrap();
@@ -599,7 +617,7 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         ]
     );
     assert_eq!(
-        capsule_hashes,
+        validator_261_capsule_hashes,
         [
             "613142d72af1b44a8d341e3d9e86270177c43fc06d25e622a55fe3d855c00162",
             "353c04e121100da5eac061f87a9e69f66b204ed183c2e5b6534f962ea85beb0a",
@@ -607,11 +625,27 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         ]
     );
     assert_eq!(
-        receipt_hashes,
+        validator_261_receipt_hashes,
         [
             "b0912086b0d9ea0fea5995ac4a99f9391f31babe6f86b6b4b2fcfce2ad300022",
             "0a2b32e32b2fed3432f137e46fdd7f356ec540eff927be3c496bd3f3a47d7dfd",
             "74d5849442314a8ef0f79240f7deec0889045efc86fc106348e6bb6ab0981cad",
+        ]
+    );
+    assert_eq!(
+        capsule_hashes,
+        [
+            "9f905fbe576345e91f97d35664cb25ec31825b7442275eb05a29ca59a1f8c7cf",
+            "34ba537a84c47e503ca6fc560a7dffe369fbfa0641d1e82c024e7f51ad505afb",
+            "4d31aa29a1568a3f131249b37c0457b3ad5c2a70a998adbe557879c16dba6b3e",
+        ]
+    );
+    assert_eq!(
+        receipt_hashes,
+        [
+            "66b1392cca694cf9a7668e008d1d438191d69216387c922f415f31c5ba7360aa",
+            "7c8236f38230fd1afc22ee2b11ab6db48394316664e4a8b73c8c7081ab1c046b",
+            "e1455a5edbb697f549798f7e3ce31be3de93e4c3d9fe7acb5646387cd83f9376",
         ]
     );
 }

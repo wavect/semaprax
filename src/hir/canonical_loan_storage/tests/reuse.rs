@@ -278,6 +278,22 @@ fn complete_old_callers_storage_and_tests_remain_exact_and_all_current_hooks_are
     );
     let hooks: serde_json::Value = serde_json::from_str(hooks).unwrap();
     let mut projected = include_str!("../caller.rs").to_owned();
+    // The streamed caller adds complete receivers around the legacy source.
+    // Bind the live compiled bytes, then remove exactly those additions.
+    assert_eq!(projected.len(), 29222);
+    assert_eq!(
+        digest(&projected),
+        "9c655467b74a931fb99abc5f16ccc4d40731ffb1d5362f7afb912483773db75f"
+    );
+    for (start, end) in [
+        (23922, 29222),
+        (16192, 16346),
+        (9671, 14513),
+        (7569, 7986),
+        (7347, 7359),
+    ] {
+        projected.replace_range(start..end, "");
+    }
     // Bind the complete Clippy-compatible receiver, then undo its single
     // complete-vector move adapter before every original custody assertion.
     assert_eq!(projected.len(), 18497);

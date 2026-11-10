@@ -246,7 +246,7 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json"
     ));
     let source = "docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json";
-    let current_sha = "2c390619756414a01de7c4edf0c795662026b8d403cf21f986f23c333d7e";
+    let current_sha = "30ae2c390619756414a01de7c4edf0c795662026b8d403cf21f986f23c333d7e";
     assert_eq!(
         format!(
             "{:x}",
@@ -294,14 +294,13 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
     );
     assert_eq!(declared_json, prior_json);
     let record: serde_json::Value = serde_json::from_str(&declared_json).unwrap();
-    let mut current = crate::source_reflows::next_custody_before(
+    let diagnostics_source = "src/workspace_graph/diagnostics.rs";
+    let diagnostics_physical = include_str!("../diagnostics.rs");
+    let constructor_view = crate::source_reflows::next_custody_before(
         "constructor903",
-        "src/workspace_graph/diagnostics.rs",
-        include_str!("../diagnostics.rs"),
+        diagnostics_source,
+        diagnostics_physical,
     );
-    // The later borrowed-writer route is acquired as its complete named
-    // immediate source before the unchanged declared824 inverse below.
-    let constructor_view = current.clone();
     let fronts = crate::source_reflows::front_pool::decode_physical(include_str!(
         "../../source_reflows/next_custody_fronts.json"
     ));
@@ -316,6 +315,13 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
             crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
         )
     };
+    // The borrowed-writer and constructor routes select distinct exact
+    // predecessor images of the same authenticated physical source.
+    let mut current = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        diagnostics_source,
+        front["current"]["sha256"].as_str().unwrap(),
+        diagnostics_physical,
+    );
     assert_eq!(current.len() as u64, front["current"]["length"]);
     assert_eq!(hash(&current), front["current"]["sha256"]);
     let mut end = 0;

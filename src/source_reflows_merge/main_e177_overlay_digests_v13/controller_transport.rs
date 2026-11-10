@@ -358,7 +358,12 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         );
         let edits: Value = serde_json::from_str(r####"[{"start":2203,"end":2918,"current":"    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v20\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v19\" {\n        // The shared verifier authenticates and composes the complete current\n        // V19 packet before selecting its exact immutable V18/V12 history.\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v18\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v17\" {\n        super::super::verify_current_v17(&page);\n        return;\n    }\n","before":""}]"####).unwrap();
         assert!(edits.as_array().unwrap().len() <= 512);
-        let mut restored_labels = supplied.to_owned();
+        let prior_sha = "9df7dc61f6bd4d70c5714142d166fef41602ae260f4e414e57affd2550e2770f";
+        let mut restored_labels = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            source, prior_sha, supplied,
+        );
+        assert_eq!(restored_labels.len(), 10508);
+        assert_eq!(super::hash(restored_labels.as_bytes()), prior_sha);
         let mut next = restored_labels.len();
         for edit in edits.as_array().unwrap().iter().rev() {
             let lo = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();

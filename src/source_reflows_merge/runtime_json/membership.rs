@@ -1086,6 +1086,9 @@ pub(super) fn selected_raw_predecessor(source: &str, raw: &str) -> Option<String
     use sha2::{Digest, Sha256};
 
     let expected = match source {
+        "src/cleanup_plan/replay/expression_facts/receiving.rs" => {
+            Some("d44da2c3d647fa0e9dadeb06898b54f12292a582f3db4020036af2bb2b2b0a25")
+        }
         "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => {
             Some("dfda5c8a4e70539ccedc8dfbee0adabcf2ec7e5696d97db0c6b3c583f47ba25f")
         }

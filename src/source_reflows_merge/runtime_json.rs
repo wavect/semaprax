@@ -367,6 +367,13 @@ fn main043_current_subject(source: &str) -> (&'static str, &'static str) {
 
 // Exact current physical channels are acquired before the immutable main5b4 RAW recipe.
 fn main8_raw_before(source: &str, current: &str) -> String {
+    if matches!(
+        source,
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs"
+            | "src/cleanup_plan/replay/expression_facts/arena.rs"
+    ) {
+        return current.to_owned();
+    }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let data = include_str!("../source_reflows/next_custody_fronts.json");
     assert_eq!(

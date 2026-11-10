@@ -359,6 +359,7 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
     let group_loans: Vec<_> = many.functions.iter().map(|f| f.loan_plan.loans.len()).collect();
     assert_eq!(group_loans.iter().filter(|&&loans| loans == 33).count(), 6);
     assert_eq!(group_loans.iter().sum::<usize>(), 198);
+    let mut comparisons = Vec::new();
     for (shape, program, require_gain) in [
         ("192-calls-across-six-functions", &many, true),
         ("one-view-assignments", &large, true),
@@ -387,11 +388,14 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
             "immediate owned V2 complete caller: shape={shape} allocated={} paid={} highwater={}",
             results[2].0.allocated, results[2].1, results[2].0.highwater
         );
+        comparisons.push((shape, require_gain, results));
+    }
+    for (shape, require_gain, results) in comparisons {
         if require_gain {
-            assert!(results[1].0.allocated < results[0].0.allocated);
+            assert!(results[1].0.allocated < results[0].0.allocated, "{shape}");
             assert!(
                 results[1].1 < results[0].1,
-                "complete new banks and growth must fit, not just output allocation"
+                "{shape}: complete new banks and growth must fit, not just output allocation"
             );
             assert!(
                 results[1].0.allocated < results[2].0.allocated,
@@ -578,7 +582,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
         digest(raw.as_bytes()),
-        "f9fa69ccfbde22eb33201e445a91e20442c5836d7feac3be40f3e37c01ca1bdb"
+        "f732f6798fce30f8c3aeebea06fe7b50b875a406dc5f5dec4f6632f71b662c48"
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");
@@ -929,8 +933,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         source_reader::read(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("src/hir/canonical_loan_storage/caller/stream.rs"),
-            16677,
-            "f1f7fb74734f4cb595ce3a39fb503ae6cb767ad96e6a9dcf9bb9abcfd56eff03",
+            17181,
+            "a8f2ad0d44856faeb5a1070ba4114168640a170d0a98e38e4893f316f644e1e2",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -1339,23 +1343,34 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
             (21907, "    // Both lookups still run: original validation in endpoint source order,\n    // then publication from the same immutable local directory. The source\n    // occurrence is dead only after every original validation has succeeded.\n    for (key, ordinal) in live_probe.iter_mut() {\n        *ordinal = origin(&key.2).expect(\"checked every source endpoint\");\n    }\n    storage.liveness.append(live_probe);\n", "    storage.liveness.extend(\n        live_probe\n            .drain(..)\n            .map(|(key, ordinal, _)| (key, ordinal.expect(\"checked every source endpoint\"))),\n    );\n"),
             (29222, "", "\n"),
         ]),
-        "src/hir/canonical_loan_storage/caller/stream.rs" => (16677, "f1f7fb74734f4cb595ce3a39fb503ae6cb767ad96e6a9dcf9bb9abcfd56eff03", &[
+        "src/hir/canonical_loan_storage/caller/stream.rs" => (17181, "a8f2ad0d44856faeb5a1070ba4114168640a170d0a98e38e4893f316f644e1e2", &[
             (410, "pub(super) const APPEND_PRESENT_BYTES: usize =\n    2 * std::mem::size_of::<(&crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>)>()\n        + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()\n        + 4 * std::mem::size_of::<Scratch>()\n        + 4 * std::mem::size_of::<Option<(usize, bool)>>()\n        + 8 * std::mem::size_of::<usize>()\n        + 16 * std::mem::size_of::<bool>();\n", "pub(super) const APPEND_PRESENT_BYTES: usize = 2 * std::mem::size_of::<(\n    &crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>,\n)>() + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()\n    + 4 * std::mem::size_of::<Scratch>()\n    + 4 * std::mem::size_of::<Option<(usize, bool)>>()\n    + 8 * std::mem::size_of::<usize>()\n    + 16 * std::mem::size_of::<bool>();\n"),
             (1244, ">() + 2 * std::mem::size_of::<bool>()\n    + 2 * std::mem::size_of::<usize>();\n", ">() + 2 * std::mem::size_of::<bool>() + 2 * std::mem::size_of::<usize>();\n"),
             (1408, "    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, usize)>>()\n", "    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, Option<usize>, usize)>>()\n"),
             (1930, "        let charge = if source.is_some() {\n            APPEND_PRESENT_BYTES\n        } else {\n            EMPTY_CLEAR_BYTES\n        };\n", "        let charge = if source.is_some() { APPEND_PRESENT_BYTES } else { EMPTY_CLEAR_BYTES };\n"),
             (2859, "            EMPTY_COUNTS.with(|counts| {\n                let (empty, present) = counts.get();\n                counts.set((empty + 1, present));\n            });\n", "            EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty + 1, present)); });\n"),
             (3078, "        EMPTY_COUNTS.with(|counts| {\n            let (empty, present) = counts.get();\n            counts.set((empty, present + 1));\n        });\n", "        EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty, present + 1)); });\n"),
-            (7556, "            live_probe.push(((point.expression.clone(), point.phase, *loan), ordinal));\n", "            live_probe.push((\n                (point.expression.clone(), point.phase, *loan),\n                origin(loan),\n                ordinal,\n            ));\n"),
-            (8056, "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));\n", "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n"),
-            (8396, "        let unknown = origin(&entry.0 .2).is_none();\n", "        let unknown = entry.1.is_none();\n"),
-            (9045, "            if first_bad.is_none_or(|prior| entry.1 < prior.0) {\n                first_bad = Some((entry.1, unknown));\n", "            if first_bad.is_none_or(|prior| entry.2 < prior.0) {\n                first_bad = Some((entry.2, unknown));\n"),
-            (10307, "    payer.reserve(\n        2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()\n            + 2 * std::mem::size_of::<usize>(),\n    )?;\n", ""),
-            (11079, "    for (key, ordinal) in live_probe.iter_mut() {\n        *ordinal = origin(&key.2).expect(\"checked every source endpoint\");\n    }\n    storage.liveness.append(live_probe);\n", "    storage.liveness.extend(\n        live_probe\n            .drain(..)\n            .map(|(key, ordinal, _)| (key, ordinal.expect(\"checked every source endpoint\"))),\n    );\n"),
-            (15878, "", "\n"),
-            (16109, "pub(super) fn empty_before_selected() -> bool {\n    EMPTY_BEFORE.with(|flag| flag.get())\n}\n", "pub(super) fn empty_before_selected() -> bool { EMPTY_BEFORE.with(|flag| flag.get()) }\n"),
-            (16308, "    impl Drop for Reset {\n        fn drop(&mut self) {\n            EMPTY_BEFORE.with(|flag| flag.set(self.0));\n        }\n    }\n", "    impl Drop for Reset { fn drop(&mut self) { EMPTY_BEFORE.with(|flag| flag.set(self.0)); } }\n"),
-            (16577, "fn take_empty_counts() -> (usize, usize) {\n    EMPTY_COUNTS.with(|counts| counts.replace((0, 0)))\n}\n", "fn take_empty_counts() -> (usize, usize) { EMPTY_COUNTS.with(|counts| counts.replace((0, 0))) }\n"),
+            (4426, "    // The independent producer assigns each LoanId its draft ordinal.\n    // The captured source authenticates both the count and the origins.\n    let loans = source.loan_count();\n    if loans != 0 && base.checked_add(loans - 1).is_none() {\n        return Err(hir_error(\n            \"canonical shared-loan origin directory overflows\",\n", "    scratch.local.clear();\n    let local = &mut scratch.local;\n    ensure_probe(local, source.loan_count(), payer)?;\n    for offset in 0..source.loan_count() {\n        let loan = source.loan(offset);\n        local.push((\n            loan.id,\n            base.checked_add(offset)\n                .ok_or_else(|| hir_error(\"canonical shared-loan origin directory overflows\"))?,\n"),
+            (4780, "", "    local.sort_unstable();\n"),
+            (4813, "        let index = usize::from(id.0);\n        (index < loans).then(|| base + index)\n    };\n    let Payer::Captured(owner) = payer else {\n        unreachable!(\"stream requires captured owner\");\n", "        let end = local.partition_point(|entry| entry.0 <= *id);\n        end.checked_sub(1)\n            .and_then(|i| local.get(i))\n            .filter(|entry| entry.0 == *id)\n            .map(|entry| entry.1)\n"),
+            (5243, "", "        // The exact old two merge producers, with their full original vector\n        // allocation and malformed-row handling. No union fee is removed.\n"),
+            (5392, "        // Each independent edge receives increasing LoanIds once. A single\n        // edge therefore already is its ordered union, including an empty row.\n        let before_union;\n        let live_before = match predecessors {\n            [] => {\n                payer.reserve(0)?;\n                &[]\n            }\n            [from] => {\n                payer.reserve(0)?;\n                match parts.edges.binary_search(&(*from, node as u16)) {\n                    Ok(edge) => parts.live[edge].as_slice(),\n                    Err(_) => &[],\n                }\n            }\n            _ => {\n                before_union = canonical_sink::merge(\n                    predecessors\n                        .iter()\n                        .filter_map(|from| parts.edges.binary_search(&(*from, node as u16)).ok())\n                        .map(|edge| parts.live[edge].as_slice()),\n                    owner,\n                )?;\n                before_union.as_slice()\n            }\n        };\n        let from = usize::from(parts.successors[node]);\n        let to = usize::from(parts.successors[node + 1]);\n        let after_union;\n        let live_after = match &parts.live[from..to] {\n            [] => {\n                payer.reserve(0)?;\n                &[]\n            }\n            [row] => {\n                payer.reserve(0)?;\n                row.as_slice()\n            }\n            _ => {\n                after_union = canonical_sink::merge(\n                    (from..to).map(|edge| parts.live[edge].as_slice()),\n                    owner,\n                )?;\n                after_union.as_slice()\n            }\n        };\n", "        let live_before = canonical_sink::merge(\n            predecessors\n                .iter()\n                .filter_map(|from| parts.edges.binary_search(&(*from, node as u16)).ok())\n                .map(|edge| parts.live[edge].as_slice()),\n            match payer {\n                Payer::Captured(owner) => owner,\n                _ => unreachable!(\"stream requires captured owner\"),\n            },\n        )?;\n        let live_after = canonical_sink::merge(\n            (parts.successors[node]..parts.successors[node + 1])\n                .map(|edge| parts.edges[edge as usize].1)\n                .filter_map(|to| parts.edges.binary_search(&(node as u16, to)).ok())\n                .map(|edge| parts.live[edge].as_slice()),\n            match payer {\n                Payer::Captured(owner) => owner,\n                _ => unreachable!(\"stream requires captured owner\"),\n            },\n        )?;\n"),
+            (7225, "            matched &= endpoint.live_before.as_ref() == live_before;\n", "            matched &= endpoint.live_before.as_ref() == live_before.as_slice();\n"),
+            (7456, "            matched &= endpoint.live_after.as_ref() == live_after;\n", "            matched &= endpoint.live_after.as_ref() == live_after.as_slice();\n"),
+            (7618, "            LoanPointPhase::Before => live_before,\n            LoanPointPhase::After => live_after,\n", "            LoanPointPhase::Before => &live_before,\n            LoanPointPhase::After => &live_after,\n"),
+            (8028, "            live_probe.push(((point.expression.clone(), point.phase, *loan), ordinal));\n", "            live_probe.push((\n                (point.expression.clone(), point.phase, *loan),\n                origin(loan),\n                ordinal,\n            ));\n"),
+            (8528, "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));\n", "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n"),
+            (8868, "        let unknown = origin(&entry.0 .2).is_none();\n", "        let unknown = entry.1.is_none();\n"),
+            (9517, "            if first_bad.is_none_or(|prior| entry.1 < prior.0) {\n                first_bad = Some((entry.1, unknown));\n", "            if first_bad.is_none_or(|prior| entry.2 < prior.0) {\n                first_bad = Some((entry.2, unknown));\n"),
+            (9976, "    ensure_probe(id_probe, loans, payer)?;\n    payer.reserve(\n        2 * std::mem::size_of::<std::slice::Windows<'_, (IdKey, LoanId, usize)>>()\n            + 2 * std::mem::size_of::<Option<&[(IdKey, LoanId, usize)]>>()\n            + 4 * std::mem::size_of::<bool>(),\n    )?;\n    let mut malformed = false;\n    for ordinal in 0..loans {\n", "    ensure_probe(id_probe, source.loan_count(), payer)?;\n    for ordinal in 0..source.loan_count() {\n        let loan = source.loan(ordinal);\n        id_probe.push(((loan.site.clone(), loan.cause.clone()), loan.id, ordinal));\n    }\n    id_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n    for ordinal in 0..source.loan_count() {\n"),
+            (10412, "        malformed |= loan.phase != LoanPointPhase::Before || storage.id(&key).is_some();\n        id_probe.push((key, loan.id, ordinal));\n", "        let first = id_probe.partition_point(|entry| entry.0 < key);\n        if loan.phase != LoanPointPhase::Before\n            || storage.id(&key).is_some()\n            || id_probe[first].2 < ordinal\n        {\n            return Err(hir_error(\n                \"canonical shared-loan identity is ambiguous or malformed\",\n            ));\n        }\n"),
+            (10555, "    id_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n    if malformed || id_probe.windows(2).any(|pair| pair[0].0 == pair[1].0) {\n        return Err(hir_error(\n            \"canonical shared-loan identity is ambiguous or malformed\",\n        ));\n    }\n    payer.reserve(\n        2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()\n            + 2 * std::mem::size_of::<usize>(),\n    )?;\n", ""),
+            (11260, "    let origin_needed = count(storage.origins.len(), loans, payer)?;\n", "    let origin_needed = count(storage.origins.len(), source.loan_count(), payer)?;\n"),
+            (11583, "    for (key, ordinal) in live_probe.iter_mut() {\n        *ordinal = origin(&key.2).expect(\"checked every source endpoint\");\n    }\n    storage.liveness.append(live_probe);\n", "    storage.liveness.extend(\n        live_probe\n            .drain(..)\n            .map(|(key, ordinal, _)| (key, ordinal.expect(\"checked every source endpoint\"))),\n    );\n"),
+            (16382, "", "\n"),
+            (16613, "pub(super) fn empty_before_selected() -> bool {\n    EMPTY_BEFORE.with(|flag| flag.get())\n}\n", "pub(super) fn empty_before_selected() -> bool { EMPTY_BEFORE.with(|flag| flag.get()) }\n"),
+            (16812, "    impl Drop for Reset {\n        fn drop(&mut self) {\n            EMPTY_BEFORE.with(|flag| flag.set(self.0));\n        }\n    }\n", "    impl Drop for Reset { fn drop(&mut self) { EMPTY_BEFORE.with(|flag| flag.set(self.0)); } }\n"),
+            (17081, "fn take_empty_counts() -> (usize, usize) {\n    EMPTY_COUNTS.with(|counts| counts.replace((0, 0)))\n}\n", "fn take_empty_counts() -> (usize, usize) { EMPTY_COUNTS.with(|counts| counts.replace((0, 0))) }\n"),
         ]),
         _ => unreachable!("matched complete source owner above"),
     };

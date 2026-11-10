@@ -66,6 +66,7 @@ pub(super) fn acquire<F>(payer: &CfgReservation) -> Result<(), Refused> {
             + 2 * std::mem::size_of::<(*const CfgReservation, *const CfgReservation)>()
             + 6 * std::mem::size_of::<bool>()
             + 2 * std::mem::size_of::<(&mut Source<'_, '_>, &mut Vec<Place>)>()
+            + 2 * std::mem::size_of::<std::slice::IterMut<'_, PaidDraft>>()
             + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
             + 2 * std::mem::size_of::<EmitArgs<'_, '_, F>>()
             + 8 * std::mem::size_of::<&Source<'_, '_>>()
@@ -120,9 +121,15 @@ impl Source<'_, '_> {
     }
     pub(crate) fn move_origins(&mut self, output: &mut Vec<Place>) -> Result<(), Diagnostic> {
         self.owner.reserve(0).map_err(|_| storage::marker())?;
-        // Original final receiving extend, now moving the independently owned
-        // draft origin. No intermediate lookup or origin vector is produced.
-        output.extend(self.drafts.drain(..).map(|draft| draft.origin));
+        // Move the projection backing through the existing draft slot. The
+        // root handle is shared; cloning it does not create new heap backing.
+        // No complete draft or Option<PaidDraft> crosses a drain boundary.
+        for draft in &mut self.drafts {
+            output.push(Place {
+                root: draft.origin.root.clone(),
+                projections: std::mem::take(&mut draft.origin.projections),
+            });
+        }
         Ok(())
     }
 }
@@ -146,14 +153,14 @@ where
     F: FnOnce(Option<&mut Source<'a, 'p>>, bool) -> Result<(), Diagnostic>,
 {
     payer.reserve(0).map_err(|_| storage::marker())?;
-    // LoanView return/receiving and whole row comparison, end-iterator/Option,
-    // origin Drain/Map/next/returned Place and actual draft drop roles. This is
-    // deliberately not a rebate of the old output aggregate or clone payment.
-    let loan_roles = 12 * std::mem::size_of::<LoanView<'_>>()
-        + 6 * std::mem::size_of::<(&Source<'_, '_>, usize)>()
+    // The identity probe receives one LoanView. Origin publication keeps the
+    // draft in place and moves its projections through the borrowed slot.
+    let loan_roles = 4 * std::mem::size_of::<LoanView<'_>>()
+        + 2 * std::mem::size_of::<(&Source<'_, '_>, usize)>()
         + 12 * std::mem::size_of::<usize>()
-        + 4 * std::mem::size_of::<PaidDraft>()
-        + 4 * std::mem::size_of::<Option<PaidDraft>>()
+        + 4 * std::mem::size_of::<Option<&mut PaidDraft>>()
+        + 4 * std::mem::size_of::<&mut Vec<crate::hir::PlaceProjection>>()
+        + 4 * std::mem::size_of::<Vec<crate::hir::PlaceProjection>>()
         + 4 * std::mem::size_of::<Place>()
         + 16 * std::mem::size_of::<usize>()
         + 16 * std::mem::size_of::<bool>()
@@ -164,11 +171,12 @@ where
         storage::marker()
     })?;
     payer.reserve(bytes).map_err(|_| storage::marker())?;
-    // Endpoint/edge comparisons use borrowed rows, scalar cursor and sticky
-    // bools only. The two original ordered_union calls and fees remain real.
+    // The endpoint receiver uses two borrowed row slots. Multiple edges
+    // still take the original ordered merge with its full payment.
     let endpoint_roles = 16 * std::mem::size_of::<bool>()
         + 4 * std::mem::size_of::<usize>()
-        + 2 * std::mem::size_of::<Option<&LoanEndpoint>>();
+        + 2 * std::mem::size_of::<Option<&LoanEndpoint>>()
+        + 2 * std::mem::size_of::<&[LoanId]>();
     let edge_roles = 8 * std::mem::size_of::<bool>() + 2 * std::mem::size_of::<Option<&LoanEdge>>();
     let bytes = endpoint_roles
         .checked_mul(cfg.points.len())

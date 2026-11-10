@@ -110,67 +110,87 @@ fn append_source<'a, 'p>(
     payer.reserve(0)?;
     let parts = source.parts();
     let base = storage.origins.len();
-    scratch.local.clear();
-    let local = &mut scratch.local;
-    ensure_probe(local, source.loan_count(), payer)?;
-    for offset in 0..source.loan_count() {
-        let loan = source.loan(offset);
-        local.push((
-            loan.id,
-            base.checked_add(offset)
-                .ok_or_else(|| hir_error("canonical shared-loan origin directory overflows"))?,
+    // The independent producer assigns each LoanId its draft ordinal.
+    // The captured source authenticates both the count and the origins.
+    let loans = source.loan_count();
+    if loans != 0 && base.checked_add(loans - 1).is_none() {
+        return Err(hir_error(
+            "canonical shared-loan origin directory overflows",
         ));
     }
-    local.sort_unstable();
     let origin = |id: &LoanId| {
-        let end = local.partition_point(|entry| entry.0 <= *id);
-        end.checked_sub(1)
-            .and_then(|i| local.get(i))
-            .filter(|entry| entry.0 == *id)
-            .map(|entry| entry.1)
+        let index = usize::from(id.0);
+        (index < loans).then(|| base + index)
+    };
+    let Payer::Captured(owner) = payer else {
+        unreachable!("stream requires captured owner");
     };
     scratch.liveness.clear();
     let live_probe = &mut scratch.liveness;
     let upper = selected_capacity(&parts, payer)?;
     ensure_probe(live_probe, upper, payer)?;
     for (node, point) in parts.points.iter().enumerate() {
-        // The exact old two merge producers, with their full original vector
-        // allocation and malformed-row handling. No union fee is removed.
         let predecessors = &parts.predecessors[parts.predecessor_offsets[node] as usize
             ..parts.predecessor_offsets[node + 1] as usize];
-        let live_before = canonical_sink::merge(
-            predecessors
-                .iter()
-                .filter_map(|from| parts.edges.binary_search(&(*from, node as u16)).ok())
-                .map(|edge| parts.live[edge].as_slice()),
-            match payer {
-                Payer::Captured(owner) => owner,
-                _ => unreachable!("stream requires captured owner"),
-            },
-        )?;
-        let live_after = canonical_sink::merge(
-            (parts.successors[node]..parts.successors[node + 1])
-                .map(|edge| parts.edges[edge as usize].1)
-                .filter_map(|to| parts.edges.binary_search(&(node as u16, to)).ok())
-                .map(|edge| parts.live[edge].as_slice()),
-            match payer {
-                Payer::Captured(owner) => owner,
-                _ => unreachable!("stream requires captured owner"),
-            },
-        )?;
+        // Each independent edge receives increasing LoanIds once. A single
+        // edge therefore already is its ordered union, including an empty row.
+        let before_union;
+        let live_before = match predecessors {
+            [] => {
+                payer.reserve(0)?;
+                &[]
+            }
+            [from] => {
+                payer.reserve(0)?;
+                match parts.edges.binary_search(&(*from, node as u16)) {
+                    Ok(edge) => parts.live[edge].as_slice(),
+                    Err(_) => &[],
+                }
+            }
+            _ => {
+                before_union = canonical_sink::merge(
+                    predecessors
+                        .iter()
+                        .filter_map(|from| parts.edges.binary_search(&(*from, node as u16)).ok())
+                        .map(|edge| parts.live[edge].as_slice()),
+                    owner,
+                )?;
+                before_union.as_slice()
+            }
+        };
+        let from = usize::from(parts.successors[node]);
+        let to = usize::from(parts.successors[node + 1]);
+        let after_union;
+        let live_after = match &parts.live[from..to] {
+            [] => {
+                payer.reserve(0)?;
+                &[]
+            }
+            [row] => {
+                payer.reserve(0)?;
+                row.as_slice()
+            }
+            _ => {
+                after_union = canonical_sink::merge(
+                    (from..to).map(|edge| parts.live[edge].as_slice()),
+                    owner,
+                )?;
+                after_union.as_slice()
+            }
+        };
         // Compare all fields and preserve order even after a prior mismatch.
         if let Some(endpoint) = function.loan_plan.endpoints.get(node) {
             matched &= endpoint.point == *point;
-            matched &= endpoint.live_before.as_ref() == live_before.as_slice();
+            matched &= endpoint.live_before.as_ref() == live_before;
             matched &= endpoint.starts.as_ref() == parts.starts[node].as_slice();
             matched &= endpoint.kills.as_ref() == parts.kills[node].as_slice();
-            matched &= endpoint.live_after.as_ref() == live_after.as_slice();
+            matched &= endpoint.live_after.as_ref() == live_after;
         } else {
             matched = false;
         }
         let live = match point.phase {
-            LoanPointPhase::Before => &live_before,
-            LoanPointPhase::After => &live_after,
+            LoanPointPhase::Before => live_before,
+            LoanPointPhase::After => live_after,
         };
         // Every selected union member belongs to one of the counted rows.
         // Duplicate edge memberships may overreserve; all upper backing was
@@ -221,24 +241,24 @@ fn append_source<'a, 'p>(
     }
     scratch.ids.clear();
     let id_probe = &mut scratch.ids;
-    ensure_probe(id_probe, source.loan_count(), payer)?;
-    for ordinal in 0..source.loan_count() {
-        let loan = source.loan(ordinal);
-        id_probe.push(((loan.site.clone(), loan.cause.clone()), loan.id, ordinal));
-    }
-    id_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));
-    for ordinal in 0..source.loan_count() {
+    ensure_probe(id_probe, loans, payer)?;
+    payer.reserve(
+        2 * std::mem::size_of::<std::slice::Windows<'_, (IdKey, LoanId, usize)>>()
+            + 2 * std::mem::size_of::<Option<&[(IdKey, LoanId, usize)]>>()
+            + 4 * std::mem::size_of::<bool>(),
+    )?;
+    let mut malformed = false;
+    for ordinal in 0..loans {
         let loan = source.loan(ordinal);
         let key = (loan.site.clone(), loan.cause.clone());
-        let first = id_probe.partition_point(|entry| entry.0 < key);
-        if loan.phase != LoanPointPhase::Before
-            || storage.id(&key).is_some()
-            || id_probe[first].2 < ordinal
-        {
-            return Err(hir_error(
-                "canonical shared-loan identity is ambiguous or malformed",
-            ));
-        }
+        malformed |= loan.phase != LoanPointPhase::Before || storage.id(&key).is_some();
+        id_probe.push((key, loan.id, ordinal));
+    }
+    id_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));
+    if malformed || id_probe.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err(hir_error(
+            "canonical shared-loan identity is ambiguous or malformed",
+        ));
     }
     payer.reserve(
         2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()
@@ -248,7 +268,7 @@ fn append_source<'a, 'p>(
     )?;
     let id_needed = count(storage.ids.len(), id_probe.len(), payer)?;
     let live_needed = count(storage.liveness.len(), live_probe.len(), payer)?;
-    let origin_needed = count(storage.origins.len(), source.loan_count(), payer)?;
+    let origin_needed = count(storage.origins.len(), loans, payer)?;
     ensure(&mut storage.ids, id_needed, payer)?;
     ensure(&mut storage.liveness, live_needed, payer)?;
     ensure(&mut storage.origins, origin_needed, payer)?;

@@ -12,6 +12,19 @@ const TAG: &str = "$source_edit_string_v1";
 const WIRE_CAP: usize = 2_097_152;
 const SOURCE_CAP: usize = 9_753_094;
 
+pub(crate) fn decode_physical(compiled: &str) -> Value {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let raw = super::reader::read(
+        &root.join("src/source_reflows/next_custody_fronts.json"),
+        compiled.len(),
+        &super::digest(compiled),
+        WIRE_CAP,
+    )
+    .unwrap();
+    assert_eq!(raw, compiled);
+    decode(&raw).unwrap()
+}
+
 // The old serde_json parser remains the legacy branch. Only the new envelope
 // passes this visitor, which rejects duplicate keys even in opaque metadata.
 struct Unique(Value);

@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1700853, 'sha256': '7d295dace2f3bbb47a596863f1c83559530772d129f117a45ce92be59aa397ce'}
+_FRONT_PIN = {'length': 2001405, 'sha256': 'bf7fcb240f29710c9049aa500b0e1ac7fcf34df928a640eccf81ec9a56c0bbed'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -257,7 +257,11 @@ def _front_data():
     assert [(r['owner'], r['source']) for r in data['rows']] == _PAIRS
     legacy_raw = _pin_bytes(_source_bytes(_NEXT_PATH), data['original_packet'])
     legacy = json.loads(legacy_raw)
-    assert len(legacy['owners']) == 26
+    assert len(legacy['owners']) == 28
+    assert [(row['owner'], row['source']) for row in legacy['owners'][26:]] == [
+        ('prelude286', 'src/prelude.rs'),
+        ('prelude286', 'src/source_verify/constructor_tests.rs'),
+    ]
     return raw, data, legacy_raw, legacy
 
 def _front_project(actual, stage):

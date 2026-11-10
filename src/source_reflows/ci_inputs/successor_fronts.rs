@@ -659,12 +659,11 @@ fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str)
 #[rustfmt::skip]
 pub(super) fn constructor903_before(source: &str, supplied: &str) -> Option<String> {
     const FRONT: &str = include_str!("../next_custody_fronts.json");
-    let packet: serde_json::Value = front_pool::decode(FRONT).unwrap();
+    let packet = front_pool::decode_physical(FRONT);
     let Some(row) = packet["constructor_retention_903"]["records"].get(source) else { return None; };
     assert_eq!(packet["constructor_retention_903"]["schema"], "semaprax.constructor-retention-903-source-fronts.v1");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let acquire = |path: &str, length: usize, sha: &str| reader::read(&root.join(path), length, sha, 2_097_152).unwrap();
-    assert_eq!(acquire("src/source_reflows/next_custody_fronts.json", FRONT.len(), &digest(FRONT)), FRONT);
     let actual = acquire(source, row["current"]["length"].as_u64().unwrap().try_into().unwrap(), row["current"]["sha256"].as_str().unwrap());
     let mut previous = 0; for e in row["edits"].as_array().unwrap() { let a: usize = e["start"].as_u64().unwrap().try_into().unwrap(); let b: usize = e["end"].as_u64().unwrap().try_into().unwrap(); assert!(previous <= a && a <= b && b <= actual.len() && actual.is_char_boundary(a) && actual.is_char_boundary(b)); assert_eq!(&actual[a..b], e["after"].as_str().unwrap()); previous = b; }
     let mut restored = actual.clone(); for e in row["edits"].as_array().unwrap().iter().rev() { restored.replace_range::<std::ops::Range<usize>>(e["start"].as_u64().unwrap().try_into().unwrap()..e["end"].as_u64().unwrap().try_into().unwrap(), e["before"].as_str().unwrap()); }

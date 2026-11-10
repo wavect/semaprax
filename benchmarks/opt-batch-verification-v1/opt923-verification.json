@@ -1,0 +1,119 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    923
+  ],
+  "source_commit": "d362287538290273e1f1db6e1d099da6f0af4971",
+  "source_tree": "5a00aa65c6765c2eb6d0a030195e13e98b8c4e45",
+  "platform": "Darwin arm64",
+  "python": "3.14.2",
+  "benchmark_scope": "Sequential source-only verification of one clean Git tree. Both modes use the same original verifier and six named input bindings. Only the memoized mode installs the invocation-local derived caches. Wall time and maximum process RSS come from macOS time -l.",
+  "profile": {
+    "sampled_commit": "d362287538290273e1f1db6e1d099da6f0af4971",
+    "sample_seconds_per_mode": 2,
+    "sampling_period_ms": 10,
+    "sample_sha256": {
+      "original": "e9aaa386753a1791a548a3b758086f297387c5b8addb7c112e44ebc8dc828209",
+      "memoized": "7b2dfed2fbf8a0bd14e29f41895638a288421ab07ed9d3789a501b659ca6c3bb"
+    },
+    "original_sample_observations": "The sampled Python main thread was active in verifier execution, JSON encoding, and hashing."
+  },
+  "timings": {
+    "original": {
+      "wall_seconds": 571.06,
+      "user_seconds": 557.64,
+      "system_seconds": 12.23,
+      "maximum_rss_bytes": 76824576
+    },
+    "memoized": {
+      "wall_seconds": 568.22,
+      "user_seconds": 554.28,
+      "system_seconds": 12.18,
+      "maximum_rss_bytes": 85753856
+    }
+  },
+  "prior_failed_qualification": {
+    "source_commit": "559c6e98337d45e437cf92cdfac0425255403933",
+    "original_wall_seconds_until_refusal": 386.9,
+    "original_maximum_rss_bytes_until_refusal": 77185024,
+    "reason": "The native inventory's existing raw-guard pin had stale physical length and digest."
+  },
+  "memoized_minus_original_wall_seconds": -2.84,
+  "memoized_minus_original_maximum_rss_bytes": 8929280,
+  "focused_cache_and_publication_controls": 8,
+  "complete_checker_outputs_identical": true,
+  "original_checker_sha256": "63e0399384c8a6ccdc56b138504e4989a59cb274c0976169c69592f2e0e4917f",
+  "result_sha256": "9ee6ebe8c6985812f441643a14e634e306876a702db61c7bc77881ca4731272c",
+  "stdout_sha256": "76cbd2c36d0911fd536910064bac70f63444132cb6e1a7775681f121f33ba92f",
+  "checker_result": {
+    "status": "PURE_SOURCE_PASS_NOT_RUST_QUALIFIED",
+    "head": "d362287538290273e1f1db6e1d099da6f0af4971",
+    "checkpoint": "787d9810480209532fa645b8cb97f2585ce5f426",
+    "complete_final_sources": [
+      {
+        "path": "src/cleanup_plan/replay.rs",
+        "raw_sha256": "f98a8462e5eca592b2627a7ca1f706df67a362f4aa4aa4f667cc8f7bddb13fc6",
+        "checkpoint_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+        "synthetic_nonidentity_edits": 92
+      },
+      {
+        "path": "src/source_reflows_merge.rs",
+        "raw_sha256": "78658401764fd15a4625d3bc8c4514b2983f1a48e6d13bc4ec1f61bece6151b3",
+        "checkpoint_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+        "synthetic_nonidentity_edits": 93
+      },
+      {
+        "path": "src/source_reflows_merge/main67107_inputs.rs",
+        "raw_sha256": "c455e810609adff43ebe6aaacdff28227b4eed05831512d2953b29d97cad50a0",
+        "checkpoint_sha256": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+        "synthetic_nonidentity_edits": 108
+      },
+      {
+        "path": "tests/hir_module_boundaries.rs",
+        "raw_sha256": "b527dea6360c310fe9ff019dbf5166f651b353a5a11ba2be7e58cb7210d0640f",
+        "checkpoint_sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+        "synthetic_nonidentity_edits": 4
+      },
+      {
+        "path": "tests/workspace/semantic_graph/source_inventory.rs",
+        "raw_sha256": "262d16b041f1f989add490f4e3d1609742f5aff301020ba1f3c5c15466c980b5",
+        "checkpoint_sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+        "synthetic_nonidentity_edits": 44
+      },
+      {
+        "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "raw_sha256": "04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f",
+        "checkpoint_sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+        "synthetic_nonidentity_edits": 50
+      }
+    ],
+    "actual_raw_scopes": [
+      {
+        "path": "tests/hir_module_boundaries.rs",
+        "actual_raw_sha256": "b527dea6360c310fe9ff019dbf5166f651b353a5a11ba2be7e58cb7210d0640f",
+        "original_a82e_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+        "raw_projected": false
+      },
+      {
+        "path": "tests/workspace/semantic_graph/source_inventory.rs",
+        "actual_raw_sha256": "262d16b041f1f989add490f4e3d1609742f5aff301020ba1f3c5c15466c980b5",
+        "original_a82e_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+        "raw_projected": false
+      },
+      {
+        "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "actual_raw_sha256": "04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f",
+        "original_a82e_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+        "raw_projected": false
+      }
+    ],
+    "negative_controls": 75,
+    "original_legacy_checkpoint_restored": "BYTE_EXACT",
+    "immutable_packets": "BYTE_EXACT_GIT787",
+    "binder_main_executed": false,
+    "Cargo": false,
+    "Rust_tests": false,
+    "runtime": "UNEXECUTED"
+  },
+  "timed_runs_per_mode": 1
+}

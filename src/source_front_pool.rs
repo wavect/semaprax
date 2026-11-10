@@ -327,6 +327,15 @@ fn decode_with_cap(raw: &str, expanded_cap: usize) -> Result<Value, &'static str
     }
     let old: Value = serde_json::from_str(raw).map_err(|_| "JSON")?;
     if old.get("schema").and_then(Value::as_str) == Some(LEGACY) {
+        // A later legacy tag must not hide an earlier pooled envelope tag.
+        for (name, span) in members(raw, value_span(raw, 0)?)? {
+            if name == "schema"
+                && serde_json::from_str::<String>(&raw[span.start..span.end])
+                    .is_ok_and(|tag| tag.starts_with("semaprax.source-edit-string-pool."))
+            {
+                return Err("ambiguous schema");
+            }
+        }
         return Ok(old);
     }
     if old.get("schema").and_then(Value::as_str) != Some(SCHEMA) {
@@ -507,6 +516,13 @@ mod tests {
         );
         let duplicate = raw.replacen("\"schema\":", "\"schema\":\"duplicate\",\"schema\":", 1);
         assert!(decode(&duplicate).is_err());
+        let disguised = raw.replacen(
+            &format!("\"schema\":\"{SCHEMA}\""),
+            &format!("\"schema\":\"{SCHEMA}\",\"schem\\u0061\":\"{LEGACY}\""),
+            1,
+        );
+        assert_ne!(disguised, raw);
+        assert_eq!(decode(&disguised), Err("ambiguous schema"));
     }
     #[test]
     fn closed_envelope_legacy_semantics_and_unknown_metadata_are_distinct() {

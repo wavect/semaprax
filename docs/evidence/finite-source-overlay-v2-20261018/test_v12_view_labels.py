@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 2001405, 'sha256': 'bf7fcb240f29710c9049aa500b0e1ac7fcf34df928a640eccf81ec9a56c0bbed'}
+_FRONT_PIN = {'length': 2001332, 'sha256': '108810fba0a8bdd8176637b59aa0a0dc00f532feac7aba8d4e84b22b77472560'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -130,7 +130,7 @@ def _front_scalar_text(value):
         for child in value:
             _front_scalar_text(child)
 
-def _front_body_size(raw):
+def _front_members(raw):
     # Full JSON validation precedes this lexical scan. Preserve opaque number
     # spellings rather than counting a language-specific float serialization.
     whitespace = b' \t\r\n'
@@ -172,11 +172,16 @@ def _front_body_size(raw):
         assert raw[pos] == 58
         pos = skip(pos + 1)
         end = value_end(pos)
-        if key == 'body':
-            return end - pos
+        yield key, pos, end
         pos = skip(end)
         if raw[pos] == 44:
             pos = skip(pos + 1)
+
+
+def _front_body_size(raw):
+    for key, start, end in _front_members(raw):
+        if key == 'body':
+            return end - start
     raise AssertionError('missing body')
 
 def _front_expand_pool(envelope, body_size):
@@ -227,6 +232,12 @@ def _front_decode_bytes(raw):
         _front_scalar_text(value)
         return _front_expand_pool(value, _front_body_size(raw))
     assert type(value) is dict and value.get('schema') == 'semaprax.next-custody-four-fronts.v1'
+    # A later legacy tag must not hide an earlier pooled envelope tag.
+    for key, start, end in _front_members(raw):
+        if key == 'schema':
+            tag = json.loads(raw[start:end])
+            is_pool_tag = type(tag) is str and tag.startswith('semaprax.source-edit-string-pool.')
+            assert not is_pool_tag, 'ambiguous schema'
     return value
 
 def _front_encode_pool(document):
@@ -488,6 +499,14 @@ class SourceFrontPoolTests(unittest.TestCase):
         duplicate = raw.replace(b'"schema":', b'"schema":"duplicate","schema":', 1)
         with self.assertRaises(AssertionError):
             _front_decode_bytes(duplicate)
+        disguised = raw.replace(
+            b'"schema":"semaprax.source-edit-string-pool.v1"',
+            b'"schema":"semaprax.source-edit-string-pool.v1","schem\\u0061":"semaprax.next-custody-four-fronts.v1"',
+            1,
+        )
+        self.assertNotEqual(disguised, raw)
+        with self.assertRaisesRegex(AssertionError, 'ambiguous schema'):
+            _front_decode_bytes(disguised)
         for scalar in (b'NaN', b'Infinity', b'-Infinity', b'1e999', b'"\\ud800"'):
             bad = raw.replace(b'1e-07', scalar)
             with self.subTest(scalar=scalar), self.assertRaises(AssertionError):

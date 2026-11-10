@@ -1,0 +1,110 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    931
+  ],
+  "source_commit": "c7628ae34c9bbc044f87272c609cc48f7212ae74",
+  "source_tree": "cef49890c53dfcd29c167589f98913ae9dbd96f4",
+  "platform": "Darwin arm64",
+  "rust": "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
+  "python": "Python 3.15.2",
+  "scope": "Source-front format, exact authenticated current and historical source views, and finite owning gates.",
+  "limits": {
+    "physical_wire_bytes": 2097152,
+    "expanded_source_bytes": 9753094
+  },
+  "current_wire_headroom_bytes": 95018,
+  "whole_document_inverse_and_rust_python_agreement": {
+    "current": {
+      "full": 2080946,
+      "wire": 2002134,
+      "saved": 78812,
+      "strings": 61,
+      "references": 128,
+      "full_sha256": "0141ce3b1825d57f58523fc1c5d14676d23787a9a3477b089f7de1855d320125",
+      "wire_sha256": "5515257692520f51f5f039397540b53f4cd1e0412c54edc28cb26e6ceb973101"
+    },
+    "49c4402d1": {
+      "full": 2096900,
+      "wire": 1975382,
+      "saved": 121518,
+      "strings": 29,
+      "references": 58,
+      "full_sha256": "3b49c9753d4d5c0f86cba9a5713192ee80a22a4e83348563d2b68a193a5c3729",
+      "wire_sha256": "acd8c257a0dc649dd56fd2b76d564ef17baa393ef3e6de870b5196dae7b78f09"
+    },
+    "retained combined predecessor": {
+      "full": 2128892,
+      "wire": 1919132,
+      "saved": 209760,
+      "strings": 42,
+      "references": 86,
+      "full_sha256": "0b4babc7a9738203205f3205ac067214893cc2df5791c9a383a81106ce36ecda",
+      "wire_sha256": "fdeaf47cda84821b4921bbef371774838e9a4af5f9e28ba7bab0a8e7251dd6fa"
+    }
+  },
+  "retained_combined_predecessor_commit": "660b9fccfd250ee5b859d497d68de4b2df75a5de",
+  "retained_combined_predecessor_archive": "e/0b4babc7a9738203205f3205ac067214893cc2df5791c9a383a81106ce36ecda",
+  "inverse_endpoint_preservation": {
+    "successor_rows_rebound": 2,
+    "main8_raw_rows_rebound": 5,
+    "constructor_rows_rebound": 7,
+    "separate_v20_ingress_pins_rebound": 2,
+    "latest_raw_inverses_replayed_to_sealed_checkpoints": 7
+  },
+  "gates": {
+    "compiled_lib_test_selectors": [
+      "source_reflows::ci_inputs::front_pool::tests::canonical_first_use_lexical_records_and_all_refusals",
+      "source_reflows::ci_inputs::front_pool::tests::closed_envelope_legacy_semantics_and_unknown_metadata_are_distinct",
+      "source_reflows::ci_inputs::front_pool::tests::full_expanded_size_exact_short_unicode_escape_and_amplification_bounds",
+      "source_reflows::ci_inputs::front_pool::tests::full_legacy_unknowns_and_known_pool_domains_roundtrip",
+      "source_reflows::ci_inputs::front_pool::tests::lexical_body_budget_preserves_raw_numbers_whitespace_escaped_keys_and_strings",
+      "source_reflows::ci_inputs::front_pool::tests::required_nested_schemas_and_edit_arrays_refuse_before_expansion",
+      "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::digests_v13::tests::complete_prior_v12_compiled_body_and_all_parent_inverses_remain_byte_exact",
+      "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::digests_v13::tests::controller_transport::v20_ingress_tests::current_three_channels_restore_whole_pre_v20_and_all_old_targets_refuse_drift",
+      "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact",
+      "source_reflows_merge::runtime_json::main043_raw_tests::exit_directory_recipe_replays_every_complete_latest_raw_owner",
+      "source_reflows_merge::runtime_json::main043_raw_tests::latest_raw_successor_binds_all_five_complete_live_channels_and_refuses_changed_inputs",
+      "source_reflows_merge::runtime_json::main043_raw_tests::raw_successor_reader_keeps_bounds_digests_utf8_and_nofollow_refusals",
+      "source_verify::constructor_tests::complete_saved_pass_sources_and_all_children_remain_joined_and_within_caps",
+      "workspace_graph::diagnostics::borrowed_help_tests::complete_borrowed_help_source_restores_full_original_without_normalization",
+      "workspace_graph::expected_projection::call_carriers::inverse::complete_forecaster_inverse_reconstructs_entire_pre898_algorithm",
+      "workspace_graph::expected_projection::prelude_forecast::tests::complete_receiving_sources_reconstruct_pinned_originals",
+      "workspace_graph::expected_projection::shared_local_callees::tests::constructors::independent_projection_source_reconstructs_the_entire_pre_certificate_owner"
+    ],
+    "python_test_selectors": [
+      "SourceFrontPoolTests",
+      "ViewLabels.test_entire_previous_controller_and_caps_restore_exactly"
+    ],
+    "python_tests_passed": 5,
+    "finite_overlay_protocol_controls": 62,
+    "finite_strict_and_bootstrap": {
+      "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+      "complete_current_carriers": 3,
+      "complete_original_guard_carriers": 3,
+      "old_maximums_unchanged": true,
+      "refusals": 67,
+      "original_verifier_executed": false,
+      "rust_executed": false
+    },
+    "rust_python_vectors": {
+      "legal": 4,
+      "hostile": 10
+    },
+    "source_custody_refresh_check": "PASS"
+  },
+  "additional_diagnostic_probes": [
+    {
+      "source_commit": "b7b6af6306e577c7d63e56c1dbf0927a06efc09c",
+      "selector": "hir::validation::canonical_loans::ownership_tests::complete_old_constructor_inventory_caller_and_closure_source_projections_remain_exact",
+      "status": "REFUSED",
+      "scope": "Separate canonical loan source owner, outside the pooled-front loader gates."
+    },
+    {
+      "source_commit": "b7b6af6306e577c7d63e56c1dbf0927a06efc09c",
+      "selector": "workspace_graph::expected_projection::import_stub::core_proofs::tests::complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact",
+      "status": "REFUSED",
+      "scope": "Separate held-projection source owner, outside the pooled-front loader gates."
+    }
+  ]
+}

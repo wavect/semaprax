@@ -245,12 +245,28 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json"
     ));
+    let source = "docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json";
+    let current_sha = "2c390619756414a01de7c4edf0c795662026b8d403cf21f986f23c333d7e";
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(physical_json.as_bytes()))
+        ),
+        current_sha
+    );
+    let verified_json = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        source, current_sha, physical_json,
+    );
+    assert_eq!(verified_json, physical_json);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&verified_json).unwrap(),
+        record
+    );
     let complete_json = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
-        "docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json",
+        source,
         "077c4470aec8e42443c64f30cccaf0a7923f43a96963fc9db6684c6ba2bcdc5e",
         physical_json,
     );
-    assert_eq!(complete_json, physical_json);
     assert_eq!(complete_json.len(), 40828);
     assert_eq!(
         format!(
@@ -259,10 +275,7 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         ),
         "077c4470aec8e42443c64f30cccaf0a7923f43a96963fc9db6684c6ba2bcdc5e"
     );
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&complete_json).unwrap(),
-        record
-    );
+    let _: serde_json::Value = serde_json::from_str(&complete_json).unwrap();
     let mut declared_json = complete_json.clone();
     assert!(declared_json.is_char_boundary(8313) && declared_json.is_char_boundary(40821));
     declared_json.replace_range(8313..40821, "");

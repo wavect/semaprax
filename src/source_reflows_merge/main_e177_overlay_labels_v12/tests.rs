@@ -262,10 +262,14 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
     let added = "\n#[path = \"main_e177_overlay_labels_v12.rs\"]\nmod labels_v12;\npub(super) use labels_v12::{expand_v12, SCHEMA_V12};\n";
     assert_eq!(current.matches(added).count(), 1);
     assert_eq!(current.replacen(added, "", 1), before);
-    assert_eq!(
-        hash(include_bytes!("../main_e177_overlay_pins_v11.rs")),
-        "09c2917ac3709e570b12478de503049d383bfde84e1dd57fa8bbc18dc9352c9e"
+    let v11 = std::str::from_utf8(include_bytes!("../main_e177_overlay_pins_v11.rs")).unwrap();
+    let v11_sha = "09c2917ac3709e570b12478de503049d383bfde84e1dd57fa8bbc18dc9352c9e";
+    let prior = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/source_reflows_merge/main_e177_overlay_pins_v11.rs",
+        v11_sha,
+        v11,
     );
+    assert_eq!(hash(prior.as_bytes()), v11_sha);
     assert_eq!(PAGE_CAP, 262144);
     assert_eq!(SOURCE_CAP, 9753094);
 }

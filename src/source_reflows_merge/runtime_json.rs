@@ -500,18 +500,22 @@ fn main043_before_successors(
     let actual_raw = raw;
     let input_view = main8_raw_before(source, actual_raw);
     let compiled_view = main8_raw_before(source, actual_compiled);
-    if actual_raw != input_view {
+    assert_eq!(input_view, compiled_view);
+    // Newer RAW packets can start from the physical epoch while the complete
+    // Main8 projection remains an independently checked predecessor.
+    let latest_is_physical = actual_raw.len() as u64 == row["length"].as_u64().unwrap()
+        && digest(actual_raw.as_bytes()) == main043_raw_pin(row["sha256"].as_str().unwrap());
+    if !latest_is_physical && actual_raw != input_view {
         let mut edit = serde_json::Map::new();
         edit.insert(key.to_owned(), actual_raw.into());
         edit.insert("before".to_owned(), input_view.clone().into());
         outer.push(edit.into());
     }
-    let raw = input_view.as_str();
-    let compiled = compiled_view.as_str();
-    assert_eq!(
-        raw, compiled,
-        "complete latest supplied/compiled RAW source"
-    );
+    let raw = if latest_is_physical {
+        actual_raw
+    } else {
+        input_view.as_str()
+    };
     let actual_physical = main043_raw_file(
         std::path::Path::new(path),
         actual_raw.len(),
@@ -521,7 +525,13 @@ fn main043_before_successors(
         ),
     )
     .unwrap();
-    let physical = main8_raw_before(source, &actual_physical);
+    let physical_view = main8_raw_before(source, &actual_physical);
+    assert_eq!(physical_view, input_view);
+    let physical = if latest_is_physical {
+        actual_physical
+    } else {
+        physical_view
+    };
     assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(
         digest(physical.as_bytes()),

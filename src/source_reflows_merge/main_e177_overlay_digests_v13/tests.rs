@@ -415,7 +415,12 @@ fn complete_prior_v12_compiled_body_and_all_parent_inverses_remain_byte_exact() 
         before_source("logical-v12", current("logical-v12")),
         original
     );
-    assert_eq!(original, include_str!("../main_e177_overlay_labels_v12.rs"));
+    let live = include_str!("../main_e177_overlay_labels_v12.rs");
+    assert_eq!(
+        hash(live.as_bytes()),
+        "cd74954fbf31f4bc117c0dc5af46d9ed4fac1a0e4d62317361c70028b891e76d"
+    );
+    assert_eq!(&live[..original.len()], original);
     let rows: Value = serde_json::from_str(include_str!("inverse.json")).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), 7);
     for row in rows.as_array().unwrap() {

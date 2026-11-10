@@ -157,7 +157,8 @@ where
         + 4 * std::mem::size_of::<Place>()
         + 16 * std::mem::size_of::<usize>()
         + 16 * std::mem::size_of::<bool>()
-        + 8 * std::mem::size_of::<Option<&LoanProgramPoint>>();
+        + 8 * std::mem::size_of::<Option<&LoanProgramPoint>>()
+        + 2 * std::mem::size_of::<&[LoanProgramPoint]>();
     let bytes = loan_roles.checked_mul(drafts.len()).ok_or_else(|| {
         let _ = payer.arithmetic();
         storage::marker()
@@ -205,7 +206,7 @@ where
             return Err(error("loan has no bounded CFG termination edge"));
         }
         let start = &cfg.points[draft.start as usize];
-        if let Some(loan) = attached.loans.get(index) {
+        let attached_ends = if let Some(loan) = attached.loans.get(index) {
             matched &= loan.id == LoanId(index as u16);
             matched &= loan.site == draft.site;
             matched &= loan.origin == draft.origin;
@@ -213,20 +214,24 @@ where
             matched &= loan.start == *start;
             matched &= loan.end_edges == *end_edges;
             matched &= loan.cause == draft.cause;
-            let mut previous = None;
-            let mut ordinal = 0usize;
-            for edge in end_edges {
-                let point = &cfg.points[cfg.edges[*edge as usize].1 as usize];
-                if previous != Some(point) {
-                    matched &= loan.ends.get(ordinal) == Some(point);
-                    ordinal += 1;
-                }
-                previous = Some(point);
-            }
-            matched &= loan.ends.len() == ordinal;
+            loan.ends.as_slice()
         } else {
             matched = false;
+            &[]
+        };
+        // Walk the complete independently derived termination sequence even
+        // when the attachment omits this loan. The slice is comparison only.
+        let mut previous = None;
+        let mut ordinal = 0usize;
+        for edge in end_edges {
+            let point = &cfg.points[cfg.edges[*edge as usize].1 as usize];
+            if previous != Some(point) {
+                matched &= attached_ends.get(ordinal) == Some(point);
+                ordinal += 1;
+            }
+            previous = Some(point);
         }
+        matched &= attached_ends.len() == ordinal;
     }
     payer
         .reserve(2 * std::mem::size_of::<Vec<Vec<LoanId>>>())

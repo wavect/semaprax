@@ -49,7 +49,7 @@ fn complete_direct_rows_keep_every_attached_field_and_the_full_late_error_fronti
         .iter()
         .position(|f| !f.loan_plan.loans.is_empty())
         .unwrap();
-    for mutation in 0..26 {
+    for mutation in 0..32 {
         let mut forged = program.clone();
         let plan = &mut forged.functions[first].loan_plan;
         match mutation {
@@ -85,11 +85,22 @@ fn complete_direct_rows_keep_every_attached_field_and_the_full_late_error_fronti
             23 => plan.edges.push(plan.edges[0].clone()),
             24 => plan.endpoints.reverse(),
             25 => plan.edges.reverse(),
+            26 => plan.loans.reverse(),
+            27 => {
+                plan.loans.remove(0);
+            }
+            28 => plan.loans[0].origin.projections.clear(),
+            29 => plan.loans[0].start.expression = ExpressionId::from_owned("forged.start".into()),
+            30 => plan.loans[0].ends[0].expression = ExpressionId::from_owned("forged.end".into()),
+            31 => {
+                plan.endpoints[0].point.expression = ExpressionId::from_owned("forged.point".into());
+            }
             _ => unreachable!(),
         }
         let seed = ConstructorSeed::authenticate(&forged, None).unwrap();
         let expected = selected(true, || prepare_with_comparison(&seed, &forged)).unwrap();
         let expected_result = expected.1.finish(&forged);
+        assert_eq!(expected_result.is_err(), mutation != 0, "mutation {mutation}");
         let (((), metrics), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
             measure(|| {
                 let (storage, deferred) = prepare_with_comparison(&seed, &forged).unwrap();
@@ -109,6 +120,29 @@ fn complete_direct_rows_keep_every_attached_field_and_the_full_late_error_fronti
             selected(true, || crate::hir::validate(&forged))
         });
         assert_eq!(current.0, before.0);
+    }
+    let last = program
+        .functions
+        .iter()
+        .rposition(|function| !function.loan_plan.loans.is_empty())
+        .unwrap();
+    assert!(first < last);
+    for (corrupted, expected_first) in [([first, last], first), ([last, last], last)] {
+        let mut forged = program.clone();
+        for index in corrupted {
+            forged.functions[index].loan_plan.schema = "forged";
+        }
+        let seed = ConstructorSeed::authenticate(&forged, None).unwrap();
+        let expected = crate::loan_plan::forged_evidence(&forged.functions[expected_first]);
+        for old in [true, false] {
+            let (storage, deferred) = with_limit_usage_refusal(usize::MAX, || {
+                selected(old, || prepare_with_comparison(&seed, &forged))
+            })
+            .0
+            .unwrap();
+            assert_eq!(deferred.finish(&forged).unwrap_err(), expected);
+            drop(storage);
+        }
     }
     for early in [true, false] {
         let mut forged = program.clone();
@@ -294,7 +328,8 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
         many_source.push_str("count=count+byte_len(view); ");
     }
     many_source.push_str("count}\n@id(\"main\") fn main()->i64 {0}\n");
-    let refusal = crate::check(&many_source, "direct-net.spx").err().unwrap();
+    let checked = crate::check(&many_source, "direct-net.spx").unwrap();
+    let refusal = crate::hir::resolve(&checked).err().unwrap();
     assert_eq!(refusal.len(), 1);
     assert_eq!(refusal[0].code, "SPX-H006");
     assert_eq!(
@@ -543,7 +578,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
         digest(raw.as_bytes()),
-        "97c3452a22bc6b518ab8206515a10b0a5a79d6e96d3f4295b5bf0d7a808d9163"
+        "f9fa69ccfbde22eb33201e445a91e20442c5836d7feac3be40f3e37c01ca1bdb"
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");

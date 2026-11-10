@@ -172,10 +172,29 @@ fn complete_old_constructor_inventory_caller_and_closure_source_projections_rema
     let current = ci_str!("../canonical_loans.rs");
     let original=ci_str!("../../../../docs/evidence/compatibility-loan-custody/src__hir__validation__canonical_loans.rs.before");
     let marker = "// The ordinary compatibility constructor retains the saved owned directories.";
-    assert_eq!(
-        current.split_once(marker).unwrap().0,
-        original.split_once(marker).unwrap().0
-    );
+    let mut inventory = current.split_once(marker).unwrap().0.to_owned();
+    for observation in [
+        r#"        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "hir::canonical_loans::Inventory::rebuild",
+        );
+"#,
+        r#"            // The entry baseline includes every earlier function's canonical
+            // inventory. Its measured peak includes this function's planner.
+            #[cfg(test)]
+            let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+                "hir::canonical_loans::Inventory::next_function",
+            );
+"#,
+        r#"        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "hir::canonical_loans::Inventory::append",
+        );
+"#,
+    ] {
+        undo(&mut inventory, observation, "");
+    }
+    assert_eq!(inventory, original.split_once(marker).unwrap().0);
     let mut current = super::super::function_lookup::paid_custody::project_current(
         "src/hir/validation.rs",
         ci_str!("../../validation.rs"),

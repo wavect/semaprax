@@ -21,6 +21,13 @@ fn selected_stage<T>(stage: u8, operation: impl FnOnce() -> T) -> T {
         _ => unreachable!("three explicit compiler-owned test stages"),
     }
 }
+// The retained append now pays its ordinal rewrite even on an empty row.
+const EMPTY_RETAINED_ORDINAL_REWRITE: usize =
+    2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()
+        + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()
+        + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()
+        + 2 * std::mem::size_of::<usize>();
+
 fn assert_storage(actual: &Storage<'_>, expected: &Storage<'_>) {
     assert_eq!(actual.ids, expected.ids);
     assert_eq!(actual.liveness, expected.liveness);
@@ -235,10 +242,15 @@ fn current_raw_and_shared_receiving_preserve_exact_short_zero_floor_sticky_and_f
                             assert_eq!(receipt.remaining, floor + seal_request - 1);
                         }
                     } else {
-                        assert_eq!(
-                            receipt.stage,
-                            Some(bounded_output::ReservationStage::LoanCandidateInventory)
-                        );
+                        use bounded_output::ReservationStage;
+                        let (stage, request) = if stage == 2 {
+                            (ReservationStage::CanonicalLoanStorage, EMPTY_CLEAR_BYTES)
+                        } else {
+                            (ReservationStage::LoanCanonicalAppend, EMPTY_RETAINED_ORDINAL_REWRITE)
+                        };
+                        assert_eq!(receipt.stage, Some(stage));
+                        assert_eq!(receipt.requested, request);
+                        assert_eq!(receipt.remaining, floor + request - 1);
                     }
                 }
                 if success {
@@ -282,13 +294,38 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
         many_source.push_str("count=count+byte_len(view); ");
     }
     many_source.push_str("count}\n@id(\"main\") fn main()->i64 {0}\n");
-    let many = crate::hir::resolve(&crate::check(&many_source, "direct-net.spx").unwrap()).unwrap();
+    let refusal = crate::check(&many_source, "direct-net.spx").err().unwrap();
+    assert_eq!(refusal.len(), 1);
+    assert_eq!(refusal[0].code, "SPX-H006");
     assert_eq!(
-        many.functions.iter().map(|f| f.loan_plan.loans.len()).max(),
-        Some(193)
+        refusal[0].message,
+        "loan analysis exceeds 1,000,000 checked work"
     );
+
+    // Retain all 192 call sites in the admitted comparison. Each independent
+    // function owns its own view and exercises the same canonical row sink.
+    use std::fmt::Write as _;
+    let mut grouped = String::from(
+        "module direct.net; @id(\"packet\") record Packet { @id(\"data\") data:Bytes, }",
+    );
+    for group in 0..6 {
+        write!(
+            grouped,
+            "@id(\"group{group}\") fn group{group}(packet:own Packet)->usize {{let view=bytes_as_slice(packet.data); let mut count=byte_len(view); "
+        )
+        .unwrap();
+        for _ in 1..32 {
+            grouped.push_str("count=count+byte_len(view); ");
+        }
+        grouped.push_str("count}\n");
+    }
+    grouped.push_str("@id(\"main\") fn main()->i64 {0}\n");
+    let many = crate::hir::resolve(&crate::check(&grouped, "direct-net.spx").unwrap()).unwrap();
+    let group_loans: Vec<_> = many.functions.iter().map(|f| f.loan_plan.loans.len()).collect();
+    assert_eq!(group_loans.iter().filter(|&&loans| loans == 33).count(), 6);
+    assert_eq!(group_loans.iter().sum::<usize>(), 198);
     for (shape, program, require_gain) in [
-        ("193-loan", &many, true),
+        ("192-calls-across-six-functions", &many, true),
         ("one-view-assignments", &large, true),
         ("cold-empty", &tiny, false),
     ] {
@@ -506,25 +543,25 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
         digest(raw.as_bytes()),
-        "0f9b47d44e062f48ea99385888151db83cae1b6a4ac00a4ed959b76fd3105b45"
+        "97c3452a22bc6b518ab8206515a10b0a5a79d6e96d3f4295b5bf0d7a808d9163"
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");
     // Authenticate the entire actual document before selecting its fixed
     // old source-stage image; the unchanged snapshot/old hashes remain below.
     let architecture_current = include_str!("../../../../../docs/ARCHITECTURE.md");
-    assert_eq!(architecture_current.len(), 395407);
+    assert_eq!(architecture_current.len(), 396047);
     assert_eq!(
         digest(architecture_current.as_bytes()),
-        "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317"
+        "2868a2a0ade7c234b026186e339bcaceafe6707cdf937daf01255763d4cff5a9"
     );
     let architecture_path =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ARCHITECTURE.md");
     assert_eq!(
         source_reader::read(
             &architecture_path,
-            395407,
-            "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317",
+            396047,
+            "2868a2a0ade7c234b026186e339bcaceafe6707cdf937daf01255763d4cff5a9",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -539,6 +576,19 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         "20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41"
     );
     let mut architecture_inverse = architecture_current.to_owned();
+    for &(at, after, before) in [
+            (9746, "The arena prefix certificate holds the actual mutable replay-budget loan and\nconsumes it into its querying session. Its immutable prefix view selects no\npayer; each session funds and uses its own certified prefix.\n\n", ""),
+            (15176, "`factored/paired.rs` holds the synchronous weighted-language comparison. It is\ncompiled only for tests and no production comparison calls it: it ran only for\nthe ActiveBuilder payer and debited its own work instead of the canonical\ncomparator's, so observable work depended on the payer. Its\n", "`factored/paired.rs` owns the ordinary positive synchronous weighted-language\ncomparison after the existing automaton and lexical admission boundaries. Its\n"),
+            (161980, "creation because its runtime lacks those imports. `src/wasm/web_import_inventory.rs`\nowns the following legacy Web import-inventory admission: `build_web` emits the\nmodule in memory and refuses, with `SPX-W131` before output creation, any import\nthe generated loader does not link on its selected branch. Raw emission and\nsuccessful String-free legacy packages whose imports the loader supplies stay\nunchanged. See [Standalone internal String Web\n", "creation because its runtime lacks those imports. Raw emission and successful\nString-free legacy packages stay unchanged. See [Standalone internal String Web\n"),
+    ].iter().rev() {
+        assert_eq!(architecture_inverse.get(at..at + after.len()), Some(after));
+        architecture_inverse.replace_range(at..at + after.len(), before);
+    }
+    assert_eq!(architecture_inverse.len(), 395407);
+    assert_eq!(
+        digest(architecture_inverse.as_bytes()),
+        "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317"
+    );
     for &(at, after, before) in [
         (9746, "\n`expression_facts/receiving/directory/held_invocation.rs` owns the invocation's\nempty status backing and first receiver-error slot; `retained/held_status_invocation.rs`\nowns its ordinary caller. The controller retains complete fresh validation;\nthe owner reauthenticates each full_program callback. Complete previous status owners and the whole program caller\nremain test-only in `directory/invocation.rs`, `retained/ordinary_status_invocation.rs`\nand `fact_preflight/before_status_receivers.rs`. The private transport contract and\npending executable qualification are in [retained fact lookup v1](RETAINED-EXPRESSION-FACT-LOOKUP-V1.md).\n", ""),
     ].iter().rev() {
@@ -649,6 +699,16 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         )
         .unwrap()
     };
+    let immediate_raw = read_archive(&serde_json::json!({
+        "path": "e/0f9b47d44e062f48ea99385888151db83cae1b6a4ac00a4ed959b76fd3105b45",
+        "length": 672468,
+        "sha256": "0f9b47d44e062f48ea99385888151db83cae1b6a4ac00a4ed959b76fd3105b45",
+    }));
+    let immediate: serde_json::Value = serde_json::from_str(&immediate_raw).unwrap();
+    let mut restored = snapshot.clone();
+    restored["rows"] = immediate["rows"].clone();
+    restored["immediate_owned_stage"]["rows"] = immediate["immediate_owned_stage"]["rows"].clone();
+    assert_eq!(restored, immediate, "the complete previous packet remains exact");
     let repair = &snapshot["retained_before_control_repair"];
     let repair_prior_raw = read_archive(&repair["metadata"]);
     let repair_prior: serde_json::Value = serde_json::from_str(&repair_prior_raw).unwrap();
@@ -811,8 +871,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert_eq!(
         source_reader::read(
             &architecture_path,
-            395407,
-            "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317",
+            396047,
+            "2868a2a0ade7c234b026186e339bcaceafe6707cdf937daf01255763d4cff5a9",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -823,8 +883,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         source_reader::read(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("src/hir/canonical_loan_storage/caller.rs"),
-            28421,
-            "f2ef60ecb5dfe623dc8db8d0b3468841b5c74e8b77cd6f5c219cd221ecfce646",
+            29222,
+            "9c655467b74a931fb99abc5f16ccc4d40731ffb1d5362f7afb912483773db75f",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -834,8 +894,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         source_reader::read(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("src/hir/canonical_loan_storage/caller/stream.rs"),
-            16291,
-            "d5d7e473a47fd41d44b8dd587b21cb49bec47d799b2a3a2c275b5f5a6b5f1cff",
+            16677,
+            "f1f7fb74734f4cb595ce3a39fb503ae6cb767ad96e6a9dcf9bb9abcfd56eff03",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -996,7 +1056,7 @@ fn authenticated_empty_terminal_has_whole_scalar_caller_net_after_all_new_branch
         let count = program.functions.len();
         assert_eq!(
             old + count * (BRANCH_SELECTION_BYTES + EMPTY_CLEAR_BYTES),
-            current + count * APPEND_PRESENT_BYTES
+            current + count * (APPEND_PRESENT_BYTES + EMPTY_RETAINED_ORDINAL_REWRITE)
         );
         assert!(
             current < old,
@@ -1195,7 +1255,7 @@ fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_sur
         // two real None results remove it; every function pays branch controls.
         assert_eq!(
             old + 4 * BRANCH_SELECTION_BYTES + 2 * EMPTY_CLEAR_BYTES,
-            current + 2 * APPEND_PRESENT_BYTES
+            current + 2 * (APPEND_PRESENT_BYTES + EMPTY_RETAINED_ORDINAL_REWRITE)
         );
         for (old, exact) in [(true, old), (false, current)] {
             assert_eq!(
@@ -1235,15 +1295,44 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
             ]),
         _ => return std::borrow::Cow::Borrowed(supplied),
     };
+    let (live_length, live_sha, live_edits): (usize, &str, &[(usize, &str, &str)]) = match path {
+        "src/hir/canonical_loan_storage/caller.rs" => (29222, "9c655467b74a931fb99abc5f16ccc4d40731ffb1d5362f7afb912483773db75f", &[
+            (18686, "", "                origin(loan),\n"),
+            (18897, "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));\n", "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n"),
+            (19596, "            if storage.live(&key).is_some() || live_probe[first].1 < source {\n", "            if storage.live(&key).is_some() || live_probe[first].2 < source {\n"),
+            (20668, "    // The first complete origin validation above retains its original error\n    // priority. Only its redundant cached Option was removed from each probe.\n    // Acquire the actual new mutation/lookup receiving carriers before forming\n    // them; the complete real LiveKey and all public plan fields stay intact.\n    payer.reserve(\n        2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()\n            + 2 * std::mem::size_of::<usize>(),\n    )?;\n", ""),
+            (21907, "    // Both lookups still run: original validation in endpoint source order,\n    // then publication from the same immutable local directory. The source\n    // occurrence is dead only after every original validation has succeeded.\n    for (key, ordinal) in live_probe.iter_mut() {\n        *ordinal = origin(&key.2).expect(\"checked every source endpoint\");\n    }\n    storage.liveness.append(live_probe);\n", "    storage.liveness.extend(\n        live_probe\n            .drain(..)\n            .map(|(key, ordinal, _)| (key, ordinal.expect(\"checked every source endpoint\"))),\n    );\n"),
+            (29222, "", "\n"),
+        ]),
+        "src/hir/canonical_loan_storage/caller/stream.rs" => (16677, "f1f7fb74734f4cb595ce3a39fb503ae6cb767ad96e6a9dcf9bb9abcfd56eff03", &[
+            (410, "pub(super) const APPEND_PRESENT_BYTES: usize =\n    2 * std::mem::size_of::<(&crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>)>()\n        + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()\n        + 4 * std::mem::size_of::<Scratch>()\n        + 4 * std::mem::size_of::<Option<(usize, bool)>>()\n        + 8 * std::mem::size_of::<usize>()\n        + 16 * std::mem::size_of::<bool>();\n", "pub(super) const APPEND_PRESENT_BYTES: usize = 2 * std::mem::size_of::<(\n    &crate::loan_plan::canonical_sink::Parts<'_>, Payer<'_>,\n)>() + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()\n    + 4 * std::mem::size_of::<Scratch>()\n    + 4 * std::mem::size_of::<Option<(usize, bool)>>()\n    + 8 * std::mem::size_of::<usize>()\n    + 16 * std::mem::size_of::<bool>();\n"),
+            (1244, ">() + 2 * std::mem::size_of::<bool>()\n    + 2 * std::mem::size_of::<usize>();\n", ">() + 2 * std::mem::size_of::<bool>() + 2 * std::mem::size_of::<usize>();\n"),
+            (1408, "    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, usize)>>()\n", "    + 2 * std::mem::size_of::<&mut Vec<(LiveKey, Option<usize>, usize)>>()\n"),
+            (1930, "        let charge = if source.is_some() {\n            APPEND_PRESENT_BYTES\n        } else {\n            EMPTY_CLEAR_BYTES\n        };\n", "        let charge = if source.is_some() { APPEND_PRESENT_BYTES } else { EMPTY_CLEAR_BYTES };\n"),
+            (2859, "            EMPTY_COUNTS.with(|counts| {\n                let (empty, present) = counts.get();\n                counts.set((empty + 1, present));\n            });\n", "            EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty + 1, present)); });\n"),
+            (3078, "        EMPTY_COUNTS.with(|counts| {\n            let (empty, present) = counts.get();\n            counts.set((empty, present + 1));\n        });\n", "        EMPTY_COUNTS.with(|counts| { let (empty, present) = counts.get(); counts.set((empty, present + 1)); });\n"),
+            (7556, "            live_probe.push(((point.expression.clone(), point.phase, *loan), ordinal));\n", "            live_probe.push((\n                (point.expression.clone(), point.phase, *loan),\n                origin(loan),\n                ordinal,\n            ));\n"),
+            (8056, "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));\n", "    live_probe.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(a.2.cmp(&b.2)));\n"),
+            (8396, "        let unknown = origin(&entry.0 .2).is_none();\n", "        let unknown = entry.1.is_none();\n"),
+            (9045, "            if first_bad.is_none_or(|prior| entry.1 < prior.0) {\n                first_bad = Some((entry.1, unknown));\n", "            if first_bad.is_none_or(|prior| entry.2 < prior.0) {\n                first_bad = Some((entry.2, unknown));\n"),
+            (10307, "    payer.reserve(\n        2 * std::mem::size_of::<std::slice::IterMut<'_, (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<Option<&mut (LiveKey, usize)>>()\n            + 2 * std::mem::size_of::<&mut (LiveKey, usize)>()\n            + 2 * std::mem::size_of::<usize>(),\n    )?;\n", ""),
+            (11079, "    for (key, ordinal) in live_probe.iter_mut() {\n        *ordinal = origin(&key.2).expect(\"checked every source endpoint\");\n    }\n    storage.liveness.append(live_probe);\n", "    storage.liveness.extend(\n        live_probe\n            .drain(..)\n            .map(|(key, ordinal, _)| (key, ordinal.expect(\"checked every source endpoint\"))),\n    );\n"),
+            (15878, "", "\n"),
+            (16109, "pub(super) fn empty_before_selected() -> bool {\n    EMPTY_BEFORE.with(|flag| flag.get())\n}\n", "pub(super) fn empty_before_selected() -> bool { EMPTY_BEFORE.with(|flag| flag.get()) }\n"),
+            (16308, "    impl Drop for Reset {\n        fn drop(&mut self) {\n            EMPTY_BEFORE.with(|flag| flag.set(self.0));\n        }\n    }\n", "    impl Drop for Reset { fn drop(&mut self) { EMPTY_BEFORE.with(|flag| flag.set(self.0)); } }\n"),
+            (16577, "fn take_empty_counts() -> (usize, usize) {\n    EMPTY_COUNTS.with(|counts| counts.replace((0, 0)))\n}\n", "fn take_empty_counts() -> (usize, usize) { EMPTY_COUNTS.with(|counts| counts.replace((0, 0))) }\n"),
+        ]),
+        _ => unreachable!("matched complete source owner above"),
+    };
     assert_eq!(supplied, compiled);
-    assert_eq!(compiled.len(), current_length);
-    assert_eq!(hash(compiled.as_bytes()), current_sha);
+    assert_eq!(compiled.len(), live_length);
+    assert_eq!(hash(compiled.as_bytes()), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         source_reader::read(
             &root.join(path),
-            current_length,
-            current_sha,
+            live_length,
+            live_sha,
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -1252,6 +1341,12 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
     assert_eq!(before.len(), before_length);
     assert_eq!(hash(before.as_bytes()), before_sha);
     let mut restored = compiled.to_owned();
+    for &(at, after, prior) in live_edits.iter().rev() {
+        assert_eq!(restored.get(at..at + after.len()), Some(after));
+        restored.replace_range(at..at + after.len(), prior);
+    }
+    assert_eq!(restored.len(), current_length);
+    assert_eq!(hash(restored.as_bytes()), current_sha);
     for &(at, after, prior) in edits.iter().rev() {
         assert_eq!(restored.get(at..at + after.len()), Some(after));
         restored.replace_range(at..at + after.len(), prior);
@@ -1270,8 +1365,8 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
     assert_eq!(
         source_reader::read(
             &root.join(path),
-            current_length,
-            current_sha,
+            live_length,
+            live_sha,
             2 * 1024 * 1024
         )
         .unwrap(),

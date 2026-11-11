@@ -2152,6 +2152,9 @@
         "src/hir/validation/scope_checkpoint/merge/partial_retain.rs",
         "src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs",
         "src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs",
+        "src/hir/validation/scope_checkpoint/merge/prefix_stream/before.rs",
+        "src/hir/validation/scope_checkpoint/merge/prefix_stream/scope_tests.rs",
+        "src/hir/validation/scope_checkpoint/merge/prefix_stream/tests.rs",
         "src/hir/validation/scope_checkpoint/merge/saved.rs",
         "src/hir/validation/scope_checkpoint/merge/tests.rs",
         "src/hir/validation/scope_checkpoint/paths.rs",
@@ -2843,7 +2846,6 @@
         "src/hir/validation/scope_checkpoint/marks.rs",
         "src/hir/validation/scope_checkpoint/merge.rs",
         "src/hir/validation/scope_checkpoint/merge/moved_direct.rs",
-        "src/hir/validation/scope_checkpoint/merge/partial_retain.rs",
         "src/hir/validation/scope_checkpoint/paths.rs",
         "src/hir/validation/scope_checkpoint/storage.rs",
         "src/hir/validation/scope_checkpoint/transaction.rs",
@@ -3221,9 +3223,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "2732ff3e2fce0b21d6fafd38223b29d1f2ff82f925bcc8eb35c2913eda1dad8b",
-      "full_raw_sha256": "a130eacb41e0c06b15ea2ee3e0d5fa03686883040df2b2a2848a87491be2d998",
-      "full_authenticated_production_sha256": "2a1f45d100ad902ea55cbf69193e6edbbae528f80d4f530a1a33817e618be8a6"
+      "full_manifest_sha256": "09cc7e87d4a083ef7aa814e6b45ca02722d28826919bdb51ee1b7ff4e65fc35b",
+      "full_raw_sha256": "c7f2cc5d811ee3c38cce7dade8bd9ef044e1300c613c05b7ef8da2f1a11807fa",
+      "full_authenticated_production_sha256": "f1a0ab9a252463420f07428f111d3fccb8e267b155ebea7264583fe1e2759e45"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4394,7 +4396,6 @@
         "src/hir/validation/scope_checkpoint/marks.rs",
         "src/hir/validation/scope_checkpoint/merge.rs",
         "src/hir/validation/scope_checkpoint/merge/moved_direct.rs",
-        "src/hir/validation/scope_checkpoint/merge/partial_retain.rs",
         "src/hir/validation/scope_checkpoint/paths.rs",
         "src/hir/validation/scope_checkpoint/storage.rs",
         "src/hir/validation/scope_checkpoint/transaction.rs",
@@ -4503,9 +4504,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "68aec185c56f9509fd0f11a58fb27d9459efd703fa499cf3b3efe2fd6b794820",
-      "full_raw_sha256": "26fd851328473cea16b7af05ed1231f2ec1e2903b382135864ff3266b1a62368",
-      "full_authenticated_production_sha256": "91413e64f572ff514da340c74acb37e453f1b32210d4ff8d543ccec9f95428bf"
+      "full_manifest_sha256": "5e0aeafd5814c915b9180c3ffed606c188255251e13c24af65d80947eca87c41",
+      "full_raw_sha256": "ed3c4fed980e4ec8af2fcd34769c9de979eda8d284e0ea253cbb12e6f5c21a44",
+      "full_authenticated_production_sha256": "f6248a499882964488d6478b3fdd8c9c3f80ec4aeecf039508c1a6fd7a79bb18"
     }
   }
 }

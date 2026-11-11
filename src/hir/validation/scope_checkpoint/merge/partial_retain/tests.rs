@@ -3,7 +3,11 @@ use super::*;
 use crate::bounded_output::{self, with_limit_usage_refusal};
 use crate::test_allocation_observer::{measure, Metrics};
 
-fn binding(count: usize, depth: usize, state: Availability) -> ValidationBinding {
+pub(in crate::hir::validation::scope_checkpoint::merge) fn binding(
+    count: usize,
+    depth: usize,
+    state: Availability,
+) -> ValidationBinding {
     let moved_places = (0..count)
         .map(|n| {
             let path = (0..depth)
@@ -162,6 +166,7 @@ fn retained_candidates_preserve_all_four_classes_empty_prefixes_duplicates_and_s
 #[test]
 fn complete_depth_one_to_three_successive_scope_and_cow_callers_earn_real_allocation_and_invoice_net(
 ) {
+    let _immediate = super::super::prefix_stream::before_guard();
     for depth in [1, 2, 3] {
         let input = input(64, depth);
         let expected = expected(&input);
@@ -202,6 +207,7 @@ fn complete_depth_one_to_three_successive_scope_and_cow_callers_earn_real_alloca
 
 #[test]
 fn complete_small_empty_and_all_reject_costs_are_observed_without_a_universal_gain_claim() {
+    let _immediate = super::super::prefix_stream::before_guard();
     for count in [0, 1, 2] {
         for state in [
             Availability::Available,
@@ -244,12 +250,13 @@ fn complete_small_empty_and_all_reject_costs_are_observed_without_a_universal_ga
 
 #[test]
 fn exact_first_control_and_complete_short_zero_floor_sticky_frontiers_leave_inputs_immutable() {
+    let _immediate = super::super::prefix_stream::before_guard();
     let left = binding(64, 2, Availability::Moved);
     let right = left.clone();
     let control = super::super::moved_direct::CONTROL + CONTROL;
     for limit in [0, control - 1] {
         let ((result, metrics), refused, _, first) = with_limit_usage_refusal(limit, || {
-            measure(|| super::super::join_scratch(&left, &right))
+            measure(|| super::super::prefix_stream::before::join_scratch(&left, &right))
         });
         let error = result.unwrap_err();
         assert_eq!(error.code, "SPX-H006");
@@ -318,6 +325,7 @@ fn exact_first_control_and_complete_short_zero_floor_sticky_frontiers_leave_inpu
 
 #[test]
 fn real_many_field_hir_old_and_current_keep_complete_semantics_and_hostile_diagnostics() {
+    let _immediate = super::super::prefix_stream::before_guard();
     let mut source = String::from("module retained.partial.real;\n@id(\"Packet\") record Packet {");
     for n in 0..32 {
         source.push_str(&format!("@id(\"field{n}\") field{n}:Bytes,"));
@@ -362,6 +370,7 @@ fn real_many_field_hir_old_and_current_keep_complete_semantics_and_hostile_diagn
 
 #[test]
 fn postjoin_unwind_drops_retained_nodes_snapshots_and_restores_old_selection() {
+    let _immediate = super::super::prefix_stream::before_guard();
     let input = input(64, 3);
     let expected = expected(&input);
     for old in [true, false] {
@@ -406,6 +415,7 @@ fn postjoin_unwind_drops_retained_nodes_snapshots_and_restores_old_selection() {
 
 #[test]
 fn reached_empty_jointariff_pays_exact_fixed_surcharge_before_identical_publication_and_drop() {
+    let _immediate = super::super::prefix_stream::before_guard();
     let id = ValueId::new("retained.empty.owner".to_owned());
     let target = BTreeMap::from([(id.clone(), binding(0, 1, Availability::Available))]);
     let mut child = target.clone();
@@ -469,6 +479,7 @@ fn reached_empty_jointariff_pays_exact_fixed_surcharge_before_identical_publicat
 
 #[test]
 fn paid_distinct_full_scope_inventory_states_and_partial_classes_match_whole_generic_publication() {
+    let _immediate = super::super::prefix_stream::before_guard();
     for depth in [1, 2, 3] {
         for count in [1, 7, 32] {
             let id = ValueId::new("retained.distinct.owner".to_owned());
@@ -579,7 +590,10 @@ fn whole_immediate_paid_receiver_generic_builder_and_source_inverses_are_exact()
         sha(original),
         "7f066dff4bbc040dd5b90645588a907173290f119f05532e73429c12209ce9b8"
     );
-    let mut restored = include_str!("../../merge.rs").to_owned();
+    let mut restored = String::from_utf8(super::super::prefix_stream::historical_merge(
+        include_str!("../../merge.rs").as_bytes(),
+    ))
+    .unwrap();
     assert_eq!(
         restored
             .matches("mod moved_direct;\nmod partial_retain;")
@@ -632,9 +646,10 @@ fn whole_immediate_paid_receiver_generic_builder_and_source_inverses_are_exact()
     restored = restored.replacen("    #[cfg(test)]\n    if partial_retain::before_selected() {\n        return partial_retain::before::branches(target, left, right, ids);\n    }\n", "", 1);
     assert_eq!(restored, original);
     let mut prior = include_str!("before.rs")
-        .replace(
-            "pub(in crate::hir::validation) fn join_scratch(",
-            "fn join_scratch(",
+        .replacen(
+            "pub(in crate::hir::validation) fn join_scratch(\n    left: &ValidationBinding,\n    right: &ValidationBinding,\n) -> Result<(), Diagnostic> {",
+            "fn join_scratch(left: &ValidationBinding, right: &ValidationBinding) -> Result<(), Diagnostic> {",
+            1,
         )
         .replacen("use super::*;\n", "use super::*;\nmod moved_direct;\n", 1);
     prior.push_str("\n#[cfg(test)]\nmod saved;\n#[cfg(test)]\nmod tests;\n");
@@ -721,7 +736,7 @@ pub(in crate::hir::validation::scope_checkpoint::merge) fn whole_merge_before(
         (7721,7862,"    if partial_retain::before_selected() {\n        return partial_retain::before::branches(target, left, right, ids);\n    }\n    #[cfg(test)]\n",""),
         (8664,8758,"        let definitely_partial = HirValidator::join_definitely_partial_retained(left, right);\n","        let definitely_partial = HirValidator::join_definitely_partial(left, right);\n"),
     ];
-    let mut restored = current.to_vec();
+    let mut restored = super::super::prefix_stream::historical_merge(current);
     for &(start, end, present, previous) in edits.iter().rev() {
         assert_eq!(&restored[start..end], present.as_bytes());
         restored.splice(start..end, previous.bytes());
@@ -730,3 +745,6 @@ pub(in crate::hir::validation::scope_checkpoint::merge) fn whole_merge_before(
     authenticate();
     restored
 }
+
+#[path = "../prefix_stream/scope_tests.rs"]
+mod scope_tests;

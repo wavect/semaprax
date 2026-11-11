@@ -58,7 +58,7 @@ pub(super) fn with_before<T>(body: impl FnOnce() -> T) -> T {
     result
 }
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;
 
 #[cfg(test)]
 pub(super) use tests::whole_merge_before;

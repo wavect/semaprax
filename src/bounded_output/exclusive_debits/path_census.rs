@@ -144,7 +144,7 @@ pub(super) fn add_debit(s: &mut State, index: usize, bytes: usize) {
         add(&mut r.debits, 1) & add(&mut r.debit_bytes, bytes)
     });
 }
-pub(crate) fn request(budget: Option<&Budget>, bytes: usize, admitted: bool) {
+pub(in crate::bounded_output) fn request(budget: Option<&Budget>, bytes: usize, admitted: bool) {
     let Some(budget) = budget else {
         return;
     };
@@ -180,7 +180,7 @@ pub(crate) struct Request<'a> {
     admitted: bool,
 }
 impl<'a> Request<'a> {
-    pub(crate) fn new(budget: Option<&'a Budget>, bytes: usize) -> Self {
+    pub(in crate::bounded_output) fn new(budget: Option<&'a Budget>, bytes: usize) -> Self {
         Self {
             budget,
             bytes,

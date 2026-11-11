@@ -1,0 +1,97 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    940
+  ],
+  "status": "focused_passed",
+  "rust": "1.97.1-aarch64-apple-darwin",
+  "source_commit": "5aa737f9846e1c9a2d197d92768a1d78cfa3fdb8",
+  "source_tree": "dbec36fbaa5fb9a52c34af2a15e75280787ba9f8",
+  "source_bindings": {
+    "src/source_reflows_merge/final_ready_inputs/merged_projection.rs": {
+      "bytes": 129675,
+      "sha256": "51a731e78aad78d997add0d10c4856a870a12c6589983dcca05bacfcfce7ef03"
+    },
+    "src/source_reflows_merge/final_ready_inputs/projection_publication.rs": {
+      "bytes": 66654,
+      "sha256": "c918004b30547e2f719505f57bbc423df509365636980b935b5ea9219315191d"
+    },
+    "src/source_reflows_merge/constructor_stage.rs": {
+      "bytes": 59172,
+      "sha256": "b655b1ecb9f0ccdfe9281049391f60beeeed51d1a3c989d16d4dead18c965778"
+    },
+    "src/source_reflows/declared_history_inputs.rs": {
+      "bytes": 172226,
+      "sha256": "8cf6c2badd0f7112e9116214e19101863d948708d4c6a50779a264a0d2274fab"
+    },
+    "docs/evidence/declared-history-inputs-20261105/part-43.json": {
+      "bytes": 118328,
+      "sha256": "562739072d0cb7756286de58436302b7ae3c978bd20b729aa8a192d1968f13ae"
+    }
+  },
+  "actual_projection_owner": {
+    "macro": "semantic_graph_projection_root_source_inventory",
+    "members": 146,
+    "bytes": 2327993,
+    "sha256": "ea628075cf9079254ec395a186c726a0f291628acad4261c5797e68246a2195a"
+  },
+  "whole_predecessor_members": {
+    "v10_members": 126,
+    "v10_bytes": 1855210,
+    "prior_states": [
+      {
+        "expected_bytes": 652723,
+        "members": 50,
+        "direct_exact_members": 50,
+        "missing_direct_archives": []
+      },
+      {
+        "expected_bytes": 652398,
+        "members": 50,
+        "direct_exact_members": 50,
+        "missing_direct_archives": []
+      }
+    ]
+  },
+  "gates": {
+    "production_clippy": "passed",
+    "projection": {
+      "passed": 9,
+      "failed": 0,
+      "selectors": [
+        "source_reflows_merge::final_ready_inputs::merged_projection::tests::actual_merged_join_executes_both_entire_named_predecessor_chains",
+        "source_reflows_merge::final_ready_inputs::merged_projection::tests::merged_join_refuses_foreign_same_length_truncation_extension_and_duplicates",
+        "source_reflows_merge::final_ready_inputs::merged_projection::tests::named_parts_keep_complete_inverse_images_and_reject_foreign_requested_tuples",
+        "source_reflows_merge::final_ready_inputs::projection_publication::tests::current_audit_entry_keeps_all_fifty_complete_inputs_and_the_whole_phase_predecessor",
+        "source_reflows_merge::final_ready_inputs::projection_publication::tests::current_audit_entry_refuses_foreign_same_length_truncated_duplicate_and_extended_joins"
+      ]
+    },
+    "borrowed_imports": {
+      "passed": 119,
+      "failed": 0,
+      "selectors": [
+        "workspace_graph::expected_projection::borrowed_imports::tests::full::publication::full_original_constructor_and_only_sticky_publication_changes_stay_source_bound",
+        "workspace_graph::expected_projection::borrowed_imports::tests::full::publication::last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots",
+        "workspace_graph::expected_projection::borrowed_imports::tests::imports_aliases_private_layouts_defaults_and_cache_publication_keep_full_old_projection",
+        "workspace_graph::expected_projection::borrowed_imports::typed::before_alias::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+        "workspace_graph::expected_projection::borrowed_imports::typed::scalar_signature_tests::current_constructor_exact_short_zero_and_drop_keep_real_invoice",
+        "workspace_graph::expected_projection::borrowed_imports::typed::typed_cost::tests::typed_constructor_cost_complete_originals_live_callers_and_all_source_inverses_are_bound",
+        "workspace_graph::expected_projection::borrowed_imports_original::tests::full::publication::full_original_constructor_and_only_sticky_publication_changes_stay_source_bound",
+        "workspace_graph::expected_projection::borrowed_imports_original::tests::full::publication::last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots",
+        "workspace_graph::expected_projection::borrowed_imports_original::tests::imports_aliases_private_layouts_defaults_and_cache_publication_keep_full_old_projection"
+      ]
+    },
+    "constructor_controls": [
+      "source_reflows_merge::constructor_stage::cost_cursor_reacquires_current_before_its_complete_named_predecessor",
+      "source_reflows_merge::constructor_stage::final_cost_binding_keeps_the_complete_fixed_source_and_rejects_changed_producers"
+    ]
+  },
+  "constructor_suite_advisory": {
+    "passed": 9,
+    "failed": 1,
+    "baseline_failure": {
+      "failed_selector": "source_reflows_merge::constructor_stage::report947_current_ingress_preserves_whole_targets_and_refuses_all_channels_early_and_late",
+      "reproduced_on": "e76acd0d1d0f588774b3324945f1869756710b4b"
+    }
+  }
+}

@@ -2,9 +2,8 @@
 
 Audience: language users, compiler contributors and reviewers.
 
-Status: source implementation batch for #836; all owning executable gates below
-are pending. No implementation completion, application acceptance or efficiency
-result is claimed.
+Status: locally qualified for the bounded v1 profile on the interpreter,
+native C11 O0/O2 and strict private Core-Wasm.
 
 ## Source and admission
 
@@ -103,7 +102,7 @@ slot once and returns its fresh generation. No row/payload clone, allocation or
 Drop occurs at the store. Legacy tag10 descriptor binding is selected only when
 this update is reachable. This is a private host protocol, not a public ABI.
 
-## Adoption and exact owning gates (pending)
+## Adoption and owning verification
 
 The actual typed ShiftSim scheduler carries `Worker { id, free_at }` and updates
 `free_at` after the assignment's borrowed ID is copied into the output report.
@@ -114,33 +113,22 @@ independent acceptance/oracles and all original ShiftSim15 tasks stay intact.
 The unrelated [inventory example](../examples/inventory-field-update/main.spx)
 updates `count` and `active` while preserving `sku` and the other row.
 
-Minimum next grouped selection, owned by the integration parent:
+The complete ShiftSim15 corpus passed at the ordinary limits on native C11
+O0 and O2. The owning application test ran the retained indexed, wrapper
+and unfactored schedulers against the same inputs and expected outputs. The
+inventory example returned 42 through the interpreter and native CLI.
 
-- `cargo test --locked -p semaprax --lib vec_ops::field_update::tests -- --nocapture`
-- `cargo test --locked -p semaprax --lib interpreter::owned_vec::field_update::tests -- --nocapture`
-  authors checked-source construction-through-Drop controls for unique stores,
-  vector/row Arc alias refusals and generation overflow before commit. The
-  unique-store measurement pays the same actual descriptor checks in its
-  independent no-store control; raw unrelated f32/f64 bits, String/Bytes owner
-  identity and materialization counters remain observable. Overflow retains its
-  exact invariant guard through ordinary source-frame failure and owner Drop;
-  it is not converted into a language-visible status.
-- `cargo test --locked -p semaprax --lib project::incremental::snapshot::field_update::tests -- --nocapture`
-- `cargo test --locked -p semaprax --bin semaprax scalar_field_update_card -- --nocapture`
-- Existing owned-data backend harness's `field_update` module: same-source
-  interpreter/native C11 O0/O2/strict Wasm, exact/+1 index, every scalar lane and
-  floating bit patterns, RHS first failure, physical leaf identity and zero
-  clone/allocation/drop at store, whole construction-through-Drop settlement,
-  stale generation and malformed descriptor controls.
-- Existing typed ShiftSim application harness: unchanged complete ShiftSim15,
-  original invalid-input controls and independent scheduler comparison, plus
-  unrelated inventory/count acceptance; full original fuel/bounds retained.
-- Scoped Clippy and required current pin regeneration follow the parent's batch;
-  no full suite is selected by this source-only work.
+All 20 focused checks passed across the library, CLI, `owned_data` and
+`cleanup_backends` harnesses. The `field_update` selectors cover canonical
+source, graph and cache replay, exact and out-of-bounds indices, all eight
+scalar lanes, floating-point bit patterns, RHS failure precedence, stale
+generations and malformed carriers. The native and Wasm probes observed
+unchanged unrelated owners and scalar bits, zero clone, allocation or drop at
+the store, and settlement through final Drop. The interpreter checks cover
+vector and row alias refusals and generation overflow before commit. The
+independent no-store control pays the same descriptor checks. Scoped production
+Clippy passed.
 
-No Cargo command, build, test, Clippy or benchmark was executed by this authoring
-lane. Static source is separate from executable evidence. Immediate prior source
-archives/inverses and direct pending selectors accompany this batch. Historical
-global provenance composition remains deliberately uncomposed here; the parent
-will compose it once after integrating disjoint lanes. No measured token, turn,
-latency, billed-cost or efficiency savings follows from a source reduction.
+The immediate prior source archives and inverses remain available to the
+owning replay checks. Agent tokens, turns, latency and billed cost remain
+unmeasured.

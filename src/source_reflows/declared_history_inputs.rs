@@ -27,8 +27,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-1.json"
         )),
-        942652,
-        "b0062efb0c8059a6b1102aff8ce79976f009ca8bca7cdc65ff658eeca0a506e5",
+        942989,
+        "a36127fdd8d4d16beee35a5ac1601b10bada49193a1835f7e2fcbf40f9bf093f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-2.json",
@@ -108,8 +108,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        130002,
-        "5a5be7f2d664e1338e93bf9cdadfe5285fad252ed71c26ba658a764b0a9e6f49",
+        130153,
+        "b67ac9a16345104520f75b1a740ed3dd0e65aac57f48495473a6bae61e9c7e84",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        324256,
-        "a0f3c2114755550f9c4f7da0c640e9ed089e9ce5f7db167ee1f27392fde08f6b",
+        337641,
+        "3619e929450d455b9b79bda63604da02a1d96dd7b07c0c8bc923e3172777ab35",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1055,6 +1055,13 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", "9b0a44837b96345bec274eae1594041194ac6cee80b7d3861216e88a79b29d81") => Some((43,75)),
 ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs", "3a39ab0f14065a9201b4cb2526e2fba164e2c775a900919ac8e9900a7fa13626") => Some((43,76)),
 ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", "5f07abb62df0a437625541c68792b14314ea293a2d4bce792f46a2b7588f392d") => Some((43,77)),
+("src/cleanup_plan/replay/paid_type_facts.rs", "e508f5533dc1c8913e309d87a80dee963f92edffccb3f24ced35eae49ad904bf") => Some((43,78)),
+("src/cleanup_plan/replay/record_destructure/update.rs", "174d12a44343cee6abba4922a2b7b8e1986dbdab8840860bca3c17aab415af8c") => Some((43,79)),
+("src/cleanup_plan/replay/schema/paid_summary.rs", "dcdc3881d12701c95ce3fc353b4a063d12fcec3de665c16014a2890585c66440") => Some((43,80)),
+("src/cleanup_plan/replay/schema/paid_summary/tests.rs", "b39351afe04f6c69ecc5b6562198c3ae14aafe4a27e758f0198da111df6fb184") => Some((43,81)),
+("src/hir/iterator_loop.rs", "30d03e90d07f4f3d86ba6fb58d550145b22d1933329db000433b036699f29722") => Some((43,82)),
+("src/hir/iterator_loop/renewal.rs", "433c862ad4565552ff8d6c357728d25b010a99ef7ac98e820269b860dd0ed834") => Some((43,83)),
+("src/hir/iterator_loop/renewal/funded.rs", "718fb18cd7194c3edadb28b7c067d8d163b08058fcb2eaff49a87e44e7058aa0") => Some((43,84)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1483,6 +1490,11 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs")),
 "src/cleanup_plan/validate.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/validate.rs")),
 "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs")),
+"src/cleanup_plan/replay/paid_type_facts.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/paid_type_facts.rs")),
+"src/cleanup_plan/replay/record_destructure/update.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/record_destructure/update.rs")),
+"src/cleanup_plan/replay/schema/paid_summary.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary.rs")),
+"src/cleanup_plan/replay/schema/paid_summary/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary/tests.rs")),
+"src/hir/iterator_loop/renewal/funded.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/iterator_loop/renewal/funded.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

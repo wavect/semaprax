@@ -1645,6 +1645,7 @@
         "src/cleanup_plan/replay/record_destructure/funded/admission/text.rs",
         "src/cleanup_plan/replay/record_destructure/funded/tests.rs",
         "src/cleanup_plan/replay/record_destructure/update.rs",
+        "src/cleanup_plan/replay/record_destructure/update/paid.rs",
         "src/cleanup_plan/replay/scalar_replay.rs",
         "src/cleanup_plan/replay/scalar_replay/before_certificate.rs",
         "src/cleanup_plan/replay/scalar_replay/before_certificate/paid_nodes.rs",
@@ -1662,7 +1663,12 @@
         "src/cleanup_plan/replay/scalar_replay_tree.rs",
         "src/cleanup_plan/replay/scalar_replay_tree/records.rs",
         "src/cleanup_plan/replay/schema/paid_summary.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/before_selectors.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/iterator_presence.rs",
         "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/positive_schema_controls.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/renewal_selectors.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/shipping_controls.rs",
         "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
         "src/cleanup_plan/replay/selected_context/child.rs",
         "src/cleanup_plan/replay/selected_context/child/receiving.rs",
@@ -2643,11 +2649,14 @@
         "src/cleanup_plan/replay/physical_storage.rs",
         "src/cleanup_plan/replay/record_destructure.rs",
         "src/cleanup_plan/replay/record_destructure/update.rs",
+        "src/cleanup_plan/replay/record_destructure/update/paid.rs",
         "src/cleanup_plan/replay/scalar_replay.rs",
         "src/cleanup_plan/replay/scalar_replay/paid_nodes.rs",
         "src/cleanup_plan/replay/scalar_replay/records.rs",
         "src/cleanup_plan/replay/scalar_replay/records/paid.rs",
         "src/cleanup_plan/replay/schema/paid_summary.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/iterator_presence.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/renewal_selectors.rs",
         "src/cleanup_plan/replay/selected_context/child.rs",
         "src/cleanup_plan/replay/selected_context/child/receiving.rs",
         "src/cleanup_plan/replay/selected_context/paid.rs",
@@ -3225,9 +3234,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "446dad87c34bb7864c4a3f994649d675d645293d6185ab3697b9b8ada6391431",
-      "full_raw_sha256": "17701170b7e2a224f876e02503b2479d9efae3b73717794197176f4313abd996",
-      "full_authenticated_production_sha256": "57361b5476665e44f86ad5810f7175569f89309a57806caf763ab985632b355f"
+      "full_manifest_sha256": "c0f2dfcd76baeb55efe0a57468f4f00407632fb2e319a66df2b1d101ee046b72",
+      "full_raw_sha256": "dae62710e51e81f3d3ed968e69428f580e5be205fc0d6b90bef54f1dccd4890e",
+      "full_authenticated_production_sha256": "12998f139ff71703816e537d0d29a0b4cd99fb41b42a82cc6823434619fd7416"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4006,6 +4015,7 @@
         "src/cleanup_plan/replay/projection_backing.rs",
         "src/cleanup_plan/replay/record_destructure.rs",
         "src/cleanup_plan/replay/record_destructure/update.rs",
+        "src/cleanup_plan/replay/record_destructure/update/paid.rs",
         "src/cleanup_plan/replay/renewal.rs",
         "src/cleanup_plan/replay/resolved_call.rs",
         "src/cleanup_plan/replay/resolved_call/param_view.rs",
@@ -4016,6 +4026,8 @@
         "src/cleanup_plan/replay/scalar_replay/records/paid.rs",
         "src/cleanup_plan/replay/schema.rs",
         "src/cleanup_plan/replay/schema/paid_summary.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/iterator_presence.rs",
+        "src/cleanup_plan/replay/schema/paid_summary/renewal_selectors.rs",
         "src/cleanup_plan/replay/schema/selected_paid.rs",
         "src/cleanup_plan/replay/selected_callees.rs",
         "src/cleanup_plan/replay/selected_context.rs",
@@ -4506,9 +4518,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "8876b279b61c2c0d8c5f674c3fe9b395378274225cc50e6a76209758de902fa9",
-      "full_raw_sha256": "6086b8c496900c4dd7f5ee27a352c03e3b77de164a303f0b762c62c4a9914ed9",
-      "full_authenticated_production_sha256": "6c80556c8c210423a7140304ed61c818fc0ec8fe9b14fb6f519043c051331d1b"
+      "full_manifest_sha256": "34d4660ed7e48008e64a5d1db450167f52607265f6ceb0f8ce41935c2b677e07",
+      "full_raw_sha256": "23a794460904493391c02b31bfedbf0301fabf2053aa8d9e129cf447ec848fb9",
+      "full_authenticated_production_sha256": "a993f301e24ab5f4c3223c7bc871286d9fd18a09f45e248da2f8b050dc883060"
     }
   }
 }

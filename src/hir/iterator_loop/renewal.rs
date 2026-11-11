@@ -96,7 +96,7 @@ pub(crate) fn renewal_bindings<'a>(
 mod funded;
 #[cfg(test)]
 pub(crate) use funded::renewal_binding_funded;
-pub(crate) use funded::renewal_bindings_funded;
+pub(crate) use funded::{renewal_bindings_funded, schema_requires_renewal_funded};
 
 fn has_record_renewal_candidate(body: &ResolvedExpr) -> bool {
     let mut pending = vec![body];

@@ -1,4 +1,48 @@
 use super::*;
+
+#[test]
+fn complete_previous_paid_schema_source_and_executable_are_bound() {
+    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs as history;
+    const PATH: &str = "src/cleanup_plan/replay/schema/paid_summary.rs";
+    const SHA: &str = "dcdc3881d12701c95ce3fc353b4a063d12fcec3de665c16014a2890585c66440";
+    let old = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/dcdc3881d12701c95ce3fc353b4a063d12fcec3de665c16014a2890585c66440"
+    ));
+    assert_eq!(
+        history::expected_value(PATH, SHA, include_str!("../paid_summary.rs")).as_deref(),
+        Some(old)
+    );
+    let retained = include_str!("before_selectors.rs")
+        .strip_suffix('\n')
+        .unwrap();
+    assert_eq!(
+        old.strip_suffix("\n#[cfg(test)]\nmod original_receiver;\n#[cfg(test)]\nmod tests;\n"),
+        Some(retained),
+    );
+}
+
+#[test]
+fn complete_predecessor_and_live_selector_keep_the_same_schema() {
+    for program in paid_type_facts::tests::fixtures() {
+        for function in &program.functions {
+            let mut tampered = function.clone();
+            tampered.cleanup_plan.schema = "forged.schema";
+            for subject in [function, &tampered] {
+                let expected = crate::bounded_output::with_limit_usage(usize::MAX, || {
+                    let mut budget = ReplayBudget::new();
+                    before_selectors::selected_with_budget(&program, subject, None, &mut budget)
+                });
+                let current = crate::bounded_output::with_limit_usage(usize::MAX, || {
+                    let mut budget = ReplayBudget::new();
+                    selected_with_budget(&program, subject, None, &mut budget)
+                });
+                assert_eq!((current.0, current.1), (expected.0, expected.1));
+            }
+        }
+    }
+}
+
 #[test]
 fn complete_schema_original_and_receiving_body_remain_byte_exact() {
     let restored_schema = super::super::ordinary_tests::before_summary(ci_str!("../../schema.rs"));

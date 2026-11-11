@@ -5,6 +5,8 @@ use std::collections::BTreeSet;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedType};
 
+pub(in crate::cleanup_plan::replay) mod paid;
+
 const DEPTH_LIMIT: usize = 64;
 const LEAF_LIMIT: usize = 256;
 const FIELD_LIMIT: usize = 4_096;

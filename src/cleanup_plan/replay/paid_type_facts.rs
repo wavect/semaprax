@@ -10,6 +10,65 @@ pub(super) struct Payer<'a> {
     ledger: ClassifierLedger,
 }
 impl Payer<'_> {
+    pub(super) fn capture<'a>(
+        function: &'a ResolvedFunction,
+        budget: &'a mut ReplayBudget,
+    ) -> Result<Payer<'a>, Diagnostic> {
+        // This schema receiver owns its capture and both returned payer
+        // representations. The inventory receiver has its own separate payer.
+        let receiving = std::mem::size_of::<(
+            [(&ResolvedFunction, &mut ReplayBudget); 2],
+            ClassifierLedger,
+            Payer<'_>,
+            [Result<Payer<'_>, Diagnostic>; 2],
+        )>() + ClassifierLedger::capture_into_controls();
+        budget.reserve_bytes(function, receiving, "ordinary schema payer receiving")?;
+        let mut ledger = ClassifierLedger::empty_receiving();
+        ledger.capture_current_into();
+        Ok(Payer {
+            function,
+            budget,
+            ledger,
+        })
+    }
+
+    pub(super) fn for_subject(&mut self, function: &ResolvedFunction) -> Result<(), Diagnostic> {
+        if !std::ptr::eq(self.function, function) {
+            return Err(self.construction_refusal("classifier payer belongs to another function"));
+        }
+        self.current()
+    }
+
+    pub(super) fn replay_failure(&mut self, message: &str) -> Diagnostic {
+        match droppability::replay_diagnostic(self.function, message, self) {
+            Ok(diagnostic) | Err(diagnostic) => diagnostic,
+        }
+    }
+
+    pub(super) fn clone_update_type(
+        &mut self,
+        ty: &ResolvedType,
+    ) -> Result<ResolvedType, Diagnostic> {
+        inventory_clone::clone_type(ty, self)
+    }
+
+    pub(super) fn substitute_update_type(
+        &mut self,
+        template: &ResolvedType,
+        owner: &DeclarationId,
+        arguments: &[ResolvedType],
+    ) -> Result<ResolvedType, Diagnostic> {
+        inventory_substitute::substitute(template, owner, arguments, self)
+    }
+
+    pub(super) fn update_type_needs_drop(
+        &mut self,
+        program: &dyn crate::cleanup::ReplayContext,
+        ty: &ResolvedType,
+    ) -> Result<bool, Diagnostic> {
+        needs_drop(program, self.function, ty, self.budget)
+    }
+
     fn current(&mut self) -> Result<(), Diagnostic> {
         #[cfg(test)]
         if let Some(lease) = self.budget.oracle_lease() {

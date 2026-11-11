@@ -23,6 +23,55 @@
 use super::*;
 use crate::hir::funded::{self, FundedError, Reserve};
 
+/// The schema observes the default map first and only reaches the record map
+/// on a negative result. Each complete collector drops before the next one.
+pub(crate) fn schema_requires_renewal_funded<E>(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    reserve: Reserve<'_, E>,
+) -> Result<bool, FundedError<E>> {
+    type Map<'a> = BTreeMap<ExpressionId, &'a ResolvedBinding>;
+    funded::charge(
+        reserve,
+        std::mem::size_of::<(
+            [(
+                &ResolvedExpr,
+                Option<(&DeclarationId, usize)>,
+                Reserve<'_, E>,
+            ); 2],
+            [Result<Map<'_>, FundedError<E>>; 2],
+            &Map<'_>,
+            bool,
+        )>(),
+    )?;
+    let defaults = {
+        #[cfg(test)]
+        let _phase =
+            crate::test_allocation_observer::function_phase_guard("schema-iterator-default");
+        bindings_funded(&function.body, None, reserve)?
+    };
+    if !defaults.is_empty() {
+        return Ok(true);
+    }
+    drop(defaults);
+    funded::charge(
+        reserve,
+        std::mem::size_of::<(
+            [(
+                &dyn crate::cleanup::ReplayContext,
+                &ResolvedExpr,
+                Reserve<'_, E>,
+            ); 2],
+            [Result<Map<'_>, FundedError<E>>; 2],
+            &Map<'_>,
+            bool,
+        )>(),
+    )?;
+    #[cfg(test)]
+    let _phase = crate::test_allocation_observer::function_phase_guard("schema-iterator-record");
+    Ok(!record_bindings_funded(program, &function.body, reserve)?.is_empty())
+}
+
 pub(crate) fn renewal_bindings_funded<'a, E>(
     program: &'a dyn crate::cleanup::ReplayContext,
     function: &'a ResolvedFunction,

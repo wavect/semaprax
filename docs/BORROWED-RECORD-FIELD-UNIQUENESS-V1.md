@@ -158,8 +158,10 @@ pairwise and clone/sort oracles pass at the ordinary limits.
 
 The native allocation probe observes 65,668 requested bytes across nine
 uniqueness scratch requests in one corpus invocation, with a peak of 16,384
-live scratch bytes and zero scratch remaining at reentry. The refusal control
-observes one 8-byte request and zero live scratch bytes. These figures cover
+live scratch bytes and zero scratch remaining at reentry. Native and strict
+private Wasm boundary controls accept the same 8-byte request under an
+8-byte limit and refuse it under a 7-byte limit with zero scratch allocated.
+These figures cover
 the ordinal scratch only. The surrounding row and string allocations and the
 compiler's cumulative workspace reservations have separate accounting.
 

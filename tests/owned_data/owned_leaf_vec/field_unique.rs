@@ -131,6 +131,31 @@ const ONE_CALL: &str = r#"@id("app.main") fn main()->i64 {
 }
 "#;
 
+// In this strict host, only the uniqueness import constructs a Uint32Array.
+// Preload the probe for these two runs and keep the shared host source exact.
+const WASM_SCRATCH_PROBE: &str = r#"
+'use strict';
+const limit = Number(process.env.SEMAPRAX_TEST_UNIQUE_SCRATCH_LIMIT);
+const Ordinals = globalThis.Uint32Array;
+let requests = 0;
+let allocations = 0;
+globalThis.Uint32Array = class extends Ordinals {
+  constructor(length) {
+    const bytes = length * Ordinals.BYTES_PER_ELEMENT;
+    if (bytes !== 8) throw Error(`uniqueness scratch requested ${bytes} bytes`);
+    requests++;
+    if (bytes > limit) throw new RangeError('uniqueness scratch exceeds test limit');
+    super(length);
+    if (this.byteLength !== bytes) throw Error('uniqueness scratch backing size changed');
+    allocations++;
+  }
+};
+process.once('beforeExit', () => {
+  if (requests !== 3 || allocations !== (limit === 8 ? 3 : 0))
+    throw Error(`unexpected uniqueness scratch accounting: ${requests} requests, ${allocations} allocations`);
+});
+"#;
+
 fn root() -> std::path::PathBuf {
     let root = std::env::temp_dir().join(format!(
         "field-unique-{}-{}",
@@ -159,6 +184,7 @@ fn host(
     status: &str,
     value: &str,
     mode: &str,
+    scratch_limit: Option<u64>,
 ) {
     let bytes = wasm::emit_module(ast).expect("Core Wasm emission");
     wasmparser::Validator::new()
@@ -181,7 +207,16 @@ fn host(
     );
     let module = root.join(format!("app-{mode}.wasm"));
     std::fs::write(&module, bytes).unwrap();
-    let output = Command::new("node")
+    let mut command = Command::new("node");
+    if let Some(limit) = scratch_limit {
+        let probe = root.join("scratch-probe.cjs");
+        std::fs::write(&probe, WASM_SCRATCH_PROBE).unwrap();
+        command
+            .arg("--require")
+            .arg(probe)
+            .env("SEMAPRAX_TEST_UNIQUE_SCRATCH_LIMIT", limit.to_string());
+    }
+    let output = command
         .arg(HOST)
         .arg(&module)
         .args([status, value, mode])
@@ -189,7 +224,7 @@ fn host(
         .expect("Node must execute the strict private host");
     assert!(
         output.status.success(),
-        "{mode}: {}",
+        "{mode} (scratch limit {scratch_limit:?}): {}",
         String::from_utf8_lossy(&output.stderr)
     );
 }
@@ -197,7 +232,12 @@ fn host(
 /// Native probe: only the uniqueness scratch request is redirected, so the
 /// requested bytes are observed exactly and may be refused; every other
 /// allocation stays on the counted ordinary allocator.
-fn native(root: &std::path::Path, ast: &semaprax::ast::Program, refuse: bool, scratch: &[u64]) {
+fn native(
+    root: &std::path::Path,
+    ast: &semaprax::ast::Program,
+    scratch_limit: u64,
+    scratch: &[u64],
+) {
     let generated = codegen::emit_c(ast).unwrap();
     let anchor = "uint32_t *o = malloc(";
     assert_eq!(generated.matches(anchor).count(), 1);
@@ -217,6 +257,8 @@ fn native(root: &std::path::Path, ast: &semaprax::ast::Program, refuse: bool, sc
         .map(|bytes| format!("UINT64_C({bytes})"))
         .collect::<Vec<_>>()
         .join(",");
+    let refuse = scratch.iter().any(|&request| request > scratch_limit);
+    assert!(!refuse || scratch.len() == 1);
     let requested = if refuse {
         scratch[0]
     } else {
@@ -232,7 +274,8 @@ fn native(root: &std::path::Path, ast: &semaprax::ast::Program, refuse: bool, sc
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static uint64_t live=0,unique_requests=0,unique_bytes_mismatch=0,unique_refuse={refuse};
+static uint64_t live=0,unique_requests=0,unique_bytes_mismatch=0;
+static const uint64_t unique_scratch_limit=UINT64_C({scratch_limit});
 static uint64_t unique_requested_bytes=0,unique_peak_bytes=0;
 static void *unique_live=NULL;
 static const uint64_t unique_expected[]={{{expected}0}};
@@ -250,13 +293,12 @@ static void *probe_unique_malloc(size_t n){{
  if(unique_requests>={count}u||unique_expected[unique_requests]!=(uint64_t)n)++unique_bytes_mismatch;
  ++unique_requests;
  unique_requested_bytes+=(uint64_t)n;
- if(unique_refuse)return NULL;
+ if((uint64_t)n>unique_scratch_limit)return NULL;
  unique_live=probe_malloc(n);
  if(unique_live&&(uint64_t)n>unique_peak_bytes)unique_peak_bytes=(uint64_t)n;
  return unique_live;
 }}
 "#,
-        refuse = u8::from(refuse),
         expected = if expected.is_empty() {
             String::new()
         } else {
@@ -352,8 +394,8 @@ fn same_source_uniqueness_matches_clone_sort_oracle_and_preserves_owner_on_every
     // single-row calls request nothing.
     let mut scratch = vec![4 * 6, 4 * 6, 4 * 7, 4 * 7, 4 * 7];
     scratch.extend([4 * 4096; 4]);
-    native(&root, &ast, false, &scratch);
-    host(&root, &ast, "0", "42", "none");
+    native(&root, &ast, u64::MAX, &scratch);
+    host(&root, &ast, "0", "42", "none", None);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -363,23 +405,26 @@ fn copy_record_integer_char_and_bool_keys_use_exact_values() {
     let ast = semaprax::check(&source, "copy-unique.spx").expect("checked Copy uniqueness");
     let root = root();
     interpret(&root, &source);
-    native(&root, &ast, false, &[4 * 3; 4]);
+    native(&root, &ast, u64::MAX, &[4 * 3; 4]);
     // Copy rows cross the exact legacy scalar Vec boundary; the strict codec
     // mode supplies it, refuses any owned-leaf import, proves the capacity
     // import is required and adds Copy-carrier uniqueness refusal controls.
-    host(&root, &ast, "0", "42", "copy-record-codec");
+    host(&root, &ast, "0", "42", "copy-record-codec", None);
     std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn scratch_refusal_selects_vec_code_three_and_settles_owner_on_native_and_wasm() {
+fn exact_and_one_short_scratch_settle_owners_on_native_and_wasm() {
     let source = format!("{DECLARATION}{ONE_CALL}");
     let ast = semaprax::check(&source, "unique-refusal.spx").unwrap();
     let root = root();
-    native(&root, &ast, true, &[4 * 2]);
+    native(&root, &ast, 8, &[8]);
+    native(&root, &ast, 7, &[8]);
+    host(&root, &ast, "0", "42", "none", Some(8));
+    host(&root, &ast, "15", "0", "none", Some(7));
     // Core-Wasm STATUS_VEC_ALLOCATION_FAILURE; the strict host proves no
     // scratch was observed allocated and every owner settled.
-    host(&root, &ast, "15", "0", "unique-scratch");
+    host(&root, &ast, "15", "0", "unique-scratch", None);
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -396,7 +441,7 @@ fn strict_host_refuses_forged_results_shapes_positions_and_stale_authority() {
     ] {
         // Hostile modes return after their own trap/teardown assertions; the
         // controls mode runs the ordinary corpus first, then exact host checks.
-        host(&root, &ast, "0", "42", mode);
+        host(&root, &ast, "0", "42", mode, None);
     }
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -49,6 +49,23 @@ class AptConfigurationTests(unittest.TestCase):
             "http://azure.archive.ubuntu.com/ubuntu", "https://archive.ubuntu.com/ubuntu"))
         self.assertEqual(unrelated.read_bytes(), b"deb https://example.org/ubuntu noble main\n")
 
+    def test_runner_mirror_list_rewrites_azure_uri_and_preserves_other_entries(self):
+        sources = self.root / "sources.list.d/ubuntu.sources"
+        source = b"Types: deb\nURIs: mirror+file:/etc/apt/apt-mirrors.txt\nSuites: noble-updates\n"
+        sources.write_bytes(source)
+        mirrors = self.root / "apt-mirrors.txt"
+        mirrors.write_bytes(
+            b"http://azure.archive.ubuntu.com/ubuntu priority:1\n"
+            b"https://security.ubuntu.com/ubuntu priority:2\n"
+        )
+
+        APT.configure(self.root)
+
+        self.assertEqual(sources.read_bytes(), source)
+        self.assertEqual(mirrors.read_bytes(),
+                         b"https://archive.ubuntu.com/ubuntu priority:1\n"
+                         b"https://security.ubuntu.com/ubuntu priority:2\n")
+
     def test_command_is_idempotent_and_writes_finite_timeouts_without_disabling_verification(self):
         args = [sys.executable, str(SCRIPT), "--apt-root", str(self.root)]
         subprocess.run(args, check=True, capture_output=True)

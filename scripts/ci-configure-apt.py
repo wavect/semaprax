@@ -15,7 +15,7 @@ DPkg::Lock::Timeout "120";
 
 
 def configure(root):
-    sources = [root / "sources.list"]
+    sources = [root / "sources.list", root / "apt-mirrors.txt"]
     sources.extend(sorted((root / "sources.list.d").glob("*.list")))
     sources.extend(sorted((root / "sources.list.d").glob("*.sources")))
     for path in sources:

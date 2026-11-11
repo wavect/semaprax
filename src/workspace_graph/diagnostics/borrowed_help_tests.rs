@@ -255,7 +255,9 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         current_sha
     );
     let verified_json = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
-        source, current_sha, physical_json,
+        source,
+        current_sha,
+        physical_json,
     );
     assert_eq!(verified_json, physical_json);
     assert_eq!(

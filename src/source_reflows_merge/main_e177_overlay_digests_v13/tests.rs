@@ -430,7 +430,10 @@ fn complete_prior_v12_compiled_body_and_all_parent_inverses_remain_byte_exact() 
     let python_source = "docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py";
     let python = original_before_source(python_source, current(python_source));
     let old = before("parent-5.before.txt");
-    assert_eq!(python, old, "entire original Python codec remains executable");
+    assert_eq!(
+        python, old,
+        "entire original Python codec remains executable"
+    );
     assert_eq!(old.len(), 10905);
 }
 

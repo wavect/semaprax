@@ -93,14 +93,19 @@ fn complete_direct_rows_keep_every_attached_field_and_the_full_late_error_fronti
             29 => plan.loans[0].start.expression = ExpressionId::from_owned("forged.start".into()),
             30 => plan.loans[0].ends[0].expression = ExpressionId::from_owned("forged.end".into()),
             31 => {
-                plan.endpoints[0].point.expression = ExpressionId::from_owned("forged.point".into());
+                plan.endpoints[0].point.expression =
+                    ExpressionId::from_owned("forged.point".into());
             }
             _ => unreachable!(),
         }
         let seed = ConstructorSeed::authenticate(&forged, None).unwrap();
         let expected = selected(true, || prepare_with_comparison(&seed, &forged)).unwrap();
         let expected_result = expected.1.finish(&forged);
-        assert_eq!(expected_result.is_err(), mutation != 0, "mutation {mutation}");
+        assert_eq!(
+            expected_result.is_err(),
+            mutation != 0,
+            "mutation {mutation}"
+        );
         let (((), metrics), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
             measure(|| {
                 let (storage, deferred) = prepare_with_comparison(&seed, &forged).unwrap();
@@ -280,7 +285,10 @@ fn current_raw_and_shared_receiving_preserve_exact_short_zero_floor_sticky_and_f
                         let (stage, request) = if stage == 2 {
                             (ReservationStage::CanonicalLoanStorage, EMPTY_CLEAR_BYTES)
                         } else {
-                            (ReservationStage::LoanCanonicalAppend, EMPTY_RETAINED_ORDINAL_REWRITE)
+                            (
+                                ReservationStage::LoanCanonicalAppend,
+                                EMPTY_RETAINED_ORDINAL_REWRITE,
+                            )
                         };
                         assert_eq!(receipt.stage, Some(stage));
                         assert_eq!(receipt.requested, request);
@@ -356,7 +364,11 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
     }
     grouped.push_str("@id(\"main\") fn main()->i64 {0}\n");
     let many = crate::hir::resolve(&crate::check(&grouped, "direct-net.spx").unwrap()).unwrap();
-    let group_loans: Vec<_> = many.functions.iter().map(|f| f.loan_plan.loans.len()).collect();
+    let group_loans: Vec<_> = many
+        .functions
+        .iter()
+        .map(|f| f.loan_plan.loans.len())
+        .collect();
     assert_eq!(group_loans.iter().filter(|&&loans| loans == 33).count(), 6);
     assert_eq!(group_loans.iter().sum::<usize>(), 198);
     let mut comparisons = Vec::new();
@@ -747,7 +759,10 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     let mut restored = snapshot.clone();
     restored["rows"] = immediate["rows"].clone();
     restored["immediate_owned_stage"]["rows"] = immediate["immediate_owned_stage"]["rows"].clone();
-    assert_eq!(restored, immediate, "the complete previous packet remains exact");
+    assert_eq!(
+        restored, immediate,
+        "the complete previous packet remains exact"
+    );
     let repair = &snapshot["retained_before_control_repair"];
     let repair_prior_raw = read_archive(&repair["metadata"]);
     let repair_prior: serde_json::Value = serde_json::from_str(&repair_prior_raw).unwrap();
@@ -1379,13 +1394,7 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
     assert_eq!(hash(compiled.as_bytes()), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
-        source_reader::read(
-            &root.join(path),
-            live_length,
-            live_sha,
-            2 * 1024 * 1024
-        )
-        .unwrap(),
+        source_reader::read(&root.join(path), live_length, live_sha, 2 * 1024 * 1024).unwrap(),
         compiled
     );
     assert_eq!(before.len(), before_length);
@@ -1413,13 +1422,7 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
         before
     );
     assert_eq!(
-        source_reader::read(
-            &root.join(path),
-            live_length,
-            live_sha,
-            2 * 1024 * 1024
-        )
-        .unwrap(),
+        source_reader::read(&root.join(path), live_length, live_sha, 2 * 1024 * 1024).unwrap(),
         compiled
     );
     std::borrow::Cow::Owned(restored)

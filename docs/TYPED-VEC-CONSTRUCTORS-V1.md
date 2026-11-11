@@ -1,6 +1,6 @@
 # Typed Vec Constructors v1
 
-Status: authored implementation; focused executable qualification pending.
+Status: qualified for the focused v1 profile.
 Audience: SEMAPRAX authors and compiler contributors.
 
 `vec_of<T>(item, ...)` constructs an already admitted Vec element profile with
@@ -64,8 +64,10 @@ The owning `shiftsim_typed_records::` and `catalog_scoped_records::`
 execute both authored test modules twice on the Project interpreter and native
 O0/O2. Their command profiles advertise native64; these application gates do
 not claim a Wasm command profile. The bounded constructor Wasm differential
-remains owned by `owned_leaf_vec::vec_constructor::`. No token, turn, runtime or
-physical-work gain is claimed before matched observations and executable gates.
+remains owned by `owned_leaf_vec::vec_constructor::`. Both application controls
+and all 15 ShiftSim and 23 Catalog cases passed on the qualified source. The
+eight-server and two-item examples record the authored changes. Agent tokens,
+agent turns and runtime effects remain unmeasured.
 
 Agent advice uses `help language author:vec-constructor` and exact diagnostic
 lookups for P220/T318 through the compiler-checked quick-reference table. The
@@ -80,7 +82,9 @@ status tokens/domain/code, unpublished result sentinels, pointer-identity
 settlement, empty vector authority and immediate same-context reentry must
 agree. The same sources run on the strict private Core-Wasm host at success,
 capacity refusal and push commits 1/2/4 with its exact finalizer checks.
-This authored gate makes no claim of executable qualification until run.
+All 19 focused checks passed, including the native fault sweep, strict
+Core-Wasm controls, source and retained replay, frozen public projection and
+bounded authoring help.
 Legacy String/Bytes allocation sites are tracked for exact settlement but are
 not refused: their current NULL route is an invariant failure, not a checked
 semantic status. The fault sweep does not widen that source/runtime contract.

@@ -15,7 +15,7 @@ def bounded(path,length,digest):
   assert hashlib.sha256(raw).hexdigest()==digest
   raw.decode('utf8');return raw
  finally:os.close(fd)
-helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py';helper_raw=bounded(helper,39799,'b12e645d145a7a1f63ef59be0e2476d789a613e76a811a6d3a051d4f07f03af4')
+helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py';helper_raw=bounded(helper,39799,'0898c428b7d98be817d243a5028d77b4377f898725afcbbe5ecfe267f5707774')
 m={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),m)
 new=m['accepted_guard_extensions'](R)
 original_path=R/'docs/evidence/main043-independent-custody-20261016/guard-extensions.py'

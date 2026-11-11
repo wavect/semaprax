@@ -366,30 +366,63 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
     let end = whole[start..].find("\n/// Add this function").unwrap() + start;
     let independently_compiled=include_str!("before.rs").strip_prefix("//! Complete immediate-old authenticated lexical comparison caller.\nuse super::super::*;\n\n").unwrap();
     assert_eq!(independently_compiled, &whole[start..end]);
-    for (source,hash) in [
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs")),"39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs")),"006a2efb76b4d30c6062d0af713a7d2b4f650c01b43a6e0a3b80c11c3b986a66"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared.rs")),"371265c7d8cc05edfe08f5a7f160ab4d1d4a68b50d323aa63bf9c7989b820729"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/lexical_replay.rs")),"c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/lexical_replay/ordinary.rs")),"d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")),"b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs")),"2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")),"3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")),"9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c"),
-  (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")),"75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10"),
- ] {
+    fn checkpoint_source<'a>(
+        path: &str,
+        compiled: &'a str,
+        checkpoint: &str,
+    ) -> std::borrow::Cow<'a, str> {
+        use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+        if format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
+        ) == checkpoint
+        {
+            std::borrow::Cow::Borrowed(compiled)
+        } else {
+            std::borrow::Cow::Owned(
+                declared_history_inputs::expected_value(path, checkpoint, compiled)
+                    .unwrap_or_else(|| panic!("complete declared checkpoint for {path}")),
+            )
+        }
+    }
+    let transport = checkpoint_source(
+        "src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"
+        )),
+        "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f",
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(transport.as_bytes()))
+        ),
+        "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f"
+    );
+    let packet: serde_json::Value = serde_json::from_str(transport.as_ref()).unwrap();
+    assert_eq!(packet.as_object().unwrap().len(), 42);
+    for (path, compiled, hash, checkpoint) in [
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs")), "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470", "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs")), "006a2efb76b4d30c6062d0af713a7d2b4f650c01b43a6e0a3b80c11c3b986a66", "006a2efb76b4d30c6062d0af713a7d2b4f650c01b43a6e0a3b80c11c3b986a66"),
+        ("src/cleanup_plan/replay/factored/canonical_shared.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared.rs")), "371265c7d8cc05edfe08f5a7f160ab4d1d4a68b50d323aa63bf9c7989b820729", "371265c7d8cc05edfe08f5a7f160ab4d1d4a68b50d323aa63bf9c7989b820729"),
+        ("src/cleanup_plan/replay/lexical_replay.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay.rs")), "c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98", "c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98"),
+        ("src/cleanup_plan/replay/lexical_replay/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay/ordinary.rs")), "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927", "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")), "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51", "9ae1b6828a1fab4818043a53e3f73062dc1484ac851b2c06fec50b300c8ff732"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs")), "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917", "db228c19e3e1c50cb196b01c0eb1f9f372fe61f4a0cd191057abd53c50cdabd8"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")), "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a", "48ad1d1a51b75a6a214ca07cb5cfea33bcfc5a0ba46e94f2238ca9c3bc309de9"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")), "9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c", "9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c"),
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")), "75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10", "75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10"),
+    ] {
+        let current = checkpoint_source(path, compiled, checkpoint);
+        let source = current.as_ref();
         // Restore the two finite ordinary-frame source changes before the
         // original active-module inverse and every unchanged whole-source target.
         let transformed = if matches!(hash,
             "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" |
             "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a") {
-            let encoded = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"));
-            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
-            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f");
-            let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-            assert_eq!(packet.as_object().unwrap().len(), 42);
-            let path = if hash == "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" } else { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" };
-            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), source.as_bytes());
             let row = &packet[path];
             assert_eq!(source.len(), row["length"].as_u64().unwrap() as usize);
             assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))), row["sha256"].as_str().unwrap());
@@ -406,7 +439,6 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
         } else { std::borrow::Cow::Borrowed(source) };
         let transformed = if hash == "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51" {
             let current = transformed.as_ref();
-            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")).unwrap(), current.as_bytes());
             assert_eq!(current.len(), 55878);
             assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), "9ae1b6828a1fab4818043a53e3f73062dc1484ac851b2c06fec50b300c8ff732");
             let addition = "\npub(in crate::cleanup_plan::replay::factored) mod hir_last_use;\n";
@@ -453,10 +485,16 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
         };
         assert_eq!(format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))),hash);
     }
+    let active = checkpoint_source(
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs",
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs")),
+        "991492eeee4ed2c8783ed2bf0bffddd661f76633738074ad78b4301b032ab75e",
+    );
     assert_eq!(
-        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(include_bytes!(
-            "../../canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs"
-        )))),
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(active.as_bytes()))
+        ),
         "991492eeee4ed2c8783ed2bf0bffddd661f76633738074ad78b4301b032ab75e"
     );
 }

@@ -420,9 +420,18 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
             "cleanup replay exact terminal multiplicity overflowed",
         ));
     }
-    // Selected physical replay has no unmetered legacy census fallback.
-    // Its independently closed provider/type profile is unchanged.
-    if budget.selected() {
+    // A large exact language uses the weighted proof within the ordinary
+    // ledger. The enumeration ceiling still governs the retained enumerator.
+    // Select from the authenticated graph counts before acquiring any
+    // enumeration allowance, independently of the remaining work balance.
+    if budget.selected()
+        || matches!(
+            (&candidate.hir, &candidate.plan),
+            (Census::Known { total: hir, .. }, Census::Known { total: plan, .. })
+                if *hir > ENUMERATION_CROSS_CHECK_THRESHOLD as u64
+                    || *plan > ENUMERATION_CROSS_CHECK_THRESHOLD as u64
+        )
+    {
         candidate.strategy = Strategy::LexicalFactored;
     }
     #[cfg(test)]

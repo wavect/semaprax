@@ -321,3 +321,87 @@ fn immutable_original_shiftsim_forced_enumerated_retains_frozen_refusal() {
     }
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn ordinary_weighted_route_keeps_exact_path_and_account_boundaries() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+
+    for extra in [false, true] {
+        let program = resolved(&source(12, extra));
+        let function = probe(&program);
+        let before = function.cleanup_plan.clone();
+        let mut census_budget = ReplayBudget::new();
+        let candidate = Candidate::reconstruct(&program, function, &mut census_budget).unwrap();
+        let paths = ENUMERATION_CROSS_CHECK_THRESHOLD as u64 + u64::from(extra);
+        assert_eq!(
+            candidate.hir,
+            TerminalCounts {
+                success: Number::Known(paths),
+                ..TerminalCounts::ZERO
+            }
+            .census()
+        );
+        assert_eq!(candidate.plan, candidate.hir);
+        assert_eq!(candidate.strategy, Strategy::Enumerated);
+        drop((candidate, census_budget));
+
+        let observe = |force_weighted: bool, work, bytes| {
+            with_limit_usage_refusal(bytes, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    assert!(budget.pays_builder());
+                    budget.remaining = work;
+                    let mut replay = || {
+                        reserve_program_skeleton_work(&program, program.functions(), &mut budget)?;
+                        validate_structure_with_budget(&program, function, &mut budget, None)
+                    };
+                    let result = if force_weighted {
+                        with_strategy(Strategy::LexicalFactored, replay)
+                    } else {
+                        replay()
+                    };
+                    let receipt = (
+                        result.as_ref().map(|_| ()).map_err(|error| error.code),
+                        work - budget.remaining,
+                        budget.skeleton_remaining,
+                        budget.skeleton_spent,
+                    );
+                    drop((result, budget));
+                    receipt
+                })
+            })
+        };
+        let ((ordinary, heap), refused, paid, first) =
+            observe(false, MAX_REPLAY_WORK_UNITS, usize::MAX);
+        let ((weighted, weighted_heap), weighted_refused, weighted_paid, weighted_first) =
+            observe(true, MAX_REPLAY_WORK_UNITS, usize::MAX);
+        assert!(ordinary.0.is_ok() && weighted.0.is_ok());
+        assert!(!refused && !weighted_refused && first.is_none() && weighted_first.is_none());
+        if extra {
+            assert_eq!(ordinary, weighted);
+            assert_eq!(heap, weighted_heap);
+            assert_eq!(paid, weighted_paid);
+        } else {
+            assert!(ordinary.2 > weighted.2);
+        }
+        for (work, bytes, accepted) in [
+            (ordinary.1, paid, true),
+            (ordinary.1 - 1, paid, false),
+            (ordinary.1, paid - 1, false),
+            (0, paid, false),
+            (ordinary.1, 0, false),
+        ] {
+            let ((receipt, heap), refused, debit, _) = observe(false, work, bytes);
+            assert_eq!(receipt.0.is_ok() && !refused, accepted);
+            if accepted {
+                assert_eq!(receipt, ordinary);
+                assert_eq!(debit, paid);
+            }
+            assert!(!heap.invalid);
+            assert_eq!(heap.live, 0);
+            assert_eq!(heap.allocated, heap.freed);
+        }
+        assert_eq!(function.cleanup_plan, before);
+    }
+}

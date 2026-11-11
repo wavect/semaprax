@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130153,
-        "b67ac9a16345104520f75b1a740ed3dd0e65aac57f48495473a6bae61e9c7e84",
+        "487f0fd31883115b951dd1d98df3e86b60ff5bd232f549bb78b2a5f457c6c643",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        337641,
-        "3619e929450d455b9b79bda63604da02a1d96dd7b07c0c8bc923e3172777ab35",
+        583985,
+        "deebc06d675ef09ece9b26bc5c8c03389e5a93cdf9edf80cc06cdb1b7c566e9d",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1062,6 +1062,24 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/hir/iterator_loop.rs", "30d03e90d07f4f3d86ba6fb58d550145b22d1933329db000433b036699f29722") => Some((43,82)),
 ("src/hir/iterator_loop/renewal.rs", "433c862ad4565552ff8d6c357728d25b010a99ef7ac98e820269b860dd0ed834") => Some((43,83)),
 ("src/hir/iterator_loop/renewal/funded.rs", "718fb18cd7194c3edadb28b7c067d8d163b08058fcb2eaff49a87e44e7058aa0") => Some((43,84)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs", "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470") => Some((43,85)),
+("src/cleanup_plan/replay/factored/canonical_shared.rs", "371265c7d8cc05edfe08f5a7f160ab4d1d4a68b50d323aa63bf9c7989b820729") => Some((43,86)),
+("src/cleanup_plan/replay/lexical_replay.rs", "c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98") => Some((43,87)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs", "9ae1b6828a1fab4818043a53e3f73062dc1484ac851b2c06fec50b300c8ff732") => Some((43,88)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs", "db228c19e3e1c50cb196b01c0eb1f9f372fe61f4a0cd191057abd53c50cdabd8") => Some((43,89)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs", "48ad1d1a51b75a6a214ca07cb5cfea33bcfc5a0ba46e94f2238ca9c3bc309de9") => Some((43,90)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs", "9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c") => Some((43,91)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs", "75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10") => Some((43,92)),
+("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json", "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f") => Some((43,93)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs", "991492eeee4ed2c8783ed2bf0bffddd661f76633738074ad78b4301b032ab75e") => Some((43,94)),
+("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs", "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514") => Some((43,95)),
+("src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs", "fc70f96c6f3e58b4fc22d545579f0bf6af576a5d0211514528daff71e6e8f6f6") => Some((43,96)),
+("src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs", "a61fc4565585ea5abec72d9821f1a93e16aba863b2fafb0bed120ced1d81e3d9") => Some((43,97)),
+("src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "883a182228e20ef867483585b83f6c81a6b44000e2bff5766e1ade6571c40325") => Some((43,98)),
+("src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs", "11032a973ff4ea3a7521d2a678f4abe73593b6ac4916f115af60331540dd0b82") => Some((43,99)),
+("src/cleanup_plan/replay/physical_budget.rs", "dca3a126f4c0dfde7e45db233d011100c5f9411cd77766260a9b1a4669c05cbd") => Some((43,100)),
+("src/cleanup_plan/replay/allocation.rs", "d3f844655708972aa9e089c39923ddced6891b6b776f483d4f0be07e43cceb59") => Some((43,101)),
+("src/cleanup_plan/replay/factored/strategy.rs", "04657dec4671e38ce5fda46a44028fe46be22981195981de3bdb5203f310672a") => Some((43,102)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1495,6 +1513,18 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/schema/paid_summary.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary.rs")),
 "src/cleanup_plan/replay/schema/paid_summary/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/schema/paid_summary/tests.rs")),
 "src/hir/iterator_loop/renewal/funded.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/iterator_loop/renewal/funded.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")),
+"src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")),
+"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs")),
+"src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs")),
+"src/cleanup_plan/replay/factored/strategy.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/strategy.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

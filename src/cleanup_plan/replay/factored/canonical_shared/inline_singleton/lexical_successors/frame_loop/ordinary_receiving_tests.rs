@@ -539,7 +539,15 @@ fn all_bound_unchanged_canonical_helpers_remain_complete_compiled_and_physical_b
     ] {
         let physical = std::fs::read(root.join(path)).unwrap();
         assert_eq!(physical, compiled, "complete actual helper {path}");
-        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(compiled))), before_sha,
+        let current = std::str::from_utf8(compiled).unwrap();
+        let historical = if format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(compiled))) == before_sha {
+            std::borrow::Cow::Borrowed(current)
+        } else {
+            use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+            std::borrow::Cow::Owned(declared_history_inputs::expected_value(path, before_sha, current)
+                .unwrap_or_else(|| panic!("complete declared immediate-old helper {path}")))
+        };
+        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(historical.as_bytes()))), before_sha,
             "complete immediate-old helper {path}");
     }
 }

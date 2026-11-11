@@ -73,6 +73,12 @@ class ClosedPriorSourcePrefixes(unittest.TestCase):
         cls.prior = cls._read(cls.repo / 'e/f043024e201073b6b8c49e91cbdc109521c14322fa8aaa8bf339ddeabec9aa86', 262144).decode()
         assert hashlib.sha256(cls.prior.encode()).hexdigest() == 'f043024e201073b6b8c49e91cbdc109521c14322fa8aaa8bf339ddeabec9aa86'
         cls.now, cls.old = cls._pure(cls.current), cls._pure(cls.prior)
+        cls.prior_v2 = cls._read(cls.repo / 'e/6a72ea8cd04519f7baf5dd38b8dfe0ebd4676cf4b79b7e2b33bf65260bd2e294', 262144)
+        assert hashlib.sha256(cls.prior_v2).hexdigest() == '6a72ea8cd04519f7baf5dd38b8dfe0ebd4676cf4b79b7e2b33bf65260bd2e294'
+        cls.prior_v2 = cls.prior_v2.decode()
+        cls.v2 = cls._pure(cls.prior_v2)
+        cls.prior_cfg = cls._read(cls.repo / 'e/ce4a2dbb2534bc83c28b0de73c2e82f5c8539df51d54f8bcf5e5583417c905ca', 262144)
+        assert hashlib.sha256(cls.prior_cfg).hexdigest() == 'ce4a2dbb2534bc83c28b0de73c2e82f5c8539df51d54f8bcf5e5583417c905ca'
 
     @classmethod
     def _read(cls, path, maximum):
@@ -87,8 +93,11 @@ class ClosedPriorSourcePrefixes(unittest.TestCase):
     @classmethod
     def _pure(cls, source):
         functions = {'_closed_source_json', '_closed_source_parts', '_decode_configuration', '_encode_configuration',
-                     '_decode_configuration_v1', '_encode_configuration_v1', '_decode_configuration_v2', '_encode_configuration_v2'}
-        constants = {'_CLOSED_SOURCE_SCHEMA', '_CLOSED_SOURCE_PREFIXES', '_CLOSED_SOURCE_SCHEMA_V2', '_CLOSED_SOURCE_PREFIXES_V2'}
+                     '_decode_configuration_v1', '_encode_configuration_v1', '_decode_configuration_v2', '_encode_configuration_v2',
+                     '_decode_configuration_legacy', '_configuration_path_parts', '_configuration_closed_source_delta',
+                     '_decode_configuration_modules_v3'}
+        constants = {'_CLOSED_SOURCE_SCHEMA', '_CLOSED_SOURCE_PREFIXES', '_CLOSED_SOURCE_SCHEMA_V2', '_CLOSED_SOURCE_PREFIXES_V2',
+                     '_MODULE_PREFIX_SCHEMA', '_MODULE_CONFIG_WIRE_CAP', '_MODULE_CONFIG_EXPANDED_CAP'}
         nodes = [n for n in cls.ast.parse(source).body
                  if isinstance(n, cls.ast.FunctionDef) and n.name in functions
                  or isinstance(n, cls.ast.Assign) and len(n.targets) == 1
@@ -127,7 +136,7 @@ class ClosedPriorSourcePrefixes(unittest.TestCase):
         import copy
         logical = self._logical()
         before = copy.deepcopy(logical)
-        wire = self.now['_encode_configuration'](logical)
+        wire = self.now['_encode_configuration_v2'](logical)
         self.assertEqual(wire['closed_prior_sources']['schema'], self.now['_CLOSED_SOURCE_SCHEMA_V2'])
         self.assertEqual(list(wire), list(logical))
         self.assertEqual(wire['modules'], logical['modules'])
@@ -198,12 +207,110 @@ class ClosedPriorSourcePrefixes(unittest.TestCase):
         logical = self.now['_decode_configuration'](wire)
         self.assertEqual(self.now['_decode_configuration'](self.now['_encode_configuration'](logical)), logical)
         self.assertEqual(self.now['_closed_source_json'](wire) + b'\n', raw)
-        if wire['closed_prior_sources']['schema'] == self.now['_CLOSED_SOURCE_SCHEMA_V2']:
-            self.assertEqual(self.now['_encode_configuration'](logical), wire)
+        self.assertEqual(self.now['_encode_configuration'](logical), wire)
+        self.assertEqual(wire['modules'][0], self.now['_MODULE_PREFIX_SCHEMA'])
         for key in wire:
-            if key != 'closed_prior_sources': self.assertEqual(wire[key], logical[key])
+            if key not in ('closed_prior_sources', 'modules'):
+                self.assertEqual(wire[key], logical[key])
         self.assertEqual(self._read(cfg_path, 262144), raw)
         self.assertEqual(self._read(self.guard, 262144).decode(), self.current)
+
+
+    def test_original_v2_and_installed_v3_have_identical_ordered_configuration(self):
+        functions = ('_encode_configuration_v2', '_decode_configuration_v2', '_decode_configuration')
+        for name in functions:
+            old = next(n for n in self.ast.parse(self.prior_v2).body
+                       if isinstance(n, self.ast.FunctionDef) and n.name == name)
+            current_name = '_decode_configuration_legacy' if name == '_decode_configuration' else name
+            new = next(n for n in self.ast.parse(self.current).body
+                       if isinstance(n, self.ast.FunctionDef) and n.name == current_name)
+            self.assertEqual(self.ast.get_source_segment(self.current, new).replace(
+                'def ' + current_name + '(', 'def ' + name + '(', 1),
+                self.ast.get_source_segment(self.prior_v2, old))
+        previous = self.v2['_decode_configuration'](json.loads(self.prior_cfg))
+        path = self.repo / 'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
+        raw = self._read(path, 262144)
+        current = self.now['_decode_configuration'](json.loads(raw))
+        canonical = self.now['_closed_source_json']
+        migrated = self.now['_decode_configuration'](self.now['_encode_configuration'](previous))
+        self.assertEqual(canonical(migrated), canonical(previous))
+        self.assertEqual(list(current['modules']), list(previous['modules']))
+        moved_pins = {
+            'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs',
+            'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs',
+            'src/source_reflows_merge/main_e177_overlay_v2.rs',
+        }
+        for name in moved_pins:
+            old = previous['modules'][name]
+            archived = self._read(self.repo / 'e' / old['sha256'], 262144)
+            self.assertEqual(len(archived), old['length'])
+            self.assertEqual(self.hashlib.sha256(archived).hexdigest(), old['sha256'])
+            source = self._read(self.repo / name, 262144)
+            previous['modules'][name] = {'length': len(source), 'sha256': self.hashlib.sha256(source).hexdigest()}
+        self.assertEqual(canonical(current), canonical(previous))
+        self.assertEqual(len(current['modules']), 660)
+        self.assertLess(len(raw), len(self.prior_cfg))
+
+    def test_module_v3_preserves_path_order_and_never_decodes_metadata(self):
+        logical = self._logical()
+        marker = self.now['_MODULE_PREFIX_SCHEMA']
+        paths = [prefix + 'Ω.rs' for _, prefix in self.now['_CLOSED_SOURCE_PREFIXES_V2']]
+        paths += ['schema', 'entries', 'unmatched/☃.rs']
+        metadata = [marker, [['R:opaque', {'schema': marker, 'modules': ['R:keep']}]]]
+        logical['modules'] = {path: metadata for path in paths}
+        wire = self.now['_encode_configuration'](logical)
+        self.assertEqual(wire['modules'][0], marker)
+        self.assertEqual([row[0] for row in wire['modules'][1]][-3:], paths[-3:])
+        current = self.now['_decode_configuration'](wire)
+        self.assertEqual(list(current['modules']), paths)
+        self.assertEqual(self.now['_closed_source_json'](current), self.now['_closed_source_json'](logical))
+        self.assertIs(current['modules'][paths[0]], metadata)
+        legacy = {'closed_prior_sources': [], 'modules': {'schema': marker, 'entries': metadata}}
+        self.assertIs(self.now['_decode_configuration'](legacy), legacy)
+        self.assertEqual(self.now['_decode_configuration'](
+            self.v2['_encode_configuration'](logical)), logical)
+
+    def test_module_v3_refuses_malformed_markers_pairs_paths_and_collisions(self):
+        marker = self.now['_MODULE_PREFIX_SCHEMA']
+        decode = self.now['_decode_configuration']
+        for field in [True, None, [], [marker], [marker, [], None], ['foreign', []],
+                      [marker, {}], [marker, [True]], [marker, [['R:a']]], [marker, [[3, None]]]]:
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                decode({'closed_prior_sources': [], 'modules': field})
+        for bad in ['Z:a', 'R:', 'R:a:b', 'R:/a', 'R:../a', 'R:a//b', '/a',
+                    'src/cleanup_plan/replay/a', 'R:a\\b', 'R:a\x00b']:
+            with self.subTest(path=bad), self.assertRaises(AssertionError):
+                decode({'closed_prior_sources': [], 'modules': [marker, [['R:a', 1], [bad, 2]]]})
+        for packed in ['R:a', 'unmatched/a']:
+            with self.subTest(duplicate=packed), self.assertRaises(AssertionError):
+                decode({'closed_prior_sources': [], 'modules': [marker, [[packed, 1], [packed, 2]]]})
+
+    def test_module_v3_preflights_combined_punctuation_and_opaque_bytes_before_join(self):
+        namespace = self._pure(self.current)
+        decode = namespace['_decode_configuration']
+        canonical = namespace['_closed_source_json']
+        wire = {'modules': [namespace['_MODULE_PREFIX_SCHEMA'], [['R:a', {'Ω': '📦'}], ['R:b', 0]]],
+                'closed_prior_sources': {'schema': namespace['_CLOSED_SOURCE_SCHEMA_V2'], 'sources': ['R:a']},
+                'opaque': ''}
+        exact = len(canonical(decode(wire))) + 1
+        namespace['_MODULE_CONFIG_EXPANDED_CAP'] = exact
+        self.assertEqual(len(canonical(decode(wire))) + 1, exact)
+
+        class NoJoin(str):
+            def __add__(self, suffix): raise RuntimeError('path joined before the full expanded bound')
+
+        namespace['_CLOSED_SOURCE_PREFIXES_V2'] = (('R', NoJoin('src/cleanup_plan/replay/')),)
+        wire['modules'][1][0][1]['Ω'] += 'x'
+        with self.assertRaises(AssertionError):
+            decode(wire)
+        namespace['_CLOSED_SOURCE_PREFIXES_V2'] = self.now['_CLOSED_SOURCE_PREFIXES_V2']
+        namespace['_MODULE_CONFIG_EXPANDED_CAP'] = self.now['_MODULE_CONFIG_EXPANDED_CAP']
+        wire['opaque'] = 'x' * (namespace['_MODULE_CONFIG_WIRE_CAP'] - len(canonical(wire)) - 1)
+        self.assertEqual(len(canonical(wire)) + 1, namespace['_MODULE_CONFIG_WIRE_CAP'])
+        decode(wire)
+        wire['opaque'] += 'x'
+        with self.assertRaises(AssertionError):
+            decode(wire)
 
 
 if __name__ == '__main__':

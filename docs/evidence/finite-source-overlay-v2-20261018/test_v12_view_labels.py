@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1700853, 'sha256': '7d295dace2f3bbb47a596863f1c83559530772d129f117a45ce92be59aa397ce'}
+_FRONT_PIN = {'length': 1996492, 'sha256': 'c77d603dc0faf38c33f72c320949bdc3041d6a99f9ab42cfa76afaf5aa014489'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),

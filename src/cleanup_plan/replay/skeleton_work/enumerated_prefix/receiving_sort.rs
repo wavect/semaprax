@@ -742,11 +742,7 @@ pub(super) fn sort(
     let len = paths.len();
     match len {
         0 | 1 => return Ok(()),
-        32..=128 => {
-            if try_flat_sort(paths, function, budget)? {
-                return Ok(());
-            }
-        }
+        32..=128 if try_flat_sort(paths, function, budget)? => return Ok(()),
         _ => {}
     }
     budget.reserve_compact_bytes(

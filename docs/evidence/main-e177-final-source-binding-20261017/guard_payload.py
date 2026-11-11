@@ -15,8 +15,8 @@ def bounded(path,length,digest):
   assert hashlib.sha256(b).hexdigest()==digest;return b
  finally:os.close(fd)
 _CONFIG_PATH=R/'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
-_CONFIG_LENGTH=261955
-_CONFIG_SHA256='1683a31cb267ba61a2366897df39f862a3d531053015f89e2a440f1f2c628cbf'
+_CONFIG_LENGTH=250638
+_CONFIG_SHA256='1c98f5212cd8a17d72383c3d449b79f3b24d9b31473a37140a1a41890da8fd4a'
 _CONFIG_RAW=bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)
 # Closed field-only transport. Legacy list semantics and every other CONFIG value remain unchanged.
 _CLOSED_SOURCE_SCHEMA='semaprax.closed-prior-sources.prefixes.v1'
@@ -112,13 +112,111 @@ def _encode_configuration_v2(value):
  assert len(_closed_source_json(result))+1<=262144
  assert _decode_configuration_v2(result)==value
  return result
-def _decode_configuration(value):
+def _decode_configuration_legacy(value):
  field=value['closed_prior_sources']
  if isinstance(field,dict) and field.get('schema')==_CLOSED_SOURCE_SCHEMA_V2:
   return _decode_configuration_v2(value)
  return _decode_configuration_v1(value)
+
+_MODULE_PREFIX_SCHEMA = 'semaprax.configuration.module-prefixes.v3'
+_MODULE_CONFIG_WIRE_CAP = 262144
+_MODULE_CONFIG_EXPANDED_CAP = 9753094
+
+
+def _configuration_path_parts(packed, prefixes):
+    if ':' not in packed:
+        _closed_source_parts(packed)
+        assert not any(packed.startswith(prefix) for _, prefix in prefixes)
+        return '', packed
+    code, suffix = packed.split(':', 1)
+    assert len(code) == 1 and ':' not in suffix
+    prefix = next((prefix for marker, prefix in prefixes if marker == code), None)
+    assert prefix is not None
+    _closed_source_parts(suffix)
+    return prefix, suffix
+
+
+def _configuration_closed_source_delta(field):
+    if type(field) is list:
+        return 0
+    assert type(field) is dict and set(field) == {'schema', 'sources'}
+    if field['schema'] == _CLOSED_SOURCE_SCHEMA:
+        prefixes = _CLOSED_SOURCE_PREFIXES
+    else:
+        assert field['schema'] == _CLOSED_SOURCE_SCHEMA_V2
+        prefixes = _CLOSED_SOURCE_PREFIXES_V2
+    sources = field['sources']
+    assert type(sources) is list
+    expanded_size = 2 + max(0, len(sources) - 1)
+    for packed in sources:
+        assert type(packed) is str
+        prefix, _ = _configuration_path_parts(packed, prefixes)
+        expanded_size += len(_closed_source_json(packed))
+        if prefix:
+            expanded_size += len(prefix.encode('utf-8')) - 2
+    return expanded_size - len(_closed_source_json(field))
+
+
+def _decode_configuration_modules_v3(value):
+    field = value['modules']
+    # A list envelope is disjoint from every legacy module dictionary.
+    assert type(field) is list and len(field) == 2
+    schema, entries = field
+    assert type(schema) is str and schema == _MODULE_PREFIX_SCHEMA and type(entries) is list
+    wire_size = len(_closed_source_json(value)) + 1
+    assert wire_size <= _MODULE_CONFIG_WIRE_CAP
+    expanded_size = 2 + max(0, len(entries) - 1)
+    seen = set()
+    rows = []
+    for pair in entries:
+        assert type(pair) is list and len(pair) == 2
+        packed, metadata = pair
+        assert type(packed) is str
+        prefix, suffix = _configuration_path_parts(packed, _CLOSED_SOURCE_PREFIXES_V2)
+        # Fixed disjoint prefixes and rejected raw aliases give each path one spelling.
+        assert packed not in seen
+        seen.add(packed)
+        expanded_size += len(_closed_source_json(packed)) + 1 + len(_closed_source_json(metadata))
+        if prefix:
+            expanded_size += len(prefix.encode('utf-8')) - 2
+        rows.append((prefix, suffix, metadata))
+    expanded_size += wire_size - len(_closed_source_json(field))
+    expanded_size += _configuration_closed_source_delta(value['closed_prior_sources'])
+    assert expanded_size <= _MODULE_CONFIG_EXPANDED_CAP
+    result = dict(_decode_configuration_legacy(value))
+    result['modules'] = {prefix + suffix: metadata for prefix, suffix, metadata in rows}
+    return result
+
+
+def _decode_configuration(value):
+    if 'modules' not in value or type(value['modules']) is dict:
+        return _decode_configuration_legacy(value)
+    return _decode_configuration_modules_v3(value)
+
+
 def _encode_configuration(value):
- return _encode_configuration_v2(value)
+    if 'modules' not in value:
+        return _encode_configuration_v2(value)
+    modules = value['modules']
+    assert type(modules) is dict
+    assert len(_closed_source_json(value)) + 1 <= _MODULE_CONFIG_EXPANDED_CAP
+    entries = []
+    for path, metadata in modules.items():
+        _closed_source_parts(path)
+        assert ':' not in path
+        packed = next(
+            (code + ':' + path[len(prefix):] for code, prefix in _CLOSED_SOURCE_PREFIXES_V2
+             if path.startswith(prefix)),
+            path,
+        )
+        entries.append([packed, metadata])
+    encoded = dict(value)
+    encoded['modules'] = [_MODULE_PREFIX_SCHEMA, entries]
+    # Pack module keys first so a v2-only intermediate need not fit the wire cap.
+    wire = _encode_configuration_v2(encoded)
+    assert _decode_configuration(wire) == value
+    return wire
+
 
 CONFIG=_decode_configuration(json.loads(_CONFIG_RAW))
 def _configuration_current():

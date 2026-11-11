@@ -132,7 +132,7 @@ fn real_many_field_hir_keeps_semantics_and_reduces_full_invoice_and_allocation()
     for old in [true, false] {
         let _old = old.then(before_guard);
         let (((), metrics), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
-            measure(|| drop(crate::hir::validate(&program).unwrap()))
+            measure(|| crate::hir::validate(&program).unwrap())
         });
         assert!(!refused && first.is_none());
         complete(metrics, paid);

@@ -1,6 +1,6 @@
 # SEMAPRAX authoring guide
 
-Executable qualification pending.
+Audience: authors.
 
 Status: executable qualification pending.
 
@@ -11,11 +11,7 @@ Native: `semaprax build <file> --target native -o <path>`.
 The `fused-construction-v1` opt-in requires `--managed-bytes N`.
 Web source profiles: `internal-strings-v1` or `text-toolkit-v1`.
 
-Start: `semaprax help new`;
-create: `semaprax new <directory> --template <template>`.
-`semaprax.toml`: modules, tests, dependencies, capabilities, targets and
-Project profile. `README.md`: `semaprax check <directory>`, test or run.
-Project profiles are distinct from single-file web profiles.
+## Project
 
 Starters: `semaprax help new`; create: `semaprax new <directory>
 --template <template>`. `semaprax.toml` declares modules, tests, dependencies,

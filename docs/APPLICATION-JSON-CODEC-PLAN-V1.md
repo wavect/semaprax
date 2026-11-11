@@ -117,7 +117,17 @@ JSON decoding. The existing ShiftSim owning application test now derives and
 replays both codecs as one combined candidate before installation and retains
 its original full acceptance oracle. The committed `codec-plan.json` in
 `examples/shiftsim-typed-record-successor` provides the real one-command setup.
-Execution remains pending; these definitions do not claim qualification.
+The focused project and CLI owners passed, including complete bundle
+publication and the original ShiftSim and Catalog application corpora.
+
+Two local comparisons used the same compiler, the same immutable ShiftSim
+bootstrap and the same two selectors. Each paired invocation produced both
+generated modules in one reviewable bundle. Two individual invocations
+produced byte-identical modules. Both orders preserved every authored file
+and produced the same paired bundle. Paired CLI elapsed times were 22.8 and
+25.8 seconds, while the corresponding sums for the two individual commands
+were 18.0 and 18.1 seconds. These local timings include process startup and
+output serialization.
 
 Private owning controls for OPT #895 are `project::json_codec::plan::tests::`
 and `project::application_starter::tests::` in the existing library harness. They

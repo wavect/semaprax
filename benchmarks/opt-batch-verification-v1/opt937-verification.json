@@ -1,0 +1,925 @@
+{
+  "schema": "semaprax.focused-batch-verification.v1",
+  "issues": [
+    937
+  ],
+  "status": "focused_passed_full_pending",
+  "platform": "Darwin arm64",
+  "rust": "1.97.1-aarch64-apple-darwin",
+  "source_bindings": {
+    "src/hir/validation/scope_checkpoint/merge.rs": {
+      "bytes": 17840,
+      "sha256": "e6fb5f1c2319f25312604b511ed622a8e92f1c21a63ba0eaaf70a5be24fbc305"
+    },
+    "src/hir/validation/scope_checkpoint/merge/partial_retain.rs": {
+      "bytes": 2287,
+      "sha256": "603e1e1ece861d3c13b43ff543ef70a0505883e10df4607005b7709213dd7954"
+    },
+    "src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs": {
+      "bytes": 34430,
+      "sha256": "db174937c84495542b58ea8a3fd434f7bbfb62370a9b16e5b1e24c6e22e486ac"
+    },
+    "src/hir/validation/scope_checkpoint/merge/prefix_stream/before.rs": {
+      "bytes": 9395,
+      "sha256": "b88e602f0336d86141032608d84adddb5eae3f84b3133381456c8b642a6c6ac5"
+    },
+    "src/hir/validation/scope_checkpoint/merge/prefix_stream/inverse.json": {
+      "bytes": 11717,
+      "sha256": "39061db444685ea0bc5d8f14f288213f6b26d7070fd48471f14db1af6aed5a84"
+    },
+    "src/hir/validation/scope_checkpoint/merge/prefix_stream/tests.rs": {
+      "bytes": 6129,
+      "sha256": "a4985e15a0cf7b6f0b262d2dee8968b13aaa87ad19fc6adaa9ceb2d58f2af345"
+    },
+    "src/hir/validation/scope_checkpoint/merge/prefix_stream/scope_tests.rs": {
+      "bytes": 6574,
+      "sha256": "11fd4a8bcacfb4f28eb96ae3463f6ab4d24e46a2656e5a2e34d1a51641569622"
+    },
+    "e/72e5ee8da215752bb51be5f448f18707f2c9b89fd80f5d3f1f95cc4ebb9d5b75": {
+      "bytes": 9358,
+      "sha256": "72e5ee8da215752bb51be5f448f18707f2c9b89fd80f5d3f1f95cc4ebb9d5b75"
+    },
+    "src/bounded_output/exclusive_debits/path_census.rs": {
+      "bytes": 18498,
+      "sha256": "b3e372cb73792c5e35d326c7513e3e5cd570c6ff527a33496d313b753f08d611"
+    }
+  },
+  "gates": {
+    "focused_rust_passed": 28,
+    "focused_rust_selectors": [
+      "hir::validation::scope_checkpoint::merge::moved_direct::tests::borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case",
+      "hir::validation::scope_checkpoint::merge::moved_direct::tests::complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss",
+      "hir::validation::scope_checkpoint::merge::moved_direct::tests::current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop",
+      "hir::validation::scope_checkpoint::merge::moved_direct::tests::full_original_merge_payer_and_generic_producers_remain_source_bound",
+      "hir::validation::scope_checkpoint::merge::moved_direct::tests::real_many_field_hir_caller_keeps_semantics_diagnostics_and_complete_drop",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::complete_depth_one_to_three_successive_scope_and_cow_callers_earn_real_allocation_and_invoice_net",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::complete_small_empty_and_all_reject_costs_are_observed_without_a_universal_gain_claim",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::exact_first_control_and_complete_short_zero_floor_sticky_frontiers_leave_inputs_immutable",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::paid_distinct_full_scope_inventory_states_and_partial_classes_match_whole_generic_publication",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::postjoin_unwind_drops_retained_nodes_snapshots_and_restores_old_selection",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::reached_empty_jointariff_pays_exact_fixed_surcharge_before_identical_publication_and_drop",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::real_many_field_hir_old_and_current_keep_complete_semantics_and_hostile_diagnostics",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::retained_candidates_preserve_all_four_classes_empty_prefixes_duplicates_and_short_circuit",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::scope_tests::exact_short_zero_positive_floor_and_sticky_replay_drop_every_owned_value",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::scope_tests::full_scope_empty_and_small_rejected_inputs_report_complete_costs",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::scope_tests::full_scope_stream_strictly_reduces_allocations_and_invoice_at_depth_one_to_three",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::scope_tests::real_many_field_hir_keeps_semantics_and_reduces_full_invoice_and_allocation",
+      "hir::validation::scope_checkpoint::merge::partial_retain::tests::whole_immediate_paid_receiver_generic_builder_and_source_inverses_are_exact",
+      "hir::validation::scope_checkpoint::merge::prefix_stream::tests::live_four_inventory_stream_matches_sorted_prefixes_and_both_original_predicates",
+      "hir::validation::scope_checkpoint::merge::prefix_stream::tests::whole_previous_receiver_and_payer_restore_from_live_and_executable_sources",
+      "hir::validation::scope_checkpoint::merge::tests::canonical_nonempty_noop_keeps_complete_old_fields_and_removes_actual_payload_cow",
+      "hir::validation::scope_checkpoint::merge::tests::complete_join_receiver_exact_short_zero_and_sticky_are_paid_through_drop",
+      "hir::validation::scope_checkpoint::merge::tests::complete_saved_paid_merge_producer_is_byte_exact",
+      "hir::validation::scope_checkpoint::merge::tests::equal_nonempty_prefix_normalization_and_changed_outputs_keep_complete_original_scope",
+      "hir::validation::scope_checkpoint::merge::tests::late_error_restores_complete_publication_and_selected_diagnostic_through_drop",
+      "hir::validation::scope_checkpoint::merge::tests::noops_use_only_written_fields_and_changed_loan_availability_still_commit",
+      "hir::validation::scope_checkpoint::merge::tests::sticky_join_scratch_refusal_leaves_complete_target_and_first_receipt_unchanged",
+      "hir::validation::scope_checkpoint::merge::tests::unchanged_availability_and_borrow_producers_keep_complete_saved_receiver_fields"
+    ],
+    "production_clippy": "passed",
+    "strict_source": "passed",
+    "pooled_source": "passed"
+  },
+  "scope_join_comparisons": [
+    {
+      "depth": 1,
+      "branches": false,
+      "repetitions": 1,
+      "old": {
+        "allocations": 358,
+        "reallocations": 0,
+        "allocated_bytes": 23328,
+        "freed_bytes": 23328,
+        "live_bytes": 0,
+        "peak_bytes": 20768,
+        "invoice_bytes": 258832
+      },
+      "current": {
+        "allocations": 294,
+        "reallocations": 0,
+        "allocated_bytes": 20768,
+        "freed_bytes": 20768,
+        "live_bytes": 0,
+        "peak_bytes": 20768,
+        "invoice_bytes": 251160
+      }
+    },
+    {
+      "depth": 1,
+      "branches": false,
+      "repetitions": 3,
+      "old": {
+        "allocations": 1360,
+        "reallocations": 0,
+        "allocated_bytes": 89176,
+        "freed_bytes": 89176,
+        "live_bytes": 0,
+        "peak_bytes": 27304,
+        "invoice_bytes": 989784
+      },
+      "current": {
+        "allocations": 1040,
+        "reallocations": 0,
+        "allocated_bytes": 76376,
+        "freed_bytes": 76376,
+        "live_bytes": 0,
+        "peak_bytes": 27304,
+        "invoice_bytes": 884904
+      }
+    },
+    {
+      "depth": 1,
+      "branches": true,
+      "repetitions": 1,
+      "old": {
+        "allocations": 358,
+        "reallocations": 0,
+        "allocated_bytes": 23328,
+        "freed_bytes": 23328,
+        "live_bytes": 0,
+        "peak_bytes": 20768,
+        "invoice_bytes": 258832
+      },
+      "current": {
+        "allocations": 294,
+        "reallocations": 0,
+        "allocated_bytes": 20768,
+        "freed_bytes": 20768,
+        "live_bytes": 0,
+        "peak_bytes": 20768,
+        "invoice_bytes": 251160
+      }
+    },
+    {
+      "depth": 1,
+      "branches": true,
+      "repetitions": 3,
+      "old": {
+        "allocations": 1232,
+        "reallocations": 0,
+        "allocated_bytes": 84056,
+        "freed_bytes": 84056,
+        "live_bytes": 0,
+        "peak_bytes": 27304,
+        "invoice_bytes": 830552
+      },
+      "current": {
+        "allocations": 1040,
+        "reallocations": 0,
+        "allocated_bytes": 76376,
+        "freed_bytes": 76376,
+        "live_bytes": 0,
+        "peak_bytes": 27304,
+        "invoice_bytes": 807536
+      }
+    },
+    {
+      "depth": 2,
+      "branches": false,
+      "repetitions": 1,
+      "old": {
+        "allocations": 497,
+        "reallocations": 0,
+        "allocated_bytes": 44520,
+        "freed_bytes": 44520,
+        "live_bytes": 0,
+        "peak_bytes": 36840,
+        "invoice_bytes": 328464
+      },
+      "current": {
+        "allocations": 369,
+        "reallocations": 0,
+        "allocated_bytes": 36840,
+        "freed_bytes": 36840,
+        "live_bytes": 0,
+        "peak_bytes": 36840,
+        "invoice_bytes": 312030
+      }
+    },
+    {
+      "depth": 2,
+      "branches": false,
+      "repetitions": 3,
+      "old": {
+        "allocations": 2258,
+        "reallocations": 0,
+        "allocated_bytes": 190728,
+        "freed_bytes": 190728,
+        "live_bytes": 0,
+        "peak_bytes": 51768,
+        "invoice_bytes": 1507416
+      },
+      "current": {
+        "allocations": 1490,
+        "reallocations": 0,
+        "allocated_bytes": 147208,
+        "freed_bytes": 147208,
+        "live_bytes": 0,
+        "peak_bytes": 51768,
+        "invoice_bytes": 1282670
+      }
+    },
+    {
+      "depth": 2,
+      "branches": true,
+      "repetitions": 1,
+      "old": {
+        "allocations": 497,
+        "reallocations": 0,
+        "allocated_bytes": 44520,
+        "freed_bytes": 44520,
+        "live_bytes": 0,
+        "peak_bytes": 36840,
+        "invoice_bytes": 328464
+      },
+      "current": {
+        "allocations": 369,
+        "reallocations": 0,
+        "allocated_bytes": 36840,
+        "freed_bytes": 36840,
+        "live_bytes": 0,
+        "peak_bytes": 36840,
+        "invoice_bytes": 312030
+      }
+    },
+    {
+      "depth": 2,
+      "branches": true,
+      "repetitions": 3,
+      "old": {
+        "allocations": 1874,
+        "reallocations": 0,
+        "allocated_bytes": 170248,
+        "freed_bytes": 170248,
+        "live_bytes": 0,
+        "peak_bytes": 51768,
+        "invoice_bytes": 1125976
+      },
+      "current": {
+        "allocations": 1490,
+        "reallocations": 0,
+        "allocated_bytes": 147208,
+        "freed_bytes": 147208,
+        "live_bytes": 0,
+        "peak_bytes": 51768,
+        "invoice_bytes": 1076674
+      }
+    },
+    {
+      "depth": 3,
+      "branches": false,
+      "repetitions": 1,
+      "old": {
+        "allocations": 636,
+        "reallocations": 0,
+        "allocated_bytes": 70832,
+        "freed_bytes": 70832,
+        "live_bytes": 0,
+        "peak_bytes": 55472,
+        "invoice_bytes": 403216
+      },
+      "current": {
+        "allocations": 444,
+        "reallocations": 0,
+        "allocated_bytes": 55472,
+        "freed_bytes": 55472,
+        "live_bytes": 0,
+        "peak_bytes": 55472,
+        "invoice_bytes": 375460
+      }
+    },
+    {
+      "depth": 3,
+      "branches": false,
+      "repetitions": 3,
+      "old": {
+        "allocations": 3284,
+        "reallocations": 0,
+        "allocated_bytes": 330680,
+        "freed_bytes": 330680,
+        "live_bytes": 0,
+        "peak_bytes": 81352,
+        "invoice_bytes": 2117720
+      },
+      "current": {
+        "allocations": 1940,
+        "reallocations": 0,
+        "allocated_bytes": 233400,
+        "freed_bytes": 233400,
+        "live_bytes": 0,
+        "peak_bytes": 81352,
+        "invoice_bytes": 1708340
+      }
+    },
+    {
+      "depth": 3,
+      "branches": true,
+      "repetitions": 1,
+      "old": {
+        "allocations": 636,
+        "reallocations": 0,
+        "allocated_bytes": 70832,
+        "freed_bytes": 70832,
+        "live_bytes": 0,
+        "peak_bytes": 55472,
+        "invoice_bytes": 403216
+      },
+      "current": {
+        "allocations": 444,
+        "reallocations": 0,
+        "allocated_bytes": 55472,
+        "freed_bytes": 55472,
+        "live_bytes": 0,
+        "peak_bytes": 55472,
+        "invoice_bytes": 375460
+      }
+    },
+    {
+      "depth": 3,
+      "branches": true,
+      "repetitions": 3,
+      "old": {
+        "allocations": 2516,
+        "reallocations": 0,
+        "allocated_bytes": 279480,
+        "freed_bytes": 279480,
+        "live_bytes": 0,
+        "peak_bytes": 81352,
+        "invoice_bytes": 1444440
+      },
+      "current": {
+        "allocations": 1940,
+        "reallocations": 0,
+        "allocated_bytes": 233400,
+        "freed_bytes": 233400,
+        "live_bytes": 0,
+        "peak_bytes": 81352,
+        "invoice_bytes": 1361172
+      }
+    }
+  ],
+  "many_field_hir": {
+    "old": {
+      "allocations": 45997,
+      "reallocations": 8950,
+      "allocated_bytes": 5157088,
+      "freed_bytes": 5157088,
+      "live_bytes": 0,
+      "peak_bytes": 467879,
+      "invoice_bytes": 18221907
+    },
+    "current": {
+      "allocations": 44477,
+      "reallocations": 8950,
+      "allocated_bytes": 5096288,
+      "freed_bytes": 5096288,
+      "live_bytes": 0,
+      "peak_bytes": 467879,
+      "invoice_bytes": 17577777
+    }
+  },
+  "cold_scope_comparisons": [
+    {
+      "path_count": 0,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 0,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 4,
+        "reallocations": 0,
+        "allocated_bytes": 432,
+        "freed_bytes": 432,
+        "live_bytes": 0,
+        "peak_bytes": 432,
+        "invoice_bytes": 496
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1664,
+        "freed_bytes": 1664,
+        "live_bytes": 0,
+        "peak_bytes": 1368,
+        "invoice_bytes": 6040
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated_bytes": 1304,
+        "freed_bytes": 1304,
+        "live_bytes": 0,
+        "peak_bytes": 1088,
+        "invoice_bytes": 7514
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1664,
+        "freed_bytes": 1664,
+        "live_bytes": 0,
+        "peak_bytes": 1368,
+        "invoice_bytes": 6040
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated_bytes": 1304,
+        "freed_bytes": 1304,
+        "live_bytes": 0,
+        "peak_bytes": 1088,
+        "invoice_bytes": 7514
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1776,
+        "freed_bytes": 1776,
+        "live_bytes": 0,
+        "peak_bytes": 1232,
+        "invoice_bytes": 5824
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated_bytes": 1416,
+        "freed_bytes": 1416,
+        "live_bytes": 0,
+        "peak_bytes": 1088,
+        "invoice_bytes": 7298
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1776,
+        "freed_bytes": 1776,
+        "live_bytes": 0,
+        "peak_bytes": 1232,
+        "invoice_bytes": 5824
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 10,
+        "reallocations": 0,
+        "allocated_bytes": 1416,
+        "freed_bytes": 1416,
+        "live_bytes": 0,
+        "peak_bytes": 1088,
+        "invoice_bytes": 7298
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 19,
+        "reallocations": 0,
+        "allocated_bytes": 2640,
+        "freed_bytes": 2640,
+        "live_bytes": 0,
+        "peak_bytes": 2272,
+        "invoice_bytes": 7288
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 18,
+        "reallocations": 0,
+        "allocated_bytes": 2600,
+        "freed_bytes": 2600,
+        "live_bytes": 0,
+        "peak_bytes": 2272,
+        "invoice_bytes": 9570
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 19,
+        "reallocations": 0,
+        "allocated_bytes": 2640,
+        "freed_bytes": 2640,
+        "live_bytes": 0,
+        "peak_bytes": 2272,
+        "invoice_bytes": 7288
+      }
+    },
+    {
+      "path_count": 1,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 18,
+        "reallocations": 0,
+        "allocated_bytes": 2600,
+        "freed_bytes": 2600,
+        "live_bytes": 0,
+        "peak_bytes": 2272,
+        "invoice_bytes": 9570
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 17,
+        "reallocations": 0,
+        "allocated_bytes": 1824,
+        "freed_bytes": 1824,
+        "live_bytes": 0,
+        "peak_bytes": 1448,
+        "invoice_bytes": 10056
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Available",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 12,
+        "reallocations": 0,
+        "allocated_bytes": 1384,
+        "freed_bytes": 1384,
+        "live_bytes": 0,
+        "peak_bytes": 1168,
+        "invoice_bytes": 10948
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 17,
+        "reallocations": 0,
+        "allocated_bytes": 1824,
+        "freed_bytes": 1824,
+        "live_bytes": 0,
+        "peak_bytes": 1448,
+        "invoice_bytes": 10056
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Available",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 12,
+        "reallocations": 0,
+        "allocated_bytes": 1384,
+        "freed_bytes": 1384,
+        "live_bytes": 0,
+        "peak_bytes": 1168,
+        "invoice_bytes": 10948
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 18,
+        "reallocations": 0,
+        "allocated_bytes": 1976,
+        "freed_bytes": 1976,
+        "live_bytes": 0,
+        "peak_bytes": 1352,
+        "invoice_bytes": 9840
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "MaybeMoved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1536,
+        "freed_bytes": 1536,
+        "live_bytes": 0,
+        "peak_bytes": 1168,
+        "invoice_bytes": 10732
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 18,
+        "reallocations": 0,
+        "allocated_bytes": 1976,
+        "freed_bytes": 1976,
+        "live_bytes": 0,
+        "peak_bytes": 1352,
+        "invoice_bytes": 9840
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "MaybeMoved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 13,
+        "reallocations": 0,
+        "allocated_bytes": 1536,
+        "freed_bytes": 1536,
+        "live_bytes": 0,
+        "peak_bytes": 1168,
+        "invoice_bytes": 10732
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 26,
+        "reallocations": 0,
+        "allocated_bytes": 2920,
+        "freed_bytes": 2920,
+        "live_bytes": 0,
+        "peak_bytes": 2472,
+        "invoice_bytes": 12168
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Moved",
+      "branches": false,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 24,
+        "reallocations": 0,
+        "allocated_bytes": 2840,
+        "freed_bytes": 2840,
+        "live_bytes": 0,
+        "peak_bytes": 2472,
+        "invoice_bytes": 14292
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": true,
+      "metrics": {
+        "allocations": 26,
+        "reallocations": 0,
+        "allocated_bytes": 2920,
+        "freed_bytes": 2920,
+        "live_bytes": 0,
+        "peak_bytes": 2472,
+        "invoice_bytes": 12168
+      }
+    },
+    {
+      "path_count": 2,
+      "availability": "Moved",
+      "branches": true,
+      "old_receiver": false,
+      "metrics": {
+        "allocations": 24,
+        "reallocations": 0,
+        "allocated_bytes": 2840,
+        "freed_bytes": 2840,
+        "live_bytes": 0,
+        "peak_bytes": 2472,
+        "invoice_bytes": 14292
+      }
+    }
+  ],
+  "source_commit": "53b4049a04b86f8c207b4253da224a3adc440423",
+  "source_tree": "c5b51f103fa1f590707aac4ab6eeee87cab4b074"
+}

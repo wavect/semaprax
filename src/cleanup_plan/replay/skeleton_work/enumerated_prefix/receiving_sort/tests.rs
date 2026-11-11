@@ -642,3 +642,6 @@ mod lexical_advance;
 
 #[path = "positive_bytes.rs"]
 mod positive_bytes;
+
+#[path = "frame_renewal.rs"]
+mod frame_renewal;

@@ -110,6 +110,9 @@ const COMPARE_CALL: usize = 2 * size_of::<(
 const POSITIVE_BYTE_PAYMENT: usize = 2 * size_of::<Result<(), ByteFailure>>();
 // Keep the full ordinary method banks for the retained general Cursor::next.
 // Only the exact byte-renewal sites in advance! use these narrower ABIs.
+// Common-frame renewal and the selected branch use fixed-positive byte
+// producers. Traversal work still uses the complete ordinary payment ABI.
+const LEXICAL_FRAME_COMMON: usize = FRAME_COMMON - 2 * PAYMENT + 2 * POSITIVE_BYTE_PAYMENT;
 const LEXICAL_NODE_STEP: usize = PAYMENT + POSITIVE_BYTE_PAYMENT;
 const LEXICAL_CAT_CHILD_STEP: usize = CAT_CHILD_STEP - PAYMENT + POSITIVE_BYTE_PAYMENT;
 macro_rules! positive_bytes {
@@ -187,7 +190,7 @@ macro_rules! advance {
                 positive_bytes!(
                     $budget,
                     $function,
-                    FRAME_COMMON,
+                    LEXICAL_FRAME_COMMON,
                     "enumerated HIR cursor common frame receiving renewal"
                 );
                 #[cfg(test)]
@@ -863,4 +866,25 @@ std::thread_local! {
 #[cfg(test)]
 fn positive_child_event() {
     POSITIVE_CHILD_EVENTS.with(|events| events.set(events.get().checked_add(1).unwrap()));
+}
+
+#[cfg(test)]
+#[allow(dead_code, unused_imports, reason = "Complete independent post-953 sorter and tariff.")]
+#[rustfmt::skip]
+pub(super) mod before_frame_renewal;
+#[cfg(test)]
+std::thread_local! {
+    pub(super) static BEFORE_FRAME_RENEWAL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+struct FrameRenewalEpoch(bool);
+#[cfg(test)]
+impl Drop for FrameRenewalEpoch {
+    fn drop(&mut self) {
+        BEFORE_FRAME_RENEWAL.with(|slot| slot.set(self.0));
+    }
+}
+#[cfg(test)]
+fn frame_renewal_epoch(before: bool) -> FrameRenewalEpoch {
+    FrameRenewalEpoch(BEFORE_FRAME_RENEWAL.with(|slot| slot.replace(before)))
 }

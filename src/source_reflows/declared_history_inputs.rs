@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130002,
-        "9178b41aa4d0a5f6f95234bf41516551e44d41582c3fe8df8b03336928001818",
+        "5a5be7f2d664e1338e93bf9cdadfe5285fad252ed71c26ba658a764b0a9e6f49",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        320091,
-        "03edd9713a5b4941550cfc527d7a76703194cdde49ec4cc63f75060b61e48cda",
+        324256,
+        "a0f3c2114755550f9c4f7da0c640e9ed089e9ce5f7db167ee1f27392fde08f6b",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1052,6 +1052,9 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored.rs", "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269") => Some((43,72)),
 ("src/cleanup_plan/validate.rs", "75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b") => Some((43,73)),
 ("src/hir/validation/function_scope/lifecycle.rs", "8095a604e5320261b71d1681fd53fe4ba2a2e7dac7f2a7a13c0e505563e815df") => Some((43,74)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", "9b0a44837b96345bec274eae1594041194ac6cee80b7d3861216e88a79b29d81") => Some((43,75)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs", "3a39ab0f14065a9201b4cb2526e2fba164e2c775a900919ac8e9900a7fa13626") => Some((43,76)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", "5f07abb62df0a437625541c68792b14314ea293a2d4bce792f46a2b7588f392d") => Some((43,77)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1479,6 +1482,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs")),
 "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs")),
 "src/cleanup_plan/validate.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/validate.rs")),
+"src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

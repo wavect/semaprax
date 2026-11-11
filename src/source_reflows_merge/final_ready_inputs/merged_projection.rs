@@ -1,37 +1,37 @@
 //! Exact merged current join before either independently retained historical chain.
 use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation;
-const CURRENT_LENGTH: usize = 2292182;
+const CURRENT_LENGTH: usize = 2327993;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "5ec37cbca16d9e9c2503718af8d85a175dbc874c0dbb2463d3e8abaf53c0b60b";
+const CURRENT_SHA: &str = "ea628075cf9079254ec395a186c726a0f291628acad4261c5797e68246a2195a";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
 const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("tests/wasm/scalar_browser_ci_contract/current_profiles573.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles573.rs")), 10600, "06638e2675d38575c33c43743a3a50ab6d6d6f6b9edf6a68dde51198a1078e69"),
-    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 19935, "b259958397633eb1c8be6d84644295633adaa6990cfd0b880dcd3c04a6b13f29"),
+    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 24954, "39c25673500a3b239e1d7d09230d6129d16349ee5d2b0c4339969e35c2c74ef3"),
     ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")), 10205, "900af30a08f96959e6f9c553d28e6f82f3104473cf23dbbb3090436310a22669"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs")), 15950, "e4ad639ff6378b8d37a89fdddd90798d5aa7bd420f5ea2755a76c904d1d46602"),
     ("src/cleanup_plan/replay/selected_owner/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary.rs")), 4718, "fb794e530da2d722c135a4e2a9ac5bccd755bbd12fc0114f8ed9b6f5fd0e5eaf"),
-    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")), 6987, "5bdf7210f9343246d20abc64d29ef049d632c1c991d92aff03ad29a443061302"),
+    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")), 6952, "4d50579a8485a1b9b7b68c58fb30a0d7c3cda24d645c4f30867865fa6ec181b1"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs")), 2845, "6b070dcc9543929b7671d9e07ecb8c18d08d71f8cf869c9fa3c1bb669108d0af"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")), 86308, "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")), 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 25200, "6c30e1024c4219f6c64a8e08b11858068cd575ca1ba8e61c6f455fc0eb5a5d45"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 34483, "9b0a44837b96345bec274eae1594041194ac6cee80b7d3861216e88a79b29d81"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs")), 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 24960, "cf815cee18a5a75c341fd999f14d102fddd7aee6d61d09ff23abcde6e43b2139"),
-    ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs")), 7076, "59e698eea731be50e9d9ecd35a5d817ec1be5aaa482444b6df38aa2ee70f18b3"),
-    ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs")), 10802, "34be6ba09bb7bac7123a1039df67948f0ab5e49bdab69d7c2da55ba8cd07b90c"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25134, "5f07abb62df0a437625541c68792b14314ea293a2d4bce792f46a2b7588f392d"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs")), 7075, "7cc391286fb5a3b24eb5aa2b5b1bacd8bb8599f9161d3f5dbc427a048c85b57c"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs")), 10800, "3f57f0045c8efcb0f0808e7d0a10f786cae7e99f18e2f8b3fd3448ed53be0106"),
     ("src/cleanup_plan/replay/path_join/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/mod.rs")), 50333, "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"),
-    ("src/cleanup_plan/replay/path_join/before_frontier/storage.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage.rs")), 15694, "06fe50c24fcbb7db7763761387f990681acfa2c7963361bf6c8ed25260dbca79"),
-    ("src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs")), 2720, "ab46c653becc07f401aa8aba33fe13b39992f41491f58bc43ff608056a011b10"),
-    ("src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs")), 5189, "7313a9413f4e954ccc583034119763928dcd9445d595373ccf297f065a5be8cf"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage.rs")), 15707, "d808642b7378f760230e653d45278899f95c44fedb5c61b575c92fce652a0540"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs")), 2718, "74bb79ec4c77853cb2ec255e8b19f2b4f537fcabd24f88d61d7383022dd598fc"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs")), 5187, "02772ccf762867b1aeffc64d4fffc4a3b0ad26adb4df030aa27f9a06ef22a110"),
     ("src/cleanup_plan/replay/path_join/before_frontier/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/tests.rs")), 5325, "d7841a842bf900a756905b56623fca40766ae1c3344bfb1dc4e1f86efe396df0"),
     ("src/cleanup_plan/replay/path_join/before_frontier/transition.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/transition.rs")), 35563, "628c1c134e179b8e8ca0db4646b6219e4c3a939968598ac2935ac500de996616"),
     ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")), 3885, "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154"),
     ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")), 22575, "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587"),
     ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")), 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
-    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 45676, "9741a25ba95c97dddbd9b507d4b190b926cd1db44f5adb812e48d59b2940658d"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 46640, "0756e450c41f067ddb20c6be1f1e2506de498a4d9073e23de087522aa33d2369"),
     ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/whole.rs")), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
     ("src/call_index/validation_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_before.rs")), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
     ("src/call_index/validation_receipt_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_receipt_tests.rs")), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
@@ -41,36 +41,36 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs")), 6801, "2c6e246527ec365687dbc3bd8339184b8ff4367c9e7ae546bda2d1920777ff60"),
     ("src/workspace_graph/expected_projection/private_layout/names/interface_census.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_census.rs")), 5132, "5122d3abd1d880fb1598104c2d7367a747c668b00fa971383d38e7ff55bdee75"),
     ("src/workspace_graph/expected_projection/private_layout/names/interface_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_before.rs")), 24587, "58dd9a33aa98e22cb8d89fbf3d47512e68dac56c10952cba055da265f5078dd8"),
-    ("src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")), 14300, "141dc56360504411f085f21117ee757eee43d8e1dca7a21854a01f45f53afdeb"),
-    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")), 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f"),
-    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")), 18414, "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165"),
+    ("src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")), 15209, "71f8017e2d30695b065e958f1146cb88b36edf4582bfd0b7a32e50fa42ef433a"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")), 11934, "3cf62df5115b8065bc47c4e4f7186e913a5aa2eacc5d0b43191ac98d391ab699"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")), 18420, "4a34e1c29cac7e84131d82c68fb635892945c560dd16e8fbd1a93f6e43b4a3ed"),
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs")), 10932, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"),
-    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")), 24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05"),
-    ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12.rs")), 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
-    ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs")), 10508, "9df7dc61f6bd4d70c5714142d166fef41602ae260f4e414e57affd2550e2770f"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")), 24982, "f3c7cc3dc6c9e3bb4987a1243bad17e05cbef83677459f1ac1bae0e32fc167ee"),
+    ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12.rs")), 8239, "cd74954fbf31f4bc117c0dc5af46d9ed4fac1a0e4d62317361c70028b891e76d"),
+    ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs")), 10768, "e165dd23473e7e79536bf3ccfe53bfee048c5abb36636978b1f80a2f40797b64"),
     ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_directory/modular.rs")), 3594, "b00352308d4dc48079e3807aca42493c4d42fed5a7412ce51c4ec8288c5d4952"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs")), 34238, "e2245dcba9a549068d00edc637e17296dd90e6c71476f84b0ddf49fb9728774b"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs")), 34272, "1c2967940ddf7b70de2631feb5d1d443745651b0d47447649618c340c81b8964"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs")), 10164, "12331004bc5ff08252bb790c870d298dca32160d07059d368c56c2a823cf57a3"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs")), 9105, "c7a201a333ce54f18ee0982beeb3fcc13d14517804710989a832de87209e1e3b"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs")), 15243, "cee965c826e9598b05cec771ffb684e0f3720d1ecfa8ba2719b84c8bcb359c59"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs")), 9915, "87ae6b18cd9a89e63bfcc7d70f64228841ecec48300794e97069e401b02375ec"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs")), 15314, "13a680a8d9ab43342498bfac32079597e1b3be57defe7ba0a30d33576514791d"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs")), 12946, "342ca60956a62f93878ae04b67aab70a971012aa38839a0a307cbf37001746ba"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs")), 12853, "fd37d96b94154a3609d5eaedc6cd8ad7a14f8d3310d77eaeeaff4a251d7536ba"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs")), 12861, "e03c4e15d3a981936546fb582ad3199ee708db112321e6269afa21c30af201f7"),
     ("src/workspace_graph/expected_projection/shared_local_callees/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired.rs")), 8693, "5303b15254477d9b5d3598326ebbb076dce7a76c609804bb1131534bc3641bea"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")), 15191, "f794e09256426bd659799818a609b5b00dd5f4e97ea0e5c74b27ab987ad6635c"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")), 15262, "cf308c67bb5a860985f157002621d745099e03346a68e47bc08a3946346e1140"),
     ("src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs")), 12373, "f3e048b188faffc52497a842aec8fa2cdcdfc64ea0a3ead918e13b03166ff2f1"),
     ("src/workspace_graph/expected_projection/shared_local_callees/record_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_before.rs")), 12593, "f472fe9bc7bea0097f6ae0323fcf5fa593790ec229c8499f75fb2a14deff050a"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs")), 12467, "b8b2ec4ffd658e7637c6fed7baeba1c46c33b790aa29cb14b5deca1dc8d11bd4"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs")), 12461, "e718c935351680f7d1c78458b5c7df1b503348ffc887115cda75197fbb749917"),
     ("src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs")), 11968, "d588429142af0102d9d3cde1f9c2ee50f76661efe22b19c2b44a7e6d1dc95f52"),
-    ("src/workspace_graph/expected_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")), 60158, "f068236583110ceca6d18a6ec8321afc6da4559c1455b917ebd9e28095dfb6c0"),
-    ("src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs")), 30660, "6de910e6a05177a729d7bac18e708bea090a5ec2df3de8ea475054603207e302"),
+    ("src/workspace_graph/expected_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")), 62861, "7485d5a9b8ab8a1bf943a8f2b00dd68abfacf68e66aaf970af1cc9ebcc427b94"),
+    ("src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs")), 30829, "68b4e8709438aed0c2602c64e950c1e8b3e1321d49c61346e162f189f3c75c8e"),
     ("src/workspace_graph/expected_projection/retained_scratch.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/retained_scratch.rs")), 1746, "26f398991a4d64fe85416c823e1080b6395170625c2822e2e67793357d200555"),
-    ("src/workspace_graph/expected_projection/uncached_peak_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/uncached_peak_before.rs")), 14449, "0766f215f87fd212385e6829d531932e16765e1911a76311bef648dab215592b"),
+    ("src/workspace_graph/expected_projection/uncached_peak_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/uncached_peak_before.rs")), 14469, "bf7ec7139714b6613e5573af38af1202e38825161cded497022524cf85893d85"),
     ("src/loan_plan/owned_capacity.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/loan_plan/owned_capacity.rs")), 7745, "4c92a94a5837bb794e0e5023b058da68c6bf9bf5b7b17c95b2a16f39f5ca8399"),
-    ("src/workspace_graph/type_proof_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/type_proof_tests.rs")), 52672, "b8594959cb38cd0c7f684ad4872210af742d8e95cc5f8b53cb02eefdfa80fc8f"),
-    ("src/workspace_graph/tests/builder_limits.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests/builder_limits.rs")), 39529, "0415977761dffbe2b5bda7fd517953af84b8d2855d27a66b3a5a02b4335bc49c"),
+    ("src/workspace_graph/type_proof_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/type_proof_tests.rs")), 53709, "627c2befb1f96debf4ce29b118fbad6f948043162e42e7e5b01ec987684d22e8"),
+    ("src/workspace_graph/tests/builder_limits.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests/builder_limits.rs")), 39529, "15f87403771225470819115d51470ffe035fe0f6487104f8c7849e071cf66227"),
     ("src/bounded_output/stage_debits.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/stage_debits.rs")), 11427, "10d58a16ec8943f65d54b56f365c93c9edda40293408681ba7e580c13c4f331e"),
     ("src/cleanup_plan/replay/factored/oracle_order/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/oracle_order/tests.rs")), 21616, "bd69a7c25d0b254fe038507e0cdd8f238e6142571a547bad24f3c4aa50f7bbdc"),
-    ("src/workspace_graph/expected_projection/shared_local_callees.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees.rs")), 11768, "b0a025e9365860a3c754d4a80b0dbafabdc57cffb4b289865e62b4be62787c2f"),
+    ("src/workspace_graph/expected_projection/shared_local_callees.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees.rs")), 11861, "4ed031ab8e8a748503b22e37f258c64ae1fbed00f1f293f8c062dcad9de219fb"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903.rs")), 4193, "8a260a6eecfb85291defaca6e3f137e9c6f51f0546f1be28397bb691ddf3211d"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs")), 12727, "970c11a1df79cb10ed52ed0f0b5e41aa7d94b0f1582ebc52c0b573ef953dcf1b"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs")), 22139, "cc9c89b34def67c380a69ccc4d1f5b8ddd1dc01f10abed418b24517baa390be7"),
@@ -82,25 +82,25 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs")), 14784, "4c1d4b3e2a6de391c39da456edc8d49da47433084c0fefcf7b661df2a5b3db8e"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs")), 10087, "9dee10813247b88639004ed0eff2849779505cba902a7ab62d998cb1e897627d"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs")), 8998, "737df7a2bb44db63bca40dea4165b59208bf74dfc80701694bdb0c3d211a185f"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs")), 14473, "9b4ade3c7f2353a48959535dc9c5bcb76f8fff2f5db63cfcae1299477d07b275"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")), 27085, "f0d8a4d374f082e478bc7cdd3b3fe3575da70e3836349ebd47d87d8a04265785"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs")), 14544, "133d24af24db25d38b69bb6b0bac77e8eddf596c663c089ffac3f55b6cdc5569"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")), 28078, "293e0b26cc7224405ca7e0f60df318255d6279f53e31dc1a13fcd19d51e7d78c"),
     ("src/workspace_graph/expected_projection/shared_local_callees/reused.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused.rs")), 10317, "ed964ba39e51dfd7dbdd8c391b831260adba376c6f8dad5b035e8df36ab59fd7"),
     ("src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs")), 6564, "87ecd2f33b9af73f98c499aab75e7ccb879f9c5213fb23119fc9768b05254227"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs")), 21962, "0bddcfcb9aeb7b233ab3b842965cb97cfa11e471151a5491a9ec874cdc7adbd6"),
     ("src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs")), 13127, "1c768293781d9a11d9d1484d1b45107b722ad93664cdd46a775e269569f28577"),
     ("src/workspace_graph/expected_projection/shared_local_callees/invoice.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/invoice.rs")), 9314, "50bfe2c1d81e5bd637a542d4254198bcd6132293c5826231fa9d08865f94643c"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/tests.rs")), 9823, "d547905c8783ef393b7ddc972dd65ae4dc886da8add88138cc8dc0b711552c0c"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/tests.rs")), 9854, "0d9e2b1cbb7abeafd4a1f7b4d5f059f6d96e781ef044fee6f2680f8dc801c314"),
     ("src/workspace_graph/expected_projection/shared_local_callees/walk.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/walk.rs")), 9350, "fafdcb7e6743647fcd1ad787ea98731a159fc155e0a8d35b02541f60dd74ce17"),
     ("src/workspace_graph/expected_projection/vec_constructor.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/vec_constructor.rs")), 13779, "4831e29cce4d39b5c263ffd3743d3cb2227ffc9c57f94e28763994cd78721e10"),
-    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23128, "4c1346bbacc8be3ee7d9184b4e99b994a1f367eed37df9d41a156ecc62ad4096"),
-    ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")), 24825, "2bdd41001d03315ef11904dbe5fa7c05dc03ec4e4550c4278eda8416ba9e2f8c"),
-    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 36925, "93aef5478f35ff42f07bfcce851d01d72339be93fce7ef8e0ac9bfb57573ac7d"),
+    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23199, "7178b17707f420519aeb7fe8bfec84ac8b16f83a254b3ed2016001a1feef1ceb"),
+    ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")), 24858, "8a015ce328f793cfe6c27eb4e726ad0fd02ba3069e0afb7f04c7dd294882c272"),
+    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 36959, "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"),
     ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 52632, "f220d11c99ec22e0027f0dca24ff0554a0fc52443decfcdcc4fe4366d2267fd3"),
-    ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")), 10466, "108703b1f80f79b6a62d482fc65a0a434053cd2f60713a9c568681c43ab0136f"),
+    ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")), 13783, "8e58f15499b882c8fc5f46bc5ae76b9a472994ce9133c226295d30b078e42de0"),
     ("src/workspace_graph/expected_projection/call_carriers_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_original.rs")), 23610, "b1ce4d28f8364aed9967eba52699cd95968799b29779cb68eee71a4b7ef8fde3"),
     ("src/workspace_graph/expected_projection/call_carriers_historical_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_historical_tests.rs")), 30577, "30ee9b7d27da7985809d73823ad6b2297548873c76731723659b4464c9c49170"),
     ("src/workspace_graph/expected_projection/prelude_forecast.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast.rs")), 3225, "9c1b5e17bb19fe44d33a043c157b853168d2680e02eb4dac79c3e3ba2fdd09f2"),
-    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_tests.rs")), 23845, "44e6c853fde53e3f2594550c6679b7780de98ba16fb1732713719d53b0067c15"),
+    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_tests.rs")), 27011, "d2764fe780162e373cfd2856beb8551daf76f98fe8efe7241381b7ab9f502bf8"),
     ("src/workspace_graph/expected_projection/prelude_forecast_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_original.rs")), 21078, "8aaa2384f1c6d31d6e9c1ac2a777da0364a84d86d8bb768109c27ac616c24c6e"),
     ("src/workspace_graph/expected_projection/held_projection_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection_original.rs")), 18283, "9a0e2b526b5fe4546e27f3ac870f35f46572e9ccbb5609b2586d584f0362b1fb"),
     ("src/workspace_graph/expected_projection/borrowed_leaf.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_leaf.rs")), 13625, "ec70684eeead756b71ac2643a36d56af6548645621349458f217b3b7397dc1dc"),
@@ -143,17 +143,17 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/string_slots.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/string_slots.rs")), 11811, "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f"),
     ("src/workspace_graph/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests.rs")), 68668, "e2c0662c308f33c4936acf9c5e935d7522dd5efa12eb4a31ac1267901eddbb76"),
     ("src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs")), 19806, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1"),
-    ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")), 30467, "79db9e907b352fe8cc96eaa3a1e87c97795436a3d566f0809af85986c118d92a"),
-    ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/workspace_oracle.rs")), 5654, "824db909deb40d4e42d846481f9e8b5949aa3cd361b63c4576b642eabae5d52f"),
-    ("src/hir/inspection/paid_nul/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/tests.rs")), 43550, "d7bc8c78fe1f8e1bed6730376ec571db9eb60c49f896304585e05ff34282ef08"),
+    ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")), 34068, "1c284867e62b0585a7975471511a9192b49a5cc03d595bd8d019d2dad927ab08"),
+    ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/workspace_oracle.rs")), 5815, "6c63393760f3fda3393673428df55a615bac6b25068b6d3d3d21f30aae7594bc"),
+    ("src/hir/inspection/paid_nul/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/tests.rs")), 44462, "f85993558770b417b1399f054c65beee4d9294eab9a4873b8ff31a0b832583c6"),
     ("src/hir/inspection/paid_nul/reuse_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before.rs")), 38440, "f244990419557597356086d2b3e6005f84c1d471160eb4b2e1506b1727e1ca3f"),
     ("src/hir/inspection/paid_nul/reuse_before/pending.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before/pending.rs")), 2490, "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd"),
     ("src/hir/inspection/paid_nul/type_scratch.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/type_scratch.rs")), 8271, "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"),
-    ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")), 27358, "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6"),
+    ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")), 27897, "c2f468022de96008744b83f004a803b2fae2ac6d1e36ddbec85762dea5f420e1"),
     ("src/cleanup_plan/replay/continuation_storage/reached.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached.rs")), 6548, "d8c98f2a9a41aaa5a03ff2c9d6bf6b7476f7f77ecdc548958b45386fa7c4238a"),
     ("src/cleanup_plan/replay/continuation_storage/reached_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_before.rs")), 9194, "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb"),
     ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_tests.rs")), 20538, "5636a96a1d98a0e7ea08d0a963fbdb7a2671a638137f6dbd88c6d76d6c9c30e2"),
-    ("src/cleanup_plan/replay_tests/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay_tests/factored.rs")), 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
+    ("src/cleanup_plan/replay_tests/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay_tests/factored.rs")), 16045, "614c3bf513e879361696bd9cf4fa8177683eb1c8eb03df003263d8557dcbfcc4"),
 ];
 #[rustfmt::skip]
 const V10_CURRENT_PARTS: &[(&str, usize, &str)] = &[
@@ -656,9 +656,73 @@ fn named_join(parts: &[(&str, usize, &str)], invocation: &mut ProjectionInvocati
 fn compiled_join() -> String {
     CURRENT_PARTS.iter().map(|p| p.1).collect()
 }
+// Each entry selects one complete former merged member after current-source
+// authentication. The concatenated order and all unchanged bytes are pinned.
+#[rustfmt::skip]
+const PREVIOUS_MERGED_MEMBERS: &[(&str, usize, &str)] = &[
+    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", 19935, "b259958397633eb1c8be6d84644295633adaa6990cfd0b880dcd3c04a6b13f29"),
+    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", 6987, "5bdf7210f9343246d20abc64d29ef049d632c1c991d92aff03ad29a443061302"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", 25200, "6c30e1024c4219f6c64a8e08b11858068cd575ca1ba8e61c6f455fc0eb5a5d45"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", 24960, "cf815cee18a5a75c341fd999f14d102fddd7aee6d61d09ff23abcde6e43b2139"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", 7076, "59e698eea731be50e9d9ecd35a5d817ec1be5aaa482444b6df38aa2ee70f18b3"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", 10802, "34be6ba09bb7bac7123a1039df67948f0ab5e49bdab69d7c2da55ba8cd07b90c"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage.rs", 15694, "06fe50c24fcbb7db7763761387f990681acfa2c7963361bf6c8ed25260dbca79"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs", 2720, "ab46c653becc07f401aa8aba33fe13b39992f41491f58bc43ff608056a011b10"),
+    ("src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs", 5189, "7313a9413f4e954ccc583034119763928dcd9445d595373ccf297f065a5be8cf"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", 45676, "9741a25ba95c97dddbd9b507d4b190b926cd1db44f5adb812e48d59b2940658d"),
+    ("src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs", 14300, "141dc56360504411f085f21117ee757eee43d8e1dca7a21854a01f45f53afdeb"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", 18414, "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", 24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05"),
+    ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
+    ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", 10508, "9df7dc61f6bd4d70c5714142d166fef41602ae260f4e414e57affd2550e2770f"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", 34238, "e2245dcba9a549068d00edc637e17296dd90e6c71476f84b0ddf49fb9728774b"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs", 9105, "c7a201a333ce54f18ee0982beeb3fcc13d14517804710989a832de87209e1e3b"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", 15243, "cee965c826e9598b05cec771ffb684e0f3720d1ecfa8ba2719b84c8bcb359c59"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs", 12853, "fd37d96b94154a3609d5eaedc6cd8ad7a14f8d3310d77eaeeaff4a251d7536ba"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", 15191, "f794e09256426bd659799818a609b5b00dd5f4e97ea0e5c74b27ab987ad6635c"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs", 12467, "b8b2ec4ffd658e7637c6fed7baeba1c46c33b790aa29cb14b5deca1dc8d11bd4"),
+    ("src/workspace_graph/expected_projection.rs", 60158, "f068236583110ceca6d18a6ec8321afc6da4559c1455b917ebd9e28095dfb6c0"),
+    ("src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs", 30660, "6de910e6a05177a729d7bac18e708bea090a5ec2df3de8ea475054603207e302"),
+    ("src/workspace_graph/expected_projection/uncached_peak_before.rs", 14449, "0766f215f87fd212385e6829d531932e16765e1911a76311bef648dab215592b"),
+    ("src/workspace_graph/type_proof_tests.rs", 52672, "b8594959cb38cd0c7f684ad4872210af742d8e95cc5f8b53cb02eefdfa80fc8f"),
+    ("src/workspace_graph/tests/builder_limits.rs", 39529, "0415977761dffbe2b5bda7fd517953af84b8d2855d27a66b3a5a02b4335bc49c"),
+    ("src/workspace_graph/expected_projection/shared_local_callees.rs", 11768, "b0a025e9365860a3c754d4a80b0dbafabdc57cffb4b289865e62b4be62787c2f"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", 14473, "9b4ade3c7f2353a48959535dc9c5bcb76f8fff2f5db63cfcae1299477d07b275"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs", 27085, "f0d8a4d374f082e478bc7cdd3b3fe3575da70e3836349ebd47d87d8a04265785"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", 9823, "d547905c8783ef393b7ddc972dd65ae4dc886da8add88138cc8dc0b711552c0c"),
+    ("src/workspace_graph/expected_projection/held_projection.rs", 23128, "4c1346bbacc8be3ee7d9184b4e99b994a1f367eed37df9d41a156ecc62ad4096"),
+    ("src/workspace_graph/expected_projection/call_carriers.rs", 24825, "2bdd41001d03315ef11904dbe5fa7c05dc03ec4e4550c4278eda8416ba9e2f8c"),
+    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", 36925, "93aef5478f35ff42f07bfcce851d01d72339be93fce7ef8e0ac9bfb57573ac7d"),
+    ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", 10466, "108703b1f80f79b6a62d482fc65a0a434053cd2f60713a9c568681c43ab0136f"),
+    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", 23845, "44e6c853fde53e3f2594550c6679b7780de98ba16fb1732713719d53b0067c15"),
+    ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", 30467, "79db9e907b352fe8cc96eaa3a1e87c97795436a3d566f0809af85986c118d92a"),
+    ("src/cleanup_plan/replay/workspace_oracle.rs", 5654, "824db909deb40d4e42d846481f9e8b5949aa3cd361b63c4576b642eabae5d52f"),
+    ("src/hir/inspection/paid_nul/tests.rs", 43550, "d7bc8c78fe1f8e1bed6730376ec571db9eb60c49f896304585e05ff34282ef08"),
+    ("src/cleanup_plan/replay/continuation_storage/tests.rs", 27358, "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6"),
+    ("src/cleanup_plan/replay_tests/factored.rs", 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
+];
+fn previous_merged_member<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+    let Some(&(_, length, sha)) = PREVIOUS_MERGED_MEMBERS.iter().find(|part| part.0 == source)
+    else {
+        return std::borrow::Cow::Borrowed(supplied);
+    };
+    assert_eq!(physical(source), Some(supplied));
+    let before = declared_history_inputs::expected_value(source, sha, supplied)
+        .expect("complete former merged member");
+    assert_eq!((before.len(), digest(&before)), (length, sha.to_owned()));
+    assert_eq!(physical(source), Some(supplied));
+    std::borrow::Cow::Owned(before)
+}
+
 // Closed complete current members rejoin the exact prior146-member image.
 // Every old target and every unmodified row/order remains independently bound.
-fn prior_current_part<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+fn prior_current_part<'a>(
+    source: &str,
+    current: &str,
+    supplied: &'a str,
+) -> std::borrow::Cow<'a, str> {
     let (length, sha, packet) = match source {
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs" => (
             17353,
@@ -684,7 +748,7 @@ fn prior_current_part<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'
     };
     assert_eq!(
         physical(source),
-        Some(supplied),
+        Some(current),
         "actual current member before whole prior join"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -733,7 +797,7 @@ fn prior_current_part<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'
     );
     assert_eq!(
         physical(source),
-        Some(supplied),
+        Some(current),
         "late actual member after prior join inverse"
     );
     std::borrow::Cow::Owned(restored)
@@ -758,37 +822,43 @@ pub(super) fn stages(
         actual, supplied,
         "entire actual owning join before either old normalization"
     );
+    let mut previous_merged = String::new();
     let mut prior_current = String::new();
+    let mut immediate = String::new();
     for &(source, compiled, _, _) in CURRENT_PARTS {
-        prior_current.push_str(&prior_current_part(source, compiled));
+        let previous = previous_merged_member(source, compiled);
+        previous_merged.push_str(&previous);
+        let prior = prior_current_part(source, compiled, &previous);
+        prior_current.push_str(&prior);
+        if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
+            let label_prior = invocation.value_direct(
+                source,
+                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a",
+                compiled,
+            );
+            assert_eq!(label_prior.len(), 10073);
+            assert_eq!(
+                digest(&label_prior),
+                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a"
+            );
+            immediate.push_str(&label_prior);
+        } else {
+            immediate.push_str(&prior);
+        }
     }
+    assert_eq!(
+        (previous_merged.len(), digest(&previous_merged)),
+        (
+            2292182,
+            "5ec37cbca16d9e9c2503718af8d85a175dbc874c0dbb2463d3e8abaf53c0b60b".to_owned(),
+        ),
+        "complete former merged join"
+    );
     assert_eq!(
         (prior_current.len(), digest(&prior_current)),
         (PRIOR_CURRENT_LENGTH, PRIOR_CURRENT_SHA.to_owned()),
         "ENTIRE retained146-member current join before old chains"
     );
-    // Authenticate the complete immediate owning join before either old chain.
-    // Only this registered child changed. Its ordinary current/compiled/archive
-    // acquisition restores its whole predecessor; every other joined byte and
-    // its original position remain present in the independently pinned image.
-    let mut immediate = String::new();
-    for &(source, compiled, _, _) in CURRENT_PARTS {
-        if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
-            let prior = invocation.value_direct(
-                source,
-                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a",
-                compiled,
-            );
-            assert_eq!(prior.len(), 10073);
-            assert_eq!(
-                digest(&prior),
-                "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a"
-            );
-            immediate.push_str(&prior);
-        } else {
-            immediate.push_str(&prior_current_part(source, compiled));
-        }
-    }
     assert_eq!(
         (immediate.len(), digest(&immediate)),
         (

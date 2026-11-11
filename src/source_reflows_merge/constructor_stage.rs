@@ -31,12 +31,34 @@ pub(super) fn after(domain: &str, source: &str, current: &str, projected: String
     if super::source_sha(&projected) == expected {
         return projected;
     }
-    assert_eq!(current, compiled);
-    assert_eq!(
-        projected, current,
-        "the complete preceding cost producer remains unchanged"
-    );
-    let before = super::main_e177_final_inputs::value_direct(source, expected, current);
+    let before = if (domain, source, expected)
+        == (
+            "cost825",
+            "src/workspace_graph/expected_projection.rs",
+            "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
+        ) {
+        use super::main_e177_final_inputs::declared_history_inputs;
+
+        // The preceding interface adapter may supply its exact named cursor.
+        // Authenticate both historical views from the complete live owner.
+        let preceding = declared_history_inputs::expected_value(
+            source,
+            "6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e",
+            compiled,
+        )
+        .expect("whole preceding cost projection");
+        assert!(current == compiled || current == preceding);
+        assert!(projected == current || projected == preceding);
+        declared_history_inputs::expected_value(source, expected, compiled)
+            .expect("whole historical cost consumer input")
+    } else {
+        assert_eq!(current, compiled);
+        assert_eq!(
+            projected, current,
+            "the complete preceding cost producer remains unchanged"
+        );
+        super::main_e177_final_inputs::value_direct(source, expected, current)
+    };
     assert_eq!(
         super::source_sha(&before),
         expected,
@@ -148,6 +170,32 @@ fn final_cost_binding_keeps_the_complete_fixed_source_and_rejects_changed_produc
         after("cost825", "foreign", current, "untouched".to_owned()),
         "untouched"
     );
+}
+
+#[test]
+fn cost_cursor_reacquires_current_before_its_complete_named_predecessor() {
+    let source = "src/workspace_graph/expected_projection.rs";
+    let current = include_str!("../workspace_graph/expected_projection.rs");
+    let cursor = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e"
+    ));
+    let before = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c"
+    ));
+    for supplied in [current, cursor] {
+        assert_eq!(
+            after("cost825", source, supplied, cursor.to_owned()),
+            before
+        );
+    }
+    let foreign = format!("!{}", &cursor[1..]);
+    assert_eq!(foreign.len(), cursor.len());
+    assert!(
+        std::panic::catch_unwind(|| after("cost825", source, &foreign, cursor.to_owned())).is_err()
+    );
+    assert!(std::panic::catch_unwind(|| after("cost825", source, cursor, foreign)).is_err());
 }
 
 #[test]

@@ -1753,8 +1753,10 @@
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_branch_frames.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_renewal.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/branch_frames.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/frame_renewal.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs",
@@ -3221,9 +3223,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "94b13ff7b10fe3cb6cc1c3037d45c9eb6e0bd784ae1f815079f945ffd051847f",
-      "full_raw_sha256": "d3d9d6dcee99fc44ceca2b07e9844630f13b0b071d2b7a77d47b04229f188f80",
-      "full_authenticated_production_sha256": "1c449eb829476417835a6e318e2577aca3561a5be267b39cd1f160df83ae30a4"
+      "full_manifest_sha256": "0c6d8045abe38a62a0f61371a9e6c1a273a2e5919d20518dc073dcca103b3f39",
+      "full_raw_sha256": "70cc0584900db9b4193aa401e9d6892215cf2f8b42b6cf5c15b5008fd9c7a9cf",
+      "full_authenticated_production_sha256": "3d6f0e1fea41b5ee34b8b2434c0a3ccf07774c4853f0d06a9a6b94fa9b5bd696"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4503,9 +4505,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "f1de31bb232a49528e2ae4ab8f0357a1b8a33f9e4a7ad2a39b77880667937aae",
-      "full_raw_sha256": "eb2788ab98ccc7d4ec5c8748b8c87e143cc3607f79496fcd414ec79fb8429a14",
-      "full_authenticated_production_sha256": "0711729e84fc105cef593b217bccf275c3205df100e3feaea64976349f39c9f8"
+      "full_manifest_sha256": "b6e61f804bc99d5b28ff4690fc042b47cc8c833c45c5f622deb32153e88b808d",
+      "full_raw_sha256": "0d5ebd2cd7043655a658106f9e5ef29ef6aa583df06c9a447a8ec8fa4cb77b91",
+      "full_authenticated_production_sha256": "0e98b26b093c00c157c948b66166b87c26ddc901dbd422b83bf09a29e2f707bd"
     }
   }
 }

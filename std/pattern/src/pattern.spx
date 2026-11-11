@@ -377,6 +377,39 @@ fn class_scan_mode(state: borrow Matcher, value: usize) -> usize
     mode
 }
 
+// Select the byte predicate once per eight reads. A short span stops the scan.
+@id("std.pattern.internal.span48-classified")
+fn span48_classified(input: borrow Slice<u8>, start: usize, kind: usize, expected: u8) -> usize
+    requires start <= byte_len(input) && 48usize <= byte_len(input) - start
+{
+    let mut count = 0usize;
+    let mut scanning = true;
+    while count < 48usize && scanning {
+        let width = match kind { 1usize => span8_cr_lf(input, start + count), 2usize => span8_nul_lf(input, start + count), 4usize => span8_token(input, start + count), 5usize => span8_path(input, start + count), 6usize => span8_excluding(input, start + count, expected), 7usize => span8_literal(input, start + count, expected), _ => 0usize, };
+        count = count + width;
+        scanning = width == 8usize;
+        0
+    }
+    count
+}
+
+// The six scan classes share the same count and logical-work transitions.
+@id("std.pattern.internal.scan-classified")
+fn scan_classified(input: borrow Slice<u8>, start: usize, bound: usize, available: usize, kind: usize, expected: u8) -> Scan
+    requires start <= byte_len(input) && bound <= byte_len(input) - start
+    requires bound <= 65536usize && available <= 262112usize
+{
+    let mut count = 0usize;
+    let mut work = 0usize;
+    let mut scanning = true;
+    let mut exhausted = false;
+    while count < bound && scanning && !exhausted {
+        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_classified(input, start + count, kind, expected); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match kind { 1usize => match value { 10u8 | 13u8 => false, _ => true, }, 2usize => match value { 0u8 | 10u8 => false, _ => true, }, 4usize => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, 5usize => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, 6usize => value != expected, 7usize => value == expected, _ => false, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
+        0
+    }
+    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+}
+
 // Eight direct total reads; the offset bound prevents fixed additions
 // overflowing. Missing bytes stop the span without granting input authority.
 @id("std.pattern.internal.span8-cr-lf")
@@ -387,13 +420,11 @@ fn span8_cr_lf(input: borrow Slice<u8>, start: usize) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-cr-lf")
 fn span48_cr_lf(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_cr_lf(input, start);
-    if first < 8usize { first } else { let second = span8_cr_lf(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_cr_lf(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_cr_lf(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_cr_lf(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_cr_lf(input, start + 40usize) } } } } }
+    span48_classified(input, start, 1usize, 0u8)
 }
 
 @id("std.pattern.internal.scan-cr-lf")
@@ -401,15 +432,7 @@ fn scan_cr_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: us
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_cr_lf(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 10u8 | 13u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 1usize, 0u8)
 }
 
 // Eight direct total reads; the offset bound prevents fixed additions
@@ -422,13 +445,11 @@ fn span8_nul_lf(input: borrow Slice<u8>, start: usize) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-nul-lf")
 fn span48_nul_lf(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_nul_lf(input, start);
-    if first < 8usize { first } else { let second = span8_nul_lf(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_nul_lf(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_nul_lf(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_nul_lf(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_nul_lf(input, start + 40usize) } } } } }
+    span48_classified(input, start, 2usize, 0u8)
 }
 
 @id("std.pattern.internal.scan-nul-lf")
@@ -436,15 +457,7 @@ fn scan_nul_lf(input: borrow Slice<u8>, start: usize, bound: usize, available: u
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_nul_lf(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 10u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 2usize, 0u8)
 }
 
 // Eight direct total reads; the offset bound prevents fixed additions
@@ -457,13 +470,11 @@ fn span8_literal(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-literal")
 fn span48_literal(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_literal(input, start, expected);
-    if first < 8usize { first } else { let second = span8_literal(input, start + 8usize, expected); if second < 8usize { 8usize + second } else { let third = span8_literal(input, start + 16usize, expected); if third < 8usize { 16usize + third } else { let fourth = span8_literal(input, start + 24usize, expected); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_literal(input, start + 32usize, expected); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_literal(input, start + 40usize, expected) } } } } }
+    span48_classified(input, start, 7usize, expected)
 }
 
 @id("std.pattern.internal.scan-literal")
@@ -471,15 +482,7 @@ fn scan_literal(input: borrow Slice<u8>, start: usize, bound: usize, available: 
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_literal(input, start + count, expected); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => value == expected, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 7usize, expected)
 }
 
 // Eight direct total reads; the offset bound prevents fixed additions
@@ -492,13 +495,11 @@ fn span8_excluding(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-excluding")
 fn span48_excluding(input: borrow Slice<u8>, start: usize, expected: u8) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_excluding(input, start, expected);
-    if first < 8usize { first } else { let second = span8_excluding(input, start + 8usize, expected); if second < 8usize { 8usize + second } else { let third = span8_excluding(input, start + 16usize, expected); if third < 8usize { 16usize + third } else { let fourth = span8_excluding(input, start + 24usize, expected); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_excluding(input, start + 32usize, expected); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_excluding(input, start + 40usize, expected) } } } } }
+    span48_classified(input, start, 6usize, expected)
 }
 
 @id("std.pattern.internal.scan-excluding")
@@ -506,15 +507,7 @@ fn scan_excluding(input: borrow Slice<u8>, start: usize, bound: usize, available
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_excluding(input, start + count, expected); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => value != expected, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 6usize, expected)
 }
 
 // Eight direct total reads; the offset bound prevents fixed additions
@@ -527,13 +520,11 @@ fn span8_token(input: borrow Slice<u8>, start: usize) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-token")
 fn span48_token(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_token(input, start);
-    if first < 8usize { first } else { let second = span8_token(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_token(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_token(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_token(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_token(input, start + 40usize) } } } } }
+    span48_classified(input, start, 4usize, 0u8)
 }
 
 @id("std.pattern.internal.scan-token")
@@ -541,15 +532,7 @@ fn scan_token(input: borrow Slice<u8>, start: usize, bound: usize, available: us
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_token(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 127u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 4usize, 0u8)
 }
 
 // Eight direct total reads; the offset bound prevents fixed additions
@@ -562,13 +545,11 @@ fn span8_path(input: borrow Slice<u8>, start: usize) -> usize
 }
 
 // At most 48 direct total reads, stopping at the first rejected byte.
-// Six shallow helpers keep source traversal below the old nested-if depth.
 @id("std.pattern.internal.span48-path")
 fn span48_path(input: borrow Slice<u8>, start: usize) -> usize
     requires start <= byte_len(input) && 48usize <= byte_len(input) - start
 {
-    let first = span8_path(input, start);
-    if first < 8usize { first } else { let second = span8_path(input, start + 8usize); if second < 8usize { 8usize + second } else { let third = span8_path(input, start + 16usize); if third < 8usize { 16usize + third } else { let fourth = span8_path(input, start + 24usize); if fourth < 8usize { 24usize + fourth } else { let fifth = span8_path(input, start + 32usize); if fifth < 8usize { 32usize + fifth } else { 40usize + span8_path(input, start + 40usize) } } } } }
+    span48_classified(input, start, 5usize, 0u8)
 }
 
 @id("std.pattern.internal.scan-path")
@@ -576,15 +557,7 @@ fn scan_path(input: borrow Slice<u8>, start: usize, bound: usize, available: usi
     requires start <= byte_len(input) && bound <= byte_len(input) - start
     requires bound <= 65536usize && available <= 262112usize
 {
-    let mut count = 0usize;
-    let mut work = 0usize;
-    let mut scanning = true;
-    let mut exhausted = false;
-    while count < bound && scanning && !exhausted {
-        if 48usize <= bound - count { if 49usize <= available - work { let width = span48_path(input, start + count); work = work + 1usize + width + if width < 48usize { 1usize } else { 0usize }; count = count + width; scanning = width == 48usize; } else { exhausted = true; } } else { if 2usize <= available - work { let matched = match byte_get(input, start + count) { Option::Some { value } => match value { 0u8 | 1u8 | 2u8 | 3u8 | 4u8 | 5u8 | 6u8 | 7u8 | 8u8 | 9u8 | 10u8 | 11u8 | 12u8 | 13u8 | 14u8 | 15u8 | 16u8 | 17u8 | 18u8 | 19u8 | 20u8 | 21u8 | 22u8 | 23u8 | 24u8 | 25u8 | 26u8 | 27u8 | 28u8 | 29u8 | 30u8 | 31u8 | 32u8 | 34u8 | 92u8 | 127u8 => false, _ => true, }, Option::None {} => false, }; work = work + 2usize; if matched { count = count + 1usize; } else { scanning = false; } } else { exhausted = true; } }
-        0
-    }
-    Scan::Done { count: count, work: work, exhausted: if exhausted { 1usize } else { 0usize } }
+    scan_classified(input, start, bound, available, 5usize, 0u8)
 }
 
 @id("std.pattern.internal.disjoint-follower")

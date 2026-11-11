@@ -2,8 +2,11 @@
 use super::*;
 use sha2::{Digest, Sha256};
 
-fn epoch(old: bool) -> PositiveEpoch {
-    PositiveEpoch(BEFORE_POSITIVE_BYTES.with(|value| value.replace(old)))
+fn epoch(old: bool) -> (PositiveEpoch, FrameRenewalEpoch) {
+    (
+        PositiveEpoch(BEFORE_POSITIVE_BYTES.with(|value| value.replace(old))),
+        frame_renewal_epoch(true),
+    )
 }
 fn reset_events() {
     ADVANCE_PAIR_EVENTS.with(|v| v.set(0));
@@ -180,7 +183,10 @@ fn caught_unwind_drops_the_complete_real_sort_and_restores_the_epoch() {
 
 // This is the complete existing source-bound producer, without sharing a
 // rewritten reference enumeration with the changed sorting implementation.
-fn shipping_input(program: &ResolvedProgram, function: &ResolvedFunction) -> Vec<SkeletonPath> {
+pub(super) fn shipping_input(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Vec<SkeletonPath> {
     use crate::cleanup_plan::replay::{
         hir_skeleton_paths, ordinary_plan_history::completed_fork::emission,
         reserve_program_skeleton_work,
@@ -425,6 +431,19 @@ pub(super) fn restore_before(name: &str, current: &str) -> String {
     assert!(metadata.len() <= MAX as u64);
     let physical = std::fs::read_to_string(&path).unwrap();
     assert_eq!(current, physical);
+    let live = current;
+    let expected = row["current"]["sha256"].as_str().unwrap();
+    let preceding = if hash(live.as_bytes()) != expected {
+        Some(
+            crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+                row["path"].as_str().unwrap(), expected, live,
+            )
+            .expect("complete post-953 source epoch"),
+        )
+    } else {
+        None
+    };
+    let current = preceding.as_deref().unwrap_or(live);
     assert_eq!(
         current.len() as u64,
         row["current"]["length"].as_u64().unwrap()
@@ -475,7 +494,7 @@ pub(super) fn restore_before(name: &str, current: &str) -> String {
         restored.replace_range(start..end, previous);
     }
     assert_eq!(restored, before);
-    assert_eq!(std::fs::read_to_string(path).unwrap(), current);
+    assert_eq!(std::fs::read_to_string(path).unwrap(), live);
     assert_eq!(std::fs::read(current_archive).unwrap(), current.as_bytes());
     assert_eq!(std::fs::read_to_string(archive).unwrap(), before);
     restored

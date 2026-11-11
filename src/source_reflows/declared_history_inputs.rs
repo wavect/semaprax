@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130002,
-        "70f04aba6f47169a64063f07b7873a56b3311a2ee9bb4d9eb46827ccf9e3ff94",
+        "49cbc80e9bfc746a1a58f8bed880491515889f8f13bfd7a8541d6feaa2a2246f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        2318,
-        "8a5e2e092b2392cad1d3661cd024c80d6ba318db710a3eba2dd2387b66aa71f7",
+        5439,
+        "ee0b445338a2b4bf7121e2efb9e2ab161a604ef9c662761f45b7bd58d0bd15c6",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -979,6 +979,9 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/workspace_graph/initial_report/tests.rs", "abf90d6818bca1f5344e0e6ea7dd9fa000c8bae3ad21923729ec6f869195be11" ) => Some((42,4)),
 ("src/workspace_graph/cold_canonical/tests.rs", "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6" ) => Some((42,5)),
 ("src/hir/owned_leaf_collection.rs", "e09a3f6f6a7234acbe922be60a45a4ac63f45d9d60482a0953f19a8e2428b401") => Some((43,0)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", "9b0a44837b96345bec274eae1594041194ac6cee80b7d3861216e88a79b29d81") => Some((43,2)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs", "3a39ab0f14065a9201b4cb2526e2fba164e2c775a900919ac8e9900a7fa13626") => Some((43,3)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", "5f07abb62df0a437625541c68792b14314ea293a2d4bce792f46a2b7588f392d") => Some((43,4)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1353,6 +1356,9 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "tests/workspace/semantic_structural_change.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change.rs")),
 "tests/workspace/semantic_structural_change/reporting.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_structural_change/reporting.rs")),
 "src/hir/owned_leaf_collection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/owned_leaf_collection.rs")),
+"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")),
+"src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs")),
+"src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

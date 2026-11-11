@@ -946,7 +946,10 @@ mod invocation_acquisition_tests {
         // The immutable packet and the already-warmed trace backing belong to
         // the caller. All newly acquired reader/parser/result owners must drop.
         scope.reset();
-        let (same, metrics) = crate::test_allocation_observer::measure(|| {
+        // Provision tracking before observation of the whole authenticated packet.
+        use crate::test_allocation_observer::{invalid_reason, measure_with_capacity};
+        const TRACKED_ALLOCATIONS: usize = 1 << 18;
+        let (same, metrics) = measure_with_capacity(TRACKED_ALLOCATIONS, || {
             let current = super::super::packet_lookup::reacquired_context::test_reacquired_value(
                 &fixture.packet,
                 SOURCE,
@@ -959,9 +962,14 @@ mod invocation_acquisition_tests {
             scope.reset();
             same
         });
-        assert!(same && !metrics.invalid && metrics.live == 0);
+        assert!(same);
+        assert!(
+            !metrics.invalid && metrics.live == 0,
+            "{metrics:?}, cause={:?}",
+            invalid_reason()
+        );
         assert_eq!(metrics.allocated, metrics.freed);
-        let (panicked, metrics) = crate::test_allocation_observer::measure(|| {
+        let (panicked, metrics) = measure_with_capacity(TRACKED_ALLOCATIONS, || {
             let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 super::super::packet_lookup::reacquired_context::test_reacquired_value(
                     &fixture.packet,
@@ -980,7 +988,12 @@ mod invocation_acquisition_tests {
             scope.reset();
             panicked
         });
-        assert!(panicked && !metrics.invalid && metrics.live == 0);
+        assert!(panicked);
+        assert!(
+            !metrics.invalid && metrics.live == 0,
+            "{metrics:?}, cause={:?}",
+            invalid_reason()
+        );
         assert_eq!(metrics.allocated, metrics.freed);
         assert_eq!(
             fixture.packet, complete_metadata,
@@ -1081,7 +1094,8 @@ mod invocation_acquisition_tests {
         }
         let raw = super::super::compiled(SOURCE).unwrap();
         let archive = format!("e/{}", digest(raw.as_bytes()));
-        for path in [POLICY, PAGE, SOURCE, archive.as_str()] {
+        let successor = "src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs";
+        for path in [successor, POLICY, PAGE, SOURCE, archive.as_str()] {
             if !paths.contains(&path) {
                 paths.push(path);
             }
@@ -1110,6 +1124,7 @@ mod invocation_acquisition_tests {
         // current/archive frontiers. Controllers stay outside this prefix.
         for (first, second) in [
             (fixture.original_reads[0].path.as_str(), POLICY),
+            (successor, POLICY),
             (POLICY, PAGE),
             (SOURCE, archive.as_str()),
         ] {
@@ -1177,14 +1192,25 @@ mod invocation_acquisition_tests {
             "/e/7ea19e20137bd5d4c203072d41eab7cc0c835f847e51b94a4b24eeac997589f4"
         ));
         let current = include_str!("main_e177_final_inputs.rs");
-        let hook="    #[cfg(test)]\n    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }\n";
+        let hook = concat!(
+            "    #[cfg(test)]\n",
+            "    if let Some(result) = historical_before_data::invocation_probe::read(path, length, expected) {\n",
+            "        return result;\n",
+            "    }\n",
+        );
         assert_eq!(current.matches(hook).count(), 1);
         assert_eq!(
-            current.replacen(hook, "", 1),
-            old,
-            "complete old root including bounded reader remains exact after removing only hook"
+            super::super::declared_history_inputs::expected_value(
+                "src/source_reflows_merge/main_e177_final_inputs.rs",
+                &digest(old.as_bytes()),
+                current,
+            )
+            .as_deref(),
+            Some(old),
+            "complete original root and bounded reader remain source bound"
         );
     }
+
     #[test]
     fn combined_expected_invocation_keeps_every_prior_and_foreign_value_with_one_owned_packet() {
         let packet = super::super::combined_side_packet();

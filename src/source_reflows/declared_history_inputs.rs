@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130002,
-        "250599952e09eb9ee2f640e9efbcd1bd93821950446e2f988e024bb1ddd04818",
+        "9055bef896dfb172e484c3240c106a5a55479d72f2ee09ab658c20c2c973b9ba",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        307696,
-        "356b6b45b8bbdb618e1410c1c8371ae9bc8c9b921dc03662999eb1a170d729eb",
+        308978,
+        "5a019307eda4e6a67a92283caf1539a5f6831e9c02d28c07e60a626b9e14f06f",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1047,6 +1047,7 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/expression_facts/receiving/directory.rs", "22145740db7bddf2f665508d1a0427d9a8377d46e1e6f6f95b7175edda7f28c4") => Some((43,67)),
 ("src/cleanup_plan/replay/expression_facts/receiving/retained.rs", "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00") => Some((43,68)),
 ("src/cleanup_plan/replay/expression_facts/receiving.rs", "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e") => Some((43,69)),
+("src/source_reflows_merge/main_e177_final_inputs.rs", "7ea19e20137bd5d4c203072d41eab7cc0c835f847e51b94a4b24eeac997589f4") => Some((43,70)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {

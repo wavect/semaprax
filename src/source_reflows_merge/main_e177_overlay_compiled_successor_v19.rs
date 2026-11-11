@@ -719,6 +719,7 @@ pub(super) fn authenticate_source() -> Result<(), &'static str> {
 pub(super) fn invocation_load(
     read: &impl Fn(&Path, usize, &str) -> Result<String, &'static str>,
 ) -> Result<(Value, Arc<Value>), &'static str> {
+    authenticate_source()?;
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let compiled =
         include_str!("../../docs/evidence/finite-source-overlay-v2-20261018/policy.json");

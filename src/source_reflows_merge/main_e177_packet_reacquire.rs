@@ -1,5 +1,5 @@
 //! Fresh packet acquisition only; outer invocation guards retain controllers.
-use super::{compiled_successor_v19, held_4a6eb, invocation_load, INVOCATION_PACKET_READS};
+use super::{held_4a6eb, load_current, INVOCATION_PACKET_READS};
 use std::path::Path;
 
 pub(in super::super) fn run() {
@@ -8,7 +8,6 @@ pub(in super::super) fn run() {
     for &(path, length, sha) in INVOCATION_PACKET_READS {
         read(&root.join(path), length, sha).unwrap();
     }
-    let (_, page) = invocation_load(&read).unwrap();
-    compiled_successor_v19::authenticate20_using(&page, &read).unwrap();
-    compiled_successor_v19::authenticate_using(&page, &read).unwrap();
+    // Acquire the same physical successor child, policy and page as composition.
+    load_current().unwrap();
 }

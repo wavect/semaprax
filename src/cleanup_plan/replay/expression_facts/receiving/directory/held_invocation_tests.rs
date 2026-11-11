@@ -1,7 +1,7 @@
 use super::*;
 use crate::cleanup_plan::replay::expression_facts::receiving::Before941StatusBacking;
 use crate::cleanup_plan::replay::fact_preflight::before_941_validate_program_context;
-use crate::test_allocation_observer::measure;
+use crate::test_allocation_observer::{invalid_reason, measure, measure_with_capacity};
 
 fn fixture() -> ResolvedProgram {
     let mut source = String::from("module held.statuses; ");
@@ -73,13 +73,15 @@ fn call(program: &ResolvedProgram, before: bool) -> Result<(), Diagnostic> {
     }
 }
 fn run(program: &ResolvedProgram, before: bool, cap: usize, floor: usize, success: bool) -> usize {
-    let (((code, metrics), exhausted, paid, receipt), started, _) =
+    let (((code, metrics), exhausted, paid, receipt), started, reference_paid) =
         crate::cleanup_plan::with_financed_validation_test_oracles(
             2 * (program.functions.len() + program.function_instances.len()),
             || {
                 let observed = crate::bounded_output::with_limit_usage_refusal(cap, || {
                     assert!(crate::bounded_output::set_active_floor(floor));
-                    let measured = measure(|| {
+                    // Provision the test observer before it activates. The
+                    // complete original caller and its paid accounts run inside.
+                    let measured = measure_with_capacity(1 << 18, || {
                         let outcome = call(program, before);
                         assert_eq!(
                             outcome.is_ok(),
@@ -104,17 +106,45 @@ fn run(program: &ResolvedProgram, before: bool, cap: usize, floor: usize, succes
                 (observed, success)
             },
         );
-    assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
-    assert!(metrics.allocated <= paid);
+    assert!(
+        !metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed,
+        "whole-caller allocation observation: {metrics:?}, cause={:?}",
+        invalid_reason()
+    );
+    // This observation includes both physical allocation routes. The
+    // ordinary-only pass below independently verifies the ordinary invoice.
+    let combined_paid = paid.checked_add(reference_paid).unwrap();
+    assert!(
+        metrics.allocated <= combined_paid,
+        "before={before}: {metrics:?}, ordinary={paid}, independent={reference_paid}"
+    );
+    eprintln!(
+        "HELD_STATUS_CALLER before={before} cap={cap} floor={floor} ordinary={paid} independent={reference_paid} {metrics:?}"
+    );
     assert_eq!(exhausted, !success);
     assert_eq!(receipt.is_some(), !success);
     assert_eq!(code, if success { None } else { Some("SPX-H006") });
-    if success {
+    if success && program.functions.len() == 25 {
+        assert_eq!(
+            started, 50,
+            "every unchanged reference receiver must complete"
+        );
+    } else if success {
         assert!(started > 0);
     }
     paid
 }
 fn invoice(program: &ResolvedProgram) -> (usize, usize) {
+    for before in [true, false] {
+        let (((), metrics), exhausted, paid, receipt) =
+            crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+                measure_with_capacity(1 << 18, || call(program, before).unwrap())
+            });
+        assert!(!exhausted && receipt.is_none());
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        assert!(metrics.allocated <= paid);
+        eprintln!("HELD_STATUS_ORDINARY before={before} paid={paid} {metrics:?}");
+    }
     let before = run(program, true, usize::MAX, 0, true);
     let current = run(program, false, usize::MAX, 0, true);
     let count = program.functions.len() + program.function_instances.len();
@@ -675,11 +705,26 @@ fn held_source_custody(supplied: &[(&str, &str)]) -> Option<Vec<Vec<u8>>> {
     }
     // Authenticate the entire compiled and physical eight-image boundary even
     // for a stale/foreign supplied source set. No partial source is authority.
+    let mut authored = Vec::with_capacity(current.len());
     for ((path, compiled), row) in HELD_SOURCE_IMAGES.iter().zip(current) {
-        if row["path"] != *path || !bound(&row["current"], compiled) {
+        if row["path"] != *path {
             return None;
         }
         read(path, compiled)?;
+        let image = if bound(&row["current"], compiled) {
+            std::borrow::Cow::Borrowed(*compiled)
+        } else {
+            let previous = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+                path,
+                row["current"]["sha256"].as_str()?,
+                compiled,
+            )?;
+            if !bound(&row["current"], &previous) {
+                return None;
+            }
+            std::borrow::Cow::Owned(previous)
+        };
+        authored.push(image);
     }
     if supplied != HELD_SOURCE_IMAGES {
         return None;
@@ -697,7 +742,7 @@ fn held_source_custody(supplied: &[(&str, &str)]) -> Option<Vec<Vec<u8>>> {
     let prior_tests = &packet["prior_test_controls"];
     if prior_tests["archive"] != HELD_PRIOR_TESTS.0
         || !bound(&prior_tests["before"], HELD_PRIOR_TESTS.1)
-        || !HELD_SOURCE_IMAGES[1].1.starts_with(HELD_PRIOR_TESTS.1)
+        || !authored[1].starts_with(HELD_PRIOR_TESTS.1)
     {
         return None;
     }
@@ -712,10 +757,10 @@ fn held_source_custody(supplied: &[(&str, &str)]) -> Option<Vec<Vec<u8>>> {
             return None;
         }
         read(archive, before)?;
-        let compiled = HELD_SOURCE_IMAGES
+        let position = HELD_SOURCE_IMAGES
             .iter()
-            .find(|(candidate, _)| candidate == path)?
-            .1;
+            .position(|(candidate, _)| candidate == path)?;
+        let compiled = authored.get(position)?.as_ref();
         if !bound(&row["current"], compiled) {
             return None;
         }

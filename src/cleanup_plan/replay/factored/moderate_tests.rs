@@ -1066,31 +1066,32 @@ type Cold949Row = (
     &'static str,
     &'static str,
     &'static str,
+    &'static str,
     &'static [(usize, usize, &'static str)],
 );
 const COLD949_ROWS: &[Cold949Row] = &[
-    ("docs/PAIRED-WEIGHTED-COMPARISON-V1.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PAIRED-WEIGHTED-COMPARISON-V1.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/004fa1e7b90c37dae3cc4a4921faefba03d78197e89431836de4e0e98d68be94")), &[(4114,5703,"")]),
-    ("docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b595aa192e83ad59d2842be236ebfbc97413539d0faa67c6c0ad1d4c6590bd09")), &[(25233,25805,"selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe\nreceivers before testing thresholds, including on tiny nonselecting paths.\nThe existing builder crossover above 128 paths runs first; this fitting selector\n")]),
-    ("src/box_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c1c21bfdfc4ae4db27239ee21426328f42b3404c42e5a4bca55bf59117f2df79")), &[(10250,10250,"#[cfg(test)]\n")]),
-    ("src/byte_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/aac7715eed4a017553d09f3543aab57177e8400d9bffc45bfbe78e277fe42f9e")), &[(30590,30590,"#[cfg(test)]\n")]),
-    ("src/cleanup_plan/replay/allocation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0d9c44752ba86a56eb75d5a77cbe97f60a7152dce52530daf9b5c06066faeda5")), &[(9894,9968,"Extra traversals reached by the independently funded trailing-active probe"),(10207,10207,"#[cfg(test)]\n"),(10227,10312,""),(11630,11647,"")]),
-    ("src/cleanup_plan/replay/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269")), &[(2993,6427,""),(10251,10331,"        budget.reserve_bytes(\n            function,\n            BUILDER_SELECTOR_CONTROLS,\n            \"ordinary builder representation selector receivers\",\n        )?;\n        selected_builder_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n"),(10496,10726,"    // Keep both existing selectors above unchanged. Only the ordinary builder\n    // evaluates this nonselection guard; its two bool roles were prepaid in\n    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.\n"),(59052,59083,"mod moderate_tests;\n")]),
-    ("src/cleanup_plan/replay/factored/moderate_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/moderate_tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/4c32d91e8bc3d5567f19984cb289471e285a0ae14b42a9909ca8dba489aa8224")), &[]),
-    ("src/cleanup_plan/replay/factored/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/paired.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/e2d57d474e4467653c6d5ef266a11bf4d5b22f1999dfaf46fd0da5bc19e67c32")), &[(22812,22864,"const FITTING_REFUSAL_PROBE_CONTROLS: usize = {\n"),(23025,23064,"    2 * size_of::<&ReplayBudget>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&LocalKey<Active>>()\n"),(23415,23586,""),(27544,27607,"const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;\n")]),
-    ("src/cleanup_plan/replay/trailing_active/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/trailing_active/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/12909e042372067ae367d991e6cd159805f1abd671eb155cb1c54983ae5af493")), &[(18984,19336,""),(19644,19772,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n"),(19971,20099,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n")]),
-    ("src/command_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/command_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/31bee6ec1d18c786de7161c63f2fd85ddea221bf9ca366762d8a332452892239")), &[(43240,43240,"#[cfg(test)]\n")]),
-    ("src/environment_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/environment_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc20ba1d398a69b13aae41a8057bc3953091d3b45b84702dfdca8c0cdc989af0")), &[(3068,3068,"#[cfg(test)]\n"),(3273,3273,"#[cfg(test)]\n")]),
-    ("src/filesystem_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/filesystem_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/30c9508c40a210f5724a643562f48169f1e5a4278def0631c56c7692cc1041af")), &[(9915,9915,"#[cfg(test)]\n"),(10109,10109,"#[cfg(test)]\n"),(10467,10467,"#[cfg(test)]\n")]),
-    ("src/hir/ids.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/5a7fb6366d3f448c6ab0f30dc99b24a007e3c2805db082f59396d8c0ca4ee0d8")), &[(23656,23656,"#[cfg(test)]\n")]),
-    ("src/hir/ids/compiler.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids/compiler.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0e2cb9430e9a6ec9f73e8e1bd07d36fbec84b5299635f2883b26a835cc6796b5")), &[(6098,6098,"#[cfg(test)]\n")]),
-    ("src/host_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/host_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/56f1d29f043877d59cf70f84c7bf17b35e5ee27347383d75b4e9f8348498bf1e")), &[(4417,4417,"#[cfg(test)]\n")]),
-    ("src/iterator_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/iterator_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1b18820c66c5b47e18e6ed7e2c58d4319e5ab50f0fe2c2ea1ee153c16620fa69")), &[(18877,18877,"#[cfg(test)]\n")]),
-    ("src/list_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/list_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a8e692ad890dacbfdb6b412f6cf277a9c22e09888675af9c816347c7444e86ef")), &[(12193,12193,"#[cfg(test)]\n")]),
-    ("src/map_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/map_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/65bb7cb33edd6bed0e197243ba25b6cf6f7fb3f929cce6d6cdddee079990c4ba")), &[(17149,17149,"#[cfg(test)]\n")]),
-    ("src/network_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/network_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b44fb31432a28a6e846fe0bf4b371159d4e750b6a70cd76695fb90dbcd09cd65")), &[(20608,20608,"#[cfg(test)]\n")]),
-    ("src/stdin_stream_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/stdin_stream_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/df37f338d309c71d599b4ada290b6fa1f681d018737344c6cb0fc7b9c8104343")), &[(17484,17484,"#[cfg(test)]\n")]),
-    ("src/str_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/str_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f681546ee58598288095926f2c76a25a26665770258eb25dea221e5c38cbbf8a")), &[(5932,5932,"#[cfg(test)]\n")]),
-    ("src/vec_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vec_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c880a46547d9385e12ea75f4577eef5e059fde9a189a17839951be22e278f5f2")), &[(30160,30160,"#[cfg(test)]\n")]),
+    ("docs/PAIRED-WEIGHTED-COMPARISON-V1.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PAIRED-WEIGHTED-COMPARISON-V1.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/004fa1e7b90c37dae3cc4a4921faefba03d78197e89431836de4e0e98d68be94")), "116fb3272559fd7f1ee5743573947f920a74ecaff7bc3f38a0b3301768a84a7c", &[(4114,5703,"")]),
+    ("docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b595aa192e83ad59d2842be236ebfbc97413539d0faa67c6c0ad1d4c6590bd09")), "349c2e0f628d84a2df24e21e7b27b784ea7d3287792a47fad5fe27374c7e82c5", &[(25233,25805,"selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe\nreceivers before testing thresholds, including on tiny nonselecting paths.\nThe existing builder crossover above 128 paths runs first; this fitting selector\n")]),
+    ("src/box_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c1c21bfdfc4ae4db27239ee21426328f42b3404c42e5a4bca55bf59117f2df79")), "9a7eab2e04268978771c0fa076b9bd85c7cb8d8fb88486d52f8ad20df812791a", &[(10250,10250,"#[cfg(test)]\n")]),
+    ("src/byte_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/aac7715eed4a017553d09f3543aab57177e8400d9bffc45bfbe78e277fe42f9e")), "127fbc31a389e84c5a4748d5854173caa81576c7bfc8461044fb2410d4247377", &[(30590,30590,"#[cfg(test)]\n")]),
+    ("src/cleanup_plan/replay/allocation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0d9c44752ba86a56eb75d5a77cbe97f60a7152dce52530daf9b5c06066faeda5")), "d2e374359c08e817a38c2810d0b1adfe318f9e7dcd9b78a95e5af8073b80d496", &[(9894,9968,"Extra traversals reached by the independently funded trailing-active probe"),(10207,10207,"#[cfg(test)]\n"),(10227,10312,""),(11630,11647,"")]),
+    ("src/cleanup_plan/replay/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269")), "91ef697d79d2df2a3248866036646d4f296e4788ed671aa582811756c84ab546", &[(2993,6427,""),(10251,10331,"        budget.reserve_bytes(\n            function,\n            BUILDER_SELECTOR_CONTROLS,\n            \"ordinary builder representation selector receivers\",\n        )?;\n        selected_builder_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n"),(10496,10726,"    // Keep both existing selectors above unchanged. Only the ordinary builder\n    // evaluates this nonselection guard; its two bool roles were prepaid in\n    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.\n"),(59052,59083,"mod moderate_tests;\n")]),
+    ("src/cleanup_plan/replay/factored/moderate_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/moderate_tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/4c32d91e8bc3d5567f19984cb289471e285a0ae14b42a9909ca8dba489aa8224")), "a13d1960a246da2ace03d39feccae3eb4862af8da7b7021b0bafdf5c2b61c830", &[]),
+    ("src/cleanup_plan/replay/factored/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/paired.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/e2d57d474e4467653c6d5ef266a11bf4d5b22f1999dfaf46fd0da5bc19e67c32")), "f06d1217e5aabccacacbe66ccafe36e52d3887b98afc606f5367aca8b150ff72", &[(22812,22864,"const FITTING_REFUSAL_PROBE_CONTROLS: usize = {\n"),(23025,23064,"    2 * size_of::<&ReplayBudget>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&LocalKey<Active>>()\n"),(23415,23586,""),(27544,27607,"const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;\n")]),
+    ("src/cleanup_plan/replay/trailing_active/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/trailing_active/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/12909e042372067ae367d991e6cd159805f1abd671eb155cb1c54983ae5af493")), "1d60de45cdc509322d357eecd3ed401b53584055a0d15f4f7ce784914e070d5d", &[(18984,19336,""),(19644,19772,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n"),(19971,20099,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n")]),
+    ("src/command_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/command_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/31bee6ec1d18c786de7161c63f2fd85ddea221bf9ca366762d8a332452892239")), "93c821e737b232e0728ea2b2dec0b1f703cc2465f68b9bcb9c149cb2c2709637", &[(43240,43240,"#[cfg(test)]\n")]),
+    ("src/environment_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/environment_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc20ba1d398a69b13aae41a8057bc3953091d3b45b84702dfdca8c0cdc989af0")), "64dc71ef8c58c394840b88f9e4c75ca07051f6a2955ffc69976a6878d9072921", &[(3068,3068,"#[cfg(test)]\n"),(3273,3273,"#[cfg(test)]\n")]),
+    ("src/filesystem_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/filesystem_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/30c9508c40a210f5724a643562f48169f1e5a4278def0631c56c7692cc1041af")), "c9537a9b282457340e59f81a17ef658a646debb90db50e8406819e5849dd9c61", &[(9915,9915,"#[cfg(test)]\n"),(10109,10109,"#[cfg(test)]\n"),(10467,10467,"#[cfg(test)]\n")]),
+    ("src/hir/ids.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/5a7fb6366d3f448c6ab0f30dc99b24a007e3c2805db082f59396d8c0ca4ee0d8")), "d120d95fdd465df30b0a47f5b6556d6c6cd4604893dd0c2ba9030dd24b107e1d", &[(23656,23656,"#[cfg(test)]\n")]),
+    ("src/hir/ids/compiler.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids/compiler.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0e2cb9430e9a6ec9f73e8e1bd07d36fbec84b5299635f2883b26a835cc6796b5")), "a5ab15a86460475836513d10025b639d0513bcf842081c6dc2350fa8f38e7147", &[(6098,6098,"#[cfg(test)]\n")]),
+    ("src/host_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/host_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/56f1d29f043877d59cf70f84c7bf17b35e5ee27347383d75b4e9f8348498bf1e")), "859ae1b955a69022767fe7a0d265bf239f09ada07354a149d38c73e420e22921", &[(4417,4417,"#[cfg(test)]\n")]),
+    ("src/iterator_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/iterator_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1b18820c66c5b47e18e6ed7e2c58d4319e5ab50f0fe2c2ea1ee153c16620fa69")), "cc358a8eb0e631be9b23406f0e6365f46bd4ec71863f36d86aabef1695eaf2be", &[(18877,18877,"#[cfg(test)]\n")]),
+    ("src/list_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/list_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a8e692ad890dacbfdb6b412f6cf277a9c22e09888675af9c816347c7444e86ef")), "8c616e84d46368f75df188f08bdc70cecb04180ba5da40bd14e7c738872259ad", &[(12193,12193,"#[cfg(test)]\n")]),
+    ("src/map_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/map_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/65bb7cb33edd6bed0e197243ba25b6cf6f7fb3f929cce6d6cdddee079990c4ba")), "da5bef8a971f1822b858d6f02e38e27d3ad7f1b3c4ba4b255ee347b1a9fa7d7b", &[(17149,17149,"#[cfg(test)]\n")]),
+    ("src/network_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/network_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b44fb31432a28a6e846fe0bf4b371159d4e750b6a70cd76695fb90dbcd09cd65")), "5a1be343c6bba14eb89116c33bf9259fe7d6ad36bf576b1b1e2a747c7abfa5d5", &[(20608,20608,"#[cfg(test)]\n")]),
+    ("src/stdin_stream_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/stdin_stream_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/df37f338d309c71d599b4ada290b6fa1f681d018737344c6cb0fc7b9c8104343")), "86fafc0d9d130da9a5bd6cc34847d4ef89f3ad7e6c8b1f505f83b9a31970916a", &[(17484,17484,"#[cfg(test)]\n")]),
+    ("src/str_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/str_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f681546ee58598288095926f2c76a25a26665770258eb25dea221e5c38cbbf8a")), "7a9385a46490e1adf326f3a0f19d0a4e419e49859488dd4040114de811056677", &[(5932,5932,"#[cfg(test)]\n")]),
+    ("src/vec_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vec_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c880a46547d9385e12ea75f4577eef5e059fde9a189a17839951be22e278f5f2")), "c95cf308f7527938f4f9c1203e2395e4c984999062668610d8eb9c29155f469e", &[(30160,30160,"#[cfg(test)]\n")]),
 ];
 fn cold949_sha(text: &str) -> String {
     joined_digest(text.as_bytes())
@@ -1125,20 +1126,41 @@ fn cold949_restore(
     supplied: &str,
     read: &mut impl FnMut(&std::path::Path, usize, &str) -> Option<String>,
 ) -> Option<String> {
-    let (_, compiled, prior, edits) = COLD949_ROWS.iter().find(|r| r.0 == source)?;
+    let (_, compiled, prior, authoring_sha, edits) = COLD949_ROWS.iter().find(|r| r.0 == source)?;
     if supplied != *compiled {
         return None;
     }
     cold949_check(source, compiled, prior, read)?;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let authoring_archive = root.join("e").join(authoring_sha);
+    let historical_authoring = if cold949_sha(compiled) == *authoring_sha {
+        None
+    } else {
+        use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs as history;
+
+        let (part, index) = history::slot(source, authoring_sha)?;
+        let row = &history::records(part)[index];
+        let length = usize::try_from(row["before_bytes"].as_u64()?).ok()?;
+        if length > COLD949_SOURCE_CAP {
+            return None;
+        }
+        let archived = read(&authoring_archive, length, authoring_sha)?;
+        let restored = history::expected_value(source, authoring_sha, compiled)?;
+        if archived != restored {
+            return None;
+        }
+        Some(restored)
+    };
+    let authoring = historical_authoring.as_deref().unwrap_or(compiled);
     let mut restored = if source == "src/cleanup_plan/replay/factored/moderate_tests.rs" {
         let marker =
             "\n// Complete immediate predecessor. Literal bodies and tariff expression are\n";
-        if compiled.matches(marker).count() != 1 {
+        if authoring.matches(marker).count() != 1 {
             return None;
         }
-        compiled.split_once(marker)?.0.to_owned()
+        authoring.split_once(marker)?.0.to_owned()
     } else {
-        supplied.to_owned()
+        authoring.to_owned()
     };
     for &(start, end, before) in edits.iter().rev() {
         if start > end || restored.get(start..end).is_none() {
@@ -1153,6 +1175,11 @@ fn cold949_restore(
         return None;
     }
     cold949_check(source, compiled, prior, read)?;
+    if historical_authoring.is_some()
+        && read(&authoring_archive, authoring.len(), authoring_sha)? != authoring
+    {
+        return None;
+    }
     Some(restored)
 }
 #[test]
@@ -1200,7 +1227,7 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
     assert_eq!(paired::BUILDER_FACTORED_PATH_THRESHOLD, 128);
     assert!(independent.contains("const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;"));
     assert_eq!(COLD949_ROWS.len(), 22);
-    for &(path, compiled, prior, _) in COLD949_ROWS {
+    for &(path, compiled, prior, authoring_sha, _) in COLD949_ROWS {
         assert_eq!(
             cold949_restore(path, compiled, &mut cold949_read).as_deref(),
             Some(prior)
@@ -1228,9 +1255,14 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
             ))
             .is_none());
         }
-        // Corrupt each actual physical/current-archive/prior-archive frontier,
-        // both before and after the entire inverse. No gate or read is skipped.
-        for corrupt_at in 0..6 {
+        // Corrupt each actual physical, current archive, original archive,
+        // and separately acquired authoring archive, early and late.
+        let checks = if cold949_sha(compiled) == authoring_sha {
+            6
+        } else {
+            8
+        };
+        for corrupt_at in 0..checks {
             for truncate in [true, false] {
                 let mut calls = 0;
                 let mut injected = |p: &std::path::Path, len, sha: &str| {

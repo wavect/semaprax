@@ -99,8 +99,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        690396,
-        "667ade550cea7e1cc35e18097eccf1c233288aa6189d11ca58b961d6dee3ecdb",
+        693217,
+        "f3c95c5884b877bba6282c7a9438cf7ce76a50816f9d2a7c7fd15708c3713545",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130002,
-        "8eb242567aaf127b9c7a47a1eb0160c509f22bc8114d90b22826e1d012ea4a64",
+        "250599952e09eb9ee2f640e9efbcd1bd93821950446e2f988e024bb1ddd04818",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -216,8 +216,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-22.json"
         )),
-        104788,
-        "336e958ff7211103abd01e55c8ce410e49c959b6e049cf620eba661e99da2af4",
+        107609,
+        "a6ea766755a548c8ad5a3e5ab860107b8ac22d3bca39e578d88ed940a506a3bf",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-23.json",
@@ -369,8 +369,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-39.json"
         )),
-        970666,
-        "bfa504ab8b3909a270754f6bfd0ca06836f54aafb157c82bbaca7937b3d72618",
+        971261,
+        "37c504909c61e4dc9a298c8f6a48c0840c1f8a6e482b8867a5391e0531541f82",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-40.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        118328,
-        "562739072d0cb7756286de58436302b7ae3c978bd20b729aa8a192d1968f13ae",
+        307696,
+        "356b6b45b8bbdb618e1410c1c8371ae9bc8c9b921dc03662999eb1a170d729eb",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1022,6 +1022,31 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay_tests/factored.rs", "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7") => Some((43,42)),
 ("docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md", "b810508d84f20ae802a2122e335f67714569fc4c5dfdb9fc3a5cd6e84c7f5947") => Some((43,43)),
 ("src/workspace_graph/expected_projection.rs", "6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e") => Some((43,44)),
+("docs/PAIRED-WEIGHTED-COMPARISON-V1.md", "116fb3272559fd7f1ee5743573947f920a74ecaff7bc3f38a0b3301768a84a7c") => Some((43,45)),
+("src/box_ops.rs", "9a7eab2e04268978771c0fa076b9bd85c7cb8d8fb88486d52f8ad20df812791a") => Some((43,46)),
+("src/byte_ops.rs", "127fbc31a389e84c5a4748d5854173caa81576c7bfc8461044fb2410d4247377") => Some((43,47)),
+("src/cleanup_plan/replay/allocation.rs", "d2e374359c08e817a38c2810d0b1adfe318f9e7dcd9b78a95e5af8073b80d496") => Some((43,48)),
+("src/cleanup_plan/replay/factored.rs", "91ef697d79d2df2a3248866036646d4f296e4788ed671aa582811756c84ab546") => Some((43,49)),
+("src/cleanup_plan/replay/factored/moderate_tests.rs", "a13d1960a246da2ace03d39feccae3eb4862af8da7b7021b0bafdf5c2b61c830") => Some((43,50)),
+("src/cleanup_plan/replay/factored/paired.rs", "f06d1217e5aabccacacbe66ccafe36e52d3887b98afc606f5367aca8b150ff72") => Some((43,51)),
+("src/cleanup_plan/replay/trailing_active/tests.rs", "1d60de45cdc509322d357eecd3ed401b53584055a0d15f4f7ce784914e070d5d") => Some((43,52)),
+("src/command_io_ops.rs", "93c821e737b232e0728ea2b2dec0b1f703cc2465f68b9bcb9c149cb2c2709637") => Some((43,53)),
+("src/environment_ops.rs", "64dc71ef8c58c394840b88f9e4c75ca07051f6a2955ffc69976a6878d9072921") => Some((43,54)),
+("src/filesystem_ops.rs", "c9537a9b282457340e59f81a17ef658a646debb90db50e8406819e5849dd9c61") => Some((43,55)),
+("src/hir/ids/compiler.rs", "a5ab15a86460475836513d10025b639d0513bcf842081c6dc2350fa8f38e7147") => Some((43,56)),
+("src/host_io_ops.rs", "859ae1b955a69022767fe7a0d265bf239f09ada07354a149d38c73e420e22921") => Some((43,57)),
+("src/iterator_ops.rs", "cc358a8eb0e631be9b23406f0e6365f46bd4ec71863f36d86aabef1695eaf2be") => Some((43,58)),
+("src/list_ops.rs", "8c616e84d46368f75df188f08bdc70cecb04180ba5da40bd14e7c738872259ad") => Some((43,59)),
+("src/map_ops.rs", "da5bef8a971f1822b858d6f02e38e27d3ad7f1b3c4ba4b255ee347b1a9fa7d7b") => Some((43,60)),
+("src/network_io_ops.rs", "5a1be343c6bba14eb89116c33bf9259fe7d6ad36bf576b1b1e2a747c7abfa5d5") => Some((43,61)),
+("src/stdin_stream_ops.rs", "86fafc0d9d130da9a5bd6cc34847d4ef89f3ad7e6c8b1f505f83b9a31970916a") => Some((43,62)),
+("src/str_ops.rs", "7a9385a46490e1adf326f3a0f19d0a4e419e49859488dd4040114de811056677") => Some((43,63)),
+("src/vec_ops.rs", "c95cf308f7527938f4f9c1203e2395e4c984999062668610d8eb9c29155f469e") => Some((43,64)),
+("src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs", "1f1c63aee7d304e6c44d2decc2b72c285621d0977257d7a33a62fbb65023eb59") => Some((43,65)),
+("src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs", "623b7cc93e6b6a81ffd7933978ec91c0126c4891d68c8f43919481b978936226") => Some((43,66)),
+("src/cleanup_plan/replay/expression_facts/receiving/directory.rs", "22145740db7bddf2f665508d1a0427d9a8377d46e1e6f6f95b7175edda7f28c4") => Some((43,67)),
+("src/cleanup_plan/replay/expression_facts/receiving/retained.rs", "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00") => Some((43,68)),
+("src/cleanup_plan/replay/expression_facts/receiving.rs", "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e") => Some((43,69)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1429,6 +1454,25 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/hir/inspection/paid_nul/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/tests.rs")),
 "src/cleanup_plan/replay_tests/factored.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay_tests/factored.rs")),
 "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md")),
+"docs/PAIRED-WEIGHTED-COMPARISON-V1.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PAIRED-WEIGHTED-COMPARISON-V1.md")),
+"src/box_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops.rs")),
+"src/cleanup_plan/replay/allocation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation.rs")),
+"src/cleanup_plan/replay/factored/paired.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/paired.rs")),
+"src/cleanup_plan/replay/trailing_active/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/trailing_active/tests.rs")),
+"src/command_io_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/command_io_ops.rs")),
+"src/environment_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/environment_ops.rs")),
+"src/filesystem_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/filesystem_ops.rs")),
+"src/hir/ids/compiler.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids/compiler.rs")),
+"src/host_io_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/host_io_ops.rs")),
+"src/iterator_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/iterator_ops.rs")),
+"src/list_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/list_ops.rs")),
+"src/map_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/map_ops.rs")),
+"src/network_io_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/network_io_ops.rs")),
+"src/stdin_stream_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/stdin_stream_ops.rs")),
+"src/str_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/str_ops.rs")),
+"src/vec_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vec_ops.rs")),
+"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs")),
+"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

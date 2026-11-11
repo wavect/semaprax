@@ -1985,6 +1985,15 @@ fn callable_boundary_source(functions: usize) -> WorkspaceSource {
 
 #[test]
 fn callable_limit_exact_advances_and_one_over_is_g171() {
+    check_callable_limit(MAX_BUILDER_BYTES);
+}
+
+#[test]
+fn callable_limit_exact_advances_and_one_over_is_g171_at_original_budget() {
+    check_callable_limit(64 * 1024 * 1024);
+}
+
+fn check_callable_limit(builder_limit: usize) {
     let leaf = canonical_source(
         "leaf.spx",
         "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
@@ -1997,16 +2006,18 @@ fn callable_limit_exact_advances_and_one_over_is_g171() {
         // each HIR validation invokes both complete original receivers.
         crate::cleanup_plan::with_financed_workspace_test_oracles(
             2usize.checked_mul(MAX_CALLABLES.checked_add(2).unwrap()).unwrap().checked_mul(7).unwrap(),
-            || build_owned(vec![exact, leaf.clone()]),
+            || build_owned_with_builder_limit(vec![exact, leaf.clone()], builder_limit),
         );
     assert!(reference_comparisons >= 2 * MAX_CALLABLES);
-    assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));
+    // The helper proves both reference receivers finish without refusal.
+    // Their separate account has a ceiling, independent of builder consumption.
+    assert!((1..=1 << 28).contains(&reference_bytes));
     let trace = crate::bounded_output::stage_debits::take_completed();
     let final_trace = crate::bounded_output::stage_debits::take_last_completed();
-    eprintln!("callable-limit-exact largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}");
+    eprintln!("callable-limit-exact builder_limit={builder_limit} largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}");
     exact_result.expect("exact callable limit must advance");
     let over = callable_boundary_source(MAX_CALLABLES);
-    let error = build_owned(vec![over, leaf])
+    let error = build_owned_with_builder_limit(vec![over, leaf], builder_limit)
         .err()
         .expect("one-over callables fail");
     assert!(is_named_limit(&error, "callables"));

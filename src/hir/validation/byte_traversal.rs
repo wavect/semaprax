@@ -342,6 +342,36 @@ fn frozen_body(
     Ok(())
 }
 
+// Pay for selector actual/formal root loans, the borrowed kinds and tail,
+// the block's statement loan and Vec::is_empty/len receiver pairs, and the
+// lengths/zero and bool controls. The reservation argument and Result each
+// have a caller/callee pair. Existing walk and nested tariffs are unchanged.
+const SCALAR_ROOT_CONTROLS: usize = {
+    use std::mem::size_of;
+    3 * size_of::<&ResolvedExpr>() // root actual/formal and tail dereference
+        + 2 * size_of::<&ResolvedExprKind>() // root and tail kind
+        + size_of::<&Box<ResolvedExpr>>() // borrowed tail field
+        + 5 * size_of::<&Vec<ResolvedStatement>>() // statement loan and two receiver pairs
+        + 5 * size_of::<usize>() // reservation pair, len pair and zero
+        + 5 * size_of::<bool>() // empty guard pair, tail test and selector result pair
+        + 2 * size_of::<Result<(), Diagnostic>>()
+};
+
+fn scalar_root(root: &ResolvedExpr) -> bool {
+    #[cfg(test)]
+    tests::record_scalar_selection();
+    // A receiver must be a Match and a region must have three statements.
+    // None can occur here, including at the one possible child of a Block.
+    match &root.kind {
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Usize(_) | ResolvedExprKind::Bool(_) => true,
+        ResolvedExprKind::Block { statements, tail } if statements.is_empty() => matches!(
+            &tail.kind,
+            ResolvedExprKind::Int(_) | ResolvedExprKind::Usize(_) | ResolvedExprKind::Bool(_)
+        ),
+        _ => false,
+    }
+}
+
 /// Census: every partial receiver is the item read of one complete region
 /// whose view carries authenticated byte-slice provenance, and that
 /// provenance root is frozen for the whole region. A receiver anywhere else is
@@ -363,6 +393,10 @@ fn validate_function_v1(
         .chain(std::iter::once(&function.body))
         .chain(function.requires.iter().rev())
     {
+        nested::slot::controls(SCALAR_ROOT_CONTROLS)?;
+        if scalar_root(root) {
+            continue;
+        }
         walk(root, |expression, mut authorized| {
             if let Some(region) = region(expression)? {
                 let view = bare_place(region.view)
@@ -447,6 +481,8 @@ struct Frame<'a> {
     entered: bool,
 }
 
+// Keep the fixed frame array on the walk side of the scalar-root branch.
+#[inline(never)]
 fn walk<'a>(
     root: &'a ResolvedExpr,
     mut visit: impl FnMut(
@@ -456,6 +492,8 @@ fn walk<'a>(
 ) -> Result<(), Diagnostic> {
     // Same fixed depth as the shared lexical cursor. This is stack storage,
     // not a heap allocation or permission to obtain physical authority.
+    #[cfg(test)]
+    tests::record_walk_setup();
     let mut frames = [None; crate::cache_codec::MAX_DEPTH + 1];
     let frame = |expression, authorized| Frame {
         children: crate::hir::lexical_exit::ChildCursor::new(expression),

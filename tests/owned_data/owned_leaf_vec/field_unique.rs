@@ -217,19 +217,43 @@ fn native(root: &std::path::Path, ast: &semaprax::ast::Program, refuse: bool, sc
         .map(|bytes| format!("UINT64_C({bytes})"))
         .collect::<Vec<_>>()
         .join(",");
+    let requested = if refuse {
+        scratch[0]
+    } else {
+        scratch.iter().sum()
+    };
+    let peak = if refuse {
+        0
+    } else {
+        scratch.iter().copied().max().unwrap_or(0)
+    };
     let allocator = format!(
         r#"#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 static uint64_t live=0,unique_requests=0,unique_bytes_mismatch=0,unique_refuse={refuse};
+static uint64_t unique_requested_bytes=0,unique_peak_bytes=0;
+static void *unique_live=NULL;
 static const uint64_t unique_expected[]={{{expected}0}};
 static void *probe_malloc(size_t n){{void*p=malloc(n);if(p)++live;return p;}}
 static void *probe_calloc(size_t n,size_t s){{void*p=calloc(n,s);if(p)++live;return p;}}
-static __attribute__((unused)) void *probe_realloc(void*p,size_t n){{void*r=realloc(p,n);if(r&&!p)++live;return r;}}
-static void probe_free(void*p){{if(p){{if(!live)abort();--live;free(p);}}}}
+static __attribute__((unused)) void *probe_realloc(void*p,size_t n){{
+ if(p&&p==unique_live)abort();
+ void*r=realloc(p,n);if(r&&!p)++live;return r;
+}}
+static void probe_free(void*p){{
+ if(p){{if(!live)abort();if(p==unique_live)unique_live=NULL;--live;free(p);}}
+}}
 static void *probe_unique_malloc(size_t n){{
+ if(unique_live)abort();
  if(unique_requests>={count}u||unique_expected[unique_requests]!=(uint64_t)n)++unique_bytes_mismatch;
- ++unique_requests;if(unique_refuse)return NULL;return probe_malloc(n);
+ ++unique_requests;
+ unique_requested_bytes+=(uint64_t)n;
+ if(unique_refuse)return NULL;
+ unique_live=probe_malloc(n);
+ if(unique_live&&(uint64_t)n>unique_peak_bytes)unique_peak_bytes=(uint64_t)n;
+ return unique_live;
 }}
 "#,
         refuse = u8::from(refuse),
@@ -246,7 +270,8 @@ int main(void){{
  struct spx_status_entry entries[32];struct spx_context context={{0}};
  if(!spx_context_init(&context,17,entries,32,NULL,NULL,NULL))return 1;
  for(unsigned repeat=0;repeat<3;++repeat){{
-  int64_t result=INT64_C(123456789);unique_requests=0;
+  int64_t result=INT64_C(123456789);
+  unique_requests=0;unique_requested_bytes=0;unique_peak_bytes=0;
   spx_status_token token=spx_decl_6170702e6d61696e(&context,&result);
   if({refuse}){{
    const struct spx_normalized_status *status=spx_status_resolve(&context,token);
@@ -254,8 +279,10 @@ int main(void){{
       ||strcmp(status->domain_id,"semaprax.vec.v1")!=0||status->code!=UINT32_C(3))return 2;
    if(unique_requests!=1u)return 3;
   }}else if(token!=SPX_STATUS_SUCCESS||result!=INT64_C(42)||unique_requests!={count}u)return 4;
-  if(unique_bytes_mismatch||live)return 5;
+  if(unique_bytes_mismatch||live||unique_live)return 5;
   for(uint32_t j=0;j<SPX_VEC_AUTHORITY_CAPACITY;++j)if(context.vec_authority[j].live)return 6;
+  printf("%llu %llu\n",(unsigned long long)unique_requested_bytes,
+         (unsigned long long)unique_peak_bytes);
  }}
  return 0;
 }}
@@ -292,6 +319,11 @@ int main(void){{
             "{optimization}: {:?}: {}",
             output.status.code(),
             String::from_utf8_lossy(&output.stderr)
+        );
+        let observed = String::from_utf8(output.stdout).unwrap();
+        assert_eq!(observed, format!("{requested} {peak}\n").repeat(3));
+        eprintln!(
+            "{optimization} uniqueness scratch requested and peak live bytes per invocation:\n{observed}"
         );
     }
 }

@@ -152,9 +152,16 @@ command profiles and public adapters keep their carrier refusals.
 * `tests/project/standard_library/application_json/owned/shiftsim_id_validation.rs`
   and the complete ShiftSim corpus owner.
 
-Until these gates execute successfully this is authored implementation, not
-verified support. Source reduction in the ShiftSim adoption is source evidence
-only; no agent-cost, token or runtime advantage is claimed.
+The focused gates cover the interpreter, native C11 at O0 and O2, and the
+strict private Core-Wasm host. The complete ShiftSim corpus and its saved
+pairwise and clone/sort oracles pass at the ordinary limits.
+
+The native allocation probe observes 65,668 requested bytes across nine
+uniqueness scratch requests in one corpus invocation, with a peak of 16,384
+live scratch bytes and zero scratch remaining at reentry. The refusal control
+observes one 8-byte request and zero live scratch bytes. These figures cover
+the ordinal scratch only. The surrounding row and string allocations and the
+compiler's cumulative workspace reservations have separate accounting.
 
 ## ShiftSim adoption
 
@@ -165,3 +172,6 @@ former temporary `Vec<string>` of cloned identifiers and
 retained byte-for-byte as an independent saved test oracle. Patient
 validation, duplicate rejection, scheduling, serialization, acceptance inputs,
 default limits and the TypeScript baseline are unchanged.
+The adoption changes the two authored uniqueness helpers from 1,015 bytes
+across 30 lines to one 148-byte helper across five lines. This comparison
+counts the declarations and bodies and excludes their surrounding blank lines.

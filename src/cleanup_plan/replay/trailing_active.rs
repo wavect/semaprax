@@ -696,6 +696,7 @@ mod tests;
 // ENTIRE immediate predecessor: namespace/visibility only; all original
 // selectors, setup, general/single/multiple loops and failure gates retained.
 #[cfg(test)]
+#[rustfmt::skip]
 pub(super) fn before_sequence_skeleton_paths(
     prefixes: Vec<ExprSkeletonPath>,
     suffixes: &[ExprSkeletonPath],
@@ -717,8 +718,9 @@ pub(super) fn before_sequence_skeleton_paths(
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
-    let prefixes =
-        ordinary_plan_history::completed_fork::emission::dispatch!(prefixes, suffixes, work);
+    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
+        prefixes, suffixes, work
+    );
     let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
     let share_prefix = work.prefix_tail_sharing(&suffixes)?;

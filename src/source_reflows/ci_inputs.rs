@@ -501,6 +501,30 @@ fn rows() -> serde_json::Value {
         probe["sha256"] = serde_json::json!(digest(actual));
         probe["retained_prior_record"] = prior_record;
     }
+    {
+        use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs as history;
+
+        let probe = &mut probes[0];
+        let prior_record = probe.clone();
+        let source = "src/cleanup_plan/validate.rs";
+        let expected = "75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b";
+        assert_eq!(probe["source"], source);
+        assert_eq!(probe["length"], 4475);
+        assert_eq!(probe["sha256"], expected);
+        let actual = compiled(source).unwrap().1;
+        let (part, index) = history::slot(source, expected).unwrap();
+        let record = &history::records(part)[index];
+        assert_eq!(record["before_bytes"], probe["length"]);
+        let predecessor = history::expected_value(source, expected, actual).unwrap();
+        assert_eq!(digest(&predecessor), expected);
+        probe["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(record["inverse"].as_array().unwrap().iter().cloned());
+        probe["length"] = serde_json::json!(actual.len());
+        probe["sha256"] = serde_json::json!(digest(actual));
+        probe["retained_prior_record"] = prior_record;
+    }
     for probe in probes.as_array().unwrap() {
         let row = rows
             .as_array_mut()

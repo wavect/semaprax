@@ -268,7 +268,35 @@ impl Fixture {
             && expected == "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0";
         let has_export_epoch = source == "src/cleanup_plan/replay/factored.rs"
             && expected == "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4";
-        let (paired_epoch, prefix_edits) = if has_paired_epoch {
+        let has_declared_epoch = matches!(
+            (source, sha),
+            (
+                "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+                "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4"
+            ) | (
+                "src/cleanup_plan/replay/factored.rs",
+                "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269"
+            )
+        );
+        use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs as history;
+        let (paired_epoch, prefix_edits) = if has_declared_epoch {
+            let (part, index) = history::slot(source, sha).expect("closed Main44 source epoch");
+            let row = &history::records(part)[index];
+            let predecessor = history::restore(source, row);
+            let edits = row["inverse"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|edit| {
+                    (
+                        usize::try_from(edit[0].as_u64().unwrap()).unwrap(),
+                        edit[1].as_str().unwrap(),
+                        edit[2].as_str().unwrap(),
+                    )
+                })
+                .collect();
+            (std::borrow::Cow::Owned(predecessor), edits)
+        } else if has_paired_epoch {
             Self::closure_epoch(
                 source,
                 "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
@@ -299,7 +327,10 @@ impl Fixture {
         assert_eq!(prior.len(), prior_length);
         assert_eq!(super::source_sha(prior), expected);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let acquired = if context_source.is_some() {
+        let acquired = if has_declared_epoch {
+            history::expected_value(source, sha, physical_compiled)
+                .expect("closed complete original fixture source")
+        } else if context_source.is_some() {
             // Preserve the original late physical acquisition as well as the
             // early one; a source change between the two remains a refusal.
             let actual = current_file(
@@ -638,6 +669,19 @@ pub(crate) fn before_phase_probes<'a>(
         compiled,
     );
     let compiled = closure_epoch.as_ref();
+    let validate_epoch = if source == "src/cleanup_plan/validate.rs"
+        && super::source_sha(compiled) != expected
+    {
+        Some(
+            crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+                source, expected, compiled,
+            )
+            .expect("complete validation probe predecessor"),
+        )
+    } else {
+        None
+    };
+    let compiled = validate_epoch.as_deref().unwrap_or(compiled);
     let workspace_epoch = if source == "src/cleanup_plan/replay.rs" {
         assert_eq!(compiled.len(), 327551);
         assert_eq!(

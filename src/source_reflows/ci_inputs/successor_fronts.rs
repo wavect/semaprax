@@ -2,9 +2,11 @@ use super::*;
 
 // The relocated validator receiver shares these private helpers. Every older
 // source consumer enters through the exact six visibility-only reversals.
+type SourceEdits<'a> = &'a [(usize, &'a str, &'a str)];
+
 pub(in super::super) fn lifecycle_visibility_entry(source: &str, supplied: &str) -> Option<String> {
     let (compiled, length, expected, prior_length, prior_sha, edits):
-        (&str, usize, &str, usize, &str, &[(usize, &str, &str)]) = match source {
+        (&str, usize, &str, usize, &str, SourceEdits<'_>) = match source {
         "src/hir/validation/function_scope/lifecycle.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/function_scope/lifecycle.rs")), 3978, "8095a604e5320261b71d1681fd53fe4ba2a2e7dac7f2a7a13c0e505563e815df", 3938, "d043c680becb6e6385559f4d0d8e86e5eff79f5dbdca72cfbe97b058cc18d8bd", &[
             (1296, "pub(in crate::hir::validation) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\n", "pub(super) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\n"),
             (3932, "pub(in crate::hir::validation) mod completed;\n", "pub(super) mod completed;\n"),
@@ -21,13 +23,23 @@ pub(in super::super) fn lifecycle_visibility_entry(source: &str, supplied: &str)
         supplied, compiled,
         "complete current lifecycle visibility source"
     );
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let preceding;
+    let compiled = if compiled.len() == length && digest(compiled) == expected {
+        assert_eq!(
+            reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+            compiled
+        );
+        compiled
+    } else {
+        preceding = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+            source, expected, compiled,
+        )
+        .expect("complete lifecycle visibility predecessor");
+        &preceding
+    };
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(
-        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
-        compiled
-    );
     let mut before = compiled.to_owned();
     for &(at, current, previous) in edits.iter().rev() {
         assert_eq!(&before[at..at + current.len()], current);

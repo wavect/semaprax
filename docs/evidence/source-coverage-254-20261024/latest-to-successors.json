@@ -177,12 +177,16 @@
     },
     {
       "source": "src/cleanup_plan/replay.rs",
-      "length": 326129,
-      "sha256": "f98a8462e5eca592b2627a7ca1f706df67a362f4aa4aa4f667cc8f7bddb13fc6",
+      "length": 325862,
+      "sha256": "ba0e6b1df76928071487692d329017d6567a43ea4644b96b01f110475a113a5f",
       "checkpoint_length": 326264,
       "checkpoint_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "inverse": [
+        [
+          "    if skeleton_work::enumerated_prefix::original_selected() {\n",
+          "    if skeleton_work::enumerated_prefix::original_selected() || work.budget.oracle_lease().is_some()\n    {\n        // An explicitly opted oracle keeps its complete original sequence\n        // receiver and account. Compact ordinary carriers belong to the\n        // shipping receiver, rather than the retained independent oracle.\n"
+        ],
         [
           "                observations,\n                suffix,\n                work\n",
           "                observations, suffix, work\n"

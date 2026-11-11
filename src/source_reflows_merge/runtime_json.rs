@@ -480,8 +480,8 @@ fn main043_before_successors(
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let data = main043_raw_file(
         &root.join("docs/evidence/source-coverage-254-20261024/latest-to-successors.json"),
-        1344861,
-        "b72e80ec69d8ad2eaa5f29b97a021af8851ac21f1db0ddbc701ad49a9c4d85ec",
+        1345308,
+        "2b871f350787287b6304acc4b81b8d427736ffece729585cf75e012cc2e9db62",
     )
     .unwrap();
     assert_eq!(

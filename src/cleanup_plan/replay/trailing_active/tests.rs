@@ -255,17 +255,36 @@ fn run(
 fn warm_and_cold_whole_callers_keep_exact_short_zero_floor_sticky_and_complete_drop() {
     let program = fixture();
     for (count, shape) in [(511, 0), (511, 4), (31, 0), (511, 2), (511, 3), (511, 1)] {
-        let before = run(&program, true, count, shape, usize::MAX, 0);
-        let current = run(&program, false, count, shape, usize::MAX, 0);
+        let run_current_cold = |old, cap, floor| {
+            sequence_vector::with_ordinary_route(|| run(&program, old, count, shape, cap, floor))
+        };
+        let before = run_current_cold(true, usize::MAX, 0);
+        let current = run_current_cold(false, usize::MAX, 0);
         assert!(before.0 && current.0);
-        assert_eq!(current.1,before.1+PROBE,"exact cfg(test) cold probe folded into the original donor; no heavy eligibility on ActiveBuilder");
+        assert_eq!(
+            current.1,
+            before.1 + PROBE,
+            "cold probe invoice at {count} paths and shape {shape}"
+        );
         assert_eq!(current.2, before.2);
         assert_eq!(current.3, before.3);
         for (old, exact) in [(true, before.1), (false, current.1)] {
-            assert!(run(&program, old, count, shape, exact, 0).0);
-            assert!(!run(&program, old, count, shape, exact - 1, 0).0);
-            assert!(!run(&program, old, count, shape, exact, 1).0);
-            assert!(!run(&program, old, count, shape, 0, 0).0);
+            assert!(run_current_cold(old, exact, 0).0);
+            assert!(!run_current_cold(old, exact - 1, 0).0);
+            assert!(!run_current_cold(old, exact, 1).0);
+            assert!(!run_current_cold(old, 0, 0).0);
+        }
+        // The shipping in-place path returns before the trailing probe at 31 rows.
+        if count == 31 {
+            let shipping = |cap, floor| run(&program, false, count, shape, cap, floor);
+            let (ok, exact, work, _) = shipping(usize::MAX, 0);
+            assert!(ok);
+            assert!(exact < current.1);
+            assert_eq!(work, current.2);
+            assert!(shipping(exact, 0).0);
+            assert!(!shipping(exact - 1, 0).0);
+            assert!(!shipping(exact, 1).0);
+            assert!(!shipping(0, 0).0);
         }
     }
     // Actual Oracle cold invocations, not an ActiveBuilder stand-in.
@@ -277,11 +296,17 @@ fn warm_and_cold_whole_callers_keep_exact_short_zero_floor_sticky_and_complete_d
         assert_eq!(old_materialized, current_materialized);
         assert_eq!(old.receipt.work, current.receipt.work);
         assert_eq!(old.metrics, current.metrics);
+        // The existing path-array selector only reaches the trailing probe
+        // once the minimum is at least eight. The seven-row case remains cold.
+        let probes = count >= 8;
         assert_eq!(
             current.receipt.charged,
-            old.receipt.charged + PROBE + if heavy { ELIGIBILITY } else { 0 }
+            old.receipt.charged
+                + if probes { PROBE } else { 0 }
+                + if heavy { ELIGIBILITY } else { 0 },
+            "Oracle cold invoice at {count} paths and shape {shape}"
         );
-        assert!(frontiers[1] > 0);
+        assert_eq!(frontiers[1] > 0, probes);
         assert_eq!(frontiers[3] > 0, heavy);
         assert_eq!(frontiers[5], 0, "cold shape never pays FRAME");
     }

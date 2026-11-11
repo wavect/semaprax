@@ -152,7 +152,8 @@ pub(super) fn physical_batch_input<'a>(
 
 // Complete new943 physical root -> entire392da immediate predecessor -> the
 // original751c CI probe leg. Old before/finish bodies and metadata stay whole.
-const NEXT_CURRENT: &str = include_str!("../cleanup_plan/replay.rs");
+const NEXT_CURRENT: &str =
+    include_str!("../../e/2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16");
 const NEXT_SHA: &str = "2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16";
 const NEXT_PREFIX: &str = r####"[[1455,"#[cfg(test)]\nmod trailing_active;\n",""],[121014,"    #[cfg(test)]\n    if trailing_active::before_selected() {\n        return trailing_active::before_sequence_skeleton_paths(prefixes, suffixes, work);\n    }\n",""],[122004,"    }\n    #[cfg(test)]\n    if !single && first {\n        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);\n",""],[124572,"if !precharged { final_output::record_final_frontier(0, work); }\n        if precharged { precharged = false; }\n        else { work.charge(1, \"skeleton prefix clone\")?; }","final_output::record_final_frontier(0, work);\n        work.charge(1, \"skeleton prefix clone\")?;"]]"####;
 fn authenticate_next() {
@@ -162,12 +163,18 @@ fn authenticate_next() {
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
-        super::reader::read(&root.join(SOURCE), NEXT_CURRENT.len(), NEXT_SHA, 2_097_152).unwrap(),
+        super::reader::read(
+            &root.join(format!("e/{NEXT_SHA}")),
+            NEXT_CURRENT.len(),
+            NEXT_SHA,
+            2_097_152
+        )
+        .unwrap(),
         NEXT_CURRENT
     );
     authenticate();
 }
-pub(crate) fn next_before(actual: &str) -> (String, Value) {
+fn next_before_943(actual: &str) -> (String, Value) {
     authenticate_next();
     assert_eq!(actual, NEXT_CURRENT);
     let edits: Value = serde_json::from_str(NEXT_PREFIX).unwrap();
@@ -191,6 +198,49 @@ pub(crate) fn next_before(actual: &str) -> (String, Value) {
     authenticate_next();
     (before, edits)
 }
+// Authenticate the live replay root before replaying each retained CI inverse.
+const PHYSICAL_CURRENT: &str = include_str!("../cleanup_plan/replay.rs");
+const PHYSICAL_SHA: &str = "ba0e6b1df76928071487692d329017d6567a43ea4644b96b01f110475a113a5f";
+const PHYSICAL_PREFIX: &str = r####"[[1455,"","#[cfg(test)]\nmod trailing_active;\n"],[1543,"#[cfg(test)]\nmod trailing_active;\n",""],[2767,"","use expression_children::replay_expression_child;\nuse expression_facts::expression_facts;\nuse std::collections::{BTreeMap, BTreeSet, VecDeque};\n#[cfg(test)]\nuse crate::hir::ResolvedTypeDeclarationKind;\n#[cfg(test)]\nuse std::cell::Cell;\n"],[3701,"#[cfg(test)]\nuse crate::hir::ResolvedTypeDeclarationKind;\n",""],[4103,"use expression_children::replay_expression_child;\nuse expression_facts::expression_facts;\n#[cfg(test)]\nuse std::cell::Cell;\nuse std::collections::{BTreeMap, BTreeSet, VecDeque};\n",""],[17727,"        // A selected factored comparison borrows ordinary work, not an unused\n        // enumerating allowance. Its bounded fallback reserves before entry.\n        if function_upper != 0 && factored::defer_enumerating_reservation(function, budget)? {\n            continue;\n        }\n",""],[107785,"        && factored::validate_with_deferred_index_storage(\n","        && factored::validate_with_index_storage(\n"],[110954,"        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if function.cleanup_plan.lexical_control.is_none() && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n","        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n"],[114070,"        // Bootstrap refusal text before receiving backing. A recursive clone\n        // still acquires and uses its complete real cursor at that clone.\n","        // Exactly the old ordinary bootstrap/cursor frontier. No new receiving\n        // owner exists before these earlier errors have been selected.\n"],[114266,"","        budget.prepare_clone_cursor(function)?;\n"],[115299,"        budget.reserve_bytes(\n            function,\n            skeleton_work::query_proof::HEADER,\n            \"skeleton query neutral slot receivers\",\n        )?;\n        SkeletonWork {\n            queries: skeleton_work::query_proof::Slot::new(function, budget),\n","        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\n"],[121527,"    sequence_vector::inplace_dispatch!(prefixes, suffixes, work);\n    let prefixes =\n        ordinary_plan_history::completed_fork::emission::dispatch!(prefixes, suffixes, work);\n","    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(\n        prefixes, suffixes, work\n    );\n"],[122469,"        trailing_active::reuse!(\n            prefixes,\n            suffixes,\n            work,\n            share_prefix,\n            minimum,\n            precharged,\n            first,\n            single,\n            combined\n        );\n","        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);\n"],[125098,"        if !precharged {\n            final_output::record_final_frontier(0, work);\n        }\n        if precharged {\n            precharged = false;\n        } else {\n            work.charge(1, \"skeleton prefix clone\")?;\n        }\n","        if !precharged { final_output::record_final_frontier(0, work); }\n        if precharged { precharged = false; }\n        else { work.charge(1, \"skeleton prefix clone\")?; }\n"],[130336,"use continuation_storage::expression_skeleton;\n","fn expression_skeleton<'hir>(\n    program: &'hir dyn crate::cleanup::ReplayContext,\n    function: &'hir ResolvedFunction,\n    expression: &'hir ResolvedExpr,\n    work: &mut SkeletonWork<'hir, '_>,\n) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n    let (lease, mut frames) = if let Some(storage) = work.continuations.as_mut() {\n        if !storage.matches(program) {\n            return Err(replay_error(\n                function,\n                \"typed-HIR continuation storage belongs to another program\",\n            ));\n        }\n        storage.acquire(function, work.budget)?\n    } else {\n        (\n            continuation_storage::Lease::Local,\n            match work.budget {\n                ReplayBudget {\n                    payer: AllocationPayer::ActiveBuilder,\n                    lent_skeleton: false,\n                    ..\n                } => continuation_storage::fresh_receiving(function, work.budget)?,\n                // A factored constructor has lent its ordinary allowance to the\n                // original skeleton events. Keep its standalone fixed backing;\n                // incremental relocation needs an independent ordinary account.\n                _ => continuation_storage::fresh(function, work.budget)?,\n            },\n        )\n    };\n    // No directory borrow spans the runner: guards re-enter this same Storage.\n    // A panic still unwinds to invocation Drop, as in the original lease owner.\n    let result = expression_skeleton_run(program, function, expression, work, &mut frames);\n    frames.clear(); // Drop every owned continuation payload before reuse.\n    if let Some(storage) = work.continuations.as_mut() {\n        storage.release(lease, frames);\n    }\n    result\n}\n"],[130584,"    frames: &mut impl continuation_storage::FrameStack<'hir>,\n","    frames: &mut Vec<continuation_storage::Frame<'hir>>,\n"],[130871,"                continuation_storage::FrameStack::reserve_push($frames, function, work.budget)?;\n","                continuation_storage::reserve_push($frames, function, work.budget)?;\n"],[131096,"            $frames.push_owned($frame, function, work.budget)?;\n","            $frames.push($frame);\n"],[132158,"    fn advance_block_value<'a, 'e, S: continuation_storage::FrameStack<'e>>(\n","    fn advance_block_value<'a, 'e>(\n"],[132275,"        frames: &mut S,\n","        frames: &mut Vec<Frame<'e>>,\n"],[132576,"        let mut push = |frames: &mut S, frame: Frame<'e>| -> Result<(), Diagnostic> {\n","        let mut push = |frames: &mut Vec<Frame<'e>>, frame: Frame<'e>| -> Result<(), Diagnostic> {\n"],[132713,"                continuation_storage::FrameStack::reserve_push(frames, function, work.budget)?;\n","                continuation_storage::reserve_push(frames, function, work.budget)?;\n"],[132937,"            frames.push_owned(frame, function, work.budget)?;\n","            frames.push(frame);\n"],[135880,"    while let Some(frame) = frames.pop_owned(function, work.budget)? {\n","    while let Some(frame) = frames.pop() {\n"],[267912,"                observations,\n                suffix,\n                work\n","                observations, suffix, work\n"],[271625,"        let mut failure = skeleton_work::status_clone!(work, path, \"status failure path clone\")?;\n","        let mut failure = work.clone_expr_path(&path, \"status failure path clone\")?;\n"],[277490,"    // The shared PLAN prefix route is admitted only for ordinary control.\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && function.cleanup_plan.lexical_control.is_none() && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n","    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n"],[288582,"                        branch = branch_clone::production_capacity::unpaid_clone(\n","                        branch = skeleton_clone(\n"],[297402,"                        branch = branch_clone::production_capacity::unpaid_clone(\n","                        branch = skeleton_clone(\n"]]"####;
+
+fn physical_before(actual: &str) -> (String, Value) {
+    assert_eq!(actual, PHYSICAL_CURRENT);
+    assert_eq!(actual.len(), 325862);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        super::reader::read(&root.join(SOURCE), actual.len(), PHYSICAL_SHA, 2_097_152).unwrap(),
+        actual
+    );
+    let edits: Value = serde_json::from_str(PHYSICAL_PREFIX).unwrap();
+    let rows = edits.as_array().unwrap();
+    assert!(rows.len() <= 512);
+    let mut before = actual.to_owned();
+    let mut next = before.len();
+    for row in rows.iter().rev() {
+        let start = row[0].as_u64().unwrap() as usize;
+        let after = row[1].as_str().unwrap();
+        let end = start.checked_add(after.len()).unwrap();
+        assert!(end <= next);
+        assert_eq!(before.get(start..end), Some(after));
+        before.replace_range(start..end, row[2].as_str().unwrap());
+        assert!(before.len() <= 2_097_152);
+        next = start;
+    }
+    assert_eq!(before, NEXT_CURRENT);
+    authenticate_next();
+    (before, edits)
+}
+
+pub(crate) fn next_before(actual: &str) -> (String, Value) {
+    let (physical, edits) = physical_before(actual);
+    let (immediate, mut prefix) = next_before_943(&physical);
+    prefix
+        .as_array_mut()
+        .unwrap()
+        .extend(edits.as_array().unwrap().iter().cloned());
+    (immediate, prefix)
+}
+
 pub(super) fn before_probe(actual: &str) -> (String, Value) {
     let (immediate, extra) = next_before(actual);
     let (prior, mut prefix) = before_probe_before_943(&immediate);
@@ -202,14 +252,16 @@ pub(super) fn before_probe(actual: &str) -> (String, Value) {
     (prior, prefix)
 }
 pub(super) fn finish_probe(probe: &mut Value, actual: &str, prefix: Value) {
-    let (immediate, extra) = next_before(actual);
+    let (physical_before, physical) = physical_before(actual);
+    let (immediate, extra) = next_before_943(&physical_before);
     let original: Value = serde_json::from_str(PREFIX).unwrap();
     let mut combined = original.as_array().unwrap().clone();
     combined.extend(extra.as_array().unwrap().iter().cloned());
+    combined.extend(physical.as_array().unwrap().iter().cloned());
     assert_eq!(
         prefix,
         Value::Array(combined),
-        "exact two complete source transports only"
+        "exact three complete source transports only"
     );
     finish_probe_before_943(probe, &immediate, original);
     let entire_immediate_probe = probe.clone();
@@ -217,10 +269,19 @@ pub(super) fn finish_probe(probe: &mut Value, actual: &str, prefix: Value) {
         .as_array_mut()
         .unwrap()
         .extend(extra.as_array().unwrap().iter().cloned());
-    probe["length"] = actual.len().into();
+    probe["length"] = physical_before.len().into();
     probe["sha256"] = NEXT_SHA.into();
     assert!(probe.get("retained_pre_943_probe").is_none());
     probe["retained_pre_943_probe"] = entire_immediate_probe;
+    let entire_physical_predecessor = probe.clone();
+    probe["inverse"]
+        .as_array_mut()
+        .unwrap()
+        .extend(physical.as_array().unwrap().iter().cloned());
+    probe["length"] = actual.len().into();
+    probe["sha256"] = PHYSICAL_SHA.into();
+    assert!(probe.get("retained_pre_physical_probe").is_none());
+    probe["retained_pre_physical_probe"] = entire_physical_predecessor;
     authenticate_next();
 }
 // New numeric banks append to allocation.rs; every old CI source byte and its

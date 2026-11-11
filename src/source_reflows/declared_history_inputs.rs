@@ -18,8 +18,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-0.json"
         )),
-        1171569,
-        "90eb0976d4ee2a7b4c0ea3ddaab7a607d4fe7463488b04d613c00133e2485ada",
+        1170342,
+        "5802ab8b700862f067f7afb086cd2462f72596ea6cd1fb917819e45f1c284ca2",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-1.json",
@@ -100,7 +100,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
         693217,
-        "f3c95c5884b877bba6282c7a9438cf7ce76a50816f9d2a7c7fd15708c3713545",
+        "9db2df9f9b73722b48c2b579621f4fbd999bd0a0d71f765177f731f02c9b104f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -109,7 +109,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130002,
-        "9055bef896dfb172e484c3240c106a5a55479d72f2ee09ab658c20c2c973b9ba",
+        "9178b41aa4d0a5f6f95234bf41516551e44d41582c3fe8df8b03336928001818",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -162,8 +162,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-16.json"
         )),
-        1083964,
-        "3ebbc01a544c9b3b0929c34e0592b25998afce858362079345612cede6779a1b",
+        1083279,
+        "c4f2052aeb70c5d42c4444ef4e4dddee4ea6c97fee3af6d00da690eacbdaa6b2",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-17.json",
@@ -369,8 +369,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-39.json"
         )),
-        971261,
-        "37c504909c61e4dc9a298c8f6a48c0840c1f8a6e482b8867a5391e0531541f82",
+        970847,
+        "7d82e28da025ef27e94f3ad532008cf3176e72a671a8b3cdf3e1ba5934c78080",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-40.json",
@@ -405,8 +405,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        308978,
-        "5a019307eda4e6a67a92283caf1539a5f6831e9c02d28c07e60a626b9e14f06f",
+        320091,
+        "03edd9713a5b4941550cfc527d7a76703194cdde49ec4cc63f75060b61e48cda",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
@@ -1048,6 +1048,10 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/expression_facts/receiving/retained.rs", "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00") => Some((43,68)),
 ("src/cleanup_plan/replay/expression_facts/receiving.rs", "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e") => Some((43,69)),
 ("src/source_reflows_merge/main_e177_final_inputs.rs", "7ea19e20137bd5d4c203072d41eab7cc0c835f847e51b94a4b24eeac997589f4") => Some((43,70)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4") => Some((43,71)),
+("src/cleanup_plan/replay/factored.rs", "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269") => Some((43,72)),
+("src/cleanup_plan/validate.rs", "75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b") => Some((43,73)),
+("src/hir/validation/function_scope/lifecycle.rs", "8095a604e5320261b71d1681fd53fe4ba2a2e7dac7f2a7a13c0e505563e815df") => Some((43,74)),
 _ => None, }
 }
 pub(crate) fn compiled(source: &str) -> &'static str {
@@ -1474,6 +1478,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/vec_ops.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/vec_ops.rs")),
 "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs")),
 "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs")),
+"src/cleanup_plan/validate.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/validate.rs")),
 _ => panic!("unknown declared current source"), }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

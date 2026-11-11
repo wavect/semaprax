@@ -3028,11 +3028,7 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
-    if skeleton_work::enumerated_prefix::original_selected() || work.budget.oracle_lease().is_some()
-    {
-        // An explicitly opted oracle keeps its complete original sequence
-        // receiver and account. Compact ordinary carriers belong to the
-        // shipping receiver, rather than the retained independent oracle.
+    if skeleton_work::enumerated_prefix::original_selected() {
         return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);
     }
     #[cfg(test)]

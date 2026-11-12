@@ -30,7 +30,7 @@ fn contract_owner_card_is_bounded_deterministic_and_discoverable() {
     assert!(found.contains("author:contract-owners"));
     assert_eq!(found, lookup("author:find:provisional:0").unwrap());
     for boundary in [
-        "qualification pending",
+        "fresh locals and postcondition result views",
         "only ensures",
         "SPX-O105",
         "SPX-O101",

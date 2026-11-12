@@ -443,8 +443,9 @@ escaping borrowed result. Cleanup and loan schemas and all physical byte bounds
 remain unchanged. The `hir::provisional_result_borrow_tests::` regressions,
 `cleanup_backends lexical_exits::provisional_result::` native O0/O2 probe, and
 existing `owned_data lexical_exits::returned_owned_result_stays_protected_until_selected_postconditions`
-interpreter/Core Wasm success, failure and reentry cases own qualification;
-these new definitions have not yet run on the current head.
+interpreter/Core Wasm success, failure and reentry cases passed the
+focused OPT-742 qualification. The native probe also confirmed that failed
+postconditions leave the caller's result storage untouched.
 
 The data-export module retains the historical void Core-Wasm signature for its
 otherwise unused `spx_contract_fail` import. Data-export arithmetic, contract,

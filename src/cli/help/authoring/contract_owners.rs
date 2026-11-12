@@ -1,5 +1,5 @@
 //! Existing clause-local owner/result-view admission; no new language authority.
-pub(super) const CARD: &str = r#"Contract owners: source implementation; executable qualification pending.
+pub(super) const CARD: &str = r#"Contract owners: fresh locals and postcondition result views.
 ```spx
 module help.contracts;
 @id("help.consume") fn consume(value:own Bytes)->bool {byte_len(bytes_as_slice(value))==2usize}

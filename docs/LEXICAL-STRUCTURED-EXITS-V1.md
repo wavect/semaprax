@@ -353,7 +353,7 @@ repair in the consolidated batch; authored changes alone prove no backend result
 
 ## Fresh contract-local owners (OPT-743)
 
-This authored extension permits a clause-local `Bytes` created by literal-sized
+This qualified extension permits a clause-local `Bytes` created by literal-sized
 `bytes_zeroed` (at most 131072 bytes), a String literal, and available aliases of
 those exact owners. A consuming ordinary pure call may receive a named fresh
 local after the usual type, loan and staged-argument checks. Constructor results
@@ -388,7 +388,8 @@ ordinary native String/Bytes physical OOM retains its existing contract. OPT-724
 remains a separate obligation. Regression definitions cover source/HIR origin
 forgery, aliases, duplicate transfer, clause isolation, exact/+1 resource bounds,
 canonical/graph/cache replay, native O0/O2 cleanup and Core-Wasm/interpreter
-refusal/reentry. These definitions are authored, not evidence of a passing gate.
+refusal/reentry. Those focused checks passed, including the original
+successful-contract temporary and failed-postcondition cases.
 
 ## Retained primitive replay backing (OPT-745, OPT-749)
 

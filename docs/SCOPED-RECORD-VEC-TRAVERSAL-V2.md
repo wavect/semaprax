@@ -1,11 +1,9 @@
 # Scoped Record Vec Traversal v2
 
-Status: authored bounded contract; executable qualification remains separately gated.
+Status: locally qualified for the bounded v2 profile.
 Audience: coding agents, compiler contributors and reviewers.
 
-This is the source implementation contract for OPT #733. Executable
-qualification is pending. It extends the existing bounded scalar `for`
-contract with a separate borrowed-record spelling; older syntax, admitted
+OPT #733 extends the existing bounded scalar `for` contract with a separate borrowed-record spelling; older syntax, admitted
 scalar types, encoded statement tags and unaffected loan plans retain their
 v1 behavior and bytes. Public capability and command profiles are unchanged.
 
@@ -47,8 +45,9 @@ the body. Ordinary owner use resumes after the loop and all view expiries.
 Statement-tail `break` and `continue` additionally use the selective
 [Lexical structured exits v1](LEXICAL-STRUCTURED-EXITS-V1.md) profile. Iteration
 views settle before `continue` advances the authenticated index exactly once;
-`break` ends the loop freeze before ordinary root use resumes. This composition
-retains pending executable qualification and the existing nested-for refusal.
+`break` ends the loop freeze before ordinary root use resumes. The focused
+backend checks cover both exits and the owning source checks retain the
+existing nested-for refusal.
 
 ## Independent proof and representation
 
@@ -81,7 +80,7 @@ authenticate the exact operation, nominal element, whole carrier and argument
 shape even when the generated owner-place expression keeps `own` mode. This
 does not exempt consuming Vec calls or authorize a move during the freeze.
 
-## Qualification definitions
+## Owning verification
 
 Owning definitions live in `tests/language/record_vec_traversal.rs`,
 `tests/owned_data/owned_leaf_vec/record_traversal.rs`,
@@ -91,12 +90,14 @@ Owning definitions live in `tests/language/record_vec_traversal.rs`,
 refusals, Copy and owned rows, exact index order, repeated iteration views,
 owner reentry, native allocation-free reads, strict private Wasm host refusal,
 whole-root freeze replay, exact loan inventory capacity, and source-bound
-same-typed field rejection. Definitions are not execution evidence.
+same-typed field rejection. The focused language, HIR, retained graph, loan
+and help checks passed. The 21 runtime checks covered empty and singleton Copy
+rows, maximum-capacity owned rows, exact prefix and overlength controls,
+nonallocating reads, sticky failures, owner settlement and reentry.
 
-Application scheduling qualification, allocation-fault sweeps over this
-composed loop route, maximum-capacity traversal, and full hostile cache and
-backend generation substitution matrices remain unqualified. No isolated
-performance gain or completed issue is claimed before the grouped gates.
+The complete 15 ShiftSim and 23 Catalog cases passed at ordinary limits,
+including independent traversal controls. The test inputs and TypeScript
+reference were preserved. Agent token, turn and cost effects remain unmeasured.
 
 ## Ordinary indexed reads within the freeze
 
@@ -104,4 +105,4 @@ performance gain or completed issue is claimed before the grouped gates.
 row-derived reads' exact row index while admitting an independently checked
 ordinary `vec_field` lookup at another index within the same whole-root freeze.
 The source-form tag grants no authority; complete source/cache/workspace replay
-rejects form laundering. Qualifying execution is pending.
+rejects form laundering. The retained source and backend controls passed.

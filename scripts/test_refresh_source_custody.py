@@ -79,6 +79,7 @@ class AuthorityCheckTests(unittest.TestCase):
                 patch.object(CUSTODY, 'refresh_ordinary_ingress', return_value=[]), \
                 patch.object(CUSTODY, 'refresh_main043_successors', return_value=[]), \
                 patch.object(CUSTODY, 'refresh_overlay', return_value=None), \
+                patch.object(CUSTODY, 'refresh_v20_ingress', return_value=[]), \
                 contextlib.redirect_stdout(output):
             result = CUSTODY.main()
         self.assertEqual(self.snapshot(), before, 'a check must not rewrite any file')
@@ -109,6 +110,70 @@ class AuthorityCheckTests(unittest.TestCase):
             self.assertIn(f'{CUSTODY.AUTHORITY_DIR}/{name}.json', output)
         self.assertNotIn(CUSTODY.DOMAINS, output,
                          'restoring a manifest pin must preserve already-correct domain hashes')
+
+
+class V20IngressRefreshTests(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory(prefix='semaprax-v20-ingress-')
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.source = 'src/controller.rs'
+        self.previous = 'prévious = [1, 2]\n'.encode()
+        self.current = 'current = [1, 2]\n'.encode()
+        self.live = 'live = [1, 3]\n// reste é\n'.encode()
+        source_set = patch.object(CUSTODY, 'V20_SOURCES', (self.source,))
+        source_set.start()
+        self.addCleanup(source_set.stop)
+        self.row = {
+            'source': self.source,
+            'current': {'length': len(self.current), 'sha256': digest(self.current)},
+            'previous': {'length': len(self.previous), 'sha256': digest(self.previous)},
+            'edits': [[0, len(self.current), self.previous.decode()]],
+        }
+        self.packet = {
+            'v20_shared_ingress': {
+                'schema': 'semaprax.v20-shared-source-ingress.v2',
+                'source_kind': 'ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE',
+                'sources': [self.source],
+                'records': [self.row],
+            },
+            'retained': {'sentinel': True},
+        }
+        self.repo = CUSTODY.Repo(self.root, False)
+        self.repo.write(self.source, self.live)
+        self.repo.write('e/' + digest(self.current), self.current)
+        self.repo.write('e/' + digest(self.previous), self.previous)
+        self.raw = (json.dumps(self.packet, separators=(',', ':'), ensure_ascii=False) + '\n').encode()
+        self.repo.write(CUSTODY.V20_INGRESS, self.raw)
+        self.repo.written.clear()
+
+    def test_refresh_reconstructs_the_sealed_source_and_check_only_previews(self):
+        check = CUSTODY.Repo(self.root, True)
+        archive = 'e/' + digest(self.live)
+        self.assertEqual(CUSTODY.refresh_v20_ingress(check), [self.source])
+        self.assertEqual(check.written, [archive, CUSTODY.V20_INGRESS])
+        self.assertFalse((self.root / archive).exists())
+        self.assertEqual(self.repo.raw(CUSTODY.V20_INGRESS), self.raw)
+
+        self.assertEqual(CUSTODY.refresh_v20_ingress(self.repo), [self.source])
+        packet = json.loads(self.repo.raw(CUSTODY.V20_INGRESS))
+        self.assertEqual(packet['retained'], self.packet['retained'])
+        row = packet['v20_shared_ingress']['records'][0]
+        self.assertEqual(row['previous'], self.row['previous'])
+        self.assertEqual(self.repo.raw(archive), self.live)
+        restored = self.live
+        for start, end, prior in reversed(row['edits']):
+            restored = restored[:start] + prior.encode() + restored[end:]
+        self.assertEqual(restored, self.previous)
+        self.assertEqual(CUSTODY.refresh_v20_ingress(self.repo), [])
+
+    def test_corrupt_retained_archive_leaves_the_packet_unchanged(self):
+        self.repo.write('e/' + digest(self.previous), b'corrupt archive\n')
+        self.repo.written.clear()
+        with self.assertRaisesRegex(AssertionError, 'invalid V20 source archive'):
+            CUSTODY.refresh_v20_ingress(self.repo)
+        self.assertEqual(self.repo.written, [])
+        self.assertEqual(self.repo.raw(CUSTODY.V20_INGRESS), self.raw)
 
 
 class DistinctOwnerOffsetsTests(unittest.TestCase):

@@ -26,7 +26,8 @@ records that authenticate *current* bytes, in this order:
    while other existing class metadata is retained;
 5. declared-history current pins and exact current-to-predecessor inverses,
    after the overlay reader pins settle; sealed predecessor archives stay fixed;
-6. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
+6. V20 ingress current pins and exact inverses after the overlay sources settle;
+7. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
    (members and the three full-manifest/raw/production digests).
 
 Every rewritten record is re-validated with the repository's own decoder
@@ -66,6 +67,11 @@ DOMAIN_BASE = {
 PRE_OVERLAY = 'whole-pre-overlay-v2-current'
 INGRESS = 'docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json'
 INGRESS_RS = 'src/source_reflows_merge/ordinary_plan_inputs.rs'
+V20_INGRESS = 'src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.json'
+V20_SOURCES = (
+    OVERLAY_PY, OVERLAY_RS, OVERLAY_DIR + '/overlay_page_codecs.py',
+    'src/source_reflows_merge/main_e177_overlay_fragments_v3.rs',
+)
 sha = lambda b: hashlib.sha256(b).hexdigest()
 
 
@@ -123,6 +129,85 @@ def refresh_ordinary_ingress(repo):
 
 MAIN043_SUCCESSORS = 'docs/evidence/source-coverage-254-20261024/latest-to-successors.json'
 MAIN043_SUCCESSORS_RS = 'src/source_reflows_merge/runtime_json.rs'
+
+
+def v20_inverse(live, previous):
+    """Produce the V20 byte-slice edits with UTF-8 boundaries."""
+    from difflib import SequenceMatcher
+    from itertools import accumulate
+
+    a = live.decode().splitlines(keepends=True)
+    b = previous.decode().splitlines(keepends=True)
+    offsets = list(accumulate((len(line.encode()) for line in a), initial=0))
+    # Keep matching tokens within changed lines. Some lines embed complete
+    # source tables, so replacing entire lines can duplicate large snapshots.
+    tokens = re.compile(r'\w+|[^\w\s]|\s+')
+    edits = []
+    for tag, i, j, k, l in SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag == 'equal':
+            continue
+        now, prior = ''.join(a[i:j]), ''.join(b[k:l])
+        first, last = tokens.findall(now), tokens.findall(prior)
+        cuts = list(accumulate((len(token.encode()) for token in first), initial=offsets[i]))
+        for change, x, y, u, v in SequenceMatcher(None, first, last, autojunk=False).get_opcodes():
+            if change != 'equal':
+                edits.append([cuts[x], cuts[y], ''.join(last[u:v])])
+    return edits
+
+
+def refresh_v20_ingress(repo):
+    """Rebind the V20 live sources while preserving the sealed predecessor set."""
+    def encode(value):
+        return (json.dumps(value, separators=(',', ':'), ensure_ascii=False) + '\n').encode()
+
+    def pin(data):
+        return dict(length=len(data), sha256=sha(data))
+
+    def acquire(record):
+        data = repo.raw(f"e/{record['sha256']}")
+        assert pin(data) == record, 'invalid V20 source archive'
+        return data
+
+    def replay(data, edits):
+        limit = len(data)
+        for start, end, prior in reversed(edits):
+            assert type(start) is int and type(end) is int and 0 <= start <= end <= limit
+            assert isinstance(prior, str)
+            data[:start].decode()
+            data[:end].decode()
+            data = data[:start] + prior.encode() + data[end:]
+            limit = start
+        return data
+
+    raw = repo.raw(V20_INGRESS)
+    packet = json.loads(raw)
+    assert encode(packet) == raw
+    ingress = packet['v20_shared_ingress']
+    assert ingress['schema'] == 'semaprax.v20-shared-source-ingress.v2'
+    assert ingress['source_kind'] == 'ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE'
+    assert tuple(ingress['sources']) == tuple(row['source'] for row in ingress['records']) == V20_SOURCES
+    archives = {}
+    changed = []
+    for row in ingress['records']:
+        current, previous = acquire(row['current']), acquire(row['previous'])
+        assert replay(current, row['edits']) == previous, 'invalid retained V20 inverse'
+        live = repo.raw(row['source'])
+        if live == current:
+            continue
+        inverse = v20_inverse(live, previous)
+        assert replay(live, inverse) == previous
+        descriptor = pin(live)
+        archive = f"e/{descriptor['sha256']}"
+        if (repo.root / archive).exists():
+            assert repo.raw(archive) == live
+        row.update(current=descriptor, edits=inverse)
+        archives[archive] = live
+        changed.append(row['source'])
+    if changed:
+        for archive, data in archives.items():
+            repo.write(archive, data)
+        repo.write(V20_INGRESS, encode(packet))
+    return changed
 
 
 def unique_inverse(live, target):
@@ -880,6 +965,9 @@ def main():
     declared = refresh_declared_history(repo)
     if declared:
         print('declared history rows refreshed:', *declared, sep='\n  ')
+    v20 = refresh_v20_ingress(repo)
+    if v20:
+        print('V20 ingress rows refreshed:', *v20, sep='\n  ')
     if args.check:
         # Check the physical source pins too: an unchanged overlay does not
         # imply that the authority manifests still bind the current sources.

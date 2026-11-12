@@ -227,6 +227,7 @@ pub(super) fn assert_scoped_row_reads(program: &semaprax::hir::ResolvedProgram, 
                 | E::Usize(_)
                 | E::Bool(_)
                 | E::String(_)
+                | E::BorrowedUtf8Literal(_)
                 | E::ArrayU8(_)
                 | E::Place(_)
                 | E::BorrowPlace { .. } => {}
@@ -265,6 +266,61 @@ fn qualify(root: &std::path::Path) {
     })
     .unwrap();
     wasm_run(root, 0, 728, "none");
+}
+
+#[test]
+fn collection_response_generated_static_keys_match_direct_and_indexed_renderers() {
+    let key = format!("key_{}", "x".repeat(60));
+    let schema = SCHEMA
+        .replace("number:i64", &format!("{key}:i64"))
+        .replace("selected:usize", &format!("{key}:usize"));
+    let expected = format!(
+        r#"{{"stats":{{"{key}":2,"total":39,"live":true}},"entries":[{{"{key}":-3,"label":"alpha","byte":0,"count":0,"active":true}},{{"{key}":42,"label":"beta","byte":255,"count":7,"active":false}}]}}"#
+    );
+    let limit = expected.len();
+    let expected = spx_string(&expected);
+    let app = imports().to_owned()
+        + &format!(
+            r#"
+@id("consumer.main") fn main()->i64{{
+let first=Item{{{key}:-3,label:"alpha",byte:0u8,count:0usize,active:true}};
+let second=Item{{{key}:42,label:"beta",byte:255u8,count:7usize,active:false}};
+let rows=vec_push<Item>(vec_push<Item>(vec_with_capacity<Item>(2usize),first),second);
+let report=Report{{stats:Metrics{{{key}:2usize,total:39,live:true}},entries:rows}};
+let full=encode(report,{limit}usize);
+let expected={expected};
+let same=match own full{{Encoded::Refused{{required}}=>false,Encoded::Encoded{{text}}=>equal(string_as_str(text),string_as_str(expected)),}};
+if encoded_len(report)=={limit}usize && same{{728}}else{{0}}
+}}
+"#
+        );
+    let root = install_schema("response-generated-static-keys", &schema, &app, 64);
+    let path = root.join("src/schema.spx");
+    let generated = std::fs::read_to_string(&path).unwrap();
+    let key_bytes = format!("\"{key}\":");
+    let array = key_bytes
+        .bytes()
+        .map(|byte| format!("{byte}u8"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let original = format!(
+        "let k = [{array}]; next = json_Item_response_writer_bytes(array_as_slice(k), cursor, next);"
+    );
+    let explicit = format!(
+        "let k = str{}; next = json_Item_response_writer_bytes(str_as_bytes(k), cursor, next);",
+        spx_string(&key_bytes)
+    );
+    // Both Item renderers and the direct Metrics renderer share this exact key
+    // fragment. The root encoder invokes Metrics once and the indexed Item
+    // renderer twice. Apply the explicit syntax only to these generated keys.
+    assert_eq!(generated.matches(&original).count(), 3);
+    let borrowed = generated.replace(&original, &explicit);
+    assert_eq!(borrowed.matches(&explicit).count(), 3);
+    assert_eq!(borrowed, canonical(&borrowed));
+    qualify(&root);
+    std::fs::write(path, borrowed).unwrap();
+    qualify(&root);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

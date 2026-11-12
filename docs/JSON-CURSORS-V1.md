@@ -167,6 +167,17 @@ comparison. Callers keep their own input order, first-match selection and
 error precedence. The helpers allocate nothing, add no compiler operation, and
 grant no capability.
 
+At `7268e5fbe`, the Catalog Normalizer passed all 36 published oracle cases,
+the fourteen named source tests, and the 21 focused decoded-index cases. The
+focused cases use an independent decoded-byte oracle and cover deliberate
+unequal UTF-8 collisions, raw and escaped equivalence including surrogate
+pairs, NUL, common prefixes, the 64/65-byte ID boundary, 256 records, and
+first-error order. They ran on the interpreter, native C11 at `-O0` and `-O2`,
+and Core Wasm. The independently executable pairwise reference passed the
+same application matrix. The maximal direct-response cases retained their
+160,000,000-step interpreter limit.
+[OPT #771](https://github.com/wavect/semaprax/issues/771)
+
 ## `quoted_into`
 
 `std.data.json.write.quoted_into` emits a quoted JSON string for every byte in

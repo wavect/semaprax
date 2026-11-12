@@ -19,15 +19,13 @@ The fourteen-case source suite needs the documented bounded interpreter envelope
 semaprax test . --max-steps 2000000 --max-bytes 69710
 ```
 
-The maximal direct `normalize` and `normalize-enriched` calls in the owning
-application selector use the **100,000,000-step** acceptance envelope. The
-complete local selector passed with that bound across the interpreter, C11
-`-O0`/`-O2`, and Core Wasm, including the frozen oracle, maximal plain and
-enriched responses, record boundaries, named source cases, and hostile
-mutants. The older 125,137,617-step plain and 134,325,908-step enriched
-measurements were from the previous writer. The library's 160,000,000-step
-ceiling is separate and does not replace the application requirement. The
-2,000,000-step source-suite envelope above is also a separate test-closure
-bound.
+The owning selector gives maximal direct `normalize` and
+`normalize-enriched` calls **160,000,000 interpreter steps**. It also runs the
+source test closure at the separate 2,000,000-step bound above, and checks
+the native C11 `-O0` and `-O2` and Core Wasm lanes. At `7268e5fbe` the complete
+selector passed, including the frozen oracle, maximal plain and enriched
+responses, record boundaries, named source cases, and hostile mutants. The
+100,000,000-step qualification and the 125,137,617-step plain and
+134,325,908-step enriched measurements refer to earlier revisions.
 
 Capacity remains a development constraint. The complete source-test projection forecast 46,202,120 builder bytes but exceeded the intermediate 48 MiB ceiling during live construction, motivating the 64 MiB graph ceiling. The fully scalar writer and source suite separately motivated the 32,000,000-unit global cleanup-replay work ceiling. The per-function 65,536-path refusal remains unchanged. The focused application gate is the executable evidence for this capacity-sensitive shape.

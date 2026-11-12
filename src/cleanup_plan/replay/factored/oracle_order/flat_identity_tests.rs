@@ -109,8 +109,8 @@ fn same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts() {
     // and still executes every old field. No cache or derived comparator does it.
     let same = run(
         &program,
-        &[x.clone()],
-        &[x.clone()],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&x),
         false,
         1 << 20,
         1 << 20,
@@ -118,8 +118,8 @@ fn same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts() {
     );
     let separate = run(
         &program,
-        &[x.clone()],
-        &[y.clone()],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&y),
         false,
         1 << 20,
         1 << 20,
@@ -127,8 +127,8 @@ fn same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts() {
     );
     let old = run(
         &program,
-        &[x.clone()],
-        &[x.clone()],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&x),
         true,
         1 << 20,
         1 << 20,
@@ -143,8 +143,8 @@ fn same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts() {
     );
     run(
         &program,
-        &[x.clone()],
-        &[x.clone()],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&x),
         false,
         same.charged - 1,
         same.work,
@@ -156,8 +156,8 @@ fn same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts() {
     );
     run(
         &program,
-        &[x.clone()],
-        &[x],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&x),
         false,
         same.charged,
         same.work - 1,
@@ -185,10 +185,11 @@ fn identity_keeps_original_zero_receiver_work_failure_before_new_bank() {
         budget.prepare_builder(function).unwrap();
         budget.remaining = 0;
         let before = scope.receipt().charged;
+        let singleton = std::slice::from_ref(&x);
         let actual = if old {
-            before_flat_identity::items(&[x.clone()], &[x.clone()], function, &mut budget)
+            before_flat_identity::items(singleton, singleton, function, &mut budget)
         } else {
-            items(&[x.clone()], &[x.clone()], function, &mut budget)
+            items(singleton, singleton, function, &mut budget)
         };
         assert_eq!(actual.as_ref().err(), Some(&expected));
         assert_eq!(scope.receipt().charged, before, "new bank never reached");
@@ -224,10 +225,11 @@ fn expired_pointer_receiver_never_spends_foreign_scope_or_changes_old_diagnostic
         )
         .unwrap();
         let before = foreign_scope.receipt();
+        let singleton = std::slice::from_ref(&x);
         let actual = if old {
-            before_flat_identity::items(&[x.clone()], &[x.clone()], function, &mut budget)
+            before_flat_identity::items(singleton, singleton, function, &mut budget)
         } else {
-            items(&[x.clone()], &[x.clone()], function, &mut budget)
+            items(singleton, singleton, function, &mut budget)
         };
         assert_eq!(actual.as_ref().err(), Some(&expected));
         assert_eq!(
@@ -273,8 +275,8 @@ fn pointer_fee_exact_short_and_sticky_preserve_positive_active_floor() {
     });
     let ample = run(
         &program,
-        &[x.clone()],
-        &[x.clone()],
+        std::slice::from_ref(&x),
+        std::slice::from_ref(&x),
         false,
         1 << 20,
         1 << 20,
@@ -294,8 +296,8 @@ fn pointer_fee_exact_short_and_sticky_preserve_positive_active_floor() {
                 assert!(remaining > 0 && set_active_floor(remaining));
                 let receipt = run(
                     &program,
-                    &[x.clone()],
-                    &[x.clone()],
+                    std::slice::from_ref(&x),
+                    std::slice::from_ref(&x),
                     false,
                     bytes,
                     ample.work,
@@ -368,10 +370,15 @@ fn comparison_unwind_releases_owned_rc_inputs_and_oracle_authority() {
                     expression: function.body.id.clone(),
                     value: false,
                 });
-                let result = if old {
-                    before_flat_identity::items(&[x.clone()], &[x.clone()], function, &mut budget)
-                } else {
-                    items(&[x.clone()], &[x.clone()], function, &mut budget)
+                let result = {
+                    // Keep both paid owning inputs live through the comparison.
+                    let left = [Rc::clone(&x)];
+                    let right = [Rc::clone(&x)];
+                    if old {
+                        before_flat_identity::items(&left, &right, function, &mut budget)
+                    } else {
+                        items(&left, &right, function, &mut budget)
+                    }
                 };
                 assert_eq!(result, Ok(Ordering::Equal));
                 budget

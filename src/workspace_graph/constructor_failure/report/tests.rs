@@ -9,9 +9,9 @@ use crate::test_allocation_observer::measure;
 use crate::workspace_graph::constructor_failure::{attempt, receiving::CoreFailure};
 use crate::workspace_graph::diagnostics::{self, constructor_report_before as before};
 
-fn exact() -> usize {
+fn exact(maximum: usize) -> usize {
     let ((), refused, used, first) = with_limit_usage_refusal(usize::MAX, || {
-        drop(Owner::acquire(usize::MAX, 0).unwrap());
+        drop(Owner::acquire(maximum, 0).unwrap());
     });
     assert!(!refused && first.is_none());
     used
@@ -72,7 +72,7 @@ fn constructor_final_report_full_old_fields_and_all_seven_borrowed_help_branches
 #[test]
 fn constructor_final_report_exact_short_zero_and_sticky_keep_receipt_and_whole_drop() {
     let _context = diagnostics::invocation_scope();
-    let exact = exact();
+    let exact = exact(usize::MAX);
     let ((), refused, used, first) = with_limit_usage_refusal(exact, || {
         let owner = Owner::acquire(usize::MAX, 0).unwrap();
         let _stage = crate::bounded_output::reservation_stage_guard(
@@ -139,7 +139,7 @@ fn constructor_final_report_exact_short_zero_and_sticky_keep_receipt_and_whole_d
 #[test]
 fn constructor_final_report_foreign_restored_owner_cannot_publish_or_reset_first_detachment() {
     let _context = diagnostics::invocation_scope();
-    let exact = exact();
+    let exact = exact(usize::MAX);
     let ((), refused, used, first) = with_limit_usage_refusal(exact + 7, || {
         let owner = Owner::acquire(usize::MAX, 0).unwrap();
         let pointer = owner.report.as_ptr();
@@ -225,7 +225,7 @@ fn constructor_final_report_capacity_failure_is_terminal_and_no_owner_is_never_a
     assert!(matches!(error, Err(CoreFailure::Setup(Setup::NoOwner))));
     assert_eq!(physical.allocated, 0);
     let _context = diagnostics::invocation_scope();
-    let exact = exact();
+    let exact = exact(usize::MAX);
     let (((), physical), refused, used, first) = with_limit_usage_refusal(exact, || {
         measure(|| {
             let mut owner = Owner::acquire(usize::MAX, 0).unwrap();
@@ -310,8 +310,10 @@ fn paid_terminal_site_moves_unchanged_report_and_streams_after_original_owner_re
     use crate::bounded_output::with_limit_usage_refusal_site;
     use crate::workspace_graph::initial_report::Policy;
     use crate::workspace_report::WorkspaceReportFailure;
-    let maximum = exact();
-    let (report, refused, used, first, site) = with_limit_usage_refusal_site(maximum, || {
+    let maximum = exact(usize::MAX);
+    // The predecessor pays for the formatted maximum, whose length can differ.
+    let charge = exact(maximum);
+    let (report, refused, used, first, site) = with_limit_usage_refusal_site(charge, || {
         let owner = Owner::acquire(maximum, 0).unwrap();
         let pointer = owner.report.as_ptr();
         assert!(!reserve_active_required(1));
@@ -323,7 +325,7 @@ fn paid_terminal_site_moves_unchanged_report_and_streams_after_original_owner_re
         assert_eq!(report.as_ptr(), pointer);
         report
     });
-    assert!(refused && used == maximum);
+    assert!(refused && used == charge);
     assert_eq!(first.unwrap().requested, 1);
     let expected = before::live_builder_refusal(maximum, first);
     assert_eq!(report.as_slice(), [expected]);

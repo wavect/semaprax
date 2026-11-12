@@ -178,18 +178,31 @@ character traversal, output execution or sink backing. The typed Project route p
 result/receiving layouts into that same positive acquisition before core work;
 there is no new allowance, refund or post-refusal reservation. Unacquired report
 fallbacks retain their explicit initial/unfunded compatibility status. Output
-backing remains the caller's obligation. Source-authored controls cover complete
-fields/backing, real sticky receipts, absent sites, hint mapping, JSON/human
-streaming, bounded-output suppression and writer refusal. They are unrun; no
-current executable support, application admission or #947 closure is claimed.
+backing remains the caller's obligation. Focused tests passed for complete
+fields and backing, first and sticky receipts, absent sites, hint mapping,
+JSON and human streaming, bounded-output suppression, and writer refusal.
 
-The source-authored frontier controls observe the original positive acquisition,
-including extra caller banks, zero/exact/short/floor and arithmetic refusal. They
-are not a runtime result for aggregate Project funding. The actual Project owner
-also sweeps the original private finite builder-limit route over compiler-checked
-sources, retaining both hint layers and the outward borrowed-site writer; it must
-observe a genuinely acquired report rather than count an inline fallback as paid.
-Ordinary default-cap CLI `check` and `build` qualification remains required.
+The frontier tests exercise the original positive acquisition, including extra
+caller banks, zero/exact/short/floor and arithmetic refusal. The Project sweep
+uses compiler-checked sources and observes a genuinely acquired report with both
+hint layers and the outward borrowed-site writer.
+
+The unchanged selected-file and packaged matcher CLI49 applications passed
+ordinary `check` and native `build` on `8779ab5c6`. Both also passed `check`
+when that revision was rebuilt with the historical 64 MiB cap. To replay the
+original failing path, the ordinary CLI was built at `1295bcae7` with only the
+missing reporting imports from `1f0d9d5a4`, keeping that revision's default
+64 MiB cap. Both applications returned `SPX-G171` from HIR final validation
+through `check` and native `build`, with all six JSON fields intact:
+
+| Application | Request and remaining bytes | First reservation caller |
+| --- | --- | --- |
+| Selected-file | 1344 / 1089 | `src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs:299:16` |
+| Packaged matcher | 1911 / 178 | `src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs:147:9` |
+
+Scoped production Clippy and the ordinary CLI build passed on current source.
+The historical replay measures diagnostic coverage and records no token or cost
+result.
 
 The actual CLI manifest hint and the loader's source-hint closures are formed
 before core execution. Their concrete generic types (including real captures),

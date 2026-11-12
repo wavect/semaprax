@@ -2,9 +2,9 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: coherent source batch and owning regressions authored; executable
-qualification and public delivery remain pending. This is a compiler prerequisite for generic
-application JSON composition in #724, not completion of that request.
+Status: focused local qualification for the internal carrier and its selected
+private Project v31 command route in OPT #727. General application JSON
+composition remains tracked under OPT #724.
 
 ## Closed internal carrier
 
@@ -122,18 +122,20 @@ Copy field; callee/postcondition failure; repeated entry; exact/+1 structural
 bounds; cycles and every excluded shape; forged type/origin/field/element/
 layout/cleanup/loan facts; stale cache/graph replay; and old-profile refusal.
 
-Promotion requires identical interpreter, native C11 O0/O2 and strict Core-Wasm
-outcomes with physical allocation/owner settlement and no leaks or duplicate
-drops. Source assertions or serialized plans alone do not qualify the feature.
-After an explicit command successor is qualified, the unchanged Catalog23 and
-ShiftSim15/LogLens49 application suites remain required. Manual source reduction
-is a proxy; no live agent cost or token advantage follows from this slice.
+The focused owners passed identical interpreter, native C11 O0/O2 and strict
+Core-Wasm outcomes, including empty/full carriers, constructor prefixes,
+late argument and postcondition failures, and repeated settlement. The
+unchanged Catalog23, ShiftSim15 and LogLens49 suites passed. The Catalog
+owner ran five source controls at O0 and O2 plus the ordinary Project native
+build, each against all 23 original raw-byte and all-channel expectations.
+Agent token and cost measurements require fresh matched live trials.
 
-Focused owning selectors authored with this batch:
+Focused owning selectors:
 
 - `--lib hir::owned_collection_record::tests::` (8 tests).
-- `--test owned_data nested_collection_record::` (3 tests, two success corpora
-  and seven failure positions including provisional-result postcondition).
+- `--test owned_data nested_collection_record::nested_collection_` and
+  `nested_collection_record::failure::` (4 tests, including seven failure
+  positions and provisional-result postcondition).
 - Existing `codegen::native_bytes::projected_vec_tests` and Project v31 routing
   owners remain additional prerequisites.
 

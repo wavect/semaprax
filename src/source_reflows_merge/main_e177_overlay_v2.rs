@@ -14,7 +14,7 @@ pub(super) const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","s
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 211765;
-const POLICY_SHA256: &str = "1cf267cc7e139c41a914d736252de526311f74de2620d47be0a3f7aaf21b6cf1";
+const POLICY_SHA256: &str = "fa8fd8ce6c3ec5470351cc1e20e13b869671c4cea8dedea75e8a779b5db31bef";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -647,7 +647,7 @@ fn affected_row(source: &str) -> Option<Value> {
     if !REPLACEMENTS.contains(&source) && !ADDITIONS.contains(&source) {
         return None;
     }
-    let (policy, page) = load_current().unwrap();
+    let (policy, _page) = load_current().unwrap();
     if !affected(&policy, source) {
         return None;
     }

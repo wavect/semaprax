@@ -1115,6 +1115,11 @@ mod compact_tests {
             canonical(&encode_compact_rows(&full).unwrap()),
             canonical(&wire)
         );
+        let v12 = expand_to_v12_logical(
+            &expand_to_v13_logical(&expand_to_v14_logical(&full).unwrap()).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(canonical(&encode_compact(&v12).unwrap()), canonical(&wire));
         assert!(preflight(&wire, SOURCE_CAP).is_err());
         assert!(preflight_indexed(&wire, SOURCE_CAP).is_err());
         let (_, outer) = super::super::super::super::load_current().unwrap();

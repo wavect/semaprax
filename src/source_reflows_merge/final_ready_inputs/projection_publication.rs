@@ -100,7 +100,8 @@ fn next_part_before(path: &str, supplied: &str) -> String {
 }
 
 fn current_part_before(path: &str, supplied: &str) -> String {
-    let (length, sha, edits): (usize, &str, &[(usize, usize, &str, &str)]) = match path {
+    type SourceEdit<'a> = (usize, usize, &'a str, &'a str);
+    let (length, sha, edits): (usize, &str, &[SourceEdit<'_>]) = match path {
         "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => (29608, "793b4c291463fce1d4e102b2ebc029da527e8a13666344e9c522bb56d7da54fd", &[
             (24679, 29608, "\n// Acquire only these four complete physical epochs before the unchanged\n// fixed946/main42 source contracts. No inventory target or old edit is repinned.\nfn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {\n    let (compiled, length, expected, before_length, before_digest, edits):\n        (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(), 22365, \"9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834\", 20575, \"d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f\", &[\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(), 11753, \"7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f\", 11246, \"1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68\", &[\n            (637, \"    failed: bool,\\n\", \"\"),\n            (1047, \"in crate::clean\", \"s\"),\n            (1064, \"_plan::\", \"e\"),\n            (1072, \"eplay\", \"\"),\n            (1562, \"size_of::<bool>() // initialized invocation-local sticky terminal state\\n    + \", \"\"),\n            (2004, \"\\n    + 3 * size_of::<bool>()\", \"\"),\n            (2033, \" // sticky read, guard, and first terminal publication\", \"\"),\n            (4590, \"\", \"!\"),\n            (4597, \"fai\", \"\"),\n            (4603, \"\", \"ger.current()\"),\n            (4691, \"if !\", \"\"),\n            (4701, \".ledger.current() {\", \"\"),\n            (4733, \"$sc\", \".w\"),\n            (4737, \"pe.failed = t\", \"\"),\n            (4751, \"ue;\", \"k\"),\n            (4767, \"r\", \".budg\"),\n            (4770, \"urn Err(Diagnostic::io(\\\"SPX-H006\\\", String::new()));\", \"\"),\n            (4830, \"}\\n\", \"\"),\n            (4836, \"    match $scope.work.budget\", \"\"),\n            (4923, \" {\\n            Ok(()) => {},\\n            Err(error) => {\\n                $scope.failed = true\", \"?\"),\n            (5017, \"\\n                return Err(error);\\n            }\\n        }\", \"\"),\n            (5092, \"in crate::clean\", \"s\"),\n            (5109, \"_plan::\", \"e\"),\n            (5117, \"eplay\", \"\"),\n            (5447, \"e,\\n        failed: fals\", \"\"),\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(), 18243, \"f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090\", 18010, \"066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41\", &[\n            (778, \"e,\\n        failed: fals\", \"\"),\n            (6214, \";\\n        // Isolate the validation owner's Rc lifetime from the fixture's\\n        // destruction scratch, which otherwise retains its own strong/weak owners.\\n        work.release_observation_scratch_for_test()\", \"\"),\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs\")).as_slice(), 24967, \"703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05\", 24843, \"d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6\", &[\n            (15815, \"\", \"cur\"),\n            (15817, \"\", \"n\"),\n            (15818, \"ained_epoch\", \"\"),\n            (15832, \"crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(\", \"\"),\n            (15937, \"));\\n    let current = retained_epoch.as_str(\", \"\"),\n        ]),\n        _ => return current.to_vec(),\n    };\n    let physical = std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap();\n    assert_eq!(physical.as_slice(), compiled);\n    assert_eq!(current, compiled);\n    assert_eq!(current.len(), length);\n    assert_eq!(digest(current), expected);\n    let mut before = if path == \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" {\n        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()\n    } else { current.to_vec() };\n    for &(at, after, prior) in edits.iter().rev() {\n        assert_eq!(before.get(at..at + after.len()), Some(after.as_bytes()));\n        before.splice(at..at + after.len(), prior.bytes());\n    }\n    assert_eq!(before.len(), before_length);\n    assert_eq!(digest(&before), before_digest);\n    assert_eq!(std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap(), physical);\n    before\n}\n", ""),
             (20412, 20482, "                actual = retained_fork_source_before(&path, &actual);\n", ""),
@@ -349,37 +350,6 @@ pub(super) fn previous_part_for_control(
     previous
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    const CURRENT: &str =
-        include_str!("../../../docs/evidence/projection-current-entry-20261022/whole-current.txt");
-    const BEFORE: &str = include_str!(
-        "../../../docs/evidence/projection-current-entry-20261022/whole-phase.before.txt"
-    );
-    #[test]
-    fn current_audit_entry_keeps_all_fifty_complete_inputs_and_the_whole_phase_predecessor() {
-        assert_eq!(audit_join(CURRENT).as_deref(), Some(BEFORE));
-        reader::controls();
-    }
-    #[test]
-    fn current_audit_entry_refuses_foreign_same_length_truncated_duplicate_and_extended_joins() {
-        let mut changed = CURRENT.as_bytes().to_vec();
-        changed[0] ^= 1;
-        let changed = String::from_utf8(changed).unwrap();
-        for foreign in [
-            String::new(),
-            changed,
-            CURRENT[1..].to_owned(),
-            format!("{CURRENT}\n"),
-            format!("{CURRENT}{CURRENT}"),
-        ] {
-            assert!(audit_join(&foreign).is_none());
-        }
-        assert!(audit_join(BEFORE).is_none());
-    }
-}
-
 pub(super) fn invoice_previous_file(
     path: &std::path::Path,
     length: usize,
@@ -444,5 +414,36 @@ pub(super) fn invoice_previous_file(
         ) => crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new()
             .file(path, length, sha),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const CURRENT: &str =
+        include_str!("../../../docs/evidence/projection-current-entry-20261022/whole-current.txt");
+    const BEFORE: &str = include_str!(
+        "../../../docs/evidence/projection-current-entry-20261022/whole-phase.before.txt"
+    );
+    #[test]
+    fn current_audit_entry_keeps_all_fifty_complete_inputs_and_the_whole_phase_predecessor() {
+        assert_eq!(audit_join(CURRENT).as_deref(), Some(BEFORE));
+        reader::controls();
+    }
+    #[test]
+    fn current_audit_entry_refuses_foreign_same_length_truncated_duplicate_and_extended_joins() {
+        let mut changed = CURRENT.as_bytes().to_vec();
+        changed[0] ^= 1;
+        let changed = String::from_utf8(changed).unwrap();
+        for foreign in [
+            String::new(),
+            changed,
+            CURRENT[1..].to_owned(),
+            format!("{CURRENT}\n"),
+            format!("{CURRENT}{CURRENT}"),
+        ] {
+            assert!(audit_join(&foreign).is_none());
+        }
+        assert!(audit_join(BEFORE).is_none());
     }
 }

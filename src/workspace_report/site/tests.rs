@@ -76,7 +76,7 @@ fn sidecar_requires_both_real_first_receipt_and_site_and_moves_all_old_fields() 
             first.is_some() && site.is_some()
         );
         assert!(!failure.has_paid_report());
-        assert_eq!(failure.reported().unwrap(), [expected.clone()]);
+        assert_eq!(failure.reported().unwrap(), std::slice::from_ref(&expected));
         assert_eq!(failure.reported().unwrap().as_ptr(), pointer);
         let legacy = failure.into_legacy_unfunded();
         assert_eq!(legacy, [expected]);

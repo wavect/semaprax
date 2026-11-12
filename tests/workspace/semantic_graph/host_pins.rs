@@ -159,6 +159,16 @@ fn assert_measured_host_history(name: &str, bytes: &[u8]) {
     );
 }
 
+fn assert_historical_macos_builder_bytes(slot: usize, bytes: &[u8], expected: Option<usize>) {
+    if slot == 0 {
+        let graph: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+        assert_eq!(
+            graph["budget"]["used_builder_bytes"].as_u64(),
+            expected.map(|value| u64::try_from(value).unwrap())
+        );
+    }
+}
+
 // Actual macOS merged calibration domain; both complete predecessors remain executable below.
 const MERGED_MACOS_AARCH64_WIRES: Option<[&str; 9]> = Some(["sha256:12ddc81987c4c358344744d20c70390b2b1f0f42819ead27d6a0291d1afeccd2", "sha256:a8ab6f053b5460aa2cee50b804fc5f68a52ef36901b4428205630e0a9ecd1ee3", "sha256:7c3724a8f2b9c011604e41e157129b98213f4af01b776075dcc9ac089314446d", "sha256:9e41b9171cae94b8c3b6196c1f11e52edbc961cd5ab9f9acc885426bcdd55df8", "sha256:756d2d4307cfd7e30e3cfccdb0c157e5ad7cce040c23b0eea3bb10a5312760c4", "sha256:8da8a2281593d4c523f2285d8291a49662c87ee1544073861e6385ce0a5f2795", "sha256:04f43fe3a530c8252ebfa8fdfec570d8103b17b9945e57322e36b8a141fa35bb", "sha256:b4e0133fc638d9080efb2e404d4ebe5d0de37f09377151901bd87b0a8ef0c2d4", "sha256:aeaefd960264292ef77823474c8c268354e366ffc687b29d903f3b5ebafa2c4f"]);
 const MERGED_MACOS_BUILDER_BYTES: Option<usize> = Some(1481580);
@@ -183,6 +193,7 @@ fn assert_merged_measured_host_history_before_current272388(name: &str, bytes: &
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|candidate| *candidate == name).expect("exact nine merged KAT names");
     assert_eq!(document_digest(bytes), MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, MERGED_MACOS_BUILDER_BYTES);
     let document: serde_json::Value = serde_json::from_str(MERGED_MACOS_FULL_INVERSES.expect("actual full merged payload inverses required")).unwrap();
     let rows = document.as_array().unwrap();
     assert_eq!(rows.len(), 9);
@@ -246,6 +257,7 @@ fn assert_merged_measured_host_history_before_current8dda(name: &str, bytes: &[u
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|n| *n == name).unwrap();
     assert_eq!(document_digest(bytes), PRIOR272_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, PRIOR272_MACOS_BUILDER_BYTES);
     let rows: serde_json::Value = serde_json::from_str(PRIOR272_MACOS_FULL_INVERSES).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), names.len());
     let row = &rows[slot];
@@ -302,6 +314,7 @@ fn assert_merged_measured_host_history_before_next(name: &str, bytes: &[u8]) {
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|n| *n == name).unwrap();
     assert_eq!(document_digest(bytes), CURRENT_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, CURRENT_MACOS_BUILDER_BYTES);
     let rows: serde_json::Value = serde_json::from_str(CURRENT_MACOS_FULL_INVERSES).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), names.len());
     let row = &rows[slot];
@@ -349,6 +362,7 @@ fn assert_merged_measured_host_history_before_oct27(name: &str, bytes: &[u8]) {
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|n| *n == name).unwrap();
     assert_eq!(document_digest(bytes), NEXT_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, NEXT_MACOS_BUILDER_BYTES);
     let rows: serde_json::Value = serde_json::from_str(NEXT_MACOS_FULL_INVERSES).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), names.len());
     let row = &rows[slot];
@@ -396,6 +410,7 @@ fn assert_merged_measured_host_history_before_oct27b(name: &str, bytes: &[u8]) {
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|n| *n == name).unwrap();
     assert_eq!(document_digest(bytes), OCT27_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, OCT27_MACOS_BUILDER_BYTES);
     let rows: serde_json::Value = serde_json::from_str(OCT27_MACOS_FULL_INVERSES).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), names.len());
     let row = &rows[slot];
@@ -443,6 +458,7 @@ fn assert_merged_measured_host_history(name: &str, bytes: &[u8]) {
     let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
     let slot = names.iter().position(|n| *n == name).unwrap();
     assert_eq!(document_digest(bytes), OCT27B_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    assert_historical_macos_builder_bytes(slot, bytes, OCT27B_MACOS_BUILDER_BYTES);
     let rows: serde_json::Value = serde_json::from_str(OCT27B_MACOS_FULL_INVERSES).unwrap();
     assert_eq!(rows.as_array().unwrap().len(), names.len());
     let row = &rows[slot];

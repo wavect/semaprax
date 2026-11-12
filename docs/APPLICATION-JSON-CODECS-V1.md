@@ -363,10 +363,23 @@ zero-filled at the first decoded record, and 256 links), so a record probes
 only earlier records in its bucket; the eight-identifier array keeps its direct
 scan. Whole-document grammar validation still runs
 first, and duplicate offsets and identifier-policy refusals are unchanged.
-The source algorithm and collision/domain regression definitions are authored;
-owning executable qualification at the unchanged fuel and physical limits is
-pending. This does not claim to repair the separate UTF-8 maximum-shape fuel
-failure or change that policy's acceptance contract.
+
+At `1177926db`, the collision, escaped-equivalence, identifier-domain and
+grammar-priority checks passed at default interpreter fuel. The 256-record
+collision check and the current maximum-size owned identifier fixture passed
+at 160,000,000 steps and 16 MiB. All three ran through the interpreter, native
+C11 at `-O0` and `-O2`, and Core Wasm. Persisted-cache replay of the collision
+fixture preserved the graph and checked source association, including refusal
+of a forged fingerprint provider.
+
+The exact maximum-size test source from `6f1771d9f` also passed its raw-input case
+with the current compiler. Its fully escaped case still refuses with
+`SPX-H006` during independent cleanup replay of `consumer.expected`, the
+source-level expected-output builder. The ordinary CLI check reproduces that
+refusal before interpreter execution. The current harness supplies
+the same expected output as independently generated canonical JSON bytes and
+still checks output bytes, order, the one-byte-short output refusal and the
+late grammar error. The historical escaped-case replay remains open.
 
 The functions `json_Patient_view_decode`, `json_Patient_view_array_decode`,
 `json_Request_request_decode` and corresponding encode/encoded-length helpers

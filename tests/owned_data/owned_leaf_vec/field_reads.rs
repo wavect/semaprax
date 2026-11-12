@@ -1,5 +1,6 @@
-//! Same-source scoped reads through the strict private Wasm host.
-use super::run_wasm;
+//! Same-source scoped reads through the interpreter, native and strict Wasm.
+use super::{run_wasm, DECLARATION, SEQUENCE};
+use std::{fs, process::Command, sync::atomic::Ordering};
 
 const REPEATED: &str = r#"@id("app.main") fn main()->i64 {
  let bytes=[7u8,0u8,255u8];
@@ -26,9 +27,158 @@ const REPEATED: &str = r#"@id("app.main") fn main()->i64 {
 }
 "#;
 
+const BORROWED_SCAN: &str = r#"@id("field.inspect") fn inspect(rows:borrow Vec<Row>)->bool {
+ let mut index=0usize;
+ let selected=vec_field<Row>(rows,index,"title");
+ index=1usize;
+ let first_ok=str_len_bytes(selected)==4;
+ let mut repeat=0usize;
+ let mut good=first_ok;
+ while repeat<64usize {
+  let text=str_as_bytes(vec_field<Row>(rows,0usize,"title"));
+  let data=vec_field<Row>(rows,0usize,"payload");
+  good=good && vec_field<Row>(rows,0usize,"priority")==-9
+   && byte_len(text)==4usize && (match byte_get(text,1usize) { Option::Some{value:read_byte_1} => read_byte_1==0u8, Option::None{} => false, })
+   && (match byte_get(text,2usize) { Option::Some{value:read_byte_2} => read_byte_2==195u8, Option::None{} => false, }) && (match byte_get(text,3usize) { Option::Some{value:read_byte_3} => read_byte_3==169u8, Option::None{} => false, })
+   && byte_len(data)==3usize && (match byte_get(data,0usize) { Option::Some{value:read_byte_4} => read_byte_4==7u8, Option::None{} => false, }) && (match byte_get(data,2usize) { Option::Some{value:read_byte_5} => read_byte_5==255u8, Option::None{} => false, });
+  repeat=repeat+1usize;
+  0
+ }
+ good && index==1usize
+}
+@id("app.main") fn main()->i64 {
+ let bytes=[7u8,0u8,255u8];
+ let empty=vec_with_capacity<Row>(1usize);
+ let rows=vec_push<Row>(empty,Row{priority:-9,title:"a\u{0}é",payload:bytes_copy(array_as_slice(bytes))});
+ let good=inspect(rows);
+ let renewed=vec_sort_owned<Row>(rows);
+ if good && vec_len<Row>(renewed)==1usize {29}else{0}
+}
+"#;
+
 #[test]
 fn repeated_scalar_string_and_bytes_reads_retain_payload_and_vector_identity() {
     run_wasm(REPEATED, 0, 29, "field-no-allocation");
+}
+
+#[test]
+fn repeated_borrowed_reads_allocate_nothing_and_settle_before_reentry() {
+    run_wasm(BORROWED_SCAN, 0, 29, "field-no-allocation");
+    let root = std::env::temp_dir().join(format!(
+        "scoped-field-reads-{}-{}",
+        std::process::id(),
+        SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&root).unwrap();
+    let path = root.join("reads.spx");
+    let source = format!("{DECLARATION}{BORROWED_SCAN}");
+    fs::write(&path, &source).unwrap();
+    let actual =
+        semaprax::interpreter::interpret(&path, "app.main", &[], &Default::default()).unwrap();
+    semaprax::interpreter::verify_envelope(&actual.envelope).unwrap();
+    let envelope: serde_json::Value = serde_json::from_str(&actual.envelope).unwrap();
+    assert!(actual.returned);
+    assert_eq!(envelope["payload"]["outcome"]["value"], "29");
+    let ast = semaprax::check(&source, &path).unwrap();
+    let c = semaprax::codegen::emit_c(&ast).unwrap();
+    run_native_reads(&root, &c);
+    fs::remove_dir_all(root).unwrap();
+}
+
+fn run_native_reads(root: &std::path::Path, generated: &str) {
+    let mut calls = generated
+        .lines()
+        .filter(|line| line.contains("= spx_decl_6669656c642e696e7370656374("));
+    let call = calls.next().expect("generated call to field.inspect");
+    assert!(calls.next().is_none());
+    let tracked = generated.replace(
+        call,
+        &format!(
+            "    ++probe_calls;\n    probe_reading = true;\n{call}\n    probe_reading = false;"
+        ),
+    );
+    let allocator = r#"
+#include <stdbool.h>
+#include <stdlib.h>
+static bool probe_reading;
+static unsigned probe_calls;
+static size_t probe_live;
+static __attribute__((unused)) void *probe_malloc(size_t n) {
+    if (probe_reading) abort();
+    void *p = malloc(n);
+    if (p) ++probe_live;
+    return p;
+}
+static __attribute__((unused)) void *probe_calloc(size_t count, size_t size) {
+    if (probe_reading) abort();
+    void *p = calloc(count, size);
+    if (p) ++probe_live;
+    return p;
+}
+static __attribute__((unused)) void *probe_realloc(void *p, size_t n) {
+    if (probe_reading || n == 0) abort();
+    bool fresh = p == NULL;
+    void *next = realloc(p, n);
+    if (fresh && next) ++probe_live;
+    return next;
+}
+static __attribute__((unused)) void probe_free(void *p) {
+    if (probe_reading) abort();
+    if (p) {
+        if (probe_live == 0) abort();
+        --probe_live;
+    }
+    free(p);
+}
+#define malloc probe_malloc
+#define calloc probe_calloc
+#define realloc probe_realloc
+#define free probe_free
+"#;
+    let probe = r#"
+int main(void) {
+    struct spx_context context = {0};
+    struct spx_status_entry entries[16];
+    if (!spx_context_init(&context, 730, entries, 16, NULL, NULL, NULL)) return 1;
+    for (unsigned run = 1; run <= 4; ++run) {
+        int64_t result = -1;
+        if (spx_decl_6170702e6d61696e(&context, &result) != SPX_STATUS_SUCCESS ||
+            result != 29 || probe_reading || probe_calls != run || probe_live != 0) return 2;
+        for (uint32_t slot = 0; slot < SPX_VEC_AUTHORITY_CAPACITY; ++slot)
+            if (context.vec_authority[slot].live) return 3;
+    }
+    return 0;
+}
+"#;
+    let input = root.join("reads.c");
+    fs::write(&input, format!("{allocator}\n{tracked}\n{probe}")).unwrap();
+    for optimization in ["-O0", "-O2"] {
+        let output = root.join(format!("reads{optimization}"));
+        let built = Command::new("clang")
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&input)
+            .arg("-o")
+            .arg(&output)
+            .output()
+            .unwrap();
+        assert!(
+            built.status.success(),
+            "{optimization}: {}",
+            String::from_utf8_lossy(&built.stderr)
+        );
+        let status = Command::new(output).status().unwrap();
+        assert!(
+            status.success(),
+            "{optimization}: scoped-read probe {status}"
+        );
+    }
 }
 
 #[test]

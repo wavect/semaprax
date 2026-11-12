@@ -2,8 +2,8 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: partial source batch for OPT-730; owning executable gates are authored. No owning execution,
-application qualification or agent-efficiency result is claimed.
+Status: focused compiler and application checks passed for OPT-730.
+Matched accepted-task agent trials remain open.
 
 ## Checked source shape
 
@@ -106,11 +106,31 @@ agree on the same source. Typed ShiftSim and independent catalog/order adoption
 retain the complete original application acceptance and strong TS comparisons.
 
 
-The scoped semantic gates are `hir::vec_field::tests` (6),
-`interpreter::vec_field::tests` (1), and
-`project::incremental::snapshot::vec_field::tests` (1). Backend, graph and
-source-index gates live in their existing owning harnesses. None of these new
-source-authored gates is execution evidence until the grouped check succeeds.
+The `vec_field` library selector passed 16 tests, including HIR and cache
+forgeries, source-index spans, loan expiry, and unchanged feature-free Graph
+bytes. The `field_reads` and `scoped_vec_field_native` selectors passed their
+strict Wasm and native tests. One shared source exercises repeated scalar,
+String and Bytes reads through a borrowed helper in the interpreter, native
+C11 O0 and O2, and strict Core Wasm. The native probe aborts on allocation or
+free during the helper call, then checks vector renewal and zero live
+allocations and vector authorities after each of four invocations in one
+context. The Project response-codec test also passed with its clone allocator
+refused.
+
+The checked-in typed applications use the scoped reads and passed their
+original acceptance corpora. ShiftSim passed all 15 cases and Catalog passed
+all 23 cases under the existing collection-record profile. Their Project tests
+check the generated native command and the C11 O0 and O2 outputs against the
+original acceptance data. Scoped production Clippy passed.
+
+Both v31 campaign qualifiers also passed after the setup operator verified the
+complete installed source inventories. They used compiler source
+`2561d237f9548a64232d62f59696d9b67eba6bbb` and binary SHA-256
+`5965f5b1909b3f1bf2f74954e184bc1909b9b96882470ec76353192c3c05dedc`.
+The Catalog native subject was
+`331bc36751ee29dfaa9ebe50fa2f561340c03ae380dcedbc7983ec0c99a4a777`.
+The ShiftSim native subject was
+`981d7bf04246be721a67bd81882401739cd062e28c90c7fb0409ea5574477423`.
 
 The source-only successor
 [Scoped Vec Field Source Forms v1](SCOPED-VEC-FIELD-SOURCE-FORMS-V1.md) preserves

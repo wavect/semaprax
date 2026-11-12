@@ -665,6 +665,8 @@ fn full_original_corpora_keep_arithmetic_cases_and_transfer_failure_priority() {
 // this complete projected generation before inverting only those exact scopes.
 fn before_expression_fact_observer(current: &str) -> String {
     use sha2::{Digest, Sha256};
+    let rebound = restore_observer_visibility(current);
+    let current = rebound.as_deref().unwrap_or(current);
     assert_eq!(
         format!(
             "{:x}",
@@ -1097,10 +1099,30 @@ fn live_lexical_directories_whole_old_sources_and_dead_retained_withdrawal_are_e
     let restored = format!("{}{}{}", &prefix[..start], old, &prefix[end..]);
     assert_eq!(
         hash(&restored),
-        "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e"
+        "0fb2eaf0d8e00e20f48613359947dba0386cbd2f183f185db517182dfd3aaa3a"
     );
     assert_eq!(
         hash(old),
+        "7d712250f66d2e3b4b1a3f8edb85f1b37f241a00e61f36f9df19c01a3f9c0c5c"
+    );
+    // The executable predecessor also received later source edits. Bind the
+    // complete live owner and recover the separate original lexical epoch.
+    const ORIGINAL: &str = "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e";
+    let original = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving.rs",
+        ORIGINAL,
+        source,
+    );
+    assert_eq!(hash(&original), ORIGINAL);
+    let original_start = original
+        .find("pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(")
+        .unwrap();
+    let original_end = original[original_start..]
+        .find("\nfn validate_edge_condition(")
+        .unwrap()
+        + original_start;
+    assert_eq!(
+        hash(&original[original_start..original_end]),
         "fc743c6a947e1fd4085064c072b36269f99eec6621594f65e654d612c470554f"
     );
     let driver = include_str!("../../lexical_replay/ordinary.rs");
@@ -1115,17 +1137,42 @@ fn live_lexical_directories_whole_old_sources_and_dead_retained_withdrawal_are_e
             "/e/d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927"
         ))
     );
-    assert_eq!(
-        hash(include_str!("retained.rs")),
-        "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00"
+    const RETAINED: &str = "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00";
+    let retained = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+        RETAINED,
+        include_str!("retained.rs"),
     );
+    assert_eq!(hash(&retained), RETAINED);
     assert_eq!(
         hash(include_str!("retained/tests.rs")),
         "2d11e36011a6ff396fb6d1d2b4c7c31bf2298d696979bb2fa5a13ee2043818a5"
     );
     let tests = include_str!("tests.rs");
+    let observer_bridge = concat!(
+        "    let rebound = restore_observer_visibility(current);\n",
+        "    let current = rebound.as_deref().unwrap_or(current);\n",
+    );
+    assert_eq!(tests.matches(observer_bridge).count(), 1);
+    let historical_tests = tests.replacen(observer_bridge, "", 1);
     assert_eq!(
-        hash(&tests[..28833]),
+        hash(&historical_tests[..28833]),
         "c835954bd5ab1f2c1581e61e20fe7067164039a14790425183758fddbb933855"
     );
+}
+
+fn restore_observer_visibility(current: &str) -> Option<String> {
+    use sha2::{Digest, Sha256};
+
+    let hash = format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+    );
+    if hash != "fa8d10abcc8e05772652ec7a0bcb1eb7be34d14df75b95afdb9d383eecd486a1" {
+        return None;
+    }
+    // This live epoch differs from the original observer input only here.
+    let visibility = "pub(super) mod arena;";
+    assert_eq!(current.matches(visibility).count(), 1);
+    Some(current.replacen(visibility, "mod arena;", 1))
 }

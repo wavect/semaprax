@@ -54,8 +54,8 @@
     {
       "path": "src/cleanup_plan/replay/fact_preflight.rs",
       "current": {
-        "length": 11679,
-        "sha256": "86f57d32b369923bd55d798dfc078b2f80e8ef912c02dc48e91a6c972afdde50"
+        "length": 12055,
+        "sha256": "f9b68b0e205f98a460131f60e3c9b37e4c2a263ff05cdd4cca1e69be7d3672b0"
       }
     }
   ],
@@ -177,8 +177,8 @@
     {
       "path": "src/cleanup_plan/replay/fact_preflight.rs",
       "current": {
-        "length": 11679,
-        "sha256": "86f57d32b369923bd55d798dfc078b2f80e8ef912c02dc48e91a6c972afdde50"
+        "length": 12055,
+        "sha256": "f9b68b0e205f98a460131f60e3c9b37e4c2a263ff05cdd4cca1e69be7d3672b0"
       },
       "before": {
         "length": 11310,
@@ -187,87 +187,33 @@
       "archive": "e/46be8582ccbfb6399b36dcf5e5aecc2c695c5c6794df60434aa922f01eaa08e5",
       "edits": [
         {
-          "start": 1685,
-          "end": 1685,
-          "current": "",
-          "before": "\n               "
+          "start": 1657,
+          "end": 1836,
+          "current": "            let mut $owner = expression_facts::arena::invocation::Backing::acquire(\n                $full,\n                function,\n                &mut $budget,\n            )?;\n",
+          "before": "            let mut $owner =\n                expression_facts::arena::invocation::Backing::acquire($full, function, &mut $budget)?;\n"
         },
         {
-          "start": 1740,
-          "end": 1757,
-          "current": "\n                ",
+          "start": 2801,
+          "end": 3129,
+          "current": "            // A selected factored comparison uses the ordinary work ledger.\n            // Its enumerating fallback acquires the original bound on entry.\n            if function_upper != 0\n                && factored::defer_enumerating_reservation(function, &mut $budget)?\n            {\n                continue;\n            }\n",
           "before": ""
         },
         {
-          "start": 1763,
-          "end": 1779,
-          "current": "\n               ",
-          "before": ""
+          "start": 6149,
+          "end": 6287,
+          "current": "        if !status_backing.complete_into(program, function, &mut budget) {\n            return Err(status_backing.take_error());\n        }\n",
+          "before": "        status_backing.complete(program, function, &mut budget)?;\n"
         },
         {
-          "start": 1789,
-          "end": 1805,
-          "current": "\n               ",
-          "before": ""
+          "start": 7110,
+          "end": 7258,
+          "current": "        if !status_backing.complete_into(program, &instance.function, &mut budget) {\n            return Err(status_backing.take_error());\n        }\n",
+          "before": "        status_backing.complete(program, &instance.function, &mut budget)?;\n"
         },
         {
-          "start": 1818,
-          "end": 1832,
-          "current": ",\n            ",
-          "before": ""
-        },
-        {
-          "start": 5829,
-          "end": 5833,
-          "current": "if !",
-          "before": ""
-        },
-        {
-          "start": 5856,
-          "end": 5861,
-          "current": "_into",
-          "before": ""
-        },
-        {
-          "start": 5893,
-          "end": 5947,
-          "current": " {\n            return Err(status_backing.take_error())",
-          "before": "?"
-        },
-        {
-          "start": 5948,
-          "end": 5958,
-          "current": "\n        }",
-          "before": ""
-        },
-        {
-          "start": 6790,
-          "end": 6794,
-          "current": "if !",
-          "before": ""
-        },
-        {
-          "start": 6817,
-          "end": 6822,
-          "current": "_into",
-          "before": ""
-        },
-        {
-          "start": 6864,
-          "end": 6918,
-          "current": " {\n            return Err(status_backing.take_error())",
-          "before": "?"
-        },
-        {
-          "start": 6919,
-          "end": 6929,
-          "current": "\n        }",
-          "before": ""
-        },
-        {
-          "start": 11501,
-          "end": 11679,
-          "current": "\n#[cfg(test)]\nmod before_status_receivers;\n#[cfg(test)]\npub(in crate::cleanup_plan) use before_status_receivers::validate_program_context as before_941_validate_program_context;\n",
+          "start": 11829,
+          "end": 12055,
+          "current": "\n#[cfg(test)]\nmod before_status_receivers;\n#[cfg(test)]\npub(in crate::cleanup_plan) use before_status_receivers::validate_program_context as before_941_validate_program_context;\n\n#[cfg(test)]\npub(super) mod phase_measurement;\n",
           "before": ""
         }
       ]

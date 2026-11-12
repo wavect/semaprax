@@ -1,12 +1,13 @@
 # Owned Nested Outcomes v1
 
-Status: authored bounded contract; executable qualification remains separately gated.
+Status: focused executable qualification complete for the bounded compiler and decoder scope. Matched agent trials remain pending.
 Audience: coding agents, compiler contributors and reviewers.
 
 This is the compiler prerequisite tracked by #729 for finite application JSON
-construction in #724. Source implementation is staged; the executable gates
-below have not yet qualified it. No token, cost, or acceptance advantage is
-claimed by this specification.
+construction in #724. The focused gates below qualify the owning outcome and
+the two bounded decoder examples. Fresh matched trials are still required to
+measure turns, net input, authored tokens, fixed context, estimated
+accepted-task cost, and wall time.
 
 ## Authenticated shape
 
@@ -88,17 +89,18 @@ or opaque executable type: it stores ordinary existing record/variant HIR.
 
 ## Owning gates
 
-- `--lib hir::collection_outcome::nested::tests::` (6): source/canonical/graph
-  round-trip, exact source drift, cache replay, provenance and case/type forgery,
-  full cleanup paths, target-sized record payload, frozen profiles/unused
-  helpers, variant-inclusive depth and owned-leaf boundaries.
-- `--test owned_data owned_nested_outcome::` (3): identical source on interpreter,
-  C11 at O0/O2 with allocation and vector-authority settlement, and strict Wasm;
-  success/error, borrow/forward/move, partial construction, grouped argument
-  failure, callee/postcondition failure, and no allocation for an error-only
-  outcome. Repetition must preserve status and settlement.
-- Project v32 routing must separately qualify real selected commands, exact
-  grants, source/retained replay, and old-profile refusal before publication.
+- `--lib -- nested_outcome` covers canonical source and Graph v74 round-trips,
+  source drift, cache replay, forged provenance and case types, complete
+  cleanup paths, target-sized record payloads, source and HIR structural
+  limits, Project v32 command execution, and older profile refusals.
+- `--test owned_data owned_nested_outcome::` exercises identical source on the
+  interpreter, native C11 at O0/O2, and strict Core Wasm. It checks success and
+  error, borrow and move, empty and full Vec capacity, live and released
+  projected loans, staged failures, and repeated owner settlement.
+- `--test project standard_library::application_json::nested_request::`
+  exercises independent order/configuration and scheduler decoders, including
+  detached owners, typed malformed and capacity errors, and pure decoder
+  admission through the frozen export and older command boundaries.
 
 Full arbitrary nested JSON, optional/nullable schemas, user-defined variants,
 and new collection element layouts remain separate obligations of #724.

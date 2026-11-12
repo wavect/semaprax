@@ -256,6 +256,8 @@ fn nested_outcome_error_only_and_unused_helpers_still_require_v32() {
         .unwrap();
 }
 
+const BOUNDED_OUTCOME: &str = "@id(\"o\") variant O {@id(\"o.ok\") Ready{@id(\"o.value\") value:R0,},@id(\"o.err\") Error{@id(\"o.code\") code:i64,@id(\"o.offset\") offset:usize,@id(\"o.field\") field:i64,},}\n@id(\"forward\") fn forward(value:own O)->O{value}\n@id(\"app.main\") fn main()->i64{let value=forward(O::Error{code:42,offset:0usize,field:0});match own value {O::Ready{value:payload}=>0,O::Error{code,offset,field}=>code,}}\n";
+
 #[test]
 fn nested_outcome_preserves_variant_inclusive_depth_and_leaf_bounds() {
     fn bounded(depth: usize, leaves: usize) -> String {
@@ -271,7 +273,7 @@ fn nested_outcome_preserves_variant_inclusive_depth_and_leaf_bounds() {
             }
             source.push_str("}\n");
         }
-        source.push_str("@id(\"o\") variant O {@id(\"o.ok\") Ready{@id(\"o.value\") value:R0,},@id(\"o.err\") Error{@id(\"o.code\") code:i64,@id(\"o.offset\") offset:usize,@id(\"o.field\") field:i64,},}\n@id(\"forward\") fn forward(value:own O)->O{value}\n@id(\"app.main\") fn main()->i64{let value=forward(O::Error{code:42,offset:0usize,field:0});match own value {O::Ready{value:payload}=>0,O::Error{code,offset,field}=>code,}}\n");
+        source.push_str(BOUNDED_OUTCOME);
         source
     }
     for source in [bounded(63, 1), bounded(1, 256)] {
@@ -293,4 +295,61 @@ fn nested_outcome_preserves_variant_inclusive_depth_and_leaf_bounds() {
         .replace("offset:usize", "offset:i64")
         .replace("offset:3usize", "offset:3");
     assert!(crate::check(&wrong, "wrong.spx").is_err());
+}
+
+#[test]
+fn nested_outcome_counts_every_expanded_field_including_both_cases() {
+    use std::fmt::Write as _;
+
+    fn fields(source: &mut String, owner: &str, prefix: &str, ty: &str, count: usize) {
+        for index in 0..count {
+            writeln!(
+                source,
+                r#"@id("{owner}.{prefix}{index}") {prefix}{index}:{ty},"#
+            )
+            .unwrap();
+        }
+    }
+
+    let mut source = String::from("module bounded.outcome;\n");
+    source.push_str(r#"@id("leaf") record Leaf {"#);
+    fields(&mut source, "leaf", "f", "i64", 15);
+    source.push_str("}\n");
+    source.push_str(r#"@id("level") record Level {"#);
+    fields(&mut source, "level", "f", "Leaf", 16);
+    source.push_str("}\n");
+    source.push_str(r#"@id("tail") record Tail {"#);
+    fields(&mut source, "tail", "f", "Leaf", 14);
+    source.push_str("}\n");
+    source.push_str(
+        r#"@id("root") record R0 {@id("root.text") text:string,@id("root.tail") tail:Tail,"#,
+    );
+    // Four case fields, one string, one Tail with 224 descendants, fifteen
+    // Levels with 256 descendants each, and eleven scalar fields total 4096.
+    fields(&mut source, "root", "level", "Level", 15);
+    fields(&mut source, "root", "f", "i64", 11);
+
+    let at_limit = format!("{source}}}\n{BOUNDED_OUTCOME}");
+    let program = checked(&at_limit);
+    let outcome = ResolvedType::Nominal {
+        declaration: DeclarationId::new("o"),
+        arguments: vec![],
+    };
+    assert!(admitted(&program.declarations, &outcome));
+    hir::validate_stream_nested_outcome_program(&program, None).unwrap();
+
+    let over_limit = format!(
+        r#"{source}@id("root.extra") extra:i64,}}
+{BOUNDED_OUTCOME}"#
+    );
+    let errors = crate::check(&over_limit, "nested-outcome-field-limit.spx").unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| matches!(d.code, "SPX-T215" | "SPX-T309" | "SPX-T268")),
+        "{errors:?}"
+    );
+    let unverified = crate::parse(&over_limit, "nested-outcome-field-limit.spx").unwrap();
+    let declarations = DeclarationIndex::from_verified(&unverified).unwrap();
+    assert!(!admitted(&declarations, &outcome));
 }

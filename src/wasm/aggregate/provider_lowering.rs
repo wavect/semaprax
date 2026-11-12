@@ -94,6 +94,12 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
 
     for (offset, execution) in ordered.iter().enumerate() {
         let function = function_for_execution(program, execution)?;
+        if crate::iterator_ops::function_uses_owned_iterator(function) {
+            return Err(error(format!(
+                "public-generic Core Wasm provider has no runtime for the owned Bytes iterator in `{}`",
+                execution.identity_key()
+            )));
+        }
         let mut params = Vec::with_capacity(function.params.len() + 1);
         for param in &function.params {
             params.push(if is_aggregate(program, &param.ty)? {

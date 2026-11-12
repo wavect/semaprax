@@ -80,6 +80,12 @@ and seven frees per invocation, totaling 22 requested bytes and peaking at
 five live payloads. Both variants settled every tracked allocation and
 vector handle. The separate seven-String assertion retains its own fixture.
 
+The import-free public generic provider has no owned Bytes iterator runtime.
+A probe routed the original loop through a reachable provider helper and
+reached module emission. Node v24.15.0 rejected the emitted call signature
+during validation. The provider now checks the reachable function inventory
+for owned Bytes iterators before emission.
+
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation
 remain separate OPT724 obligations.

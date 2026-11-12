@@ -223,6 +223,48 @@ fn compiler_provider_artifact_is_deterministic_closed_and_binding_normalized() {
 }
 
 #[test]
+fn provider_refuses_a_reachable_owned_bytes_iterator_before_emitting() {
+    let helper = r#"
+@id("provider.owning-break")
+fn owning_break() -> i64 {
+    let outer = bytes_zeroed(7usize);
+    let first = vec_push<Bytes>(vec_with_capacity<Bytes>(3usize), bytes_zeroed(1usize));
+    let second = vec_push<Bytes>(first, bytes_zeroed(2usize));
+    let values = vec_push<Bytes>(second, bytes_zeroed(3usize));
+    let mut seen = 0;
+    for own item in vec_into_iter<Bytes>(values) {
+        let nested = bytes_zeroed(3usize);
+        seen = seen + 1;
+        if seen == 2 { continue; };
+        if seen == 3 { break; };
+        0
+    }
+    if seen == 3 && byte_len(bytes_as_slice(outer)) == 7usize { 9 } else { 0 }
+}
+"#;
+    let source = format!("{SOURCE}{helper}");
+    let program = resolved_program(&source);
+    let artifact =
+        semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint_for(&source))
+            .expect("an unrelated helper does not widen the endpoint closure");
+    wasmparser::Validator::new()
+        .validate_all(artifact.wasm())
+        .unwrap();
+
+    let source = source.replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let seen = owning_break();\n    if seen != 9 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let error =
+        semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint).unwrap_err();
+    assert_eq!(error.code, "SPX-W110");
+    assert!(error.message.contains("owned Bytes iterator"));
+    assert!(error.message.contains("provider.owning-break"));
+}
+
+#[test]
 fn node_loads_exact_closed_provider_inventory_without_fixture_or_host_imports() {
     if !node_available() {
         return;

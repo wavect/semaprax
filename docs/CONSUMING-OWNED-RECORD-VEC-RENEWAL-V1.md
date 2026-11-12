@@ -1,6 +1,6 @@
 # Consuming owned-record Vec renewal v1
 
-Status: authored additive profile and owning definitions; qualification pending.
+Status: locally qualified for the bounded v1 profile.
 Audience: compiler ownership implementers and agents authoring consuming loops.
 
 This profile composes the existing checked consuming iterator with an outer
@@ -83,8 +83,12 @@ cannot grant it. Frozen from-parts projections refuse the new route because they
 lack the complete current declaration/source authority. Existing v15 cleanup
 wire encoding and runtime/backend operations are reused unchanged.
 
-The owning definitions cover source/canonical/graph/cache identity, stale record
-layout and origin, forged renewal transitions/schema/site fields, the untouched
-later cell, normalized index/capacity refusal, native O0/O2 owner settlement and
-the strict Core-Wasm host. These definitions are not execution evidence. No
-allocation, copy, token, wall-time or agent-cost improvement is claimed.
+All 17 owning checks passed. The original fixture retained the later cell,
+round-tripped canonical source and verified its graph. Its failed clone
+argument kept Core-Wasm token 14 and settled the staged owners. Interpreter,
+native O0/O2 and strict Core-Wasm checks covered same-type and conditional
+row transfers, exact index and capacity status, unpublished results,
+exactly-once settlement and reentry. The HIR and retained graph owners
+verified exact reservation, current record layout and origin, and refusal of
+forged transitions, sites and schema. Agent and runtime cost effects remain
+unmeasured.

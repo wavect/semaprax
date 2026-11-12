@@ -1,0 +1,37 @@
+{
+  "schema": "semaprax.opt738.phase-driver.v1",
+  "source": "49efa1c96efcf5b55ea7f11f62e9b007d9f57722",
+  "cargo_lock_sha256": "1395cd56f060fc99168ecda995f1d4596a344b788615a046869564b6ce4f0b43",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6",
+  "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "build_command": [
+    "cargo",
+    "test",
+    "--release",
+    "--lib",
+    "--all-features",
+    "--locked",
+    "--offline",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "warmup": 2,
+  "samples": 10,
+  "status": "measured_paired_success",
+  "binary_sha256": "e24bd0eca1cbfd10e2af08369c5b4a08af4767cb763b42e5911b3db0c1b52aaa",
+  "run_command": [
+    "<release library test binary>",
+    "cleanup_plan::phase_measurement::generated_codec_construction_and_replay_measurement",
+    "--exact",
+    "--ignored",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "artifact_sha256": {
+    "actual-app.spx": "d3f5f444cc7dfca37c51593b3fce1426a14feffc9ee25d8e0768e3889cd971fe",
+    "actual-schema.spx": "a9435bc61989015cb488ff8299495f9901b562d21f7986aa16c1f67fb6297b62",
+    "raw-samples.jsonl": "e54f2a0604c3eced87a0fad4064a45f13033f0d43e14faae21251e2728ebf5bb",
+    "summary.json": "470f1a823eedff3497895ea701dd62cc9fd11fc2cb679249a8f6f4aa705c6ff3"
+  }
+}

@@ -1,0 +1,22 @@
+module consumer.app;
+use type @id("work.row") from consumer.schema as Row;
+use type @id("work.metrics") from consumer.schema as Metrics;
+use type @id("work.report") from consumer.schema as Report;
+use type @id("work.report.json.collection-response.encode-result") from consumer.schema as Encoded;
+use function @id("work.report.json.collection-response.encoded-len") from consumer.schema as length;
+use function @id("work.report.json.collection-response.encode") from consumer.schema as encode;
+
+@id("work.identity")
+fn identity<T>(value: T) -> T
+{
+    value
+}
+
+@id("consumer.main")
+fn main() -> i64
+{
+    let value = Report { metrics: Metrics { count: 0usize, ok: true }, rows: vec_with_capacity<Row>(256usize) };
+    let n = length(value);
+    let outcome = encode(value, n);
+    identity<i64>(match own outcome { Encoded::Encoded { text } => i64_from_usize(byte_len(str_as_bytes(string_as_str(text)))), Encoded::Refused { required: size } => i64_from_usize(size), })
+}

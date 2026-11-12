@@ -148,8 +148,8 @@ Direct and detached cleanup construction, standalone schema queries, and cleanup
 path-state replay retain independent proof paths. The construction index does
 not substitute for validation or replay, which rebuild current HIR facts. This
 implements bounded reuse in the named consumers, rather than a global cache or
-complete elimination of repeated helper proof work. Construction and replay
-performance and accepted-task efficiency remain unmeasured. The direct phase's
+complete elimination of repeated helper proof work. The paired compiler phase
+results are recorded below. The direct phase's
 exact/one-short reservation contract covers helper indexes, census scratch,
 staging carriers and retained old-plan overlap; it does not enforce every nested
 PlanBuilder allocation. Existing workspace AST-to-HIR prebounds remain independent.
@@ -194,7 +194,7 @@ on both controls. Returned plan destruction and canonical serialization are
 outside both timed intervals. These controls expose no runtime switch and confer
 no authority on cached plans.
 
-After the owning definitions are qualified, run from a clean committed checkout:
+Run the measurement from a clean committed checkout:
 
 ```sh
 python3 scripts/measure_helper_phases.py --root "$PWD" \
@@ -222,13 +222,32 @@ reports null for work units. These measurements cover compiler phases.
 Physical memory, runtime JSON execution and accepted-task costs require
 their own evidence.
 
+The [release receipt](evidence/opt738-helper-index-phases/context.json) binds
+the Rust 1.97.1 aarch64 macOS binary, measured source, and both exact generated
+Project sources. The [raw samples](evidence/opt738-helper-index-phases/raw-samples.jsonl)
+include two warmups and ten measured pairs per phase. The fixture contains
+29 functions, three byte helpers and one generic instance.
+
+| Phase | Independent median | Indexed median | Independent reservation bytes | Indexed reservation bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Construction | 3.323 ms | 3.627 ms | 1,886,429 | 1,164,752 |
+| Detached replay | 71.937 ms | 56.578 ms | 350,512,497 | 330,924,852 |
+| Full HIR validation | 59.852 ms | 60.089 ms | 867,156 | 156,463 |
+
+Full validation used 330,924,852 bytes of nested detached replay reservation
+in each arm. Standalone replay charged 4,696,874 work units independently and
+4,987,884 with the index. Skeleton charges were 57,555 and 127,772 work units,
+respectively. In this run indexing reduced detached replay time and all three
+reservation ledgers. Construction took longer and standalone replay charged
+more work. The reservations measure cumulative compiler charges.
+
 The normal owning definition is
 `cleanup_plan::phase_measurement::paired_routes_preserve_complete_program_plans_and_independent_replay`.
 The ignored measurement definition is
 `cleanup_plan::phase_measurement::generated_codec_construction_and_replay_measurement`.
-Both are authored in the existing library harness; the driver selects only the
-latter by its exact name. The regular qualification selector must exclude the
-ignored body from executed-success counts.
+Both passed. The seven construction-index controls and 40 byte-writer checks
+also passed, covering legacy allocating helpers, exact and one-short
+reservation, foreign identity, source drift and independent plan parity.
 
 ## Resolved saved-cursor accounting (OPT #750)
 

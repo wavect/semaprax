@@ -1,0 +1,271 @@
+module consumer.schema;
+use function @id("std.data.json.digits.i64_len") from std.data.json.digits as jv_i64_len;
+use function @id("std.data.json.write.usize_len") from std.data.json.write as jv_usize_len;
+use function @id("std.data.json.utf8.scalar_at") from std.data.json.utf8 as ju_raw_scalar;
+use function @id("std.data.json.utf8.sequence_end") from std.data.json.utf8 as ju_raw_end;
+use function @id("std.data.json.utf8.bounded_valid") from std.data.json.utf8 as ju_bounded_valid;
+use function @id("std.data.json.utf8.quoted_len") from std.data.json.utf8 as ju_quoted_len;
+
+@id("work.row")
+record Row {
+    @id("work.row.text")
+    text: string,
+    @id("work.row.number")
+    number: i64,
+}
+
+@id("work.metrics")
+record Metrics {
+    @id("work.metrics.count")
+    count: usize,
+    @id("work.metrics.ok")
+    ok: bool,
+}
+
+@id("work.report")
+record Report {
+    @id("work.report.metrics")
+    metrics: Metrics,
+    @id("work.report.rows")
+    rows: Vec<Row>,
+}
+
+@id("work.report.json.collection-response.encode-result")
+variant ReportJsonCollectionResponseEncode {
+    @id("work.report.json.collection-response.encoded")
+    Encoded {
+        @id("work.report.json.collection-response.text")
+        text: string,
+    },
+    @id("work.report.json.collection-response.refused")
+    Refused {
+        @id("work.report.json.collection-response.required")
+        required: usize,
+    },
+}
+
+@id("work.anchor")
+fn anchor() -> i64
+{
+    0
+}
+
+@id("work.row.json.collection-response.owned-valid")
+fn json_Row_response_owned_valid(text: borrow str) -> bool
+{
+    let bytes = str_as_bytes(text);
+    ju_bounded_valid(bytes, 64usize)
+}
+
+@id("work.row.json.collection-response.quoted-len")
+fn json_Row_response_utf8_quoted_len(text: borrow str) -> usize
+{
+    let bytes = str_as_bytes(text);
+    ju_quoted_len(bytes, 64usize)
+}
+
+@id("work.row.json.collection-response.object-len")
+fn json_Row_response_object_len(value: borrow Row) -> usize
+{
+    if !json_Row_response_owned_valid(string_as_str(value.text)) { 18446744073709551615usize } else { 19usize + json_Row_response_utf8_quoted_len(string_as_str(value.text)) + usize_from_i64(jv_i64_len(value.number)) }
+}
+
+@id("work.row.json.collection-response.object-render")
+fn json_Row_response_object_render(value: borrow Row, position: usize, output: own Bytes) -> Bytes
+    requires json_Row_response_object_len(value) != 18446744073709551615usize && position <= byte_len(bytes_as_slice(output)) && json_Row_response_object_len(value) <= byte_len(bytes_as_slice(output)) - position
+{
+    let mut next = output;
+    let mut cursor = position;
+    next = bytes_set(next, cursor, 123u8);
+    cursor = cursor + 1usize;
+    let k0 = { let k = [34u8, 116u8, 101u8, 120u8, 116u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 7usize;
+    next = json_Row_response_writer_quote(string_as_str(value.text), cursor, next);
+    cursor = cursor + json_Row_response_utf8_quoted_len(string_as_str(value.text));
+    let k1 = { let k = [44u8, 34u8, 110u8, 117u8, 109u8, 98u8, 101u8, 114u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 10usize;
+    next = json_Row_response_writer_i64(value.number, cursor, next);
+    cursor = cursor + usize_from_i64(jv_i64_len(value.number));
+    next = bytes_set(next, cursor, 125u8);
+    cursor = cursor + 1usize;
+    next
+}
+
+@id("work.row.json.collection-response.object-len-at")
+fn json_Row_response_object_len_at(values: borrow Vec<Row>, at: usize) -> usize
+{
+    if !json_Row_response_owned_valid(vec_field<Row>(values, at, "text")) { 18446744073709551615usize } else { 19usize + json_Row_response_utf8_quoted_len(vec_field<Row>(values, at, "text")) + usize_from_i64(jv_i64_len(vec_field<Row>(values, at, "number"))) }
+}
+
+@id("work.row.json.collection-response.object-render-at")
+fn json_Row_response_object_render_at(values: borrow Vec<Row>, at: usize, position: usize, output: own Bytes) -> Bytes
+    requires json_Row_response_object_len_at(values, at) != 18446744073709551615usize && position <= byte_len(bytes_as_slice(output)) && json_Row_response_object_len_at(values, at) <= byte_len(bytes_as_slice(output)) - position
+{
+    let mut next = output;
+    let mut cursor = position;
+    next = bytes_set(next, cursor, 123u8);
+    cursor = cursor + 1usize;
+    let k0 = { let k = [34u8, 116u8, 101u8, 120u8, 116u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 7usize;
+    next = json_Row_response_writer_quote(vec_field<Row>(values, at, "text"), cursor, next);
+    cursor = cursor + json_Row_response_utf8_quoted_len(vec_field<Row>(values, at, "text"));
+    let k1 = { let k = [44u8, 34u8, 110u8, 117u8, 109u8, 98u8, 101u8, 114u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 10usize;
+    next = json_Row_response_writer_i64(vec_field<Row>(values, at, "number"), cursor, next);
+    cursor = cursor + usize_from_i64(jv_i64_len(vec_field<Row>(values, at, "number")));
+    next = bytes_set(next, cursor, 125u8);
+    cursor = cursor + 1usize;
+    next
+}
+
+@id("work.metrics.json.collection-response.object-len")
+fn json_Metrics_response_object_len(value: Metrics) -> usize
+{
+    if !true { 18446744073709551615usize } else { 16usize + jv_usize_len(value.count) + if value.ok { 4usize } else { 5usize } }
+}
+
+@id("work.metrics.json.collection-response.object-render")
+fn json_Metrics_response_object_render(value: Metrics, position: usize, output: own Bytes) -> Bytes
+    requires json_Metrics_response_object_len(value) != 18446744073709551615usize && position <= byte_len(bytes_as_slice(output)) && json_Metrics_response_object_len(value) <= byte_len(bytes_as_slice(output)) - position
+{
+    let mut next = output;
+    let mut cursor = position;
+    next = bytes_set(next, cursor, 123u8);
+    cursor = cursor + 1usize;
+    let k0 = { let k = [34u8, 99u8, 111u8, 117u8, 110u8, 116u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 8usize;
+    next = json_Row_response_writer_usize(value.count, cursor, next);
+    cursor = cursor + jv_usize_len(value.count);
+    let k1 = { let k = [44u8, 34u8, 111u8, 107u8, 34u8, 58u8]; next = json_Row_response_writer_bytes(array_as_slice(k), cursor, next); 0 };
+    cursor = cursor + 6usize;
+    next = json_Row_response_writer_bool(value.ok, cursor, next);
+    cursor = cursor + if value.ok { 4usize } else { 5usize };
+    next = bytes_set(next, cursor, 125u8);
+    cursor = cursor + 1usize;
+    next
+}
+
+@id("work.row.json.collection-response.writer.bytes")
+fn json_Row_response_writer_bytes(value: borrow Slice<u8>, position: usize, output: own Bytes) -> Bytes
+    requires position <= byte_len(bytes_as_slice(output)) && byte_len(value) <= byte_len(bytes_as_slice(output)) - position
+{
+    let mut next = output;
+    let mut at = 0usize;
+    while at < byte_len(value) {
+        let byte = match byte_get(value, at) { Option::Some { value: item } => item, Option::None {} => 0u8, };
+        next = bytes_set(next, position + at, byte);
+        at = at + 1usize;
+        at < byte_len(value)
+    }
+    next
+}
+
+@id("work.row.json.collection-response.writer.digit")
+fn json_Row_response_writer_digit(value: usize) -> u8
+    requires value <= 9usize
+{
+    if value == 0usize { 48u8 } else { if value == 1usize { 49u8 } else { if value == 2usize { 50u8 } else { if value == 3usize { 51u8 } else { if value == 4usize { 52u8 } else { if value == 5usize { 53u8 } else { if value == 6usize { 54u8 } else { if value == 7usize { 55u8 } else { if value == 8usize { 56u8 } else { 57u8 } } } } } } } } }
+}
+
+@id("work.row.json.collection-response.writer.hex")
+fn json_Row_response_writer_hex(value: usize) -> u8
+    requires value <= 15usize
+{
+    if value < 10usize { json_Row_response_writer_digit(value) } else { if value == 10usize { 97u8 } else { if value == 11usize { 98u8 } else { if value == 12usize { 99u8 } else { if value == 13usize { 100u8 } else { if value == 14usize { 101u8 } else { 102u8 } } } } } }
+}
+
+@id("work.row.json.collection-response.writer.usize")
+fn json_Row_response_writer_usize(value: usize, position: usize, output: own Bytes) -> Bytes
+    requires position <= byte_len(bytes_as_slice(output)) && jv_usize_len(value) <= byte_len(bytes_as_slice(output)) - position
+{
+    let length = jv_usize_len(value);
+    let mut next = output;
+    let mut at = 0usize;
+    while at < length {
+        let mut remaining = value;
+        let mut step = 0usize;
+        while step < length - at - 1usize {
+            remaining = remaining / 10usize;
+            step = step + 1usize;
+            step < length - at - 1usize
+        }
+        next = bytes_set(next, position + at, json_Row_response_writer_digit(remaining % 10usize));
+        at = at + 1usize;
+        at < length
+    }
+    next
+}
+
+@id("work.row.json.collection-response.writer.i64")
+fn json_Row_response_writer_i64(value: i64, position: usize, output: own Bytes) -> Bytes
+    requires position <= byte_len(bytes_as_slice(output)) && usize_from_i64(jv_i64_len(value)) <= byte_len(bytes_as_slice(output)) - position
+{
+    let length = usize_from_i64(jv_i64_len(value));
+    let sign = if value < 0 { 1usize } else { 0usize };
+    let mut next = output;
+    let mut at = 0usize;
+    while at < length {
+        let byte = if at < sign { 45u8 } else { let mut remaining = if value > 0 { 0 - value } else { value }; let mut step = 0usize; while step < length - at - 1usize { remaining = remaining / 10; step = step + 1usize; step < length - at - 1usize } json_Row_response_writer_digit(usize_from_i64(0 - remaining % 10)) };
+        next = bytes_set(next, position + at, byte);
+        at = at + 1usize;
+        at < length
+    }
+    next
+}
+
+@id("work.row.json.collection-response.writer.bool")
+fn json_Row_response_writer_bool(value: bool, position: usize, output: own Bytes) -> Bytes
+    requires position <= byte_len(bytes_as_slice(output)) && if value { 4usize } else { 5usize } <= byte_len(bytes_as_slice(output)) - position
+{
+    let mut next = output;
+    next = bytes_set(next, position, if value { 116u8 } else { 102u8 });
+    next = bytes_set(next, position + 1usize, if value { 114u8 } else { 97u8 });
+    next = bytes_set(next, position + 2usize, if value { 117u8 } else { 108u8 });
+    next = bytes_set(next, position + 3usize, if value { 101u8 } else { 115u8 });
+    let json_discard_effect_0 = if !value { next = bytes_set(next, position + 4usize, 101u8); true } else { true };
+    next
+}
+
+@id("work.row.json.collection-response.writer.quote")
+fn json_Row_response_writer_quote(text: borrow str, position: usize, output: own Bytes) -> Bytes
+    requires json_Row_response_owned_valid(text) && position <= byte_len(bytes_as_slice(output)) && json_Row_response_utf8_quoted_len(text) <= byte_len(bytes_as_slice(output)) - position
+{
+    let bytes = str_as_bytes(text);
+    let mut next = output;
+    let mut cursor = position;
+    next = bytes_set(next, cursor, 34u8);
+    cursor = cursor + 1usize;
+    let mut at = 0usize;
+    while at < byte_len(bytes) {
+        let byte = match byte_get(bytes, at) { Option::Some { value: item } => item, Option::None {} => 0u8, };
+        let json_discard_effect_1 = if byte == 34u8 || byte == 92u8 || byte == 8u8 || byte == 12u8 || byte == 10u8 || byte == 13u8 || byte == 9u8 { next = bytes_set(next, cursor, 92u8); cursor = cursor + 1usize; let escaped = if byte == 34u8 { 34u8 } else { if byte == 92u8 { 92u8 } else { if byte == 8u8 { 98u8 } else { if byte == 12u8 { 102u8 } else { if byte == 10u8 { 110u8 } else { if byte == 13u8 { 114u8 } else { 116u8 } } } } } }; next = bytes_set(next, cursor, escaped); cursor = cursor + 1usize; true } else { if byte < 32u8 { next = bytes_set(next, cursor, 92u8); next = bytes_set(next, cursor + 1usize, 117u8); next = bytes_set(next, cursor + 2usize, 48u8); next = bytes_set(next, cursor + 3usize, 48u8); let scalar = usize_from_i64(i64_from_u8(byte)); next = bytes_set(next, cursor + 4usize, json_Row_response_writer_hex(scalar / 16usize)); next = bytes_set(next, cursor + 5usize, json_Row_response_writer_hex(scalar % 16usize)); cursor = cursor + 6usize; true } else { next = bytes_set(next, cursor, byte); cursor = cursor + 1usize; true } };
+        at = at + 1usize;
+        at < byte_len(bytes)
+    }
+    next = bytes_set(next, cursor, 34u8);
+    next
+}
+
+@id("work.report.json.collection-response.encoded-len")
+fn json_Report_collection_response_encoded_len(value: borrow Report) -> usize
+{
+    let count = vec_len<Row>(value.rows);
+    let mut valid = count <= 256usize;
+    let mut total = 22usize + json_Metrics_response_object_len(value.metrics);
+    let mut at = 0usize;
+    while valid && at < count {
+        let size = json_Row_response_object_len_at(value.rows, at);
+        let comma = if at > 0usize { 1usize } else { 0usize };
+        let json_discard_effect_2 = if size == 18446744073709551615usize || total > 131072usize - comma || size > 131072usize - total - comma { valid = false; false } else { total = total + size + comma; true };
+        at = at + 1usize;
+        valid && at < count
+    }
+    if valid && total <= 131072usize { total } else { 18446744073709551615usize }
+}
+
+@id("work.report.json.collection-response.encode")
+fn json_Report_collection_response_encode(value: borrow Report, output_limit: usize) -> ReportJsonCollectionResponseEncode
+{
+    let required = json_Report_collection_response_encoded_len(value);
+    if required == 18446744073709551615usize || required > output_limit { ReportJsonCollectionResponseEncode::Refused { required: required } } else { let mut output = bytes_zeroed_bounded(required, 131072usize); let mut cursor = 0usize; output = bytes_set(output, cursor, 123u8); cursor = cursor + 1usize; let k0 = { let k = [34u8, 109u8, 101u8, 116u8, 114u8, 105u8, 99u8, 115u8, 34u8, 58u8]; output = json_Row_response_writer_bytes(array_as_slice(k), cursor, output); 0 }; cursor = cursor + 10usize; output = json_Metrics_response_object_render(value.metrics, cursor, output); cursor = cursor + json_Metrics_response_object_len(value.metrics); let k1 = { let k = [44u8, 34u8, 114u8, 111u8, 119u8, 115u8, 34u8, 58u8]; output = json_Row_response_writer_bytes(array_as_slice(k), cursor, output); 0 }; cursor = cursor + 8usize; output = bytes_set(output, cursor, 91u8); cursor = cursor + 1usize; let mut at = 0usize; while at < vec_len<Row>(value.rows) { let json_discard_effect_3 = if at > 0usize { output = bytes_set(output, cursor, 44u8); cursor = cursor + 1usize; true } else { true }; output = json_Row_response_object_render_at(value.rows, at, cursor, output); cursor = cursor + json_Row_response_object_len_at(value.rows, at); at = at + 1usize; at < vec_len<Row>(value.rows) } output = bytes_set(output, cursor, 93u8); cursor = cursor + 1usize; output = bytes_set(output, cursor, 125u8); ReportJsonCollectionResponseEncode::Encoded { text: string_from_utf8(bytes_as_slice(output)) } }
+}

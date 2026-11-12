@@ -5,12 +5,12 @@ fn assert_retained_contents(
     paths: &[SkeletonPath],
     expected: &[(Vec<SkeletonObservation>, SkeletonTerminal)],
 ) {
-    fn item<'a>(actual: &Observation, expected: &mut &'a [SkeletonObservation]) {
+    fn item(actual: &Observation, expected: &mut &[SkeletonObservation]) {
         let (first, rest) = expected.split_first().expect("next retained observation");
         assert_eq!(actual.as_ref(), first);
         *expected = rest;
     }
-    fn prefix<'a>(node: &ObservationDag, expected: &mut &'a [SkeletonObservation]) {
+    fn prefix(node: &ObservationDag, expected: &mut &[SkeletonObservation]) {
         match &node.kind {
             ObservationDagKind::Seq(parent, items) => {
                 if let Some(parent) = parent {

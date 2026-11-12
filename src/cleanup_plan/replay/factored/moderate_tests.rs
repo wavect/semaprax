@@ -690,7 +690,7 @@ fn cold_builder_threshold_both_operands_and_hot_routes_keep_complete_invoices() 
         BUILDER_SELECTOR_CONTROLS,
         before_cold_threshold::BUILDER_SELECTOR_CONTROLS
     );
-    assert!(COLD_BUILDER_THRESHOLD_CONTROLS < BUILDER_SELECTOR_CONTROLS);
+    const { assert!(COLD_BUILDER_THRESHOLD_CONTROLS < BUILDER_SELECTOR_CONTROLS) };
     for (cfg_paths, semantic_paths) in [
         (0, 0),
         (128, 128),

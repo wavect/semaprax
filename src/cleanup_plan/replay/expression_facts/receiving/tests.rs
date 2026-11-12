@@ -832,7 +832,7 @@ fn live_lexical_directories_actual_late_hostiles_keep_all_diagnostic_fields() {
                     }
                 }
             }
-            3 | 4 | 5 => {
+            3..=5 => {
                 for block in &mut f.cleanup_plan.blocks {
                     if let Some(at) = block
                         .transitions

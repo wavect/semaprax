@@ -75,10 +75,12 @@ fn complete_branch_bank_map_pays_new_producer_before_each_constructor() {
         common_without_new_producer + NODE_FRAME + ROOT_FRAME
     );
     assert_eq!(SEQ_FRAME, ROOT_FRAME + 4 * size_of::<&ObservationDagKind>());
-    assert!(FRAME_COMMON + ROOT_FRAME < FRAME_STEP);
-    assert!(FRAME_COMMON + SEQ_FRAME <= FRAME_STEP);
-    assert!(FRAME_COMMON + NODE_FRAME <= FRAME_STEP);
-    assert!(FRAME_COMMON < FRAME_STEP);
+    const {
+        assert!(FRAME_COMMON + ROOT_FRAME < FRAME_STEP);
+        assert!(FRAME_COMMON + SEQ_FRAME <= FRAME_STEP);
+        assert!(FRAME_COMMON + NODE_FRAME <= FRAME_STEP);
+        assert!(FRAME_COMMON < FRAME_STEP);
+    };
     if size_of::<usize>() == 8 {
         assert_eq!(
             (FRAME_STEP, FRAME_COMMON, ROOT_FRAME, SEQ_FRAME, NODE_FRAME),

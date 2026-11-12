@@ -545,17 +545,14 @@ impl From<Diagnostic> for DiagnosticReceipt {
     }
 }
 
-fn measured(
-    program: &ResolvedProgram,
-    old: bool,
-    limit: usize,
-    floor: bool,
-) -> (
-    (Result<bool, DiagnosticReceipt>, Metrics),
+type Measured<T> = (
+    (Result<T, DiagnosticReceipt>, Metrics),
     bool,
     usize,
     Option<crate::bounded_output::ReservationRefusal>,
-) {
+);
+
+fn measured(program: &ResolvedProgram, old: bool, limit: usize, floor: bool) -> Measured<bool> {
     with_limit_usage_refusal(limit, || {
         measure(|| {
             let function = &program.functions[0];
@@ -667,7 +664,7 @@ fn actual_alt_query_does_not_publish_a_partial_sequence_proof() {
                     + 4 * size_of::<ObservationDagKind>()
                     + 4 * size_of::<Node>()
                     + 4 * size_of::<Vec<Node>>()
-                    + 8 * size_of::<usize>()
+                    + size_of::<[usize; 8]>()
                     + CALL,
                 "complete hostile Alt fixture receivers",
             )
@@ -697,15 +694,7 @@ fn actual_alt_query_does_not_publish_a_partial_sequence_proof() {
     });
 }
 
-fn whole_inputs(
-    program: &ResolvedProgram,
-    old: bool,
-) -> (
-    (Result<usize, DiagnosticReceipt>, Metrics),
-    bool,
-    usize,
-    Option<crate::bounded_output::ReservationRefusal>,
-) {
+fn whole_inputs(program: &ResolvedProgram, old: bool) -> Measured<usize> {
     with_limit_usage_refusal(usize::MAX, || {
         measure(|| {
             let function = &program.functions[0];
@@ -810,7 +799,7 @@ fn actual_warm_byte_refusal_keeps_complete_first_diagnostic_and_sticky_receipt()
     assert_eq!(heap.live, 0);
     let ((actual, heap), refused, spent, first) = measured(&program, false, paid - 1, false);
     assert!(refused);
-    assert!(spent <= paid - 1);
+    assert!(spent < paid);
     assert!(first.is_some());
     assert_eq!(heap.live, 0);
     assert_eq!(heap.allocated, heap.freed);
@@ -937,12 +926,7 @@ fn take_boundary_measured(
     classifier: bool,
     limit: usize,
     floor: bool,
-) -> (
-    (Result<usize, DiagnosticReceipt>, Metrics),
-    bool,
-    usize,
-    Option<crate::bounded_output::ReservationRefusal>,
-) {
+) -> Measured<usize> {
     with_limit_usage_refusal(limit, || {
         measure(|| {
             let function = &program.functions[0];
@@ -1034,15 +1018,7 @@ fn lexical_take_both_callers_exact_short_zero_floor_and_sticky_are_physical() {
     }
 }
 
-fn whole_take_inputs(
-    program: &ResolvedProgram,
-    old: bool,
-) -> (
-    (Result<usize, DiagnosticReceipt>, Metrics),
-    bool,
-    usize,
-    Option<crate::bounded_output::ReservationRefusal>,
-) {
+fn whole_take_inputs(program: &ResolvedProgram, old: bool) -> Measured<usize> {
     with_limit_usage_refusal(usize::MAX, || {
         measure(|| {
             let function = &program.functions[0];

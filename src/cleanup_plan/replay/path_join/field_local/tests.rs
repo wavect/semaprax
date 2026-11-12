@@ -289,7 +289,6 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
                         result.map(|()| work).map_err(|e| {
                             let fields = (e.code, e.severity, e.message, e.path, e.span, e.help);
                             drop(fields);
-                            ()
                         })
                     })
                 })
@@ -1113,7 +1112,7 @@ fn all_shipping_bodies_and_complete_generation_sources_authenticate_before_every
         let path = row["path"].as_str().unwrap();
         let (compiled, expected): (&[u8], &[u8]) = match path {
             "src/cleanup_plan/replay/path_join/field_local/mod.rs" => {
-                (include_bytes!("mod.rs"), oldroot[start..end].as_bytes())
+                (include_bytes!("mod.rs"), &oldroot.as_bytes()[start..end])
             }
             "src/cleanup_plan/replay/path_join/field_local/frontier.rs" => (
                 include_bytes!("frontier.rs"),

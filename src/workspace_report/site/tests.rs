@@ -2,7 +2,6 @@ use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal_site};
 use crate::diagnostic::Severity;
 use crate::test_allocation_observer::measure;
-use std::fmt::Write as _;
 
 struct Stack {
     bytes: [u8; 8192],

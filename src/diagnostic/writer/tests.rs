@@ -2,7 +2,6 @@ use super::*;
 use crate::ast::Span;
 use crate::diagnostic::{before_writer as old, Severity};
 use crate::test_allocation_observer::measure;
-use std::fmt::Write as _;
 
 fn span() -> Span {
     Span {

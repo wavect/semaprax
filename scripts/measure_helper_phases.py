@@ -68,8 +68,12 @@ def main() -> int:
         (fixture / "src").mkdir()
         (fixture / "semaprax.toml").write_bytes((root / "tests/native/string_settlement/bulk_utf8/semaprax.toml").read_bytes())
         (fixture / "src/schema.spx").write_bytes((root / "src/cleanup_plan/phase_measurement/schema.spx").read_bytes())
-        (fixture / "src/app.spx").write_text('module consumer.app;@id("consumer.main") fn main()->i64{0}\n')
-        (fixture / "src/tests.spx").write_text('module consumer.tests;@id("consumer.tests") fn main()->i64{0}\n')
+        for module, identity in (("app", "consumer.main"), ("tests", "consumer.tests")):
+            (fixture / "src" / f"{module}.spx").write_text(
+                f'module consumer.{module};\n\n'
+                f'@id("{identity}")\n'
+                'fn main() -> i64\n{\n    0\n}\n'
+            )
         env.update(SEMAPRAX_OPT738_PROJECT=str(fixture), SEMAPRAX_OPT738_WARMUP=str(args.warmup), SEMAPRAX_OPT738_SAMPLES=str(args.samples))
         with (output / "run.stdout").open("w") as stdout, (output / "run.stderr").open("w") as stderr:
             result = subprocess.run(context["run_command"], cwd=root, env=env, stdout=stdout, stderr=stderr)

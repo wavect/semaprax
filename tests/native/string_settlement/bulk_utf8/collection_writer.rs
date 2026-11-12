@@ -276,7 +276,14 @@ fn generated_collection_response_exact_physical_work() {
         );
         let hooks = include_str!("collection_writer/hooks.c");
         let probe = include_str!("collection_writer/probe.c");
-        let c=format!("{}\n#define FIXTURE_TRACK_CALLOC\n{observer}\n{copies}\n{hooks}\n#define main fixture_generated_main\n{generated}\n#undef main\n#undef malloc\n#undef calloc\n#undef free\n#undef memcpy\n#define PREPARE {}\n#define REQUIRED {}\n#define RUN {}\n#define CONSUME {}\n#define REPORT {report}\n{probe}\nint main(void){{REQUIRE(fixture_binary_stdout());struct spx_context context={{0}};struct spx_status_entry entries[16];REQUIRE(spx_context_init(&context,737,entries,16,NULL,NULL,NULL));{cases}return 0;}}", super::super::STDIO,symbol("work.prepare"),symbol("work.length"),symbol("work.run"),symbol("work.consume"));
+        let rows = format!(
+            "spx_field_{}",
+            "work.report.rows"
+                .bytes()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        );
+        let c=format!("{}\n#define FIXTURE_TRACK_CALLOC\n{observer}\n{copies}\n{hooks}\n#define main fixture_generated_main\n{generated}\n#undef main\n#undef malloc\n#undef calloc\n#undef free\n#undef memcpy\n#define PREPARE {}\n#define REQUIRED(context,input,out) {}((context),(input),&((input)->{rows}),(out))\n#define RUN(context,input,limit,oracle,out) {}((context),(input),&((input)->{rows}),(limit),(oracle),(out))\n#define CONSUME {}\n#define REPORT {report}\n{probe}\nint main(void){{REQUIRE(fixture_binary_stdout());struct spx_context context={{0}};struct spx_status_entry entries[16];REQUIRE(spx_context_init(&context,737,entries,16,NULL,NULL,NULL));{cases}return 0;}}", super::super::STDIO,symbol("work.prepare"),symbol("work.length"),symbol("work.run"),symbol("work.consume"));
         fs::write(output.join("probe.c"), &c).unwrap();
         let mut receipt = json!({"schema":"semaprax.generated-collection-writer-physical.v1","status":"started","executed":false,"proof_kind":"private-native-owning","source_checkout_head":git(&["rev-parse","HEAD"]),"source_tree":git(&["rev-parse","HEAD^{tree}"]),"cargo_lock_sha256":sha(&fs::read("Cargo.lock").unwrap()),"test_executable_sha256":binary_sha,"embedded_build_binding":binding,"generated_c_sha256":sha(generated.as_bytes()),"probe_c_sha256":sha(c.as_bytes()),"input_preparation":"outside every measured phase","profile_max_rows":256,"measured_rows":[0,1,8,256],"expected_output_lengths":expected_lengths,"materialization_cap":"ordinary native context; no Fixed counters reset","physical_string_oom_recovery":null,"pending_obligations":["OPT-724 production returned String OOM settlement","OPT-737 matched application/cost evidence"],"results":[]});
         fs::write(

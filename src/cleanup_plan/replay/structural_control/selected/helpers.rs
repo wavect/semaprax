@@ -299,7 +299,18 @@ pub(super) fn validate_branch_pair(
         )))
     }
 }
-pub(in crate::cleanup_plan::replay) fn finalizer_actions(
+#[cfg(test)]
+pub(super) fn finalizer_actions(
+    function: &ResolvedFunction,
+    actions: &[crate::cleanup_plan::FinalizeAction],
+    known: &BTreeSet<StorageId>,
+    leaves: &Leaves,
+    budget: &mut ReplayBudget,
+) -> Result<(), Error> {
+    finalizer_actions_with_iterators::<false>(function, actions, known, leaves, budget)
+}
+
+pub(super) fn finalizer_actions_with_iterators<const BYTE_ITERATORS: bool>(
     function: &ResolvedFunction,
     actions: &[crate::cleanup_plan::FinalizeAction],
     known: &BTreeSet<StorageId>,
@@ -419,6 +430,51 @@ pub(in crate::cleanup_plan::replay) fn finalizer_actions(
             return Err(permit.control(Reason::Finite(
                 Kind::FinalizerLifecycleOrGuardIsInvalidOrRepeated,
             )));
+        }
+        if BYTE_ITERATORS && action.source.projections.len() == 2 {
+            use crate::hir::CompilerDeclaration as C;
+            use crate::iterator_ops as iter;
+            budget.reserve_array::<(
+                Option<&crate::cleanup_plan::VariantCaseGuard>,
+                &crate::cleanup_plan::VariantCaseGuard,
+                &[DeclarationId],
+                &DeclarationId,
+                &DeclarationId,
+                usize,
+            )>(function, 1, "selected iterator finalizer case receiving")?;
+            budget.charge(function, 6, "selected iterator finalizer case receiving")?;
+            let [case, field] = action.source.projections.as_slice() else {
+                unreachable!("checked two-part projection");
+            };
+            let storage_len = match &action.source.storage {
+                StorageId::Value(id) => id.as_str().len(),
+                StorageId::Temporary(id) => id.as_str().len(),
+                StorageId::CallArgument { .. } | StorageId::ProvisionalResult => {
+                    return Err(permit.control(Reason::Finite(
+                        Kind::ConditionalFinalizerDoesNotBindItsExactVariantCasePath,
+                    )));
+                }
+            };
+            budget.charge(
+                function,
+                storage_len.saturating_add(1),
+                "selected iterator finalizer storage",
+            )?;
+            // The independently built leaf index admits two projections only
+            // for a typed IterStep<Bytes> slot with the canonical Yield layout.
+            if !action.active_case.as_ref().is_some_and(|condition| {
+                condition.storage == action.source.storage
+                    && condition.variant.as_str() == iter::STEP_ID
+                    && condition.case.as_str() == iter::YIELD_ID
+                    && case.as_str() == iter::YIELD_ID
+                    && (field.as_str() == C::IterItem.text()
+                        || field.as_str() == C::IterRest.text())
+            }) {
+                return Err(permit.control(Reason::Finite(
+                    Kind::ConditionalFinalizerDoesNotBindItsExactVariantCasePath,
+                )));
+            }
+            continue;
         }
         if let Some(condition) = &action.active_case {
             // Paying ordinary backing does not select the primitive profile.

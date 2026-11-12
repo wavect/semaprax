@@ -245,10 +245,14 @@ flags, and the staged owned argument slots for `vec_into_iter` and `iter_next`.
 The selected cleanup leaf index verifies the exact Done and Yield layout and
 retains the case-qualified paths. Structural block and edge replay checks the
 whole typed Bytes step places for variant transitions and the owned iterator
-call arguments. The original Graph v78 Project advances to the owned iterator
-scope check in selected exit replay, where it still returns SPX-G410. Direct
-Graph v78 bytes and the retained Graph v77 check and interpreter receipt match
-their earlier baselines.
+call arguments. Selected exit replay derives the exact leave prefix for an
+authored Continue from the current region ancestry and the remainder's Yield
+scope. Generated latch endings use their ordinary loop boundary. Conditional
+finalizers bind the exact Yield case and field. The original Graph v78 Project
+passes structural exit and lexical certificate replay. Selected path replay
+still refuses its first conditional aggregate transition with `SPX-G410`.
+Direct Graph v78 bytes and the retained Graph v77 check and interpreter receipt
+match their earlier baselines.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

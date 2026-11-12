@@ -107,7 +107,11 @@ pub(in crate::cleanup_plan::replay) fn validate_exits(
             ),
             4,
             "selected control regions_match call receiving",
-            regions_match(function, exit, budget)
+            if program.retained_static_byte_iterators() {
+                regions_match::<true>(function, exit, budget)
+            } else {
+                regions_match::<false>(function, exit, budget)
+            }
         )? {
             return Err(permit.control(Reason::Finite(
                 Kind::CleanupExitDoesNotLeaveTheExactSourceToTargetRegionChain,
@@ -161,7 +165,23 @@ pub(in crate::cleanup_plan::replay) fn validate_exits(
             ),
             6,
             "selected control finalizer_actions call receiving",
-            helpers::finalizer_actions(function, &exit.finalize_in_order, storage, leaves, budget)
+            if program.retained_static_byte_iterators() {
+                helpers::finalizer_actions_with_iterators::<true>(
+                    function,
+                    &exit.finalize_in_order,
+                    storage,
+                    leaves,
+                    budget,
+                )
+            } else {
+                helpers::finalizer_actions_with_iterators::<false>(
+                    function,
+                    &exit.finalize_in_order,
+                    storage,
+                    leaves,
+                    budget,
+                )
+            }
         )?;
         match &exit.continuation {
             ExitContinuation::Continue(edge) => {
@@ -555,7 +575,7 @@ fn ancestor_contains(
 
 /// Compare the complete exact leave prefix directly. No expected region chain
 /// or ancestor tree is constructed; every current parent link is still checked.
-pub(super) fn regions_match(
+fn regions_match<const BYTE_ITERATORS: bool>(
     function: &ResolvedFunction,
     exit: &ExitTarget,
     budget: &mut ReplayBudget,
@@ -613,7 +633,7 @@ pub(super) fn regions_match(
         ExitContinuation::LoopLatch {
             target: control_target,
         } => {
-            if receive!(
+            if let Some(owned) = receive!(
                 budget,
                 function,
                 (
@@ -628,7 +648,7 @@ pub(super) fn regions_match(
                 7,
                 "selected latch owned iterator scan receiving",
                 {
-                    let mut owned = false;
+                    let mut owned = None;
                     if let Some(control) = plan.lexical_control.as_deref() {
                         let mut loop_entries = control.loops.iter();
                         while let Some(lp) = dynamic_next!(
@@ -646,7 +666,7 @@ pub(super) fn regions_match(
                                     crate::hir::LoopLatchKind::OwnedIteratorStep { .. }
                                 )
                             {
-                                owned = true;
+                                owned = Some(lp);
                                 break;
                             }
                         }
@@ -654,49 +674,73 @@ pub(super) fn regions_match(
                     owned
                 }
             ) {
-                return Err(permit.control(Reason::Finite(
-                    Kind::SelectedPrimitiveExitsDoNotAdmitOwnedIteratorScopes,
-                )));
+                if BYTE_ITERATORS {
+                    if let Some(scope) = receive!(
+                        budget,
+                        function,
+                        (
+                            &ResolvedFunction,
+                            &ExitTarget,
+                            CleanupRegionId,
+                            &crate::cleanup_plan::LoopCertificate,
+                            &mut ReplayBudget,
+                            &Permit<'_>,
+                            Result<Option<CleanupRegionId>, Error>,
+                            CleanupRegionId
+                        ),
+                        8,
+                        "selected owning continue scope call receiving",
+                        owning_continue_scope(function, exit, source, owned, budget, &permit)
+                    )? {
+                        latch = Some(scope);
+                    }
+                } else {
+                    return Err(permit.control(Reason::Finite(
+                        Kind::SelectedPrimitiveExitsDoNotAdmitOwnedIteratorScopes,
+                    )));
+                }
             }
-            let region = receive!(
-                budget,
-                function,
-                (
-                    &crate::cleanup_plan::CleanupPlan,
-                    &crate::hir::ControlTarget,
-                    Option<CleanupRegionId>,
-                    CleanupRegionId
-                ),
-                4,
-                "selected loop region receiving",
-                lexical_cert::loop_region(plan, control_target)
-            )
-            .ok_or_else(control_refusal!(
-                budget,
-                function,
-                permit,
-                CleanupRegionId,
-                Kind::LoopLatchNamesAnUnknownLexicalLoop
-            ))?;
-            if !crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
-                budget,
-                function,
-                (
-                    &ResolvedFunction,
+            if latch.is_none() {
+                let region = receive!(
+                    budget,
+                    function,
+                    (
+                        &crate::cleanup_plan::CleanupPlan,
+                        &crate::hir::ControlTarget,
+                        Option<CleanupRegionId>,
+                        CleanupRegionId
+                    ),
+                    4,
+                    "selected loop region receiving",
+                    lexical_cert::loop_region(plan, control_target)
+                )
+                .ok_or_else(control_refusal!(
+                    budget,
+                    function,
+                    permit,
                     CleanupRegionId,
-                    CleanupRegionId,
-                    &mut ReplayBudget,
-                    Result<bool, Error>
-                ),
-                5,
-                "selected control ancestor_contains call receiving",
-                ancestor_contains(function, source, region, budget)
-            )? {
-                return Err(permit.control(Reason::Finite(
-                    Kind::LoopLatchExitDoesNotOriginateInsideItsLoopRegion,
-                )));
+                    Kind::LoopLatchNamesAnUnknownLexicalLoop
+                ))?;
+                if !crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
+                    budget,
+                    function,
+                    (
+                        &ResolvedFunction,
+                        CleanupRegionId,
+                        CleanupRegionId,
+                        &mut ReplayBudget,
+                        Result<bool, Error>
+                    ),
+                    5,
+                    "selected control ancestor_contains call receiving",
+                    ancestor_contains(function, source, region, budget)
+                )? {
+                    return Err(permit.control(Reason::Finite(
+                        Kind::LoopLatchExitDoesNotOriginateInsideItsLoopRegion,
+                    )));
+                }
+                latch = Some(region);
             }
-            latch = Some(region);
         }
         ExitContinuation::Continue(edge)
         | ExitContinuation::LoopBreak { edge, .. }
@@ -821,6 +865,166 @@ pub(super) fn regions_match(
         current = item.parent;
     }
     Ok(index == exit.leaves_regions.len())
+}
+
+// The typed profile authenticated the iterator latch. Rebuild the exact
+// retained child from its remainder owner and the current source ancestry.
+fn owning_continue_scope(
+    function: &ResolvedFunction,
+    exit: &ExitTarget,
+    source: CleanupRegionId,
+    owned: &crate::cleanup_plan::LoopCertificate,
+    budget: &mut ReplayBudget,
+    permit: &Permit<'_>,
+) -> Result<Option<CleanupRegionId>, Error> {
+    use crate::cleanup_plan::{CleanupRegion, LexicalControlPlan, LexicalExitCertificate};
+    use crate::hir::{ControlTarget, FunctionExecutionId, LexicalExitKind, LoopLatchKind, ValueId};
+    const PHASE: &str = "selected owning continue scope";
+    type Receiving<'a> = (
+        &'a LexicalControlPlan,
+        &'a LexicalExitCertificate,
+        std::slice::Iter<'a, LexicalExitCertificate>,
+        &'a ValueId,
+        Option<&'a LexicalExitCertificate>,
+        Option<CleanupRegionId>,
+        Option<CleanupRegionId>,
+        Option<(CleanupRegionId, Option<CleanupRegionId>)>,
+        Option<CleanupRegionId>,
+        CleanupRegionId,
+        &'a CleanupRegion,
+        usize,
+        std::slice::Iter<'a, StorageId>,
+        &'a StorageId,
+        &'a ValueId,
+        &'a FunctionExecutionId,
+        &'a ExpressionId,
+        usize,
+        &'a CleanupRegion,
+        &'a CleanupRegion,
+    );
+    budget.reserve_array::<Receiving<'_>>(function, 1, PHASE)?;
+    budget.charge(function, 20, PHASE)?;
+    let plan = &function.cleanup_plan;
+    let invalid = Kind::CleanupExitDoesNotLeaveTheExactSourceToTargetRegionChain;
+    let Some(control) = plan.lexical_control.as_deref() else {
+        return Err(permit.control(Reason::Finite(invalid)));
+    };
+    let mut certificate = None;
+    let mut certificates = control.exits.iter();
+    while let Some(entry) = dynamic_next!(
+        budget,
+        function,
+        certificates,
+        std::slice::Iter<'_, LexicalExitCertificate>,
+        &LexicalExitCertificate,
+        (&LexicalExitCertificate),
+        3
+    ) {
+        if entry.exit == exit.id && certificate.replace(entry).is_some() {
+            return Err(permit.control(Reason::Finite(invalid)));
+        }
+    }
+    let Some(certificate) = certificate else {
+        // Generated iteration endings use the normal exclusive loop cutoff.
+        return Ok(None);
+    };
+    let ControlTarget::Loop { owner, site } = &owned.target else {
+        return Err(permit.control(Reason::Finite(invalid)));
+    };
+    let owner_len = match owner {
+        FunctionExecutionId::Monomorphic(id) => id.as_str().len(),
+        FunctionExecutionId::Generic(id) => id.as_str().len(),
+    };
+    budget.charge(
+        function,
+        owner_len
+            .saturating_add(site.as_str().len())
+            .saturating_add(1),
+        PHASE,
+    )?;
+    if certificate.kind != LexicalExitKind::Continue || certificate.target != owned.target {
+        return Err(permit.control(Reason::Finite(invalid)));
+    }
+    let LoopLatchKind::OwnedIteratorStep { remainder, .. } = &owned.latch else {
+        return Err(permit.control(Reason::Finite(invalid)));
+    };
+
+    let mut child = None;
+    let mut current = Some(source);
+    let mut owner = None;
+    let mut remaining = plan.regions.len();
+    while let Some(region) = current {
+        budget.charge(function, 1, PHASE)?;
+        remaining = remaining.checked_sub(1).ok_or_else(control_refusal!(
+            budget,
+            function,
+            permit,
+            usize,
+            Kind::CleanupRegionTreeContainsACycle
+        ))?;
+        let item = dynamic_get!(
+            budget,
+            function,
+            plan.regions,
+            &[CleanupRegion],
+            region.0 as usize,
+            usize,
+            Option<&CleanupRegion>,
+            (&CleanupRegion),
+            4
+        )
+        .ok_or_else(control_refusal!(
+            budget,
+            function,
+            permit,
+            &CleanupRegion,
+            Kind::CleanupRegionChainReferencesAnUnknownRegion
+        ))?;
+        let mut slots = item.slots.iter();
+        while let Some(slot) = dynamic_next!(
+            budget,
+            function,
+            slots,
+            std::slice::Iter<'_, StorageId>,
+            &StorageId,
+            (&StorageId),
+            3
+        ) {
+            if let StorageId::Value(value) = slot {
+                budget.charge(function, remainder.as_str().len().saturating_add(1), PHASE)?;
+                if value == remainder && owner.replace((region, child)).is_some() {
+                    return Err(permit.control(Reason::Finite(invalid)));
+                }
+            }
+        }
+        child = Some(region);
+        current = item.parent;
+    }
+    let Some((owner, Some(child))) = owner else {
+        return Err(permit.control(Reason::Finite(invalid)));
+    };
+    let valid_parent = receive!(
+        budget,
+        function,
+        (
+            Option<CleanupRegionId>,
+            Option<&CleanupRegion>,
+            &CleanupRegion,
+            bool
+        ),
+        4,
+        "selected owning continue scope parent",
+        {
+            let parent = plan.regions[owner.0 as usize].parent;
+            parent
+                .and_then(|id| plan.regions.get(id.0 as usize))
+                .is_some_and(|body| body.parent == Some(owned.region))
+        }
+    );
+    if !valid_parent {
+        return Err(permit.control(Reason::Finite(invalid)));
+    }
+    Ok(Some(child))
 }
 
 fn result_source(

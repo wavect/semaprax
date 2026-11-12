@@ -120,6 +120,73 @@ fn retained_byte_iterator_preflight_replays_the_typed_latch_and_its_exact_budget
         .map_err(|e| detailed(function, e))
         .unwrap();
 
+        use crate::cleanup_plan::replay::{expected_exit_regions, lexical_hir, structural_control};
+        use crate::hir::LexicalExitKind;
+        let lexical = lexical_hir::collect(function, &mut budget).unwrap();
+        let operands = lexical
+            .exits
+            .iter()
+            .filter(|exit| exit.kind == LexicalExitKind::Return)
+            .filter_map(|exit| exit.value.map(|operand| operand.id.clone()))
+            .collect();
+        let check_exits = |f: &ResolvedFunction, budget: &mut ReplayBudget| {
+            structural_control::selected::validate_exits(
+                &held, f, &storage, &indexed, &operands, budget,
+            )
+        };
+        let mut measured = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        check_exits(function, &mut measured)
+            .map_err(|e| detailed(function, e))
+            .unwrap();
+        let used = measured.physical.as_deref().unwrap().charged();
+        let mut exact = ReplayBudget::with_physical(function, used).unwrap();
+        check_exits(function, &mut exact).unwrap();
+        assert_eq!(exact.physical.as_deref().unwrap().charged(), used);
+        let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
+        assert!(check_exits(function, &mut short).is_err());
+
+        let continue_id = function
+            .cleanup_plan
+            .lexical_control
+            .as_ref()
+            .unwrap()
+            .exits
+            .iter()
+            .find(|exit| exit.kind == LexicalExitKind::Continue)
+            .expect("authored iterator continue")
+            .exit;
+        let mut forged = function.clone();
+        let exit = &mut forged.cleanup_plan.exits[continue_id.0 as usize];
+        assert_eq!(
+            expected_exit_regions(function, exit).unwrap(),
+            exit.leaves_regions
+        );
+        let last = exit.leaves_regions.last().expect("continue leaves scratch");
+        let retained = function.cleanup_plan.regions[last.0 as usize]
+            .parent
+            .unwrap();
+        exit.leaves_regions.push(retained);
+        let mut budget = ReplayBudget::with_physical(&forged, usize::MAX).unwrap();
+        let error = check_exits(&forged, &mut budget).unwrap_err();
+        assert!(detailed(&forged, error)
+            .message
+            .contains("exact source-to-target region chain"));
+
+        let mut forged = function.clone();
+        let action = forged
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .flat_map(|exit| &mut exit.finalize_in_order)
+            .find(|action| action.active_case.is_some())
+            .expect("case-qualified iterator finalizer");
+        action.active_case = None;
+        let mut budget = ReplayBudget::with_physical(&forged, usize::MAX).unwrap();
+        let error = check_exits(&forged, &mut budget).unwrap_err();
+        assert!(detailed(&forged, error)
+            .message
+            .contains("exact variant case path"));
+
         let mut forged = function.clone();
         let flag = forged
             .cleanup

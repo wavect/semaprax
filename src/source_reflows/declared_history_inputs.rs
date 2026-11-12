@@ -75,8 +75,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-6.json"
         )),
-        316106,
-        "b51d7b8ef35f73f1781942dcbad13f7e76e7c7d4b9dac7ae61668871afda5fcc",
+        319156,
+        "a6678b8ceb49aa76939e18daab4d6462c0bb1c481ae25fe15d1df12de03e2007",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-7.json",
@@ -111,8 +111,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        130578,
-        "57f7bf3838fb2547f290d971849debad31456174e0d2dfe32b392bd3d49361ff",
+        130643,
+        "964b68125c52e454c036e62225175705126f08c27c568bdcbc09bf16734ef9e0",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",

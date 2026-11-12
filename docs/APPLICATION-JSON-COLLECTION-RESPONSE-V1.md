@@ -200,8 +200,8 @@ stores are not labeled as measured copies; their count remains null. A second
 unmeasured authentic render checks retained input semantics, then canonical
 cleanup must balance the complete physical owner inventory. The external
 receipt retains source/test-executable hashes, generated source, independent
-oracles, compiler/run logs and actual metrics. The bound run on `ab1204b17`
-passed at O0 and O2 with exact outputs of 44, 267, 1,835 and 57,389 bytes.
+oracles, compiler/run logs and actual metrics. The bound run passed at O0
+and O2 with exact outputs of 44, 267, 1,835 and 57,389 bytes.
 Both builds observed one buffer reservation, one String allocation and one
 final payload copy for each exact encode, and zero allocations for preflight
 and one-short refusal.

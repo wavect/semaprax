@@ -324,13 +324,18 @@ guards before encoding and retains exactly one stdout write only after successfu
 validation and encoding. Its acyclic guards may use the existing compatibility
 normalizer; the scheduler's actual loop breaks select the lexical profile.
 
-This is unqualified application authorship: the original ShiftSim SPEC, all15
-acceptance cases, hostile wire inputs, >65536-byte whitespace and independent exact
-output oracle remain unchanged. The owning typed ShiftSim fixture reads these real
-source files; canonical formatting, complete Project admission and same-source
-backend/application checks must execute after the batch joins. Bounded help and
-later matched application measurement remain separate obligations. No measured
-advantage or issue closure follows this adoption.
+The owning typed ShiftSim fixture reads the real scheduler and checks it against
+the original 15-case corpus, including hostile wire inputs, more than 65,536
+bytes of whitespace and the independent exact-output oracle. A matched native
+run built the scheduler from `d805b06b` and a control that expresses the two
+`run` result exits as ordinary conditional tails. Both variants retain the loop
+exits and match on every other activated source file. Both passed canonical
+formatting and complete Project verification. All 15 exit codes, stdout
+outputs and stderr outputs agreed in each of six alternating-order passes.
+Median aggregate process time over the 15 cases was 89.4 ms for the lexical
+scheduler and 95.7 ms for the tail control on the local test machine. The
+observation measures cold-process application execution, including startup.
+Agent token and cost qualification requires matched accepted-task runs.
 
 Owning contracts: RFC-0003-CLEANUP-AND-RESOURCE-ABI.md (return staging and publication),
 WHILE-LOOPS-V1.md, GENERIC-OWNED-RESULT-V1.md, ACYCLIC-GUARD-RETURNS-V1.md,

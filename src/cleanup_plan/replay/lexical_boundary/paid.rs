@@ -175,140 +175,218 @@ impl Policy for Error {
         leaves: &Leaves,
         budget: &mut ReplayBudget,
     ) -> Result<(), Error> {
-        if !budget.pays_allocations() {
-            return <Diagnostic as super::Policy>::check(
-                function,
-                auth,
-                block,
-                state,
-                storage,
-                storage_regions,
-                leaves,
-                budget,
-            )
-            .map_err(Error::Owned);
-        }
-        let permit = Permit::acquire::<()>(function, budget)?;
-        let Some(boundary) = auth.boundaries.get(&block) else {
-            return Ok(());
-        };
-        let item = required_path!(
-            permit,
-            function
-                .cleanup_plan
-                .lexical_control
-                .as_deref()
-                .and_then(|control| control.execution_boundaries.get(boundary.index)),
-            ExecutionBoundaryHasNoCertificate
-        );
-        if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {
-            return Err(permit.refuse(Refusal::PathBoundary(
-                PathBoundaryRefusal::ExecutionBoundaryIsReachedWithFailureOrPublicationState,
-            )));
-        }
-        let return_matches = match (&state.returned, boundary.returned) {
-            (None, None) => true,
-            (Some(returned), Some(id)) => match (
-                returned,
-                &function.cleanup_plan.exits[id.0 as usize].continuation,
-            ) {
-                (
-                    ReturnedSource::Scalar(actual),
-                    ExitContinuation::FunctionReturn {
-                        source: CleanupResultSource::Scalar { expression },
-                        ..
-                    },
-                ) => actual == expression,
-                (
-                    ReturnedSource::Owned(actual),
-                    ExitContinuation::FunctionReturn {
-                        source: CleanupResultSource::Owned { storage },
-                        ..
-                    },
-                ) => actual == storage,
-                _ => false,
-            },
+        check_paid::<false>(
+            function,
+            auth,
+            block,
+            state,
+            storage,
+            storage_regions,
+            leaves,
+            budget,
+        )
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(in crate::cleanup_plan::replay) fn check_paid<const BYTE_ITERATORS: bool>(
+    function: &ResolvedFunction,
+    auth: &LexicalAuth,
+    block: BlockId,
+    state: &PathState,
+    storage: &BTreeSet<StorageId>,
+    storage_regions: &BTreeMap<StorageId, CleanupRegionId>,
+    leaves: &Leaves,
+    budget: &mut ReplayBudget,
+) -> Result<(), Error> {
+    if !budget.pays_allocations() {
+        return <Diagnostic as super::Policy>::check(
+            function,
+            auth,
+            block,
+            state,
+            storage,
+            storage_regions,
+            leaves,
+            budget,
+        )
+        .map_err(Error::Owned);
+    }
+    let permit = Permit::acquire::<()>(function, budget)?;
+    let Some(boundary) = auth.boundaries.get(&block) else {
+        return Ok(());
+    };
+    let item = required_path!(
+        permit,
+        function
+            .cleanup_plan
+            .lexical_control
+            .as_deref()
+            .and_then(|control| control.execution_boundaries.get(boundary.index)),
+        ExecutionBoundaryHasNoCertificate
+    );
+    if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {
+        return Err(permit.refuse(Refusal::PathBoundary(
+            PathBoundaryRefusal::ExecutionBoundaryIsReachedWithFailureOrPublicationState,
+        )));
+    }
+    let return_matches = match (&state.returned, boundary.returned) {
+        (None, None) => true,
+        (Some(returned), Some(id)) => match (
+            returned,
+            &function.cleanup_plan.exits[id.0 as usize].continuation,
+        ) {
+            (
+                ReturnedSource::Scalar(actual),
+                ExitContinuation::FunctionReturn {
+                    source: CleanupResultSource::Scalar { expression },
+                    ..
+                },
+            ) => actual == expression,
+            (
+                ReturnedSource::Owned(actual),
+                ExitContinuation::FunctionReturn {
+                    source: CleanupResultSource::Owned { storage },
+                    ..
+                },
+            ) => actual == storage,
             _ => false,
-        };
-        if !return_matches {
+        },
+        _ => false,
+    };
+    if !return_matches {
+        return Err(permit.refuse(Refusal::PathBoundary(
+            PathBoundaryRefusal::ExecutionBoundaryCarriesAnotherPhaseSReturnedResult,
+        )));
+    }
+    if BYTE_ITERATORS && !state.conditional_variants.is_empty() {
+        crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
+            budget, function, (&ResolvedFunction, &[crate::cleanup_plan::FinalizeAction],
+                &BTreeSet<StorageId>, &Leaves, &mut ReplayBudget, Result<(), Error>),
+            6, "selected iterator boundary finalizer binding",
+            crate::cleanup_plan::replay::structural_control::selected::helpers::finalizer_actions_with_iterators::<true>(
+                function, &item.finalize_in_order, storage, leaves, budget,
+            )
+        )?;
+        use crate::cleanup::LivenessFlagId;
+        use crate::cleanup_plan::replay::ReplayConditionalVariant;
+        use crate::cleanup_plan::{ExitTarget, FinalizeAction};
+        budget.reserve_array::<(
+            &ResolvedFunction,
+            &[FinalizeAction],
+            &[ReplayConditionalVariant],
+            Option<(
+                &ExitTarget,
+                &BTreeMap<StorageId, CleanupRegionId>,
+                &BTreeSet<StorageId>,
+            )>,
+            &mut ReplayBudget,
+            Result<bool, Error>,
+            std::slice::Iter<'_, FinalizeAction>,
+            &FinalizeAction,
+            std::iter::Rev<std::slice::Iter<'_, LivenessFlagId>>,
+            &LivenessFlagId,
+        )>(function, 1, "selected iterator boundary history")?;
+        budget.charge(
+            function,
+            10usize
+                .saturating_add(item.finalize_in_order.len())
+                .saturating_add(state.live_order.len()),
+            "selected iterator boundary history",
+        )?;
+        if !crate::cleanup_plan::replay::path_join::selected::matches_finalizers(
+            function,
+            &item.finalize_in_order,
+            &state.conditional_variants,
+            None,
+            budget,
+        )? || item
+            .finalize_in_order
+            .iter()
+            .filter(|action| action.active_case.is_none())
+            .map(|action| action.guard_flag)
+            .ne(state.live_order.iter().rev().copied())
+        {
             return Err(permit.refuse(Refusal::PathBoundary(
-                PathBoundaryRefusal::ExecutionBoundaryCarriesAnotherPhaseSReturnedResult,
+                PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour,
             )));
         }
-        finalizer_actions(function, &item.finalize_in_order, storage, leaves, budget)?;
-        if budget.selected() {
-            if !state.conditional_variants.is_empty()
-                || item
-                    .finalize_in_order
-                    .iter()
-                    .any(|action| action.active_case.is_some())
-            {
-                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));
-            }
-            let actual = item.finalize_in_order.iter().filter_map(|action| {
-                state
-                    .live_order
-                    .contains(&action.guard_flag)
-                    .then_some(action.guard_flag)
-            });
-            if actual.ne(state.live_order.iter().rev().copied())
-                || item.finalize_in_order.len() != state.live_order.len()
-            {
-                return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));
-            }
-            return Ok(());
+        return Ok(());
+    }
+    finalizer_actions(function, &item.finalize_in_order, storage, leaves, budget)?;
+    if budget.selected() {
+        if !state.conditional_variants.is_empty()
+            || item
+                .finalize_in_order
+                .iter()
+                .any(|action| action.active_case.is_some())
+        {
+            return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::SelectedLexicalBoundaryConditionalOwnershipIsOutsideThePrimitiveProfile)));
         }
-        // Authenticate all region references before comparing either contour,
-        // preserving the ordinary route's first-error order. Compare borrowed
-        // case facts instead of allocating four vectors and cloning each guard.
-        for variant in state.conditional_variants.iter().rev() {
-            let _ = required_path!(
-                permit,
-                storage_regions.get(&variant.root.storage),
-                ExecutionBoundaryVariantHasNoRegion
-            );
-        }
-        let expected = state.live_order.iter().rev().copied();
-        let expected_conditional = state.conditional_variants.iter().rev().flat_map(|variant| {
-            variant.cases.iter().rev().flat_map(move |(case, flags)| {
-                flags
-                    .iter()
-                    .rev()
-                    .map(move |flag| (*flag, &variant.root.storage, &variant.variant, case))
-            })
-        });
         let actual = item.finalize_in_order.iter().filter_map(|action| {
             state
                 .live_order
                 .contains(&action.guard_flag)
                 .then_some(action.guard_flag)
         });
-        let actual_conditional = item.finalize_in_order.iter().filter_map(|action| {
-            action.active_case.as_ref().map(|condition| {
-                (
-                    action.guard_flag,
-                    &condition.storage,
-                    &condition.variant,
-                    &condition.case,
-                )
-            })
-        });
-        // Every action must finalize a live leaf of this exact state: a stale
-        // finalizer for a dead flag would double-release at a guard failure.
-        let actions = item
-            .finalize_in_order
-            .iter()
-            .filter(|action| action.active_case.is_none())
-            .count();
-        if actual.ne(expected)
-            || actual_conditional.ne(expected_conditional)
-            || actions != state.live_order.len()
+        if actual.ne(state.live_order.iter().rev().copied())
+            || item.finalize_in_order.len() != state.live_order.len()
         {
             return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));
         }
-        Ok(())
+        return Ok(());
     }
+    // Authenticate all region references before comparing either contour,
+    // preserving the ordinary route's first-error order. Compare borrowed
+    // case facts instead of allocating four vectors and cloning each guard.
+    for variant in state.conditional_variants.iter().rev() {
+        let _ = required_path!(
+            permit,
+            storage_regions.get(&variant.root.storage),
+            ExecutionBoundaryVariantHasNoRegion
+        );
+    }
+    let expected = state.live_order.iter().rev().copied();
+    let expected_conditional = state.conditional_variants.iter().rev().flat_map(|variant| {
+        variant.cases.iter().rev().flat_map(move |(case, flags)| {
+            flags
+                .iter()
+                .rev()
+                .map(move |flag| (*flag, &variant.root.storage, &variant.variant, case))
+        })
+    });
+    let actual = item.finalize_in_order.iter().filter_map(|action| {
+        state
+            .live_order
+            .contains(&action.guard_flag)
+            .then_some(action.guard_flag)
+    });
+    let actual_conditional = item.finalize_in_order.iter().filter_map(|action| {
+        action.active_case.as_ref().map(|condition| {
+            (
+                action.guard_flag,
+                &condition.storage,
+                &condition.variant,
+                &condition.case,
+            )
+        })
+    });
+    // Every action must finalize a live leaf of this exact state: a stale
+    // finalizer for a dead flag would double-release at a guard failure.
+    let actions = item
+        .finalize_in_order
+        .iter()
+        .filter(|action| action.active_case.is_none())
+        .count();
+    if actual.ne(expected)
+        || actual_conditional.ne(expected_conditional)
+        || actions != state.live_order.len()
+    {
+        return Err(permit.refuse(Refusal::PathBoundary(PathBoundaryRefusal::ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour)));
+    }
+    Ok(())
 }
+
 pub(in crate::cleanup_plan::replay) fn finalizer_actions(
     function: &ResolvedFunction,
     actions: &[crate::cleanup_plan::FinalizeAction],

@@ -107,6 +107,9 @@ use function @id("rows.weight") from static.rows as weight;
 }
 "#;
 
+const OWNED_ITERATOR: &str =
+    include_str!("../../../../../tests/owned_data/static_utf8_iterator.spx");
+
 const WIDE_WORK: usize = 32_000_000;
 const WIDE_BYTES: usize = 1 << 28;
 
@@ -1067,3 +1070,109 @@ fn retained_imported_provider_identity_layout_path_and_body_drift_fail_closed() 
 }
 
 mod statement_marker_resources;
+
+#[test]
+fn retained_static_bytes_iterator_replays_conditional_epochs_and_runtime() {
+    let control = direct(OWNED_ITERATOR);
+    let retained = build(OWNED_ITERATOR);
+    assert_eq!(
+        retained.source_graph_schemas().unwrap()["writer.spx"],
+        "semaprax.graph.v78"
+    );
+    let module = writer(&retained);
+    plan_parity(module, &control);
+    runtime_parity(&retained, &control, Some(10));
+    let member = function(module, "static.scratch");
+    assert_lexical(member, &[LexicalExitKind::Continue, LexicalExitKind::Break]);
+
+    let replay_one = |build: &WorkspaceGraphBuild, work, bytes| {
+        let module = writer(build);
+        let candidate = function(module, "static.scratch");
+        let preparation = SelectedReplayPreparation::with_limits(candidate, work, bytes).unwrap();
+        super::super::primitive::with_prepared_test_context(
+            module,
+            &build.hir.modules,
+            &build.hir.declarations,
+            preparation,
+            |context, preparation| {
+                let mut session =
+                    SelectedReplaySession::from_preparation(context, candidate, preparation)
+                        .unwrap();
+                let result = session.validate_paid(candidate);
+                let metrics = session.metrics();
+                if result.is_err() {
+                    assert!(session.validate_paid(candidate).is_err());
+                    assert_eq!(session.metrics(), metrics);
+                }
+                (result, metrics, session.finish().is_ok())
+            },
+        )
+        .unwrap()
+    };
+    let (result, (remaining, charged), finished) = replay_one(&retained, WIDE_WORK, WIDE_BYTES);
+    assert!(result.is_ok() && finished, "{result:?}");
+    let spent = WIDE_WORK - remaining;
+    let (result, metrics, finished) = replay_one(&retained, spent, charged);
+    assert!(result.is_ok() && finished, "{result:?}");
+    assert_eq!(metrics, (0, charged));
+    for (work, bytes) in [(spent - 1, charged), (spent, charged - 1)] {
+        let (result, _, finished) = replay_one(&retained, work, bytes);
+        let error = result.unwrap_err();
+        assert!(format!("{error:?}").contains("SPX-H006"));
+        assert!(!finished);
+    }
+
+    let mut repeated = build(OWNED_ITERATOR);
+    let repeated_member = function_mut(writer_mut(&mut repeated), "static.scratch");
+    for block in &mut repeated_member.cleanup_plan.blocks {
+        if let Some(index) = block.transitions.iter().position(|transition| {
+            matches!(transition, CleanupTransition::InitializeVariant { .. })
+        }) {
+            block
+                .transitions
+                .insert(index, block.transitions[index].clone());
+            break;
+        }
+    }
+    let mut reordered = build(OWNED_ITERATOR);
+    let reordered_member = function_mut(writer_mut(&mut reordered), "static.scratch");
+    let boundary = reordered_member
+        .cleanup_plan
+        .lexical_control
+        .as_mut()
+        .unwrap()
+        .execution_boundaries
+        .iter_mut()
+        .find(|boundary| {
+            boundary
+                .finalize_in_order
+                .iter()
+                .filter(|action| action.active_case.is_some())
+                .count()
+                == 2
+        })
+        .expect("iteration boundary with guarded Yield fields");
+    let indices: Vec<_> = boundary
+        .finalize_in_order
+        .iter()
+        .enumerate()
+        .filter_map(|(index, action)| action.active_case.as_ref().map(|_| index))
+        .collect();
+    boundary.finalize_in_order.swap(indices[0], indices[1]);
+
+    for (hostile, reason) in [
+        (
+            &repeated,
+            "SelectedPrimitiveReplayExcludesConditionalAggregateTransitions",
+        ),
+        (
+            &reordered,
+            "ExecutionBoundaryFinalizersDifferFromTheReplayedLiveOwnershipContour",
+        ),
+    ] {
+        let (result, _, finished) = replay_one(hostile, WIDE_WORK, WIDE_BYTES);
+        let error = result.unwrap_err();
+        assert!(format!("{error:?}").contains(reason), "{error:?}");
+        assert!(!finished);
+    }
+}

@@ -190,6 +190,110 @@ fn static_params_impl(
     Ok(params)
 }
 
+pub(super) fn iterator_error(error: expression_facts::errors::EngineError) -> Diagnostic {
+    match error {
+        expression_facts::errors::EngineError::Owned(error) => error,
+        _ => Diagnostic::io_static("SPX-H006", "retained iterator skeleton profile refused"),
+    }
+}
+
+pub(super) fn iterator_params(
+    op: crate::iterator_ops::IteratorOp,
+    expression: &ResolvedExpr,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<crate::hir::ResolvedParam>, Diagnostic> {
+    use selected_profile::paid_children::byte_iterator;
+    work.budget.reserve_array::<(
+        crate::iterator_ops::IteratorOp,
+        &ResolvedExpr,
+        &mut SkeletonWork<'_, '_>,
+        Result<Vec<crate::hir::ResolvedParam>, Diagnostic>,
+        &ResolvedExpr,
+        Result<(), expression_facts::errors::EngineError>,
+        &[ResolvedType],
+        [&str; 1],
+    )>(
+        work.function,
+        1,
+        "selected iterator skeleton parameter receiving",
+    )?;
+    work.charge(8, "selected iterator skeleton parameter receiving")?;
+    byte_iterator::call(work.function, expression, op, work.budget).map_err(iterator_error)?;
+    let ResolvedExprKind::Call { args, .. } = &expression.kind else {
+        unreachable!("authenticated iterator call");
+    };
+    static_params(
+        op.id(),
+        std::slice::from_ref(&args[0].ty),
+        &["arg0"],
+        |_, _| op.param_ownership(),
+        work,
+    )
+}
+
+pub(super) fn iterator_match(
+    program: &dyn ReplayContext,
+    expression: &ResolvedExpr,
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<bool, Diagnostic> {
+    use crate::hir::ResolvedMatchMode;
+    use selected_profile::paid_children::byte_iterator;
+    work.budget.reserve_array::<(
+        &dyn ReplayContext,
+        &ResolvedExpr,
+        &ResolvedExpr,
+        &[ResolvedMatchArm],
+        &mut SkeletonWork<'_, '_>,
+        Result<bool, Diagnostic>,
+        &ResolvedMatchMode,
+        &ResolvedMatchArm,
+        &crate::hir::Place,
+        bool,
+        Result<(), expression_facts::errors::EngineError>,
+    )>(
+        work.function,
+        1,
+        "selected iterator skeleton match receiving",
+    )?;
+    work.charge(11, "selected iterator skeleton match receiving")?;
+    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+        return Err(replay_error(
+            work.function,
+            "iterator skeleton received a non-match",
+        ));
+    };
+    byte_iterator::arms(work.function, *mode, arms, work.budget).map_err(iterator_error)?;
+    let valid_source = match mode {
+        ResolvedMatchMode::Own => scrutinee.ownership == OwnershipMode::Own,
+        ResolvedMatchMode::Borrow => {
+            matches!(&scrutinee.kind,
+            ResolvedExprKind::Place(place) if place.projections.is_empty())
+                && matches!(
+                    scrutinee.ownership,
+                    OwnershipMode::Own | OwnershipMode::Borrow
+                )
+        }
+        ResolvedMatchMode::Value => false,
+    };
+    if !valid_source
+        || (type_needs_drop(program, work.function, &expression.ty)?
+            && !(byte_iterator::step(&expression.ty)
+                && *mode == ResolvedMatchMode::Own
+                && expression.ownership == OwnershipMode::Own
+                && arms.iter().all(|arm| {
+                    arm.value.ty == expression.ty && arm.value.ownership == OwnershipMode::Own
+                })))
+    {
+        return Err(replay_error(
+            work.function,
+            "retained iterator skeleton match ownership disagrees",
+        ));
+    }
+    Ok(false)
+}
+
 /// The first selected backing profile does not admit nominal/callable provider
 /// construction. Refuse before catalog helpers can create uncharged types,
 /// names or identities; ordinary replay retains the existing provider path.

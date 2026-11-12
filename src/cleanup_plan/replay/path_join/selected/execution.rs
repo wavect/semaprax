@@ -1,6 +1,8 @@
 //! Exact selected path twin; complete immediate old owners remain independent.
 use super::*;
+mod byte_iterator;
 use crate::cleanup_plan::replay::semantic_refusal::Error as _;
+pub(in crate::cleanup_plan::replay) use byte_iterator::matches_finalizers;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn execute(
     program: &dyn crate::cleanup::ReplayContext,
@@ -85,7 +87,7 @@ pub(super) fn execute(
             Reason::Finite(Kind::OperationFailureIsNotSelectedBeforeAnotherTransition,)
         ));
     }
-    if !state.conditional_variants.is_empty() {
+    if !state.conditional_variants.is_empty() && !program.retained_static_byte_iterators() {
         return Err(path_error!(
             permit,
             Reason::Finite(Kind::SelectedPrimitiveReplayHasConditionalAggregateState,)
@@ -180,6 +182,54 @@ pub(super) fn execute(
             source,
             destination,
         } => {
+            if !state.conditional_variants.is_empty() {
+                receive!(
+                    budget,
+                    function,
+                    (
+                        &ResolvedFunction,
+                        &CleanupPlace,
+                        &PathState,
+                        &mut ReplayBudget,
+                        Result<Option<usize>, Error>
+                    ),
+                    5,
+                    "selected iterator ordinary transfer source receiving",
+                    byte_iterator::position(function, source, state, budget)
+                )?
+                .is_none()
+                .then_some(())
+                .ok_or_else(path_refusal!(
+                    budget,
+                    function,
+                    permit,
+                    (),
+                    Kind::SelectedPrimitiveReplayExcludesConditionalAggregateTransitions
+                ))?;
+                receive!(
+                    budget,
+                    function,
+                    (
+                        &ResolvedFunction,
+                        &CleanupPlace,
+                        &PathState,
+                        &mut ReplayBudget,
+                        Result<Option<usize>, Error>
+                    ),
+                    5,
+                    "selected iterator ordinary transfer destination receiving",
+                    byte_iterator::position(function, destination, state, budget)
+                )?
+                .is_none()
+                .then_some(())
+                .ok_or_else(path_refusal!(
+                    budget,
+                    function,
+                    permit,
+                    (),
+                    Kind::SelectedPrimitiveReplayExcludesConditionalAggregateTransitions
+                ))?;
+            }
             path_child!(
                 budget,
                 function,
@@ -367,6 +417,133 @@ pub(super) fn execute(
                 source,
                 StagedCopyResultSource
             ));
+        }
+        CleanupTransition::InitializeVariant {
+            destination,
+            variant,
+            ..
+        } if program.retained_static_byte_iterators()
+            && variant.as_str() == crate::iterator_ops::STEP_ID =>
+        {
+            retained_child!(
+                budget,
+                function,
+                IteratorTransition,
+                9,
+                byte_iterator::initialize(
+                    function,
+                    destination,
+                    variant,
+                    state,
+                    storage,
+                    leaves,
+                    budget,
+                    &permit
+                )
+            )?;
+        }
+        CleanupTransition::TransferVariant {
+            source,
+            destination,
+            variant,
+            ..
+        } if program.retained_static_byte_iterators()
+            && variant.as_str() == crate::iterator_ops::STEP_ID =>
+        {
+            if !source.projections.is_empty() {
+                return Err(path_error!(
+                    permit,
+                    Reason::Finite(
+                        Kind::SelectedPrimitiveReplayExcludesConditionalAggregateTransitions
+                    )
+                ));
+            }
+            receive!(
+                budget,
+                function,
+                (
+                    &ResolvedFunction,
+                    &CleanupPlace,
+                    &PathState,
+                    &mut ReplayBudget,
+                    Result<Option<usize>, Error>
+                ),
+                5,
+                "selected iterator transfer source receiving",
+                byte_iterator::position(function, source, state, budget)
+            )?
+            .ok_or_else(path_refusal!(
+                budget,
+                function,
+                permit,
+                usize,
+                Kind::SelectedPrimitiveReplayExcludesConditionalAggregateTransitions
+            ))?;
+            receive!(
+                budget,
+                function,
+                (
+                    &ResolvedFunction,
+                    &CleanupPlace,
+                    &PathState,
+                    &BTreeSet<StorageId>,
+                    &Leaves,
+                    &mut ReplayBudget,
+                    &Permit<'_>,
+                    Result<Vec<LivenessFlagId>, Error>
+                ),
+                8,
+                "selected iterator transfer destination receiving",
+                byte_iterator::vacant(
+                    function,
+                    destination,
+                    state,
+                    storage,
+                    leaves,
+                    budget,
+                    &permit
+                )
+            )?;
+            path_child!(
+                budget,
+                function,
+                TransferCall,
+                8,
+                transfer(
+                    function,
+                    state,
+                    source,
+                    destination,
+                    storage,
+                    leaves,
+                    budget
+                )
+            )?;
+        }
+        CleanupTransition::AuthenticateVariantCase {
+            source,
+            variant,
+            case,
+            ..
+        } if program.retained_static_byte_iterators()
+            && variant.as_str() == crate::iterator_ops::STEP_ID =>
+        {
+            receive!(
+                budget,
+                function,
+                (
+                    &ResolvedFunction,
+                    &CleanupPlace,
+                    &DeclarationId,
+                    &mut PathState,
+                    &mut ReplayBudget,
+                    &Permit<'_>,
+                    Result<(), Error>
+                ),
+                7,
+                "selected iterator authenticate receiving",
+                byte_iterator::authenticate(function, source, case, state, budget, &permit)
+            )?;
         }
         CleanupTransition::InitializeVariant { .. }
         | CleanupTransition::TransferVariant { .. }
@@ -937,7 +1114,7 @@ pub(super) fn transfer(
 /// Compare finalizers directly with borrowed live history. No ownership set,
 /// conditional guard copies, or replacement cleanup order is materialized.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn exit(
+pub(super) fn exit<const BYTE_ITERATORS: bool>(
     function: &ResolvedFunction,
     exit: &ExitTarget,
     mut state: PathState,
@@ -981,7 +1158,7 @@ pub(super) fn exit(
             Reason::Finite(Kind::CleanupExitFollowsPublication)
         ));
     }
-    if !state.conditional_variants.is_empty() {
+    if !state.conditional_variants.is_empty() && !BYTE_ITERATORS {
         return Err(path_error!(
             permit,
             Reason::Finite(Kind::SelectedPrimitiveExitHasConditionalOwnership,)
@@ -1145,7 +1322,33 @@ pub(super) fn exit(
             break;
         }
     }
-    if scan!(
+    if BYTE_ITERATORS && !state.conditional_variants.is_empty() {
+        receive!(
+            budget,
+            function,
+            (
+                &ResolvedFunction,
+                &ExitTarget,
+                &mut PathState,
+                &BTreeMap<StorageId, CleanupRegionId>,
+                &BTreeSet<StorageId>,
+                &mut ReplayBudget,
+                &Permit<'_>,
+                Result<(), Error>
+            ),
+            8,
+            "selected iterator conditional exit call receiving",
+            byte_iterator::finalize(
+                function,
+                exit,
+                &mut state,
+                storage_regions,
+                extra_disposed,
+                budget,
+                &permit
+            )
+        )?;
+    } else if scan!(
         budget,
         function,
         exit.finalize_in_order.iter(),

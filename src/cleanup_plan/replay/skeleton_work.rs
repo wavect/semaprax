@@ -431,7 +431,12 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         if !budget.selected() {
             return Self::with_index(program, function, budget, index);
         }
-        selected_profile::validate(program, function, budget)?;
+        if program.retained_static_byte_iterators() {
+            selected_profile::paid::validate(program, function, budget)
+                .map_err(typed_storage::iterator_error)?;
+        } else {
+            selected_profile::validate(program, function, budget)?;
+        }
         let owner = selected_owner::owner(program, function, budget)?;
         let held_renewals = program.primitive_renewals(function).ok_or_else(|| {
             replay_error(

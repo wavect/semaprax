@@ -3868,6 +3868,13 @@ fn expression_skeleton_run<'hir>(
                             } else if let Some(op) = host_io_intrinsic {
                                 typed_storage::unsupported_provider(work)?;
                                 crate::host_io_ops::resolved_params(op).into()
+                            } else if let Some(op) = (work.budget.selected()
+                                && program.retained_static_byte_iterators()
+                                && instance.is_none())
+                            .then(|| crate::iterator_ops::by_id(callee.as_str()))
+                            .flatten()
+                            {
+                                typed_storage::iterator_params(op, expression, work)?.into()
                             } else if instance.is_none()
                                 && (crate::iterator_ops::by_id(callee.as_str()).is_some()
                                     || crate::list_ops::by_id(callee.as_str()).is_some()
@@ -5520,7 +5527,12 @@ fn validate_match_shape(
     if let Some(lease) = program.borrowed_helper_lease(function) {
         return lease.match_shape(program, function, expression, work.budget);
     }
-    let _ = work;
+    if work.budget.selected()
+        && program.retained_static_byte_iterators()
+        && selected_profile::paid_children::byte_iterator::step(&scrutinee.ty)
+    {
+        return typed_storage::iterator_match(program, expression, scrutinee, arms, work);
+    }
     validate_match_skeleton_shape(program, function, expression, scrutinee, arms)
 }
 

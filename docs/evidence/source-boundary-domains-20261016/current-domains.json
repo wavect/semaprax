@@ -2277,6 +2277,7 @@
         "src/source_reflows/ci_inputs/successor_fronts.rs",
         "src/source_reflows/ci_inputs_current_epoch.rs",
         "src/source_reflows/declared_history_inputs.rs",
+        "src/source_reflows/declared_history_inputs/compiled.rs",
         "src/source_reflows/incoming090_semantic_receivers.rs",
         "src/source_reflows/incoming21_semantic_receivers.rs",
         "src/source_reflows/main_c883_receivers.rs",
@@ -3031,6 +3032,7 @@
         "src/cleanup_plan/replay/path_join/selected.rs",
         "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs",
         "src/cleanup_plan/replay/path_join/selected/execution.rs",
+        "src/cleanup_plan/replay/path_join/selected/execution/byte_iterator.rs",
         "src/cleanup_plan/replay/path_join/selected/finish.rs",
         "src/cleanup_plan/replay/path_join/selected/frontier.rs",
         "src/cleanup_plan/replay/path_join/selected/history.rs",
@@ -3234,9 +3236,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "9699710fdf07242eb61111f48302797cbd724e0d9817393aa4eb0a56d18c435f",
-      "full_raw_sha256": "845951c7a48f0408e5b85e2b4d51d824bacc33cbfb321f9077f4bfff4a04ef38",
-      "full_authenticated_production_sha256": "0b0c30900fae24aa5711a96a1583cf0d527a38f91ce3827378c6ef39993cf4df"
+      "full_manifest_sha256": "6814f56c716d18f13a626246cf6644b284246aaf808a5bf9998c7c4979c37bf5",
+      "full_raw_sha256": "9eef4e950db9b52b54d4fdae532845f51d99ef226bb3a8d5df031e6160116e67",
+      "full_authenticated_production_sha256": "6889f513b0bb97106d34483df57cc5dc4d0ebc7c2045f02d1af2e465da33a150"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3990,6 +3992,7 @@
         "src/cleanup_plan/replay/path_join/selected.rs",
         "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs",
         "src/cleanup_plan/replay/path_join/selected/execution.rs",
+        "src/cleanup_plan/replay/path_join/selected/execution/byte_iterator.rs",
         "src/cleanup_plan/replay/path_join/selected/finish.rs",
         "src/cleanup_plan/replay/path_join/selected/frontier.rs",
         "src/cleanup_plan/replay/path_join/selected/history.rs",
@@ -4518,9 +4521,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "68790733ec24394ce16a78f01feaeb841bcf008f594727fb0e1db80e6152b567",
-      "full_raw_sha256": "693cf33d346b831d78bf5b0b2f13a42ddab07c5a3dffdd385a944296a42a6930",
-      "full_authenticated_production_sha256": "baaa28ab0fc1ee2a619a4a961b7cf86949fcc3d6cc61092d6a1fd8f7fdb1b3b9"
+      "full_manifest_sha256": "b9457a08b870565101b78b9a24eb2a7f33a24bf640d93e00360653c916bf3052",
+      "full_raw_sha256": "7abb8bac4ee3263ebc46399bc62570c48f002b65f0e77e4037c590b5b2fc920b",
+      "full_authenticated_production_sha256": "1430a2f7f21367e8929c1d3fc3d2e34f39d705dd3a4422929741153c398d856d"
     }
   }
 }

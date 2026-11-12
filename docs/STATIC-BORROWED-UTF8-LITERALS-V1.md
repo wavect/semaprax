@@ -248,11 +248,15 @@ whole typed Bytes step places for variant transitions and the owned iterator
 call arguments. Selected exit replay derives the exact leave prefix for an
 authored Continue from the current region ancestry and the remainder's Yield
 scope. Generated latch endings use their ordinary loop boundary. Conditional
-finalizers bind the exact Yield case and field. The original Graph v78 Project
-passes structural exit and lexical certificate replay. Selected path replay
-still refuses its first conditional aggregate transition with `SPX-G410`.
-Direct Graph v78 bytes and the retained Graph v77 check and interpreter receipt
-match their earlier baselines.
+finalizers bind the exact Yield case and field. Selected path replay now
+tracks the conditional Done/Yield state through initialization, transfer and
+case authentication. It compares the exact guarded cleanup order at exits and
+execution boundaries. The independent typed-HIR path comparison authenticates
+the closed Bytes iterator call parameters and match arms on the same ledger.
+The original Graph v78 Project passes. A Project entry that runs both lexical
+Bytes renewal and the owned iterator returns 10, matching direct interpreter
+execution. Direct Graph v78 bytes and the retained Graph v77 check and
+interpreter receipt match their earlier baselines.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

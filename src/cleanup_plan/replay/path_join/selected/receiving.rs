@@ -669,3 +669,15 @@ pub(super) type DirectoryCallback<'a> = (
     super::frontier::Incoming<PathState>,
     super::frontier::Incoming<PathState>,
 );
+
+pub(super) type IteratorTransition<'a> = (
+    &'a ResolvedFunction,
+    &'a CleanupPlace,
+    &'a DeclarationId,
+    &'a mut PathState,
+    &'a BTreeSet<StorageId>,
+    &'a Leaves,
+    &'a mut ReplayBudget,
+    &'a Permit<'a>,
+    Result<(), Error>,
+);

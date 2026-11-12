@@ -46,6 +46,15 @@ pub(super) fn restore(current: &str, path: &str) -> String {
     assert_eq!(row["before_length"], old_length);
     assert_eq!(row["before_sha256"], old_hash);
     assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+    // Restore the exact pre-iterator receiver before applying the original
+    // query inverse, whose length, digest, and full preimage still bind it.
+    let iterator_epoch = (path == "src/cleanup_plan/replay/skeleton_work.rs").then(|| {
+        let after = "        if program.retained_static_byte_iterators() {\n            selected_profile::paid::validate(program, function, budget)\n                .map_err(typed_storage::iterator_error)?;\n        } else {\n            selected_profile::validate(program, function, budget)?;\n        }\n";
+        let before = "        selected_profile::validate(program, function, budget)?;\n";
+        assert_eq!(current.matches(after).count(), 1);
+        current.replacen(after, before, 1)
+    });
+    let current = iterator_epoch.as_deref().unwrap_or(current);
     // Acquire the complete #925 parent epoch before the original query inverse.
     // The physical/compiled comparison above remains on the raw current file.
     let retained_epoch = if path

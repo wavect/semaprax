@@ -1,0 +1,40 @@
+module static.writer;
+
+@id("static.lexical")
+fn run() -> i64
+{
+    let key = str"x";
+    let mut output = bytes_zeroed(1usize);
+    let mut at = 0;
+    while at < 3 {
+        output = bytes_set(output, 0usize, 65u8);
+        at = at + 1;
+        if at == 1 { continue; }
+        0
+    }
+    return str_len_bytes(key);
+}
+
+@id("static.scratch")
+fn scratch() -> i64
+{
+    let outer = bytes_zeroed(7usize);
+    let first = vec_push<Bytes>(vec_with_capacity<Bytes>(3usize), bytes_zeroed(1usize));
+    let second = vec_push<Bytes>(first, bytes_zeroed(2usize));
+    let values = vec_push<Bytes>(second, bytes_zeroed(3usize));
+    let mut seen = 0;
+    for own item in vec_into_iter<Bytes>(values) {
+        let nested = bytes_zeroed(3usize);
+        seen = seen + 1;
+        if seen == 2 { continue; }
+        if seen == 3 { break; }
+        0
+    }
+    if seen == 3 && byte_len(bytes_as_slice(outer)) == 7usize { 9 } else { 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    run() + scratch()
+}

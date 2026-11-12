@@ -64,7 +64,7 @@ pub(in crate::cleanup_plan::replay) mod byte_iterator {
         nominal(ty, iterator_ops::ITER_ID) || nominal(ty, iterator_ops::STEP_ID)
     }
 
-    pub(in super::super) fn step(ty: &ResolvedType) -> bool {
+    pub(in crate::cleanup_plan::replay) fn step(ty: &ResolvedType) -> bool {
         nominal(ty, iterator_ops::STEP_ID)
     }
 
@@ -110,7 +110,7 @@ pub(in crate::cleanup_plan::replay) mod byte_iterator {
         Ok(())
     }
 
-    pub(in super::super) fn arms(
+    pub(in crate::cleanup_plan::replay) fn arms(
         function: &ResolvedFunction,
         mode: ResolvedMatchMode,
         arms: &[ResolvedMatchArm],

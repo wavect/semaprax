@@ -518,6 +518,14 @@ pub(super) fn type_needs_drop(
         }
     }
     if program.selected_flat_records() {
+        // Retained typed preflight independently admits only the Bytes
+        // iterator carrier and its conditional step, both of which drop.
+        if program.retained_static_byte_iterators()
+            && (crate::iterator_ops::is_iter(ty) || crate::iterator_ops::is_step(ty))
+            && crate::iterator_ops::element(ty) == Some(&ResolvedType::Bytes)
+        {
+            return Ok(true);
+        }
         return crate::cleanup::selected_inventory_needs_drop_in(program, ty);
     }
     // These closed primitive facts require no traversal. Keep the ordinary

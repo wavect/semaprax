@@ -177,12 +177,20 @@
     },
     {
       "source": "src/cleanup_plan/replay.rs",
-      "length": 325862,
-      "sha256": "ba0e6b1df76928071487692d329017d6567a43ea4644b96b01f110475a113a5f",
+      "length": 326559,
+      "sha256": "7be7308e66dc55adcac7cf526fede20b058744d18dc4b7d8e1afe99ff2cc73e3",
       "checkpoint_length": 326264,
       "checkpoint_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "inverse": [
+        [
+          "    if work.budget.selected()\n        && program.retained_static_byte_iterators()\n        && selected_profile::paid_children::byte_iterator::step(&scrutinee.ty)\n    {\n        return typed_storage::iterator_match(program, expression, scrutinee, arms, work);\n    }\n",
+          "    let _ = work;\n"
+        ],
+        [
+          "                            } else if let Some(op) = (work.budget.selected()\n                                && program.retained_static_byte_iterators()\n                                && instance.is_none())\n                            .then(|| crate::iterator_ops::by_id(callee.as_str()))\n                            .flatten()\n                            {\n                                typed_storage::iterator_params(op, expression, work)?.into()\n",
+          ""
+        ],
         [
           "    if skeleton_work::enumerated_prefix::original_selected() {\n",
           "    if skeleton_work::enumerated_prefix::original_selected() || work.budget.oracle_lease().is_some()\n    {\n        // An explicitly opted oracle keeps its complete original sequence\n        // receiver and account. Compact ordinary carriers belong to the\n        // shipping receiver, rather than the retained independent oracle.\n"

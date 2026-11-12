@@ -310,7 +310,9 @@ pub(super) fn finalizer_actions(
     finalizer_actions_with_iterators::<false>(function, actions, known, leaves, budget)
 }
 
-pub(super) fn finalizer_actions_with_iterators<const BYTE_ITERATORS: bool>(
+pub(in crate::cleanup_plan::replay) fn finalizer_actions_with_iterators<
+    const BYTE_ITERATORS: bool,
+>(
     function: &ResolvedFunction,
     actions: &[crate::cleanup_plan::FinalizeAction],
     known: &BTreeSet<StorageId>,

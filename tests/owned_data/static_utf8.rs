@@ -280,3 +280,62 @@ fn authenticated_project_retains_static_source_sites_across_revision_and_drift()
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn authenticated_project_replays_static_utf8_and_owned_bytes_iterator_runtime() {
+    use semaprax::project::{self, ProjectExecutionOptions, ProjectExecutionOutcome};
+    let root = directory();
+    std::fs::create_dir(root.join("src")).unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/owned-leaf-command-project");
+    std::fs::copy(example.join("semaprax.toml"), root.join("semaprax.toml")).unwrap();
+    let write = |path: &str, source: &str| {
+        let ast = semaprax::parse(source, path).unwrap();
+        let canonical = semaprax::format::canonical(&ast);
+        assert_eq!(
+            canonical,
+            semaprax::format::canonical(&semaprax::parse(&canonical, path).unwrap()),
+        );
+        std::fs::write(root.join(path), canonical).unwrap();
+    };
+    let app = std::fs::read_to_string(example.join("src/app.spx"))
+        .unwrap()
+        .replace(
+            "use function @id(\"owned.data.verify\") from owned.data as verify;",
+            "use function @id(\"static.lexical\") from static.writer as verify;
+             use function @id(\"static.scratch\") from static.writer as scratch;",
+        )
+        .replacen("verify()", "verify() + scratch()", 1);
+    write("src/app.spx", &app);
+    let (data, _) = include_str!("static_utf8_iterator.spx")
+        .split_once("@id(\"app.main\")")
+        .unwrap();
+    write("src/data.spx", data);
+    write(
+        "src/tests.spx",
+        r#"module owned.tests;
+        use function @id("static.lexical") from static.writer as run;
+        use function @id("static.scratch") from static.writer as scratch;
+        @id("owned.tests.main") fn main()->i64 {if run()+scratch()==10 {0}else{1}}
+        @id("owned.tests.run") fn test()->i64 {if run()+scratch()==10 {0}else{1}}"#,
+    );
+    project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        hir::validate(snapshot.entry_program()).map_err(|e| vec![e])?;
+        let options =
+            ProjectExecutionOptions::new(16 * 1024 * 1024, 160_000_000).map_err(|e| vec![e])?;
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &ProjectExecutionOutcome::Returned(10)
+        );
+        assert!(snapshot.semantic_graph().contains("static.scratch"));
+        let source = snapshot
+            .sources()
+            .iter()
+            .find(|source| source.path() == "src/data.spx")
+            .expect("retained iterator source");
+        assert_eq!(source.source_graph_schema(), "semaprax.graph.v78");
+        Ok(())
+    })
+    .unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}

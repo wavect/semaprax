@@ -74,6 +74,25 @@ pub(in crate::cleanup_plan::replay) mod reason;
 use crate::cleanup_plan::replay::inventory_coverage::paid::receive;
 use reason::{Kind, Reason};
 mod execution;
+pub(in crate::cleanup_plan::replay) use execution::matches_finalizers;
+macro_rules! selected_exit {
+    ($program:ident, $($args:expr),+ $(,)?) => {
+        if $program.retained_static_byte_iterators() {
+            execution::exit::<true>($($args),+)
+        } else {
+            execution::exit::<false>($($args),+)
+        }
+    };
+}
+macro_rules! selected_boundary {
+    ($program:ident, $($args:expr),+ $(,)?) => {
+        if $program.retained_static_byte_iterators() {
+            lexical_boundary::paid::check_paid::<true>($($args),+)
+        } else {
+            <Error as lexical_boundary::Policy>::check($($args),+)
+        }
+    };
+}
 mod finish;
 mod history;
 mod joins;

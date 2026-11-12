@@ -73,7 +73,6 @@ macro_rules! path_refusal {
 use super::reason;
 use crate::cleanup_plan::replay::inventory_coverage::paid::receive;
 use reason::{Kind, Reason};
-#[path = "../execution.rs"]
 mod execution;
 pub(super) mod finish;
 #[path = "../history.rs"]

@@ -455,7 +455,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                     function,
                     BoundaryCheck,
                     9,
-                    <Error as lexical_boundary::Policy>::check(
+                    selected_boundary!(
+                        program,
                         function,
                         auth,
                         block_id,
@@ -752,7 +753,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         function,
                         ExitCall,
                         9,
-                        execution::exit(
+                        selected_exit!(
+                            program,
                             function,
                             exit,
                             *state,
@@ -1013,7 +1015,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                     function,
                     BoundaryCheck,
                     9,
-                    <Error as lexical_boundary::Policy>::check(
+                    selected_boundary!(
+                        program,
                         function,
                         auth,
                         block_id,
@@ -1310,7 +1313,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         function,
                         ExitCall,
                         9,
-                        execution::exit(
+                        selected_exit!(
+                            program,
                             function,
                             exit,
                             *state,

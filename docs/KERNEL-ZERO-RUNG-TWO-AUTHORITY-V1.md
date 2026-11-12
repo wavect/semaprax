@@ -61,10 +61,9 @@ test-only evidence under `rung_two_bootstrap/` and are governed separately by
 The integer, character, and string-scalar byte lanes stage their one or two
 Kernel-0 arguments in fixed stack slots. The closed one- or two-byte operator
 lane also assembles its intermediate token in fixed storage; test-only byte
-projection still copies it for the independent oracle. Exact-source replay,
-evaluation, owned handoff, and final Rust-byte comparison remain required on
-every ordinary token. These source changes have no measured speedup claim until
-a bounded before/after run and the focused correctness selectors pass.
+projection still copies it for the independent oracle. Each renderer
+authenticates its fixed source before reuse. Evaluation, owned handoff and
+the final Rust-byte comparison still run for each ordinary token.
 
 ## Required evidence
 
@@ -102,9 +101,8 @@ Two focused owning controls compare a saved linear lookup, duplicate and foreign
 program pointers, 1,000 observed owned-ID versus borrowed queries, and actual
 authenticated integer-renderer evaluation including both i64 extremes. Their
 allocation scope is lookup only; compiler construction, evaluation and handoff
-are outside that observer. These controls are authored, not executed in this
-tranche. No whole-formatter speedup, full OPT708 completion or rung promotion is
-claimed.
+are outside that observer. Both controls passed on the compiler sources at
+`99fdfac49`.
 
 ## Borrowed evaluator bindings (OPT708)
 
@@ -121,5 +119,44 @@ traversal oracle. Two controls cover literal requested allocation totals for
 1,000 one-parameter calls through Drop, nested shadowing, fresh callee scopes,
 lazy and first-fault order, failed-let restoration, reentry, and authenticated
 integer renderer bytes. Construction and source replay are outside the
-allocation observer. Qualification and whole-formatter performance remain
-pending; this does not establish full OPT708 completion.
+allocation observer. Both controls passed on the compiler sources at
+`99fdfac49`.
+
+## Fixed owned handoff measurement (OPT708)
+
+The predecessor serialized and authenticated the same 169,036-byte binding
+on every warm handoff. The current implementation authenticates that exact
+binding before publishing the private immutable boundary. Both paths execute
+the checked ownership wrapper and compare the settled bytes on every call.
+
+An unoptimized macOS aarch64 Rust 1.97.1 run measured seven alternating rounds of
+128 calls with the same eight token inputs. The median warm round fell from
+10.629 ms to 0.562 ms. In a separate allocation-observer round of 128 calls,
+requested bytes fell from 66,696,496 to 171,312. Both paths released every
+observed allocation and returned identical bytes. The single current
+boundary initialization took 931 ms and was measured separately. The focused
+binding, substitution, fallback, reentry, and native/Wasm settlement controls
+also passed.
+
+Run the bounded comparison with:
+
+```sh
+cargo test --locked -p semaprax --lib \
+  kernel_zero::rung_two_owned_handoff::tests::cached_handoff_measures_the_previous_per_token_binding_work \
+  -- --exact --ignored --nocapture
+```
+
+The existing Criterion benchmark of the first greedy-capture witness measured
+111 ms for source checking, 43.0 ms for canonical formatting and 9.68 ms for
+retained execution in the unoptimized build. The last stage includes its
+binding recheck and worker creation. The ordinary source invocation and the
+retained call both returned 1 using 25,184 of their 1,000,000 steps. A separate
+single sample of graph generation and verification took 2.70 s. These phase
+measurements describe the current witness. The paired measurement above
+isolates the handoff change.
+
+```sh
+cargo bench --locked -p semaprax --profile dev --bench interpreter -- ascii-pattern
+```
+
+[OPT #708](https://github.com/wavect/semaprax/issues/708)

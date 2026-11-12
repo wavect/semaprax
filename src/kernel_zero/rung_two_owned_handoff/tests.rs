@@ -196,3 +196,71 @@ fn owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers() {
     );
     assert_eq!(handoffs(), before + 1);
 }
+
+#[test]
+#[ignore = "bounded timing and allocation measurement for OPT #708"]
+fn cached_handoff_measures_the_previous_per_token_binding_work() {
+    use crate::test_allocation_observer::measure;
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    const TOKENS: [&str; 8] = [
+        "+",
+        "&&",
+        "0",
+        "false",
+        "é",
+        "\0",
+        "-",
+        "-9223372036854775808",
+    ];
+    const CALLS: usize = 128;
+    const ROUNDS: usize = 7;
+
+    let start = Instant::now();
+    let boundary = Boundary::derive().unwrap();
+    let initialization = start.elapsed();
+    assert_eq!(handoff("+".to_owned()), Ok("+".to_owned()));
+    let run = |previous: bool| {
+        for n in 0..CALLS {
+            let input = black_box(TOKENS[n % TOKENS.len()]);
+            let candidate = input.to_owned();
+            let output = if previous {
+                // This is the complete warm call at 47ab5b1ef^.
+                let bytes = boundary.binding.bytes().unwrap();
+                let settled = boundary
+                    .deliver(&bytes, boundary.digest, candidate.as_bytes(), MAX_FUEL)
+                    .unwrap();
+                String::from_utf8(settled).unwrap()
+            } else {
+                handoff(candidate).unwrap()
+            };
+            assert_eq!(black_box(output).as_str(), input);
+        }
+    };
+    let mut old = [0; ROUNDS];
+    let mut current = [0; ROUNDS];
+    for round in 0..ROUNDS {
+        for previous in [round % 2 == 0, round % 2 != 0] {
+            let start = Instant::now();
+            run(previous);
+            let samples = if previous { &mut old } else { &mut current };
+            samples[round] = start.elapsed().as_nanos();
+        }
+    }
+    let ((), old_allocations) = measure(|| run(true));
+    let ((), current_allocations) = measure(|| run(false));
+    for receipt in [old_allocations, current_allocations] {
+        assert!(!receipt.invalid);
+        assert_eq!(receipt.live, 0);
+        assert_eq!(receipt.allocated, receipt.freed);
+    }
+    assert!(current_allocations.allocated < old_allocations.allocated);
+    old.sort_unstable();
+    current.sort_unstable();
+    eprintln!(
+        "OPT708 calls_per_round={CALLS} rounds={ROUNDS} binding_bytes={} initialization_ns={} previous_ns={old:?} current_ns={current:?} previous_allocations={old_allocations:?} current_allocations={current_allocations:?}",
+        boundary.authenticated_bytes.len(),
+        initialization.as_nanos(),
+    );
+}

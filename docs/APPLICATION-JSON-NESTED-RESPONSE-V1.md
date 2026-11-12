@@ -189,13 +189,14 @@ sticky-status cleanup. Fatal native String allocation remains outside that
 recoverable channel. Preflight does not make native String OOM recoverable or
 prove zero-leak settlement there; that OPT-724 obligation remains open.
 
-The new owning definitions retain the original independent wire oracles and
-same-source interpreter/native O0/O2/Core-Wasm requirements. A separate native
-quote-phase definition observes exact buffer reservation, final String allocation
-and explicit memcpy traffic for empty, 16/64-byte ASCII, Unicode, controls and
-quote/backslash inputs in one context. It is not a full application, full-row
-physical measurement, accepted fresh trial, billed cost, or an executed gain.
-Executable qualification and matched application trials remain pending.
+The 18 focused nested-response checks and the independent nested-order
+application check passed on `810f48d0`. They cover exact and one-short
+output limits, stale artifact refusal, the independent wire oracles and
+interpreter/native O0/O2/strict Core Wasm parity. The native quote-phase
+check observed one exact buffer reservation, one final String allocation
+and one final payload copy for empty input, 16/64-byte ASCII, Unicode,
+controls and quote/backslash inputs. Agent token and cost qualification
+requires matched accepted-task trials.
 
 ## Additive String-slot response successor
 

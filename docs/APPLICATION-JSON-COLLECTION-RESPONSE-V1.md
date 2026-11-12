@@ -148,13 +148,10 @@ sticky-status cleanup. Fatal native String allocation remains outside that
 recoverable channel. Preflight does not make native String OOM recoverable or
 prove zero-leak settlement there; that OPT-724 obligation remains open.
 
-The new owning definitions retain the original independent wire oracles and
-same-source interpreter/native O0/O2/Core-Wasm requirements. A separate native
-quote-phase definition observes exact buffer reservation, final String allocation
-and explicit memcpy traffic for empty, 16/64-byte ASCII, Unicode, controls and
-quote/backslash inputs in one context. It is not a full application, full-row
-physical measurement, accepted fresh trial, billed cost, or an executed gain.
-Executable qualification and matched application trials remain pending.
+The focused collection-response checks passed the independent wire oracles
+on the interpreter, native O0/O2 and strict Core Wasm. They include exact and
+one-short output limits, independent schema verification, Unicode and numeric
+extrema, and the full 256-row limit.
 
 The owning full-row native definition
 `collection_response::physical::generated_writer_reserves_once_and_copies_once_across_full_row_counts_unlike_legacy_concat`
@@ -203,11 +200,14 @@ stores are not labeled as measured copies; their count remains null. A second
 unmeasured authentic render checks retained input semantics, then canonical
 cleanup must balance the complete physical owner inventory. The external
 receipt retains source/test-executable hashes, generated source, independent
-oracles, compiler/run logs and actual metrics. This is an authored measurement
-route, not executed evidence or an old/current application comparison.
+oracles, compiler/run logs and actual metrics. The bound run on `ab1204b17`
+passed at O0 and O2 with exact outputs of 44, 267, 1,835 and 57,389 bytes.
+Both builds observed one buffer reservation, one String allocation and one
+final payload copy for each exact encode, and zero allocations for preflight
+and one-short refusal.
 
 Use a fresh external `SEMAPRAX_COLLECTION_WRITER_OUTPUT` directory and explicitly
 select this ignored owning test when the coordinated measurement phase is
-permitted. The ordinary fatal String OOM path prevents interpreting this probe
-as a returned-allocation fault matrix; production recovery obligations remain
-open under OPT-724. Application/cost qualification for OPT-737 remains separate.
+permitted. The ordinary fatal String OOM path leaves returned-allocation
+recovery open under OPT-724. Agent token and cost qualification requires
+matched accepted-task trials.

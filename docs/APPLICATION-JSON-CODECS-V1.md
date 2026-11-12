@@ -372,14 +372,14 @@ C11 at `-O0` and `-O2`, and Core Wasm. Persisted-cache replay of the collision
 fixture preserved the graph and checked source association, including refusal
 of a forged fingerprint provider.
 
-The exact maximum-size test source from `6f1771d9f` also passed its raw-input case
-with the current compiler. Its fully escaped case still refuses with
-`SPX-H006` during independent cleanup replay of `consumer.expected`, the
-source-level expected-output builder. The ordinary CLI check reproduces that
-refusal before interpreter execution. The current harness supplies
-the same expected output as independently generated canonical JSON bytes and
-still checks output bytes, order, the one-byte-short output refusal and the
-late grammar error. The historical escaped-case replay remains open.
+At `7268e5fbe`, the exact maximum-size test source from `6f1771d9f` passed
+for both raw and fully escaped input. The ordinary CLI check of the escaped
+Project passed, and the original test ran through the interpreter, native C11
+at `-O0` and `-O2`, and Core Wasm. The interpreter returned 727 at the original
+160,000,000 steps and 16 MiB limits. The test retained the source-level
+expected-output builder, exact output bytes and ordering, one-byte-short output
+refusal, and the late grammar error. The earlier `80099513c` run had refused the
+escaped Project with `SPX-H006` during replay of `consumer.expected`.
 
 The functions `json_Patient_view_decode`, `json_Patient_view_array_decode`,
 `json_Request_request_decode` and corresponding encode/encoded-length helpers

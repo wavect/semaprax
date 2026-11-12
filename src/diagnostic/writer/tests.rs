@@ -302,8 +302,19 @@ fn full_original_renderer_and_all_current_source_owners_remain_bound() {
             .collect();
         assert_eq!(matching.len(), 1);
         assert_eq!(hash(&current), matching[0]["sha256"]);
-        for audit in [include_str!("../../../tests/hir_module_boundaries.rs"), include_str!("../../../tests/workspace/semantic_graph/source_inventory.rs"), include_str!("../../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")] {
-            assert_eq!(audit.matches(&format!("{path}\"")).count(), 1);
+        for (audit, prefix) in [
+            (include_str!("../../../tests/hir_module_boundaries.rs"), "../"),
+            (
+                include_str!("../../../tests/workspace/semantic_graph/source_inventory.rs"),
+                "../../",
+            ),
+            (
+                include_str!("../../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"),
+                "../../../../../",
+            ),
+        ] {
+            let registration = format!("include_str!(\"{prefix}{path}\")");
+            assert_eq!(audit.matches(&registration).count(), 1, "{path}");
         }
     }
 }

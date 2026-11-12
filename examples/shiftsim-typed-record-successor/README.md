@@ -25,6 +25,10 @@ lengths (at most 8 workers and 256 patients), have no effects or contracts,
 and perform bounded arithmetic. Skipping the patient scan when no worker is
 free skips no language failure on these valid states. General indexed reads
 keep their checked bounds and failure rules.
+The schedule uses `break;` to stop a borrowed scan at its count bound or
+first match. Indexed helpers return the first eligible index directly with
+`return index;`. The dispatch loop uses `break;` when no worker or patient
+is ready.
 The exact Server-wrapper program remains a differential control for all 15
 cases and original invalid-input checks. Qualification is pending. Conversion
 vector removal changes allocation-failure ordinals; no allocation gain is claimed.

@@ -1,8 +1,8 @@
 //! Fix hints for habits carried over from other languages.
 //!
 //! The grammar is closed and small, so the first thing a newcomer or a coding
-//! agent writes is often a construct that does not exist here: `return`, `for`,
-//! an expression statement, a tuple, or a `Some(x)` pattern. Left
+//! agent writes is often a form the grammar rejects, such as a range loop,
+//! a tuple or a `Some(x)` pattern. Left
 //! alone, each surfaces as a bare ``expected `}` after block`` and costs another
 //! edit-check cycle to diagnose. These helpers recognise the habit at the point
 //! where the grammar already rejects it and attach the fix.
@@ -64,8 +64,8 @@ const CAST_HELP: &str = "there is no `as`; convert with `f64_from_i64(x)`, `i64_
                          (truncates toward zero), `usize_from_i64(x)`, or `i64_from_usize(x)`, \
                          which fail on a value out of range; exact widening uses `i64_from_u8(x)`, \
                          `i64_from_i32(x)`, or `usize_from_u8(x)`; suffix literals such as `5i32`";
-const BREAK_HELP: &str = "there is no `break` or `continue`; put the exit test in the `while` \
-                          condition, for example with a `let mut done = false;` flag";
+const BREAK_HELP: &str =
+    "use `break;` or `continue;` as an unlabeled exit in the nearest enclosing loop";
 /// `|x| …` or `|| …` where an expression was expected: closure syntax.
 pub(super) const CLOSURE_HELP: &str = "an anonymous function is `fn(x: i64) -> i64 { x + 1 }`; parameter and result types are required";
 const USE_HELP: &str = "`use` imports one declaration of a project module: `use function \
@@ -132,10 +132,12 @@ impl Parser {
         if matches!(word.as_str(), "break" | "continue")
             && matches!(next, TokenKind::Semicolon | TokenKind::RBrace)
         {
-            return Some(
-                self.error_here("SPX-P106", format!("`{word}` is not admitted"))
-                    .with_help(BREAK_HELP),
-            );
+            let message = if *next == TokenKind::RBrace {
+                format!("expected `;` after `{word}`")
+            } else {
+                format!("`{word}` is not admitted in this context")
+            };
+            return Some(self.error_here("SPX-P106", message).with_help(BREAK_HELP));
         }
         let (message, help) = match word.as_str() {
             "return" => (RETURN_MESSAGE, RETURN_HELP),

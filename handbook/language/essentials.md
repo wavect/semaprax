@@ -30,8 +30,9 @@ fn main() -> i64
   permanent identity. Without it, `check` warns `SPX-S103`, and renaming the
   function changes its identity.
 - The entry point is exactly `fn main() -> i64`.
-- A function body is statements followed by one final expression. That
-  expression is the result. There is no `return`.
+- A normal function body ends with a tail expression that supplies the result.
+  An ordinary function can also finish early with `return value;` in an
+  admitted statement guard or control-block tail.
 - To use a function from another file, a Project imports it by `@id` with
   `use function @id("…") from module as name;`. See
   [Modules and imports](../projects/modules.md).
@@ -125,10 +126,10 @@ fn main() -> i64
 }
 ```
 
-The condition after `while` is checked before every pass. The body must end
-with an expression, and `while` throws its value away. Ending a body with an
-assignment is `SPX-P203`. There is no `break` or `continue`: put the exit test
-in the condition. See [Loops](loops.md) for `for` and the loop limits.
+The condition after `while` is checked before every pass. A normally
+completing body ends with a value that `while` discards. Ending a body with an
+assignment is `SPX-P203`. Use `break;` to leave the nearest loop and
+`continue;` to advance it. See [Loops](loops.md) for `for` and the loop limits.
 
 ## Pick a case with match
 
@@ -153,12 +154,13 @@ variants is in [Matching](matching.md).
 
 | You write | Error | Write this |
 | --- | --- | --- |
-| `return x;` | `SPX-P106` | Put `x` last in the block. |
+| `return;` | `SPX-P106` | Supply a result such as `return x;`. |
 | `else if c { … }` | `SPX-P106` | `else { if c { … } else { … } }` |
 | `i += 1;` | `SPX-P201` | `i = i + 1;` |
 | `f(x);` alone | `SPX-P106` | `let _ = f(x);` |
 | `for i in 0..n` | `SPX-P106` | `while` with a counter, or `for item in vector` |
-| `break`, `continue` | `SPX-P106` | Test in the `while` condition. |
+| `break` or `continue` without a semicolon | `SPX-P106` | Write `break;` or `continue;` inside a loop. |
+| `break;` or `continue;` outside a loop | `SPX-T313` | Put the exit in the loop it targets. |
 | `x as i64` | `SPX-P106` | No casts. Keep one type and suffix literals. |
 | `c ? a : b` | `SPX-P106` | `if c { a } else { b }` |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |

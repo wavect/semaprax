@@ -35,10 +35,12 @@ runnable examples is in `semaprax help language mistakes-code`.
 | --- | --- | --- |
 | `SPX-P003` | `9223372036854775808` or `-(9223372036854775808)` | Write the minimum as one literal: `-9223372036854775808` |
 | `SPX-P104` | `struct`, `enum`, `pub`, `const` | `record`, `variant`; there is no visibility keyword |
-| `SPX-P105`, `SPX-P106` | `return`, `else if`, `for i in 0..n`, tuples, `f(x);`, `a[0]`, `fn f()`, `c ? a : b`, `break`, `as`, a last field or arm without `,` | Use the tail expression, nested `else { if ... }`, `while`, a record, `let _ = f(x);`, `byte_get(...)`, `if`; end every field and arm with `,` |
+| `SPX-P105`, `SPX-P106` | `else if`, `for i in 0..n`, tuples, `f(x);`, `a[0]`, `fn f()`, `c ? a : b`, `as`, a last field or arm without `,` | Use nested `else { if ... }`, `while`, a record, `let _ = f(x);`, `byte_get(...)`, or `if`. End every field and arm with `,`. |
+| `SPX-P106` | `return;` without a value or `break` or `continue` without a semicolon | Write `return value;`, `break;`, or `continue;` in an admitted statement position. |
+| `SPX-T312`, `SPX-T313` | Exit across a value boundary or loop exit outside a loop | Use a direct statement guard or block tail. Put `break;` and `continue;` in their enclosing loop. |
 | `SPX-P130` | `own fn` with parameters | An owning closure takes none |
 | `SPX-P201` | `x += 1`, a Rust or JavaScript closure | `x = x + 1;`; `fn(x: i64) -> i64 { x + 1 }` |
-| `SPX-P203` | A block with no final expression | End a `while` body with its continuation condition; end an `if` branch with a value |
+| `SPX-P203` | A normally completing block with no final expression | End a `while` body with a discarded value such as `0`. End a value-producing `if` branch with its value. |
 | `SPX-P207` | Nesting deeper than 128 | Extract a named helper |
 | `SPX-S103` | A declaration without `@id` (warning) | Add `@id("your.name")`; `semaprax fix --plan` can plan it |
 | `SPX-S113` | Your own `string_len` | Built-in names are reserved; rename yours |

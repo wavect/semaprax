@@ -1294,7 +1294,7 @@ Use `u8_from_i64(value)` then `char_from_u8(byte)` for byte conversion; use
 | missing arm comma|SPX-P106|Arm commas; last field/case comma optional|
 | compound assign|SPX-P201|x = x + 1|
 | ternary expression|SPX-P106|if c { a } else { b }|
-| break / continue|SPX-P106|Exit test in while|
+| break / continue without semicolon|SPX-P106|Use break; or continue; in the nearest enclosing loop|
 | x as i64|SPX-P106|Named checked conversion/suffix|
 | Rust/JS closure|SPX-P201|fn(x: i64) -> i64 { x + 1 }|
 | use std::io;|SPX-G170|Built-ins need no import; std.*: Project dependency + stable-ID import|

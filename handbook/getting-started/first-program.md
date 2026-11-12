@@ -51,7 +51,7 @@ alone. The printed `42` is the return value, not the process exit status.
 
 Replace `42` with `6 * 7` and run the three commands again. The result is the
 same. A **tail expression** is the last expression in a block; its value is the
-block's result. There is no `return` here.
+block's result. This example returns through its tail expression.
 
 ## 4. Write text
 

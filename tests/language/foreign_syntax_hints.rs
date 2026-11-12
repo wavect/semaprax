@@ -544,6 +544,12 @@ fn operators_and_statements_from_other_languages_name_the_admitted_form() {
         "2",
         "loop-continue",
     );
+    for exit in ["break", "continue"] {
+        let diagnostic = rejection(&main_body(&format!("while false {{ {exit} }}\n0")));
+        assert_eq!(diagnostic.code, "SPX-P106");
+        assert_eq!(diagnostic.message, format!("expected `;` after `{exit}`"));
+        assert!(help(&diagnostic).contains(&format!("`{exit};`")));
+    }
     let cases = [
         (
             "    let x = 1;\n    x > 0 ? 1 : 2",

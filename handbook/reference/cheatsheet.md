@@ -51,12 +51,12 @@ Run `semaprax help all` for the full list, or see the
 | A file | `module app.name;` first, then declarations | [Essentials](../language/essentials.md) |
 | Stable identity | `@id("app.name.fn")` before every declaration | [Essentials](../language/essentials.md) |
 | Entry point | exactly `fn main() -> i64` | [Essentials](../language/essentials.md) |
-| Result of a block | A tail expression, with no `return` and no trailing `;` | [Essentials](../language/essentials.md) |
+| Result of a block | A tail expression without a trailing `;`, or `return value;` in an ordinary function | [Essentials](../language/essentials.md) |
 | Bindings | `let x = 1;` immutable; `let mut n = 0;` then `n = n + 1;` | [Essentials](../language/essentials.md) |
 | Number types | `i64` (default), `i32`, `u8`, `usize`, `f64`, `f32`; suffix `5i32`, `3usize`; operators never mix types | [Types](../language/types.md) |
 | Other scalars | `bool`, `char` (`'a'`), `string` (owned UTF-8), `str` (borrowed view) | [Ownership](../language/ownership.md) |
 | Conditional | `if c { a } else { b }`; always an expression, no `else if` | [Essentials](../language/essentials.md) |
-| Loop on a condition | `while cond { ...; cond }`; the last line is the continuation test | [Loops](../language/loops.md) |
+| Loop on a condition | `while cond { ...; 0 }`; `break;` leaves the loop and `continue;` checks `cond` again | [Loops](../language/loops.md) |
 | Loop over a vector | `for item in values { ...; 0 }` over an immutable `Vec` binding | [Loops](../language/loops.md) |
 | Consume an iterator | `for own item in it { ... }`; `match own` on `IterStep` | [Loops](../language/loops.md) |
 | Record | `record P { @id("p.x") x: i64, }`; build `P { x: 1 }`; update `p with { x: 2 }` | [Types](../language/types.md) |
@@ -78,8 +78,9 @@ Run `semaprax help all` for the full list, or see the
 | A test | `fn test_add() -> i64` with an `@id` in a test module; return `0` to pass | [Testing](../practices/testing.md) |
 | Standard library | `[dependencies] std.core = "^0.1.0"` then `use function @id("std.core.min") ...` | [Standard library](stdlib.md) |
 
-Habits that fail: `return`, `else if`, `x += 1`, tuples, `a[0]`, `"a" + "b"`,
-`Some(1)`, `i++`, `break`, `as` casts, macros. The fix for each is in
+Common syntax errors include `return;` without a value, a missing semicolon
+after a loop exit, `else if`, `x += 1`, tuples, `a[0]`, `"a" + "b"`,
+`Some(1)`, `i++`, `as` casts, and macros. The fix for each is in
 [Diagnostics](diagnostics.md).
 
 ## A complete syntax reminder

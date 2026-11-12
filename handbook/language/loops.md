@@ -39,9 +39,10 @@ fn main() -> i64
 The result is `3 * 2 * 1 = 6`. The rules:
 
 - The condition is checked before every pass and must be a `bool`.
-- The body ends with an expression. Its value is discarded, and the condition
-  alone decides repetition. A body that ends after an assignment is `SPX-P203`.
-- There is no `break` or `continue`.
+- A normally completing body ends with an expression whose value is discarded.
+  A body that ends after an assignment is `SPX-P203`.
+- `break;` leaves the nearest enclosing loop. `continue;` checks the next
+  `while` condition. Both forms are unlabeled and take no value.
 - A body may use Copy scalars, calls that return scalars, and the
   `byte_get`/`Option<u8>` pattern. Building a record or variant, or calling a
   function that returns one, is `SPX-T252`. Loop over scalars, then build the
@@ -75,6 +76,10 @@ frozen inside the body, and the body's value is discarded. The vector must be an
 immutable binding (`SPX-T284` for `let mut`) and a plain name, not a call. Do
 not move or change it, or the item, inside the body. Build the vector first with
 the [Vec calls](collections.md#build-and-read-a-vector).
+
+In an admitted `for`, `continue;` advances the iterator exactly once before
+the next item. An exit ends its block. Place conditional exits in statement
+guards such as `if done { break; }`.
 
 ## Drain an iterator with for own
 

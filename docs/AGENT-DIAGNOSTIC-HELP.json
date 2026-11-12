@@ -188,8 +188,8 @@
           "wrote": "ternary expression"
         },
         {
-          "fix": "Exit test in while",
-          "wrote": "break / continue"
+          "fix": "Use break; or continue; in the nearest enclosing loop",
+          "wrote": "break / continue without semicolon"
         },
         {
           "fix": "Named checked conversion/suffix",

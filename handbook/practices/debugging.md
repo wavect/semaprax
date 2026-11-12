@@ -6,8 +6,8 @@ the cause of an error and the smallest fix for it. Match on the code, not the
 wording: wording changes, codes do not.
 
 ```text
-error[SPX-P106]: `return` is not admitted; a block's value is its final expression at bad.spx:6:5
-  help: delete `return` and the trailing `;` so the value is the block's last expression
+error[SPX-P106]: expected `;` after `break` at bad.spx:6:5
+  help: use `break;` or `continue;` as an unlabeled exit in the nearest enclosing loop
 ```
 
 ## The loop
@@ -52,9 +52,9 @@ semaprax repair app.spx <repair-id> --persistent-id my.namespace.main
 
 | You wrote | Code | Fix |
 | --- | --- | --- |
-| `return 42;` | `SPX-P106` | Tail expression: `42` |
+| `return;` without a value | `SPX-P106` | Supply a result such as `return 42;`. |
 | `else if` | `SPX-P106` | `else { if ... }` |
-| `while` body ending in an assignment | `SPX-P203` | End with the continuation condition |
+| `while` body ending in an assignment | `SPX-P203` | End the body with a discarded value such as `0`. |
 | `for i in 0..n` | `SPX-P106` | `while` with a `let mut` counter |
 | `f(x);` as a statement | `SPX-P106` | `let _ = f(x);` |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |

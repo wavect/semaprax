@@ -1,6 +1,6 @@
 # Explicit Record Sort Keys v1
 
-Status: authored bounded contract; executable qualification remains separately gated.
+Status: locally qualified for the bounded v1 profile.
 Audience: coding agents, compiler contributors and reviewers.
 
 `vec_sort_by<Row>(rows, "priority:desc,arrival:asc")` is a consuming operation
@@ -73,15 +73,16 @@ their layout through the zero policy above.
 
 ## Owning regressions and qualification
 
-Owning regression definitions cover independent multiple-ranking policies over
+Owning checks cover independent multiple-ranking policies over
 the same wire layout; stable ties; exact scalar bounds and floating bits;
 unsigned String/Bytes prefix/NUL order; empty/singleton/full vectors; source,
 canonical, HIR, graph and cache replay; forged identity/layout/type/direction;
 and live-loan/profile refusal. Generated C runs at O0 and O2 with settlement and
-sort allocation observers, and the same source runs through interpreter and
-private Core-Wasm. Until those gates execute successfully the batch is authored
-implementation, not verified support. No agent cost or runtime savings is
-claimed without later matched trials and physical receipts.
+sort allocation observers. The interpreter and private Core-Wasm execute
+the same source. All 59 focused source, HIR, graph, cache, help and backend
+checks passed. The native probes verified no replacement allocation or
+payload clone during the sort. Agent token, turn and cost effects remain
+unmeasured.
 
 ## Catalog adoption
 
@@ -92,6 +93,9 @@ final row once and accumulates bounded metrics, after validating all request
 rows including excluded rows. The former `SortItem` carrier and second Vec
 rebuild are retained verbatim only as an independent owning test reference.
 The returned output Vec retains the input-count selection capacity; the old
-second rebuild used selected-count capacity. The frozen 23-case raw-wire oracle
-owns this application comparison. Qualification and any physical or agent-cost
-benefit remain pending.
+second rebuild used selected-count capacity. The current and archived
+pipelines both passed the frozen 23-case raw-wire oracle at O0 and O2.
+The archived pipeline uses the existing factored comparison for its large
+ordinary cleanup replay. That comparison independently verifies the exact
+HIR and plan observation languages under the existing limits. The complete
+ShiftSim15 corpus also passed at its ordinary limits.

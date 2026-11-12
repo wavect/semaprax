@@ -1,5 +1,8 @@
 # Record presence receiver qualification (#850)
 
+Status: focused receiver, callable and Catalog Normalizer checks passed.
+Audience: compiler contributors and reviewers.
+
 The constructor and shared reads pay their actual carrier layouts, and the
 mandatory presence receiver pays for its closure borrow without constructing
 optional transport. The complete Main269 and earlier consuming implementations

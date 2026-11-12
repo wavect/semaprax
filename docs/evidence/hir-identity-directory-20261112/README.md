@@ -1,5 +1,8 @@
 # Paid HIR identity directory qualification (#805)
 
+Status: focused identity and validator comparisons passed on macOS arm64.
+Audience: compiler contributors and reviewers.
+
 The HIR validator uses the ordered identity directory introduced in
 `f8465255f`. It pays for each new AVL node before construction and stages
 shared or weak suffixes before mutating a unique prefix. The saved validator

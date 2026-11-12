@@ -1,6 +1,6 @@
 # Project Native Tests v1
 
-The Project v26 native-test gate passed on hosted macOS. The Project v28
+Status: the Project v26 native-test gate passed on hosted macOS. The Project v28
 effectful result-range gate passed locally on macOS. The completion matrix
 owns product status.
 

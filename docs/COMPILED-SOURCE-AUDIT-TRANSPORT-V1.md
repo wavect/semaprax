@@ -2,7 +2,7 @@
 
 Audience: compiler contributors and reviewers.
 
-The three existing audit owners passed at `80099513c` on Rust 1.97.1.
+Status: the three existing audit owners passed at `80099513c` on Rust 1.97.1.
 Compiler peak reduction remains open. [OPT #798](https://github.com/wavect/semaprax/issues/798)
 
 The HIR boundary, workspace projection and native interop layout audits retain

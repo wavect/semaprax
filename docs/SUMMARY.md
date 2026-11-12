@@ -1114,6 +1114,9 @@ Audience: all documentation readers.
 
 ## Recent private implementation evidence
 
+- [Paid HIR identity directory qualification](evidence/hir-identity-directory-20261112/README.md)
+- [Record presence receiver qualification](evidence/record-presence-receivers-20261112/README.md)
+
 - [Compact staged-result observations](evidence/compact-staged-observations-v1/README.md)
 - [Minimum ownership path array capacity](evidence/minimum-path-array-v1/README.md)
 - [Finished cleanup path array capacity](evidence/completed-skeleton-array-v1/README.md)

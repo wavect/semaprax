@@ -79,3 +79,28 @@ The HIR, workspace, and native interop audit binaries discovered 11, 505, and
 249 tests respectively. Each original audit selector discovered and passed
 exactly one test. The source-authority unit tests, current source-pin producer
 check, and scoped production Clippy passed.
+
+## Full library-test link attempt
+
+The legacy and v0 symbol-mangling builds at
+`435894a09f95f12046cc51e1df2d71b1a750eff2` requested the complete library
+test binary on the same 18 GiB macOS arm64 host and Rust 1.97.1. Both used
+`cargo test --locked --offline --jobs 1 -p semaprax --lib --no-run` with fresh
+private SSD targets, 256 codegen units, optimization level 0, no debug info
+or incremental compilation, and serial rustc front end and LLVM backend.
+The measurement wrapper preserved Cargo's jobserver descriptors. The
+captured primary rustc commands differed only in their target paths and
+mangling mode.
+
+| Mangling | Cargo wall seconds | rustc seconds to exit | Peak sampled rustc RSS before exit | Last completed rustc pass reported |
+| --- | ---: | ---: | ---: | --- |
+| legacy | 194.56 | 14.12 | 2,128,035,840 bytes | `crate_injection` |
+| v0 | 185.10 | 19.60 | 3,009,216,512 bytes | `finalize_macro_resolutions` |
+
+The host guard terminated each rustc after three consecutive samples of
+macOS memory pressure level 2. The v0 arm completed macro expansion in
+17.73 seconds, at 2,859,286,528 bytes of RSS. Both stops preceded
+monomorphization and symbol mangling. These sampled peaks describe
+different incomplete phases. Neither arm linked a new executable, so this
+pair cannot establish a memory improvement or test inventory parity.
+The 14 source-authority tests and current source-pin check passed separately.

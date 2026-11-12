@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 
 SELECTOR = "cleanup_plan::phase_measurement::generated_codec_construction_and_replay_measurement"
+PHASES = ("construction", "replay", "validation")
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 def command(args: list[str], root: Path) -> str:
@@ -91,7 +92,12 @@ def main() -> int:
         return result.returncode
     headers = [item for item in records if item["record"] == "context"]
     samples = [item for item in records if item["record"] == "sample"]
-    expected = {(phase, indexed, iteration) for phase in ("construction", "replay") for indexed in (False, True) for iteration in range(args.warmup + args.samples)}
+    expected = {
+        (phase, indexed, iteration)
+        for phase in PHASES
+        for indexed in (False, True)
+        for iteration in range(args.warmup + args.samples)
+    }
     actual = [(item["phase"], item["indexed"], item["iteration"]) for item in samples]
     if len(headers) != 1 or len(actual) != len(expected) or set(actual) != expected or any(item["status"] != "success" for item in samples):
         raise RuntimeError("missing, duplicate, or failed raw paired samples")
@@ -100,12 +106,20 @@ def main() -> int:
     if command(["git", "rev-parse", "HEAD"], root) != head or command(["git", "status", "--porcelain"], root) or sha(binary) != context["binary_sha256"]:
         raise RuntimeError("source or binary drift during measurement")
     summary = []
-    for phase in ("construction", "replay"):
+    for phase in PHASES:
         for indexed in (False, True):
             group = [item for item in samples if item["phase"] == phase and item["indexed"] == indexed and not item["warmup"]]
             if len(group) != args.samples:
                 raise RuntimeError("warmup/sample classification differs")
-            summary.append({"phase":phase,"indexed":indexed,"samples":len(group),"median_elapsed_ns":statistics.median(item["elapsed_ns"] for item in group),"reservation_ledger_bytes":[item["reservation_ledger_bytes"] for item in group],"replay_work_units":[item["replay_work_units"] for item in group]})
+            summary.append({
+                "phase": phase,
+                "indexed": indexed,
+                "samples": len(group),
+                "median_elapsed_ns": statistics.median(item["elapsed_ns"] for item in group),
+                "reservation_ledger_bytes": [item["reservation_ledger_bytes"] for item in group],
+                "replay_work_units": [item["replay_work_units"] for item in group],
+                "skeleton_work_units": [item.get("skeleton_work_units") for item in group],
+            })
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     context["status"] = "measured_paired_success"; save()
     return 0

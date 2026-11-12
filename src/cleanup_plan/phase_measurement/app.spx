@@ -17,6 +17,6 @@ fn main() -> i64
 {
     let value = Report { metrics: Metrics { count: 0usize, ok: true }, rows: vec_with_capacity<Row>(256usize) };
     let n = length(value);
-    let result = encode(value, n);
-    identity<i64>(match own result { Encoded::Encoded { text } => i64_from_usize(byte_len(str_as_bytes(string_as_str(text)))), Encoded::Refused { required: size } => i64_from_usize(size), })
+    let outcome = encode(value, n);
+    identity<i64>(match own outcome { Encoded::Encoded { text } => i64_from_usize(byte_len(str_as_bytes(string_as_str(text)))), Encoded::Refused { required: size } => i64_from_usize(size), })
 }

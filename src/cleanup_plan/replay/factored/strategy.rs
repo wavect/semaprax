@@ -10,6 +10,20 @@ fn select_resource_representation(
     budget: &mut ReplayBudget,
 ) -> Result<bool, Diagnostic> {
     if matches!(budget.payer, AllocationPayer::ActiveBuilder) {
+        return selected_builder_paid(function, cfg_paths, semantic_paths, budget);
+    }
+    // Ordinary replay after the active builder has ended uses the same
+    // bounded comparison for large languages. Keep the existing selector
+    // for small languages and the selected/reference reservation routes.
+    if matches!(
+        budget,
+        ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            admission: AdmissionMode::Ordinary,
+            ..
+        }
+    ) && cfg_paths.max(semantic_paths) > paired::BUILDER_FACTORED_PATH_THRESHOLD
+    {
         selected_builder_paid(function, cfg_paths, semantic_paths, budget)
     } else {
         selected_paid(function, cfg_paths, semantic_paths, budget)

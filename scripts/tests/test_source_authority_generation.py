@@ -52,7 +52,7 @@ class InventoryTransportTests(unittest.TestCase):
 
 class CompiledIncludeTests(unittest.TestCase):
     def fixture(self, directory):
-        root = Path(directory)
+        root = Path(directory).resolve()
         (root / "src").mkdir()
         (root / "tests").mkdir()
         (root / "Cargo.toml").write_text("")

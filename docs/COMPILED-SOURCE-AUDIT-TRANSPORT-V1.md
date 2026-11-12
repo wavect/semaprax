@@ -2,7 +2,8 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: source-only NEXT #798 component; executable qualification pending.
+The three existing audit owners passed at `80099513c` on Rust 1.97.1.
+Compiler peak reduction remains open. [OPT #798](https://github.com/wavect/semaprax/issues/798)
 
 The HIR boundary, workspace projection and native interop layout audits retain
 all live Rust snapshots as compile-time include_str! inputs. Their complete
@@ -36,3 +37,45 @@ previous unit RSS refusal. New runtime String allocations happen only in the
 standalone source/layout audit owners, outside ACTIVE and allocation observers;
 this is no production cost or savings claim. Actual build memory comparison,
 resource policy, all benchmark gates and full help remain separate and unchanged.
+
+## Production library bootstrap
+
+The measurements use the same source at `80099513c`, Rust 1.97.1
+`8bab26f4f`, and macOS 26.5.1 on an 18 GiB arm64 host. Cargo used one worker,
+offline locked dependencies, private SSD targets, optimization level 0,
+debug info disabled, and incremental compilation disabled. The sampler
+preserved Cargo's jobserver descriptors. Peak RSS is the operating system's
+high-water reading for the primary library `rustc` process.
+
+| Build scope | Setting | Peak RSS (bytes) | rustc seconds | Cargo seconds |
+| --- | --- | ---: | ---: | ---: |
+| Fresh private target | 256 codegen units | 4,666,556,416 | 102.46 | 234.21 |
+| Fresh private target | 64 codegen units | 5,367,201,792 | 101.64 | 225.38 |
+| Fresh library, shared dependencies | 256 codegen units | 4,990,140,416 | 101.72 | 102.62 |
+| Fresh library, shared dependencies | 512 codegen units | 4,957,962,240 | 102.42 | 103.14 |
+| Fresh library, shared dependencies | 256 units, default page decay | 5,098,864,640 | 102.12 | 107.48 |
+| Fresh library, shared dependencies | 256 units, immediate page decay | 5,211,455,488 | 109.96 | 115.96 |
+
+The fresh-target builds used `cargo build --locked --offline --lib -p semaprax
+--jobs 1` with `CARGO_PROFILE_DEV_CODEGEN_UNITS` set per arm. The shared-dependency
+builds used `cargo rustc` with an explicit final codegen-unit argument. Both
+allocator runs passed identical compiler arguments and used the existing
+jemalloc allocator. The second set `dirty_decay_ms:0,muzzy_decay_ms:0` for the
+compiler process only. The two allocator builds produced byte-identical
+library archives. [jemalloc options](https://jemalloc.net/jemalloc.3.html)
+
+The 256-unit fresh-target compiler was in MIR borrow checking at its first
+4 GiB RSS observation. In the shared-dependency default-allocator build, a
+one-second stack sample started at 43.00 seconds with 4,991,778,816 bytes RSS.
+The sampled RSS reached 5,057,740,800 bytes at 43.23 seconds. That stack showed
+crate metadata encoding. A later sample also showed monomorphization
+collection under metadata encoding. The 512-unit result differs from its
+matched baseline by less than the variation between the 256-unit builds.
+
+The 64- and 256-unit fresh-target builds produced byte-identical calculator
+source, graph JSON, C11, Core Wasm, and unknown-call diagnostics. Their emitted
+C11 ran at `-O0` and `-O2`, and Core Wasm ran in Node, all returning 42.
+The HIR, workspace, and native interop audit binaries discovered 11, 505, and
+249 tests respectively. Each original audit selector discovered and passed
+exactly one test. The source-authority unit tests, current source-pin producer
+check, and scoped production Clippy passed.

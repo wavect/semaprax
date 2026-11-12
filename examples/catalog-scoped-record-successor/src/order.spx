@@ -31,6 +31,16 @@ fn valid_sorted_tags(tags: borrow Vec<string>) -> bool
     valid
 }
 
+@id("catalog.valid_item_fields")
+fn valid_item_fields(item: borrow InputItem) -> bool
+{
+    let department = item.department;
+    let priority = item.priority;
+    let stock = item.stock;
+    let topup = item.topup;
+    department >= 0 && department <= 9 && priority >= 0 && priority <= 9 && stock >= 0 && stock <= 1000 && topup >= 0 && topup <= 1000
+}
+
 @id("catalog.valid_sorted_items")
 fn valid_sorted_items(items: borrow Vec<InputItem>) -> bool
 {
@@ -39,11 +49,7 @@ fn valid_sorted_items(items: borrow Vec<InputItem>) -> bool
     let mut valid = true;
     for borrow item at index in items {
         let current = item.id;
-        let department = item.department;
-        let priority = item.priority;
-        let stock = item.stock;
-        let topup = item.topup;
-        valid = identifier(current) && department >= 0 && department <= 9 && priority >= 0 && priority <= 9 && stock >= 0 && stock <= 1000 && topup >= 0 && topup <= 1000;
+        valid = identifier(current) && valid_item_fields(item);
         if valid && index > 0usize { let previous = vec_field<InputItem>(items, index - 1usize, "id"); valid = !equals(previous, current); }
         if !valid { break; }
         0

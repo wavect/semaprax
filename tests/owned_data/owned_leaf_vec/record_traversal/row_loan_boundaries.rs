@@ -1,4 +1,4 @@
-//! Additional OPT-775 acceptance definitions; execution remains pending.
+//! Row Loan v1 capacity, cleanup and ordinary call boundaries.
 use std::process::Command;
 use std::sync::atomic::Ordering;
 
@@ -9,6 +9,90 @@ const DECLARATION: &str = r#"module app.loan_boundary;
 }
 @id("boundary.weight") fn weight(row:borrow LoanRow)->i64 {row.priority}
 "#;
+
+fn run_boundary(body: &str, code: u32, expected: i64) {
+    let source = format!("{DECLARATION}{body}");
+    let path = std::env::temp_dir().join(format!(
+        "row-loan-boundary-{}-{}.spx",
+        std::process::id(),
+        super::super::SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::write(&path, &source).unwrap();
+    let report =
+        semaprax::interpreter::interpret(&path, "app.main", &[], &Default::default()).unwrap();
+    std::fs::remove_file(path).unwrap();
+    semaprax::interpreter::verify_envelope(&report.envelope).unwrap();
+    let wire: serde_json::Value = serde_json::from_str(&report.envelope).unwrap();
+    let outcome = &wire["payload"]["outcome"];
+    let domain = "semaprax.contract.v1";
+    if code == 0 {
+        assert!(report.returned);
+        assert_eq!(outcome["value"], expected.to_string());
+    } else {
+        assert!(!report.returned);
+        assert_eq!(outcome["status"]["domain_id"], domain);
+        assert_eq!(outcome["status"]["code"], code);
+        assert!(outcome.get("value").is_none());
+    }
+    super::super::super::scoped_vec_field_native::run_status(&source, code, domain, expected);
+    let wasm_body = source.strip_prefix("module app.loan_boundary;\n").unwrap();
+    if code == 0 {
+        super::super::run_wasm(wasm_body, code, expected, "none");
+    } else {
+        super::super::run_wasm_status(wasm_body, code, expected, "contract-view", Some(domain));
+    }
+}
+
+#[test]
+fn row_loan_expires_before_continue_and_early_return_on_all_engines() {
+    run_boundary(
+        r#"
+@id("app.main") fn main()->i64 {
+ let first=vec_push<LoanRow>(vec_with_capacity<LoanRow>(3usize),LoanRow{title:"first",priority:7});
+ let second=vec_push<LoanRow>(first,LoanRow{title:"second",priority:11});
+ let rows=vec_push<LoanRow>(second,LoanRow{title:"third",priority:13});
+ let mut total=0;
+ for borrow row at index in rows {
+  total=total+weight(row);
+  if index==0usize {continue;}
+  if index==1usize {return total;}
+  0
+ }
+ 0
+}"#,
+        0,
+        18,
+    );
+}
+
+#[test]
+fn row_loan_keeps_argument_failures_in_authored_order_on_all_engines() {
+    let body = r#"
+@id("boundary.early") fn early(value:i64)->i64 requires value>0 {value}
+@id("boundary.late") fn late(value:i64)->i64 ensures result>0 {value}
+@id("boundary.weighted")
+fn weighted(before:i64,row:borrow LoanRow,after:i64)->i64 requires row.priority>10 {
+ before+row.priority+after
+}
+@id("app.main") fn main()->i64 {
+ let first=vec_push<LoanRow>(vec_with_capacity<LoanRow>(2usize),LoanRow{title:"first",priority:13});
+ let rows=vec_push<LoanRow>(first,LoanRow{title:"second",priority:7});
+ let mut total=0;
+ for borrow row at index in rows {
+  let value=1-i64_from_usize(index);
+  total=total+weighted(early(1),row,late(value));
+  0
+ }
+ total
+}"#;
+    // The second iteration reaches a failing later argument and a failing
+    // callee precondition. The argument's postcondition selects code 2 first.
+    run_boundary(body, 2, 0);
+    // A failing first argument suppresses the later argument and the callee.
+    let first_fails = body.replace("weighted(early(1),", "weighted(early(value),");
+    assert_ne!(first_fails, body);
+    run_boundary(&first_fails, 1, 0);
+}
 
 #[test]
 fn maximum_string_record_row_loans_preserve_order_and_nonallocating_reentry() {
@@ -124,19 +208,22 @@ static __attribute__((unused)) void spx_fault_free(void*p){
 int main(void){
  struct spx_status_entry entries[32];struct spx_context context={0};
  if(!spx_context_init(&context,17,entries,32,NULL,NULL,NULL))return 1;
- for(uint64_t cut=0;cut<=3;++cut)for(uint32_t repeat=0;repeat<4;++repeat){
-  spx_fault_cut=cut;spx_fault_attempt=0;spx_fault_read=false;
-  uint32_t before=context.status_arena.length;int64_t result=INT64_C(252525);
-  spx_status_token status=spx_decl_6170702e6d61696e(&context,&result);
-  if(!cut){
-   if(status!=SPX_STATUS_SUCCESS||result!=31||!spx_fault_read||spx_fault_attempt!=3||context.status_arena.length!=before)return 2;
-  }else{
-   const struct spx_normalized_status *entry=spx_status_resolve(&context,status);
-   if(status==SPX_STATUS_SUCCESS||result!=INT64_C(252525)||spx_fault_read||spx_fault_attempt!=cut||!entry||entry->code!=3||strcmp(entry->domain_id,"semaprax.vec.v1")||context.status_arena.length!=before+1)return 3;
+ for(uint64_t cut=0;cut<=3;++cut){
+  for(uint32_t repeat=0;repeat<4;++repeat){
+   spx_fault_cut=cut;spx_fault_attempt=0;spx_fault_read=false;
+   uint32_t before=context.status_arena.length;int64_t result=INT64_C(252525);
+   spx_status_token status=spx_decl_6170702e6d61696e(&context,&result);
+   if(!cut){
+    if(status!=SPX_STATUS_SUCCESS||result!=31||!spx_fault_read||spx_fault_attempt!=3||context.status_arena.length!=before)return 2;
+   }else{
+    const struct spx_normalized_status *entry=spx_status_resolve(&context,status);
+    if(status==SPX_STATUS_SUCCESS||result!=INT64_C(252525)||spx_fault_read||spx_fault_attempt!=cut||!entry||entry->code!=3||strcmp(entry->domain_id,"semaprax.vec.v1")||context.status_arena.length!=before+1)return 3;
+   }
+   if(spx_fault_live)return 4;
+   for(uint32_t j=0;j<SPX_VEC_AUTHORITY_CAPACITY;++j)if(context.vec_authority[j].live)return 5;
   }
-  if(spx_fault_live)return 4;
-  for(uint32_t j=0;j<SPX_VEC_AUTHORITY_CAPACITY;++j)if(context.vec_authority[j].live)return 5;
- }return 0;
+ }
+ return 0;
 }
 "#;
     for optimization in ["-O0", "-O2"] {

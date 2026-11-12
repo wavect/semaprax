@@ -203,8 +203,27 @@ fn next_time_from_arrivals_indexed_control(arrivals: borrow Vec<i64>, arrived: u
 }
 
 // The actual owning Worker rows replace the runtime parallel worker-state Vec.
+@id("shiftsim.schedule.worker_available")
+fn worker_available(worker: borrow Worker, time: i64) -> bool
+{
+    worker.free_at <= time
+}
+
 @id("shiftsim.schedule.next_worker")
 fn next_worker(workers: borrow Vec<Worker>, count: usize, time: i64) -> usize
+{
+    if count > vec_len<Worker>(workers) { return next_worker_indexed_control(workers, count, time); }
+    let mut selected = count;
+    for borrow worker at index in workers {
+        if index >= count { break; }
+        if worker_available(worker, time) { selected = index; break; }
+        0
+    }
+    selected
+}
+
+@id("shiftsim.schedule.next_worker.indexed_control")
+fn next_worker_indexed_control(workers: borrow Vec<Worker>, count: usize, time: i64) -> usize
 {
     let mut index = 0usize;
     while index < count {

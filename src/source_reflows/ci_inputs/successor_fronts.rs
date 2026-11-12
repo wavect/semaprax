@@ -438,6 +438,16 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
         physical, compiled,
         "complete actual compiled source channel"
     );
+    // Some inherited consumers converge on this interface more than once.
+    // A repeated input must equal the complete predecessor reconstructed below.
+    let registry_scratch = owner == "interface754"
+        && source
+            == "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs";
+    let registry_archive = registry_scratch
+        && supplied.len() == 17719
+        && digest(supplied) == REGISTRY_SCRATCH_BEFORE;
+    let interface_predecessor =
+        owner == "interface754" && supplied == row["before_text"].as_str().unwrap();
     let constructor = constructor903_before(source, compiled);
     let acquired = constructor
         .filter(|before| supplied == compiled || supplied == before.as_str())
@@ -446,9 +456,14 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
                 && digest(supplied) == row["current_sha256"].as_str().unwrap())
             .then(|| supplied.to_owned())
         })
+        .or_else(|| {
+            (registry_scratch
+                && (supplied == compiled || interface_predecessor || registry_archive))
+                .then(|| interface754_scratch_before_format(compiled))
+        })
         .or_else(|| next_emission_before(owner, source, supplied, compiled))
         .or_else(|| next_custody_front(owner, source, supplied, compiled, row));
-    if acquired.is_none() {
+    if acquired.is_none() && !interface_predecessor && !registry_archive {
         assert_eq!(supplied, compiled, "complete compiled source channel");
     }
     let compiled = acquired.as_deref().unwrap_or(compiled);
@@ -472,7 +487,77 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
     assert_eq!(restored, row["before_text"].as_str().unwrap());
     assert_eq!(restored.len() as u64, row["before_length"]);
     assert_eq!(digest(&restored), row["before_sha256"]);
+    if registry_scratch {
+        let before = registry_scratch_before_transport(root, restored);
+        if registry_archive {
+            assert_eq!(before, supplied, "complete inherited registry scratch input");
+        }
+        return before;
+    }
     restored
+}
+
+fn interface754_scratch_before_format(compiled: &str) -> String {
+    const FORMATTED: &str = concat!(
+        "    assert!(\n",
+        "        super::super::names::before_interface_source(include_str!(\"../names.rs\"))\n",
+        "            .contains(&format!(\"pub(super) fn first({old_first}\"))\n",
+        "    );\n",
+    );
+    const BEFORE: &str = concat!(
+        "    assert!(super::super::names::before_interface_source(include_str!(\"../names.rs\"))\n",
+        "        .contains(&format!(\"pub(super) fn first({old_first}\")));\n",
+    );
+    assert_eq!(
+        digest(compiled),
+        "9949e7c0061ee45937655ff0b4a549ea0fb1d07a16749bad8e3724f380c343ba"
+    );
+    assert_eq!(compiled.matches(FORMATTED).count(), 1);
+    compiled.replacen(FORMATTED, BEFORE, 1)
+}
+
+const REGISTRY_SCRATCH_BEFORE: &str =
+    "0bf3a868125c5d381ead3b67127f622085d8fba09b23862db68bdad13c271ec6";
+
+// The two retained registry fixtures also predate the test data transport.
+fn registry_scratch_before_transport(root: &std::path::Path, mut prior: String) -> String {
+    const TRANSPORT_EDITS: [(&str, &str); 2] = [
+        (
+            concat!(
+                "    let packet: serde_json::Value =\n",
+                "        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\n",
+                "            crate::source_reflows_merge::ReceiverFixture::RegistryScratch,\n",
+                "        ))\n",
+                "        .unwrap();\n",
+            ),
+            concat!(
+                "    let packet: serde_json::Value = serde_json::from_str(include_str!(\n",
+                "        \"../../../../../docs/evidence/registry-census-scratch-833/source-inverses.json\"\n",
+                "    ))\n",
+                "    .unwrap();\n",
+            ),
+        ),
+        (
+            concat!(
+                "        crate::source_reflows_merge::receiver_child_entry(\n",
+                "            \"src/workspace_graph/expected_projection/private_layout/before_registry.rs\",\n",
+                "            include_str!(\"../before_registry.rs\"),\n",
+                "        ),\n",
+            ),
+            "        include_str!(\"../before_registry.rs\"),\n",
+        ),
+    ];
+    for (after, before) in TRANSPORT_EDITS {
+        assert_eq!(prior.matches(after).count(), 1);
+        prior = prior.replacen(after, before, 1);
+    }
+    let archive = root.join("e").join(REGISTRY_SCRATCH_BEFORE);
+    assert_eq!(
+        reader::read(&archive, 17719, REGISTRY_SCRATCH_BEFORE, 2_097_152).unwrap(),
+        prior,
+        "complete independently saved registry scratch source"
+    );
+    prior
 }
 
 // Only these four exact current fronts may precede the immutable26 input epochs.

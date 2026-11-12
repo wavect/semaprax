@@ -162,3 +162,28 @@ fn allocation_bearing_string_slot_oracle_is_the_complete_original_source() {
         include_str!("../../../docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt")
     );
 }
+
+#[test]
+fn primitive_string_slot_loans_pay_exact_storage_and_refuse_one_short() {
+    let ast = crate::check(
+        r#"module slots;
+@id("slots.inspect") fn inspect(values:own Vec<string>)->i64 {
+ let text=vec_str_at(values,0usize);
+ let bytes=str_as_bytes(vec_str_at(values,1usize));
+ if byte_len(bytes)==1usize {str_len_bytes(text)} else {0}
+}
+@id("slots.main") fn main()->i64 {0}
+"#,
+        "paid-string-slots.spx",
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "slots.inspect")
+        .unwrap();
+    let old = saved_planner::build_plan(&program, function).unwrap();
+    assert!(!old.loans.is_empty());
+    assert_paid_owner_through_drop(&program, function, &old);
+}

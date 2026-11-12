@@ -242,8 +242,13 @@ argument ownership, Done and Yield patterns, and the independently replayed
 latch under its existing paid preflight. The cleanup inventory independently
 rebuilds the iterator drop leaf, the case-qualified Yield item and remainder
 flags, and the staged owned argument slots for `vec_into_iter` and `iter_next`.
-The retained Project gate still requires selected structural and path replay
-of conditional variant ownership and iterator-scope cleanup.
+The selected cleanup leaf index verifies the exact Done and Yield layout and
+retains the case-qualified paths. Structural block and edge replay checks the
+whole typed Bytes step places for variant transitions and the owned iterator
+call arguments. The original Graph v78 Project advances to the owned iterator
+scope check in selected exit replay, where it still returns SPX-G410. Direct
+Graph v78 bytes and the retained Graph v77 check and interpreter receipt match
+their earlier baselines.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

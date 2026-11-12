@@ -40,6 +40,7 @@ enum Signature<'a> {
         &'a [ResolvedExpr],
     ),
     Field(&'a [ResolvedExpr]),
+    Iterator(&'a ResolvedType),
 }
 // Inline pure signature queries avoid inventing fallible forwarding Results.
 // Every exact new binding/result is reserved before the borrowed query expands.
@@ -174,6 +175,15 @@ macro_rules! signature_parameter {
                 )),
                 None => None,
             },
+            Signature::Iterator(ty) => {
+                $budget.reserve_array::<(&&ResolvedType, Option<(OwnershipMode, &ResolvedType)>)>(
+                    $function,
+                    1,
+                    "selected iterator parameter receiving",
+                )?;
+                $budget.charge($function, 2, "selected iterator parameter receiving")?;
+                ($index == 0).then_some((OwnershipMode::Own, *ty))
+            }
         }
     }};
 }
@@ -219,6 +229,7 @@ macro_rules! signature_len {
             Signature::Str(op) => op.param_types().len(),
             Signature::Function(target) => target.params.len(),
             Signature::Vector(_, _, _, args) | Signature::Field(args) => args.len(),
+            Signature::Iterator(_) => 1,
         }
     }};
 }
@@ -376,6 +387,28 @@ fn signature<'a>(
         ));
     }
     if fact.instance.is_some() || !fact.type_arguments.is_empty() {
+        if program.retained_static_byte_iterators() {
+            if let Some(op) = crate::iterator_ops::by_id(fact.callee.as_str()) {
+                budget.reserve_array::<(
+                    crate::iterator_ops::IteratorOp,
+                    &ResolvedExpr,
+                    &DeclarationId,
+                    &ResolvedExpr,
+                    Result<Signature<'_>, Error>,
+                )>(function, 2, "selected iterator signature receiving")?;
+                budget.charge(function, 5, "selected iterator signature receiving")?;
+                selected_profile::paid_children::byte_iterator::call(
+                    function, expression, op, budget,
+                )?;
+                if let ResolvedExprKind::Call { callee, args, .. } = &expression.kind {
+                    if callee == fact.callee.as_ref() {
+                        if let [argument] = args.as_slice() {
+                            return Ok(Signature::Iterator(&argument.ty));
+                        }
+                    }
+                }
+            }
+        }
         return Err(Error::static_error(
             &permit,
             CallKind::SelectedCallCommitDoesNotSupportGenericCalls,

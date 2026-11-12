@@ -70,7 +70,11 @@ pub(super) fn validate_paid(
         inventory_coverage::paid::validate_inventory_coverage(program, function, budget)?;
         status_construction::paid::validate_required_status_sources(program, function, budget)?;
         let storage = structural_maps::paid::slots(function, budget)?;
-        let leaves = structural_maps::paid::leaves(function, budget)?;
+        let leaves = if program.retained_static_byte_iterators() {
+            structural_maps::paid::iterator_leaves(function, budget)?
+        } else {
+            structural_maps::paid::leaves(function, budget)?
+        };
         crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
             budget,
             function,

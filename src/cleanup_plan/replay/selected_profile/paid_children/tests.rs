@@ -82,6 +82,44 @@ fn retained_byte_iterator_preflight_replays_the_typed_latch_and_its_exact_budget
         let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
         assert!(validate_inventory_coverage(context, function, &mut short).is_err());
 
+        use crate::cleanup_plan::replay::{collect_leaves_paid, structural_maps};
+        let mut ordinary_budget = ReplayBudget::unobserved();
+        let ordinary = collect_leaves_paid(function, &mut ordinary_budget).unwrap();
+        let mut measured = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        let indexed = structural_maps::paid::iterator_leaves(function, &mut measured).unwrap();
+        assert_eq!(ordinary.len(), indexed.len());
+        for ((flag, leaf), (expected_flag, expected)) in indexed.iter().zip(ordinary.iter()) {
+            assert_eq!(
+                (flag, &leaf.place, &leaf.lifecycle),
+                (expected_flag, &expected.place, &expected.lifecycle)
+            );
+        }
+        let used = measured.physical.as_deref().unwrap().charged();
+        let mut exact = ReplayBudget::with_physical(function, used).unwrap();
+        assert!(structural_maps::paid::iterator_leaves(function, &mut exact).is_ok());
+        assert_eq!(exact.physical.as_deref().unwrap().charged(), used);
+        let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
+        assert!(structural_maps::paid::iterator_leaves(function, &mut short).is_err());
+        let mut closed = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        assert!(structural_maps::paid::leaves(function, &mut closed).is_err());
+
+        let mut budget = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        let held =
+            selected_context::Context::new_paid(context, function, &mut budget, true).unwrap();
+        let facts = expression_facts::paid_arena(function, &mut budget).unwrap();
+        let storage = structural_maps::paid::slots(function, &mut budget).unwrap();
+        crate::cleanup_plan::replay::structural_control::selected::validate_blocks_and_edges_paid(
+            &held,
+            function,
+            &facts,
+            &storage,
+            &indexed,
+            held.primitive_renewals(function).unwrap(),
+            &mut budget,
+        )
+        .map_err(|e| detailed(function, e))
+        .unwrap();
+
         let mut forged = function.clone();
         let flag = forged
             .cleanup

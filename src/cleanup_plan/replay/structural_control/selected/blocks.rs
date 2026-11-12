@@ -504,6 +504,59 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_paid(
                         }
                     }
                 }
+                CleanupTransition::AuthenticateVariantCase {
+                    at,
+                    source,
+                    variant,
+                    case,
+                } if program.retained_static_byte_iterators()
+                    && variant.as_str() == crate::iterator_ops::STEP_ID =>
+                {
+                    let rejected = Reason::Finite(
+                        Kind::SelectedStructuralReplayDoesNotSupportConditionalVariantOwnership,
+                    );
+                    budget.charge(function, 1, "selected iterator case identity")?;
+                    if !matches!(
+                        case.as_str(),
+                        crate::iterator_ops::DONE_ID | crate::iterator_ops::YIELD_ID
+                    ) {
+                        return Err(permit.control(rejected));
+                    }
+                    helpers::require_expression(expressions, function, at, budget)?;
+                    require_byte_step_place(function, source, &permit, budget)?;
+                }
+                CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } if program.retained_static_byte_iterators()
+                    && variant.as_str() == crate::iterator_ops::STEP_ID =>
+                {
+                    helpers::require_expression(expressions, function, at, budget)?;
+                    require_byte_step_place(function, source, &permit, budget)?;
+                    require_byte_step_place(function, destination, &permit, budget)?;
+                    budget.charge(
+                        function,
+                        byte_step_place_id(source).map_or(1, |id| id.len() + 1),
+                        "selected iterator transfer identity",
+                    )?;
+                    if source == destination {
+                        return Err(permit.control(Reason::Finite(
+                            Kind::CleanupTransferHasIncompatibleStructuralPlaces,
+                        )));
+                    }
+                }
+                CleanupTransition::InitializeVariant {
+                    at,
+                    destination,
+                    variant,
+                } if program.retained_static_byte_iterators()
+                    && variant.as_str() == crate::iterator_ops::STEP_ID =>
+                {
+                    helpers::require_expression(expressions, function, at, budget)?;
+                    require_byte_step_place(function, destination, &permit, budget)?;
+                }
                 CleanupTransition::AuthenticateVariantCase { .. }
                 | CleanupTransition::TransferVariant { .. }
                 | CleanupTransition::InitializeVariant { .. } => {
@@ -912,6 +965,64 @@ pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges_paid(
         }
     }
     Ok(())
+}
+
+fn byte_step_place_id(place: &CleanupPlace) -> Option<&str> {
+    match &place.storage {
+        StorageId::Value(id) => Some(id.as_str()),
+        StorageId::Temporary(id) => Some(id.as_str()),
+        StorageId::CallArgument { .. } | StorageId::ProvisionalResult => None,
+    }
+}
+
+/// The preceding inventory phase establishes the case/field layout. Structural
+/// replay independently requires the whole, exact Bytes step slot at each use.
+fn require_byte_step_place(
+    function: &ResolvedFunction,
+    place: &CleanupPlace,
+    permit: &Permit<'_>,
+    budget: &mut ReplayBudget,
+) -> Result<(), Error> {
+    type Receiving<'a> = (
+        &'a ResolvedFunction,
+        &'a CleanupPlace,
+        &'a Permit<'a>,
+        &'a mut ReplayBudget,
+        Option<&'a str>,
+        &'a str,
+        std::slice::Iter<'a, crate::cleanup_plan::CleanupSlot>,
+        Result<(), Error>,
+    );
+    budget.reserve_array::<Receiving<'_>>(function, 2, "selected iterator place receiving")?;
+    budget.charge(function, 8, "selected iterator place receiving")?;
+    let failure =
+        Reason::Finite(Kind::SelectedStructuralReplayDoesNotSupportConditionalVariantOwnership);
+    let Some(id) = byte_step_place_id(place).filter(|_| place.projections.is_empty()) else {
+        return Err(permit.control(failure));
+    };
+    let mut entries = function.cleanup_plan.slots.iter();
+    while let Some(slot) = dynamic_next!(
+        budget,
+        function,
+        entries,
+        std::slice::Iter<'_, crate::cleanup_plan::CleanupSlot>,
+        &crate::cleanup_plan::CleanupSlot,
+        (&crate::cleanup_plan::CleanupSlot),
+        3
+    ) {
+        budget.charge(function, id.len() + 1, "selected iterator place lookup")?;
+        if slot.storage == place.storage {
+            if crate::iterator_ops::is_step(&slot.ty)
+                && crate::iterator_ops::element(&slot.ty) == Some(&ResolvedType::Bytes)
+                && matches!(&slot.field_liveness_shape, FieldLivenessShape::Variant { declaration, .. }
+                    if declaration.as_str() == crate::iterator_ops::STEP_ID)
+            {
+                return Ok(());
+            }
+            break;
+        }
+    }
+    Err(permit.control(failure))
 }
 fn owned_edge(
     function: &ResolvedFunction,

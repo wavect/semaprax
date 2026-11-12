@@ -156,11 +156,27 @@ pub(in crate::cleanup_plan::replay) fn leaves(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Leaves, Error> {
+    collect_leaves::<false>(function, budget)
+}
+
+/// Called only after the retained source receiver has rebuilt the exact typed
+/// cleanup inventory. The closed iterator shapes are checked again while indexing.
+pub(in crate::cleanup_plan::replay) fn iterator_leaves(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Leaves, Error> {
+    collect_leaves::<true>(function, budget)
+}
+
+fn collect_leaves<const BYTE_ITERATORS: bool>(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Leaves, Error> {
     let permit = Permit::profile::<Leaves>(function, budget)?;
     let mut leaves = BTreeMap::new();
     let mut places = BTreeSet::new();
     for slot in &function.cleanup_plan.slots {
-        flat_records::paid_leaves::collect_slot_leaves(
+        flat_records::paid_leaves::collect_slot_leaves::<BYTE_ITERATORS>(
             function,
             slot,
             &mut leaves,

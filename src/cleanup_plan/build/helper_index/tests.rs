@@ -46,8 +46,12 @@ fn construction_index_reuses_exact_sites_and_preserves_independent_plan_bytes() 
         }
         crate::hir::validate(&program).unwrap();
         crate::cleanup_plan::validate_program(&program).unwrap();
-        crate::cleanup_plan::replay::phase_measurement::replay(&program, false).unwrap();
-        crate::cleanup_plan::replay::phase_measurement::replay(&program, true).unwrap();
+        for indexed in [false, true] {
+            let (result, overflowed, _) =
+                crate::cleanup_plan::replay::phase_measurement::replay(&program, indexed);
+            assert!(!overflowed);
+            result.unwrap();
+        }
     }
 }
 

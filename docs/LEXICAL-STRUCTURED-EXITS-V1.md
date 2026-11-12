@@ -2,8 +2,9 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: implementation in progress. No source, HIR, cache, cleanup, interpreter,
-native or Wasm qualification is asserted by this design. OPT #734 remains Partial.
+Status: focused local qualification for the unlabeled lexical exits in
+OPT #734 across source, HIR, cache, cleanup, interpreter, native C11 and
+strict Core Wasm.
 
 This tranche admits unlabeled `break;`, `continue;` and `return value;` over the
 already admitted carrier families. It adds no residual protocol, comparator,

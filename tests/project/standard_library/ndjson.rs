@@ -15,6 +15,40 @@ fn bounded_ndjson_framing_and_structured_faults_execute_on_all_three_backends() 
 }
 
 #[test]
+fn ndjson_checked_cache_preserves_the_authenticated_project_graph() {
+    let manifest = root().join("std/data-ndjson/semaprax.toml");
+    project::with_authenticated_project(&manifest, |snapshot| {
+        let sources = snapshot
+            .manifest()
+            .sources()
+            .iter()
+            .map(|path| {
+                let source = snapshot
+                    .sources()
+                    .iter()
+                    .find(|source| source.path() == path)
+                    .expect("authenticated authored NDJSON source");
+                project::ProjectFrontendSource::new(source.path(), source.source()).unwrap()
+            })
+            .collect::<Vec<_>>();
+        let mut cache = project::ProjectFrontendCache::new_with_semantic_cache();
+        let cold = cache.build(snapshot.manifest(), &sources)?;
+        let warm = cache.build(snapshot.manifest(), &sources)?;
+        let work: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();
+        assert_eq!(work["work"]["checked_HIR_reused"], snapshot.sources().len());
+        assert_eq!(work["work"]["modules_resolved"], 0);
+        for build in [&cold, &warm] {
+            let expected = snapshot.semantic_graph();
+            let actual = build.revision().semantic_graph();
+            assert!(actual == expected, "checked NDJSON Project graph changed");
+            hir::validate(build.revision().test_program()).unwrap();
+        }
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
 fn ndjson_receiving_range_rejects_foreign_root_type_operation_and_stale_producer() {
     let manifest = root().join("std/data-ndjson/semaprax.toml");
     project::with_authenticated_project(&manifest, |snapshot| {

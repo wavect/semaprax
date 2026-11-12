@@ -44,12 +44,16 @@ fn forged_cuts() -> bool
 {
     let raw = [123u8, 125u8, 10u8, 123u8, 125u8];
     let changed = [123u8, 10u8, 125u8, 123u8, 125u8];
+    let same_cuts = [123u8, 125u8, 10u8, 226u8, 130u8];
     let body = array_as_slice(raw);
     let frame = frame_at(body, 1usize);
+    let other_body = array_as_slice(same_cuts);
+    let original_fault = basic_fault(body, frame);
+    let current_fault = basic_fault(other_body, frame);
     let outside = Frame { ordinal: 1usize, start: 3usize, end: 6usize, next: 6usize };
     let overlap = Frame { ordinal: 1usize, start: 0usize, end: 2usize, next: 3usize };
     let wrong = Frame { ordinal: 0usize, start: 3usize, end: 5usize, next: 5usize };
-    frame_matches(body, frame) && !frame_matches(body, outside) && !frame_matches(body, overlap) && !frame_matches(body, wrong) && !frame_matches(array_as_slice(changed), frame)
+    frame_matches(body, frame) && !frame_matches(body, outside) && !frame_matches(body, overlap) && !frame_matches(body, wrong) && !frame_matches(array_as_slice(changed), frame) && frame_matches(other_body, frame) && original_fault.category == 0 && current_fault.category == 2 && current_fault.record_index == 1 && current_fault.byte_offset == 0usize
 }
 
 @id("std.data.ndjson.tests.line-bounds")

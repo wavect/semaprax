@@ -2,7 +2,7 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: source implementation and owning regression definitions authored; executable qualification pending. This is the bounded LF-only Catalog Normalizer composition tracked by [OPT #760](https://github.com/wavect/semaprax/issues/760). It does not change the LogLens line policy or the Catalog restock command.
+Status: focused package and Catalog Normalizer qualification passed on macOS arm64. Matched agent trials remain pending for the bounded LF-only composition tracked by [OPT #760](https://github.com/wavect/semaprax/issues/760).
 
 ## API and authority
 
@@ -24,6 +24,10 @@ The selected framing policy is a body of at most 65536 bytes, at most 256 record
 
 `examples/catalog-normalizer-project/src/batch.spx` forms the actual receiving range and maps structured faults back to its unchanged packed application error representation. Strict JSON/field ordering, decoded ID duplicate priority, checked totals and all-or-nothing publication remain unchanged. The frozen [Catalog Normalizer oracle v1](CATALOG-NORMALIZER-ORACLE-V1.md) still owns all application behavior and its 160M fuel ceiling. Catalog23 remains a separate regression.
 
-Owning definitions are `standard_library::ndjson::{bounded_ndjson_framing_and_structured_faults_execute_on_all_three_backends, ndjson_receiving_range_rejects_foreign_root_type_operation_and_stale_producer, ndjson_forged_frame_contract_is_sticky_and_failed_ranges_never_publish}` in the project harness. They cover interpreter/C11 O0/O2/Core Wasm success, exact/one-over framing bounds, current-HIR root/type/operation/producer mutations, numeric overlap/out-of-range faults and exact requires-false interpreter/native O0/O2/Wasm reentry with poisoned publication and zero live owners. The native probe also requires zero heap allocations for these Array-backed refusals. These definitions remain unexecuted; normalizer backend serialized-fault coverage does not substitute for them. They do not claim an origin-bound cached frame receipt.
+The `standard_library::ndjson` Project tests passed on macOS arm64. The interpreter, C11 O0/O2 and Core Wasm ran the package examples and conformance checks, including exact and one-over framing limits. The equal-cut case reuses a numeric frame with a different body and reports the UTF-8 error from the current bytes. The HIR verifier refused foreign roots and forged types, operations and producers. Overlapping or out-of-range cuts selected the exact requires-false status across repeated calls, with poisoned result storage and zero live owners. The native probe observed zero heap allocations for these Array-backed refusals.
 
-The useful-data harness retains `catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends` and adds `catalog_normalizer_application::ndjson::old_framing_and_new_structured_receiver_preserve_the_complete_normalizer_oracle`. The latter uses the unchanged original batch source as an independent differential control and runs the complete published36/source14/max-output/backend matrix for both paths. Generated standard-library catalogs must be refreshed with the owning producer after integration. No backend equivalence, fit, performance gain, or full issue completion is established until these definitions and the unchanged ownership/storage gates execute on the integrated source.
+Both cold and warm checked-cache builds preserved the complete authenticated Project graph byte for byte. The warm build reused all six checked modules, including bundled dependencies, and passed HIR validation. The catalog producer ran and the committed catalogs matched its output.
+
+All 13 Catalog Normalizer tests passed. The differential ran the saved original batch source and the structured receiver. Both matched all 36 published oracle cases in the interpreter and ran the 14 declared cases in the interpreter, C11 O0/O2 and Core Wasm. Both produced the exact maximum valid responses within 160 million interpreter steps. The separate Catalog23 restock regression passed all 23 original cases.
+
+These runs establish functional and backend qualification for the exercised profiles. Fresh matched agent runs are still required to measure authored tokens, turns and accepted-task cost.

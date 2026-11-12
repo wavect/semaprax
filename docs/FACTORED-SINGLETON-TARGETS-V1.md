@@ -92,7 +92,7 @@ Drop against that immediate receiver. The original strict paid gate and wide/
 unique controls remain unchanged. No executable gain or application recovery is
 claimed before a fresh combined qualification.
 
-## Composed paid Many successor (OPT870, source only)
+## Composed paid Many successor (OPT870)
 
 The ordinary canonicalizer keeps the preceding first-child and repeated-child
 One bodies. A distinct second child on a paid invocation now constructs sorted
@@ -119,7 +119,7 @@ including its original work order. No ceiling or allowance changes.
 The paid route adds explicit search, insertion and helper receiving costs;
 promotion also keeps geometric spare capacity. Many/repeated cases can therefore
 have unfavorable work or charged-byte totals even when physical allocations
-fall. Actual measurements and application outcomes are pending, not predicted.
+fall. The local component measurements below show both outcomes.
 The complete immediate51c1 Canonicalizer, terminal implementation and production
 comparison caller compile in `before_paid_many`, using the original Targets and
 source-bound unchanged helpers. All115 existing helper/test sources and both
@@ -132,6 +132,35 @@ The actual HIR/plan comparison caller and full lexical trace fixtures remain
 separate controls from direct automaton coverage. CLI, ShiftSim and normalizer
 owning gates, scoped Clippy and these focused bodies require later coordinated
 qualification. Independent incoming flat tests alone establish no adoption.
+
+### Local qualification at `dbd41b589`
+
+The serial `paid_many` and `singleton_target_tests` lib run on macOS arm64
+passed 28 checks and failed three. The passing component controls included
+exact, one-short and zero allocation limits, weighted overflow and full Drop.
+The general canonicalizer comparison at unit weight measured the following.
+Allocator bytes are cumulative requested bytes observed through Drop.
+
+| Distinct targets | Paid bytes, inline to composed | Allocator bytes, inline to composed | Allocations, inline to composed | Work, both |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 13,194 → 13,214 | 1,181 → 1,181 | 10 → 10 | 9 |
+| 1 | 20,726 → 19,146 | 3,021 → 3,013 | 27 → 26 | 41 |
+| 2 | 22,670 → 22,999 | 3,381 → 3,181 | 31 → 29 | 52 |
+| 4 | 24,622 → 30,055 | 3,781 → 3,613 | 36 → 35 | 74 |
+| 17 | 36,270 → 56,365 | 7,581 → 7,797 | 59 → 61 | 217 |
+
+The two whole-source failures first encounter
+`src/cleanup_plan/replay/factored/oracle_order.rs`. Its 31,188-byte frozen
+input from `51c1dfc49` still matches the sealed helper digest
+`a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011`.
+The current historical reader failed to acquire those bytes.
+
+The full comparison stopped at its first unobserved work check. The saved
+caller left 31,998,534 units and the shipping caller left 31,998,418.
+Temporary test instrumentation measured all 116 units in the shipping HIR
+memo release for that case. Partition validation charged 79 units and
+private-key release charged 37. This run leaves the remaining complete
+comparison checks and matched application measurements pending.
 
 ## Direct selected compatibility authentication closure (source only)
 

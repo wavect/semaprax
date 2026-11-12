@@ -602,9 +602,39 @@ fn stream_decode_only_preserves_normalization_and_native_o0_o2_statuses_without_
 use type @id("{}.json.stream-input") from consumer.schema as Input;
 use function @id("{}.json.stream.normalize") from consumer.schema as normalize;
 {PERMITS}
-@id("consumer.receive") fn receive(bytes:own Bytes,length:usize)->Outcome{{decode(byte_range(bytes_as_slice(bytes),0usize,length))}}
-@id("consumer.decide") fn decide(outcome:own Outcome)->i64{{match own outcome{{Outcome::Error{{code,offset,field}}=>2,Outcome::Decoded{{{words},{rows}}}=>if vec_len<string>({words})==1usize && vec_len<{row}>({rows})==0usize{{0}}else{{3}},}}}}
-@id("consumer.command") fn command()->i64 uses{{process.stdin.read}}{{let normalized=normalize();match own normalized{{Input::Error{{code,offset,field}}=>2,Input::Ready{{bytes,length}}=>{{let outcome=receive(bytes,length);decide(outcome)}},}}}}
+@id("consumer.receive") fn receive(bytes:own Bytes,length:usize)->Outcome {{
+    decode(byte_range(bytes_as_slice(bytes),0usize,length))
+}}
+@id("consumer.diagnostic")
+fn diagnostic(kind:borrow str,code:i64,offset:usize,field:i64)->i64 uses{{process.stderr.write}} {{
+    let line=string_format("{{}}:{{}}:{{}}:{{}}\n",string_from_str(kind),code,offset,field);
+    let view=string_as_str(line);
+    let written=stderr_write(str_as_bytes(view));
+    2
+}}
+@id("consumer.decide") fn decide(outcome:own Outcome)->i64 uses{{process.stderr.write}} {{
+    match own outcome {{
+        Outcome::Error{{code,offset,field}}=>{{
+            let kind="schema";
+            diagnostic(string_as_str(kind),code,offset,field)
+        }},
+        Outcome::Decoded{{{words},{rows}}}=>
+            if vec_len<string>({words})==1usize && vec_len<{row}>({rows})==0usize {{0}} else {{3}},
+    }}
+}}
+@id("consumer.command") fn command()->i64 uses{{process.stdin.read,process.stderr.write}} {{
+    let normalized=normalize();
+    match own normalized {{
+        Input::Error{{code,offset,field}}=>{{
+            let kind="stream";
+            diagnostic(string_as_str(kind),code,offset,field)
+        }},
+        Input::Ready{{bytes,length}}=>{{
+            let outcome=receive(bytes,length);
+            decide(outcome)
+        }},
+    }}
+}}
 @id("consumer.main") fn main()->i64{{0}}
 "#,
                     root_id(utf8),
@@ -629,15 +659,28 @@ use function @id("{}.json.stream.normalize") from consumer.schema as normalize;
             } else {
                 br#"{"servers":["A","\u0041"],"patients":[]}"#.as_slice()
             };
-            let cases = vec![
-                (valid.to_vec(), 0),
+            let mut cases = vec![
+                (valid.to_vec(), 0, Some(String::new())),
                 (
                     [vec![b' '; 70_000], valid.to_vec(), vec![b'\n'; 5_000]].concat(),
                     0,
+                    Some(String::new()),
                 ),
-                (b"{".to_vec(), 2),
-                (malformed.to_vec(), 2),
+                (b"{".to_vec(), 2, None),
+                (malformed.to_vec(), 2, None),
             ];
+            for (length, diagnostic) in [
+                (131_072, "schema:4:1:0\n"),
+                (131_073, "stream:9:131072:0\n"),
+            ] {
+                let mut input = br#"{"x":""#.to_vec();
+                input.extend(std::iter::repeat_n(b'A', length - 8));
+                input.extend_from_slice(b"\"}");
+                assert_eq!(input.len(), length);
+                cases.push((input.clone(), 2, Some(diagnostic.to_owned())));
+                input[length - 1] = b']';
+                cases.push((input, 2, Some(format!("stream:1:{}:0\n", length - 1))));
+            }
             let mut observations = Vec::new();
             for optimization in ["-O0", "-O2"] {
                 let c_path = root.join("stream.c");
@@ -655,11 +698,15 @@ use function @id("{}.json.stream.normalize") from consumer.schema as normalize;
                     "{}",
                     String::from_utf8_lossy(&compile.stderr)
                 );
-                for (input, expected) in &cases {
+                for (input, expected, diagnostic) in &cases {
                     let output = stream_execute(&binary, input);
                     assert_eq!(output.status.code(), Some(*expected));
                     assert!(output.stdout.is_empty());
-                    assert!(output.stderr.is_empty());
+                    if let Some(diagnostic) = diagnostic {
+                        assert_eq!(output.stderr, diagnostic.as_bytes());
+                    } else {
+                        assert!(!output.stderr.is_empty());
+                    }
                     observations.push((output.status.code(), output.stdout, output.stderr));
                 }
             }

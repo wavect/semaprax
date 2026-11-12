@@ -484,12 +484,43 @@ replay binds the selected profile and complete bytes; a full/lean substitution o
 forged source/receipt refuses. Collection-response encoding is independently
 selected and remains unchanged.
 
-`project::json_codec::decode_only::tests::` owns exact retained-node/golden and
-closed omission/dependency/selector/bound controls; the existing `project`
-application-JSON harness owns public replay and interpreter/native O0/O2/Wasm
-controls. Existing complete full-profile suites remain required. These controls
-are authored and unrun. Extra full generation, source parsing/AST projection,
-comparison and temporary/Drop costs remain real. Fewer admitted declarations are
-source exposure, not evidence of request-encoding hot-loop savings or net gain.
-Current source/HIR/whole-project measurements and real application acceptance
-are required before fit, latency, allocation, runtime or efficiency claims.
+### Local qualification
+
+Five local macOS arm64 projection checks covered the exact retained decoder
+AST, closed omission and dependency inventory, authored name collisions,
+explicit selectors and bounds, and the original stream permit. Seven Project
+tests exercised public source and plan replay, cross-profile and forged-source
+refusals, live revision drift, and CLI publication with no partial output.
+Direct identifier and UTF-8 fixtures compared unchanged decoder results,
+diagnostics and interpreter fuel across full and decode-only profiles. They
+also ran native C11 at O0 and O2 and strict Core Wasm, including owned-value
+settlement on materialization refusal. The two stream fixtures compared native
+O0 and O2 on valid, malformed and long-whitespace input. They matched complete
+stream and decoder error tuples at 131,072 bytes and one byte over, including
+late grammar errors. Thirteen original full-profile checks and two default
+and identifier-view checks also passed.
+
+The public starter API accepted all four selectors on v31 command fixtures.
+Each emitted receipt bound the exact plan bytes, selected profile and
+authored revision. Ordinary Project checks of the generated trees recovered
+their recorded Project and workspace revisions.
+
+The standalone CLI at `13c1cb828` derived each full and decode-only pair from
+the same authored fixture. It rejected unknown versions and invalid bound
+combinations before publication. Each published module then passed ordinary
+Project admission in a fresh copy of its fixture. Both UTF-8 arms used a
+four-byte bound. The resulting graph's `used_builder_bytes` is the maximum sequential
+builder-phase debit. Graph bytes measure the serialized output.
+
+| Request family | Source bytes, full → decode-only | Graph bytes, full → decode-only | Builder bytes, full → decode-only |
+| --- | ---: | ---: | ---: |
+| Identifier | 36,697 → 23,467 | 104,314 → 94,465 | 73,135,306 → 60,514,330 |
+| UTF-8 | 19,918 → 14,054 | 87,022 → 81,186 | 60,142,330 → 52,195,755 |
+| Stream identifier | 48,687 → 35,457 | 109,806 → 99,956 | 92,494,283 → 79,834,907 |
+| Stream UTF-8 | 31,854 → 25,990 | 92,417 → 86,581 | 78,699,851 → 70,736,596 |
+
+The builder receipts cover the resulting candidates. Derivation also generates
+the full fragment, parses it, checks the omission inventory, and holds temporary
+AST and source buffers while formatting. Ordinary Project checking and staged
+publication follow. Derivation allocations and runtime performance require
+separate measurements.

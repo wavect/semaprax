@@ -115,3 +115,25 @@ Regenerate only affected authentic artifact pins in the grouped qualification
 flow. The production browser runtime source changes, but ordinary Call graph
 and cache formats and old intrinsic/import ordering do not. Original application
 acceptance and matched agent benchmarks remain separate obligations.
+
+## Paired native physical observations
+
+The matched native probe compiled the reconstructed historical helpers and
+the current generated codec with the same checked compiler. It compared
+exact decoded and quoted bytes on 264 values per case and exercised a full
+eight-label, 256-row input. All five cases passed at O0 and O2 for both
+algorithms. The following O2 counters cover only token materialization.
+
+| Input | Historical / current allocation requests | Historical / current explicit memcpy bytes |
+| --- | ---: | ---: |
+| Unescaped ASCII, 16 bytes | 8,976 / 264 | 44,352 / 4,224 |
+| Unescaped ASCII, 64 bytes | 34,320 / 264 | 582,912 / 16,896 |
+| Escaped ASCII, 64 decoded bytes | 34,320 / 34,320 | 582,912 / 582,912 |
+| Unescaped Unicode, 64 bytes | 12,144 / 264 | 230,736 / 16,896 |
+| Mixed escaping, 64 decoded bytes | 29,040 / 29,040 | 498,432 / 498,432 |
+
+The unescaped controls asserted one allocation and one input-payload copy per
+value. The receipt also records quote work, full decode work including carrier
+operations, and process wall time for each arm and optimization level. Each
+wall-time entry is one process observation covering all three phases and
+startup. Agent token and cost qualification requires fresh matched trials.

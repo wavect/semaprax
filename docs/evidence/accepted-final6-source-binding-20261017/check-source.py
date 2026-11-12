@@ -263,7 +263,7 @@ program=original.decode()
 # This exact input-pin transport applies equally to cached and uncached execution.
 # Current pin for docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py.
 old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
-current_binding="helper_raw=bounded(helper,39799,'8cf7fc39731fcf9c9be0f3d2ab8d4dcbc00453928778d0b9b560efbba1fbbc1b')"
+current_binding="helper_raw=bounded(helper,39799,'a1f0b0a12ea4d1d118146fef6ab1d66864bc068b018e22b7edbd06aaa604d31a')"
 assert program.count(old_binding)==1
 program=program.replace(old_binding,current_binding,1)
 old_ingress=r"len(helper.encode())==19828 and sha(helper.encode())==\'799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871\'"

@@ -489,9 +489,9 @@ copied, the producer pays each teardown worklist's minimum backing and a
 fourfold undiscounted inline AST census, covering cumulative geometric worklist
 requests; this is real new teardown allowance, with no cap increase or forecast
 refund. Plain scalar/default overlays keep their allocation-free teardown.
-The standalone cache-key receiver still pays both replacement directories
-while recursive roots remain under their owner. The actual resolved-core import
-producer instead acquires each real combined directory at its original
+The saved standalone cache-key receiver pays both replacement directories
+while recursive roots remain under their owner. The independent receiving
+comparison acquires each real combined directory at its original
 construction frontier: types before copying types, functions only after the
 complete type-name verdict. It pays the affine owner and requested backing
 before `try_reserve_exact`, settles any actual excess capacity before refusal,
@@ -500,7 +500,7 @@ The structurally affine owner contains the actual Vec and immutable authored
 slice plus the current payer. It lends element slices and bounded push only,
 never a mutable Vec or detachable pointer ticket. Allocator address reuse cannot
 transplant backing authority; this is ownership, not admission authority.
-Semantic publication validates both owners and sticky state before cloning
+The receiving comparison validates both owners and sticky state before cloning
 payloads, appends authored roots into the paid spare backing, then rotates to
 canonical authored-before-generated order and moves the same Vec once.
 Original raw payload forecasts, counters and caps remain unchanged. Ordinary
@@ -509,15 +509,20 @@ cold retention avoids a second overlapping directory allocation. This is an
 explicit storage tradeoff, not an established efficiency or fit improvement.
 AST-only frontend passes receive resolved HIR without constructing a discarded
 cache key; original counters and the explicit legacy owning receiver remain.
-No shared authored AST cache or forecast-based allocation credit is created.
+The current checked cache publishes an immutable parsed-source owner and a
+separate generated overlay for eligible borrowed keys. The original
+resolved-core ledger pays the source ownership headers, retained ordinal
+storage and parsed-owner directory before acquisition. The key stays pending
+through dependency restoration and binds to the actual current source slot
+before publication. The graph uses the maximum of the actual sequential
+builder-phase debits. See the [checked cache contract](PROJECT-SEMANTIC-CACHE-V1.md#first-checked-cold-source-view).
 
-Source-authored controls retain all original standalone and raw-graph gates.
+Owning controls retain all original standalone and raw-graph gates.
 `key_directory::tests` covers real zero/exact/short/sticky allocation/Drop,
 source/detached-owner refusal, bounded no-growth mutation and terminal transfer; `borrowed_imports::tests::full::receiving`
 covers complete old/current projections and full constructor/retention/Drop
-costs separately, without subtracting the ordinary/warm spare storage. These
-controls require executable qualification; semantic diagnostic materialization
-and whole application funding remain separate residuals.
+costs separately. The [source-split receipts](evidence/immutable-cache-source-split/HANDOFF.md)
+record the active cache path's cold and warm parity checks.
 
 One actual resolved-core invocation may retain byte-helper proof Vec/cursor
 backing across its sequential forecast and constructor phases. Reuse is bound

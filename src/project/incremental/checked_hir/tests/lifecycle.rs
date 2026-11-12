@@ -7,6 +7,7 @@
 //! core retention, final publication and Drop. Counts are requested layouts,
 //! not RSS, compiler quotas, or a claim about every Project profile.
 use super::super::super::*;
+use crate::bounded_output::stage_debits::{take_completed, Trace};
 use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
 const MANIFEST: &str = r#"schema = "semaprax.project.v1"
@@ -79,6 +80,19 @@ fn stages(label: &str, snapshots: [Metrics; 7]) {
     }
 }
 
+fn core_trace() -> Trace {
+    let trace = take_completed().expect("actual resolved-core lifecycle receipt");
+    assert_eq!(trace.sum(), trace.consumed);
+    trace
+}
+
+fn core_stages(route: &str, trace: Trace) {
+    println!(
+        "lifecycle core route={route} consumed={} stages={:?}",
+        trace.consumed, trace.debits
+    );
+}
+
 #[test]
 fn actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop() {
     let manifest = ProjectManifest::parse(MANIFEST).unwrap();
@@ -104,12 +118,15 @@ fn actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop
     // The saved owned receiver is the unchanged AST-only cache path; it has
     // no checked HIR lease and resolves/retains owned modules independently.
     let mut ordinary = ProjectFrontendCache::new();
+    take_completed();
     let oracle = ordinary.build(&manifest, &sources).unwrap();
-    let (cold_stages, cold) = measure(|| {
+    let ordinary_core = core_trace();
+    let ((cold_stages, cold_core), cold) = measure(|| {
         let mut snapshots = [Metrics::default(); 7];
         let mut cache = ProjectFrontendCache::new_with_semantic_cache();
         snapshots[0] = current_metrics();
         let published = cache.build(&manifest, &sources).unwrap();
+        let trace = core_trace();
         snapshots[1] = current_metrics();
         same(published.revision(), oracle.revision());
         snapshots[2] = current_metrics();
@@ -125,18 +142,20 @@ fn actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop
         snapshots[5] = current_metrics();
         drop(report);
         snapshots[6] = current_metrics();
-        snapshots
+        (snapshots, trace)
     });
     stages("cold_parse_to_publication_drop", cold_stages);
     settled("cold_parse_to_publication_drop", cold);
 
     let mut cache = ProjectFrontendCache::new_with_semantic_cache();
     drop(cache.build(&manifest, &sources).unwrap());
+    take_completed();
     let pointer = cache.checked["src/core.spx"].resolved.functions.as_ptr();
-    let (warm_stages, warm) = measure(|| {
+    let ((warm_stages, warm_core), warm) = measure(|| {
         let mut snapshots = [Metrics::default(); 7];
         snapshots[0] = current_metrics();
         let published = cache.build(&manifest, &sources).unwrap();
+        let trace = core_trace();
         snapshots[1] = current_metrics();
         same(published.revision(), oracle.revision());
         snapshots[2] = current_metrics();
@@ -157,10 +176,13 @@ fn actual_cold_warm_cache_core_and_publication_match_owned_receiver_through_drop
         snapshots[5] = current_metrics();
         drop(report);
         snapshots[6] = current_metrics();
-        snapshots
+        (snapshots, trace)
     });
     stages("warm_lookup_to_publication_drop", warm_stages);
     settled("warm_lookup_to_publication_drop", warm);
+    core_stages("ordinary", ordinary_core);
+    core_stages("checked-cold", cold_core);
+    core_stages("checked-warm", warm_core);
 
     // A source signature drift must fail the actual complete current compiler
     // route identically in owned and checked modes, leaving the held owner

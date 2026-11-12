@@ -249,6 +249,40 @@ fn other() -> i64 { 7 }
 }
 
 #[test]
+fn imported_main_edit_reuses_its_unchanged_local_helper() {
+    let fixture = Fixture::new();
+    fixture.replace(
+        "src/app.spx",
+        "@id(\"calculator.app.main\")",
+        "@id(\"calculator.app.local-helper\") fn local_helper(value:i64)->i64 {value}\n@id(\"calculator.app.main\")",
+    );
+    fixture.replace(
+        "src/app.spx",
+        "multiply(6, 7)",
+        "multiply(local_helper(6), 7)",
+    );
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    let cold = cache.build(&manifest, &fixture.sources()).unwrap();
+    let function_count = work(&cold, 4, 0)["work"]["monomorphic_functions_resolved"]
+        .as_u64()
+        .unwrap();
+
+    fixture.replace("src/app.spx", "local_helper(6)", "local_helper(7)");
+    let edited = cache.build(&manifest, &fixture.sources()).unwrap();
+    let report = work(&edited, 1, 3);
+    assert_eq!(report["invalidated_sources"], json!(["src/app.spx"]));
+    assert_eq!(report["work"]["monomorphic_functions_resolved"], 1);
+    assert_eq!(
+        report["work"]["monomorphic_function_HIR_reused"],
+        function_count - 1
+    );
+    assert_eq!(report["work"]["full_source_verification"], true);
+    assert_eq!(report["work"]["full_HIR_validation"], true);
+    same(edited.revision(), fixture.cold().unwrap());
+}
+
+#[test]
 fn stale_import_signature_cannot_hide_behind_cached_consumers() {
     let fixture = Fixture::new();
     let manifest = fixture.manifest();

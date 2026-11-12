@@ -36,6 +36,63 @@ fn linked<T>(operation: impl FnOnce() -> T) -> T {
         crate::box_ops::with_authenticated_linked_source(operation)
     })
 }
+
+#[test]
+fn imported_split_publication_uses_neither_combined_directory() {
+    use super::super::borrowed_leaf::Input;
+    use crate::test_allocation_observer::current_metrics;
+    use std::mem::size_of;
+
+    let caller =
+        format!("{CALLER}\n@id(\"local\") record Local {{ @id(\"local.value\") value:i64, }}");
+    let programs = sources(&caller, PROVIDER);
+    let authored = index_authored(&programs).unwrap();
+    let modules = index_modules(&programs).unwrap();
+    let registry = LayoutRegistry::new(&programs, &authored);
+    import_validation::validate_uses_with_registry(&programs, &modules, &authored, Some(&registry))
+        .unwrap();
+    let new_view = || construct(&programs[0], &authored, &programs, &registry).unwrap();
+    let old_view = new_view();
+    let types = old_view.types().len();
+    let functions = old_view.functions().len();
+    assert!(types > programs[0].types.len() && !programs[0].types.is_empty());
+    assert!(functions > programs[0].functions.len() && !programs[0].functions.is_empty());
+    let directory_bytes = types * size_of::<TypeDeclaration>() + functions * size_of::<Function>();
+
+    let ((old_publication, old_drop), refused, paid, _) =
+        with_limit_usage_refusal(directory_bytes, || {
+            measure(|| {
+                let key = Input::Borrowed(old_view).into_checked_key().unwrap();
+                let observed = current_metrics();
+                drop(key);
+                observed
+            })
+        });
+    assert!(!refused);
+    assert_eq!(paid, directory_bytes);
+    assert!(old_publication.allocated >= directory_bytes);
+
+    let split_view = new_view();
+    let ((split_publication, split_drop), refused, paid, _) = with_limit_usage_refusal(0, || {
+        measure(|| {
+            let key = Input::Borrowed(split_view).into_split_key(0).unwrap();
+            let observed = current_metrics();
+            assert!(key.ready().is_none());
+            drop(key);
+            observed
+        })
+    });
+    assert!(!refused);
+    assert_eq!(paid, 0);
+    assert_eq!(split_publication.allocations, 0);
+    assert_eq!(split_publication.reallocations, 0);
+    assert_eq!(split_publication.allocated, 0);
+    for observed in [old_drop, split_drop] {
+        assert!(!observed.invalid && observed.live == 0, "{observed:?}");
+        assert_eq!(observed.allocated, observed.freed);
+    }
+}
+
 fn parity(caller: &str, provider: &str) {
     let programs = sources(caller, provider);
     let authored = index_authored(&programs).unwrap();

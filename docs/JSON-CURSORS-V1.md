@@ -250,3 +250,18 @@ Core Wasm with a strict two-entry arena. The unchanged 16 MiB workspace budget
 fits this gate. The historical local observations retain their original scope;
 the implemented release corpus is hosted green without changing the public
 export or nominal-ABI boundary.
+
+The JSON Query byte conversion and UTF-8 offset calculation passed their
+package conformance gates at `114d7434f` on the interpreter, native C11 at
+`-O0` and `-O2`, and Core Wasm. Query conformance checked all 256 byte values.
+UTF-8 conformance checked all 256 byte values at eight base/span boundaries
+and verified the absent-offset result. [OPT #753](https://github.com/wavect/semaprax/issues/753)
+
+The generated identifier decoder passed its collision, escaped-equivalence
+and domain-refusal cases at the default 1,000,000 interpreter steps. The
+256-record collision fixture preserved the late grammar error and its original
+offset. Maximum UTF-8 requests with 264 values of 64 decoded bytes passed for
+raw and escaped ASCII and for raw, escaped and mixed Unicode. The maximum-shape
+checks retained their 160,000,000-step and 16 MiB interpreter limits and ran
+through the same native and Wasm backends. The catalog producer regenerated
+identical human, agent and authoring catalog bytes.

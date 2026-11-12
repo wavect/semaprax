@@ -170,6 +170,22 @@ writer at the same row count. Neither codec's counts are derived from a formula.
 O0 and O2 must report identical rows. Interpreter and Wasm physical work, wall
 time, RSS, payload stores and agent cost are outside this definition.
 
+The focused run on `810f48d0` matched the independent wire oracle at all five
+row counts. O0 and O2 returned the same allocation and copy counters. Exact
+encoding reserved one buffer and materialized one final String at every
+count. Preflight and one-short refusal made zero allocation requests.
+
+| Rows | Output bytes | Writer / concat allocation requests | Writer / concat explicit memcpy bytes |
+| ---: | ---: | ---: | ---: |
+| 0 | 59 | 2 / 38 | 59 / 716 |
+| 1 | 499 | 2 / 657 | 771 / 24,432 |
+| 8 | 3,586 | 2 / 5,004 | 5,762 / 215,567 |
+| 64 | 28,283 | 2 / 39,780 | 45,691 / 3,300,641 |
+| 256 | 112,956 | 2 / 159,012 | 182,588 / 34,877,107 |
+
+The final buffer copy covered exactly the output byte count at each row count.
+The explicit memcpy column also includes observed carrier copies.
+
 An opt-in physical-work definition lives in the existing native harness at
 `string_settlement::bulk_utf8::collection_writer::generated_collection_response_exact_physical_work`.
 It derives and verifies the actual selected codec, independently validates its

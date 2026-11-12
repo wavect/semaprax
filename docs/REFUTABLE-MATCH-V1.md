@@ -77,9 +77,9 @@ and owned String conditional-result transfers retain their exact order; the
 actual continuation frame layout is reserved before stack backing allocation.
 The existing depth, path and work limits remain unchanged.
 
-The grouped OPT752 gate passed with the default Rust test stack and the
-ordinary builder cap. The original `std.pattern` workspace build and
-interpreter, native C11 and Core-Wasm conformance passed. Four continuation
+The original OPT752 workspace build passed with the default Rust test stack
+and ordinary builder cap. The `std.pattern` interpreter, native C11 and
+Core-Wasm conformance passed with its existing compiler worker stack. Four continuation
 regressions covered nested guards and String results, sticky failures, late
 hostile input, and exact and one-short work and backing reservations.
 

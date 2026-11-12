@@ -1,6 +1,6 @@
 # Primitive String Vec views v1
 
-Status: authored OPT-757 implementation batch; backend and application qualification pending. No allocation, runtime, or agent-efficiency result is claimed.
+Status: focused OPT-757 source, replay, backend and application qualification passed.
 Audience: coding agents, compiler contributors and reviewers.
 
 ## Closed source and HIR contract
@@ -58,13 +58,16 @@ byte views keep the existing 128 KiB Slice boundary; plain owned Str extent is
 not capped by that boundary. Foreign roots retain 64 KiB admission. Runtime
 closure profiles and standalone/public borrowed export permissions are unchanged.
 
-Authored owning selectors are `interpreter::string_slot::tests::` (two bodies)
+The backend selectors `interpreter::string_slot::tests::` (two bodies)
 and `owned_leaf_vec::string_slots::` (two bodies). They include same-source
 NUL/Unicode/empty/repeated reads, last-use aliases before an owning user call,
 lazy skipped uses, exact native allocations/private host copies, long Str,
 exact Slice extent, provider corruption and Vec/2 cleanup/reentry controls.
-They have not been executed in this implementation lane; executable
-qualification and application adoption remain pending.
+Both selectors passed. The native C11 O0/O2 observer aborts on any String
+clone in the read fixture and observes only the original four allocations
+per invocation. Strict Core Wasm observes the original three payload copies
+through its host, including reentry. The failure selector exercises len,
+len+1 and the maximum usize index.
 
 ## Versioned projections
 
@@ -76,14 +79,14 @@ rederive signature, whole root, index identity, availability and generation.
 No new AST or runtime expression node is serialized: existing Call encoding
 carries the exact identities and type arguments. Byte provenance is rederived.
 
-The owning frontend namespace is `vec_ops::string_slot::tests::`; backend
-execution, physical zero-clone observations and original Catalog/ShiftSim
-application qualification remain required before this feature is called implemented.
-Catalog and ShiftSim now author primitive-slot reads, with exact pre-adoption
-Tag/Server wrapper sources retained. Their existing 23/15-case owning bodies
-execute both sources with unchanged expected channels and statuses. These
-application definitions are unexecuted in this adoption lane; conversion
-removal changes allocation ordinals and claims no physical or fuel result.
+The focused source, HIR, interpreter, graph, cache and loan checks passed.
+The funded loan planner and its saved counterpart agree on a function using
+both view forms. Their exact and one-short checks cover the actual compiler
+allocations, sticky refusal and full teardown.
+
+Catalog and ShiftSim use primitive-slot reads. Their full 23- and 15-case
+corpora passed against the retained Tag and Server wrappers with the same
+output and statuses.
 Existing `vec_get`, `vec_clone_at` and `vec_field` contracts retain their meanings.
 See [Scoped Vec Field Reads v1](SCOPED-VEC-FIELD-READS-V1.md),
 [Owned Leaf Collections v1](OWNED-LEAF-COLLECTIONS-V1.md),

@@ -1,6 +1,6 @@
 # Owned Bytes finite construction fusion v1
 
-Status: PROPOSED runtime contract for OPT [#747](https://github.com/wavect/semaprax/issues/747); source-only candidate inventory authored, owning executable qualification pending. Ordinary routes remain closed. The authored explicit [source profile v1](FUSED-SOURCE-PROFILE-V1.md) awaits executable qualification.
+Status: PROPOSED runtime contract for OPT [#747](https://github.com/wavect/semaprax/issues/747); source-only candidate inventory authored, owning executable qualification pending. Ordinary routes remain closed. The explicit source CLI has local interpreter, native and Core-Wasm acceptance for the unchanged maximum-row fixture. [Source profile v1](FUSED-SOURCE-PROFILE-V1.md)
 
 Audience: source, ownership, cleanup and runtime contributors and reviewers.
 

@@ -44,11 +44,11 @@ The installed compiler prints this page verbatim with
    find:<word>:0` and request the next page only when needed. Use `help all`,
    `help language all` or `help library all` for an explicit full export.
 
-The authored source-only `fused-construction-v1` opt-in uses
+The source-only `fused-construction-v1` opt-in uses
 `run <file> --profile fused-construction-v1 --managed-bytes N` or
 `build <file> --profile fused-construction-v1 --managed-bytes N --target native|wasm`.
-It requires a finite explicit caller account, keeps ordinary admission closed,
-and awaits executable qualification. SPX-F130 identifies the failed shape rule
+It requires a finite explicit caller account. Local CLI and backend checks
+cover the unchanged 4,096-row fixture. SPX-F130 identifies the failed shape rule
 at its source location; legacy counts of at most 32 rows use the ordinary route
 without changing requirements. See [its versioned contract](FUSED-SOURCE-PROFILE-V1.md)
 for the exact shape, target accounting, fuel and publication boundary.

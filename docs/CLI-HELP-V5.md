@@ -30,11 +30,11 @@ available only when the ordinary compiler route accepts it.
 
 ## Explicit fused source usage
 
-Command usage now includes the authored `fused-construction-v1` source-only
-run/build opt-in with mandatory `--managed-bytes`. Interpreter fuel remains
-explicitly separate from native/Wasm account policy. The source, target and
-publication contract is [Fused source profile v1](FUSED-SOURCE-PROFILE-V1.md);
-executable qualification is pending. Existing command and help bounds remain.
+Command usage includes the `fused-construction-v1` source-only run/build
+opt-in with mandatory `--managed-bytes`. Interpreter fuel is separate from
+native and Wasm account policy. The source, target and publication contract
+and local executable acceptance are in
+[Fused source profile v1](FUSED-SOURCE-PROFILE-V1.md).
 
 ## Bounded application discovery
 
@@ -102,8 +102,8 @@ authored implementation and pending executable qualification.
 ## Source-shape corrections
 
 The bounded source guide distinguishes ordinary native builds from the explicit
-fused source opt-in, without asserting its pending qualification. Scalar help
-names the adjacent static borrowed `str"..."` literal. The full card checks a
+fused source opt-in. Scalar help names the adjacent static borrowed
+`str"..."` literal. The full card checks a
 borrowed-text helper example and a `SPX-T312` nonzero exit-guard example; the
 normal guard arm remains exact `else { 0 }`. A retained private function
 signature does not authorize authored type names, cases or constructors without

@@ -66,13 +66,11 @@ program IO capability.
 
 ## Owning qualification
 
-The three authored lib bodies in
-`codegen::selected_fused_row::source_profile::tests` retain the unchanged
-4,096-row original (8,386,560), default-route T267, deterministic artifact/source
+The three native owners in `codegen::selected_fused_row::source_profile::tests`
+passed locally on macOS arm64 at `dbd41b589`. They cover the unchanged 4,096-row
+original (8,386,560), default-route SPX-T267, deterministic artifact/source
 identity, O0/O2 result publication, two paid invocations followed by refusal,
-exact/one-short cumulative funding, zero live owners, actual ordinary allocation
-counts, three same-account arithmetic-failure invocations and poisoned-result
-nonpublication. They have not been executed in this implementation lane.
-CLI wrong-profile/unsupported-route and interpreter/Wasm envelopes belong to the
-source façade's owning gates. None of these authored controls closes #768 before
-combined current-head qualification.
+exact and one-short cumulative funding, zero live owners, actual ordinary
+allocation counts, and three arithmetic failures on one held account with no
+published result. The combined CLI and three-target results are in
+[Fused source profile v1](FUSED-SOURCE-PROFILE-V1.md).

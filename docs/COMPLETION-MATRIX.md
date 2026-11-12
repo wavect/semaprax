@@ -404,6 +404,12 @@ Web, Wasm, npm, public-Vec, owned-Vec, or broader collection claim.
 
 ### Compiler and output targets
 
+The explicit `fused-construction-v1` source profile has local macOS arm64
+acceptance for the original 4,096-row application across interpreter,
+native C11 and Core Wasm. The source CLI checks cover managed funding,
+route refusals and fresh deterministic publication. The broader #747
+ownership qualification remains open. [Fused source profile v1](FUSED-SOURCE-PROFILE-V1.md)
+
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
 | Fast development lane | Partial; interpreter, prepared Project trace, revision-replacement, and the cross-process persistent semantic cache (`semaprax semantic-cache-persist`/`semantic-cache-load`) profiles have hosted-green release evidence. The persistent cache reuses authenticated checked HIR across processes; measured on `examples/calculator-project`: cold `check` 0.03s, `semantic-cache-persist` 2.58s, `semantic-cache-load` 1.28s with full checked-HIR reuse (`modules_reused:3`, `checked_HIR_reused:3`, zero re-resolution). This is named precisely as restart-with-reuse, not hot reload, and not itself a wall-clock win at this scale. `MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND` now shares the ordinary 64 MiB Workspace Semantic Graph ceiling instead of imposing a smaller independent 16 MiB limit, and an executable regression persists and reloads `examples/task-service-project` with checked-HIR reuse. | [Interpreter](INTERPRETER-V1.md), [Internal Strings](INTERPRETER-INTERNAL-STRINGS-V1.md), [Prepared Project](PROJECT-PREPARED-INTERPRETER-V1.md), [Revision Replacement](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md), [Project Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md), [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md) | Incremental refresh, debugging, hot reload and semantic equivalence meet the development-performance target across the supported language and platforms; retain the task-service persistent-restart gate and add performance evidence only where it demonstrates an actual development-loop improvement. |

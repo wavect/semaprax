@@ -2,8 +2,8 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: authored source for OPT #768; executable qualification is pending. This
-profile does not close the broader #747 ownership and backend obligations.
+Status: local executable acceptance for the OPT #768 source CLI on macOS
+arm64. Issue completion still depends on the broader #747 qualification.
 
 ## Explicit source boundary
 
@@ -81,7 +81,6 @@ its own module relative to `import.meta.url` and verifies its digest before
 creating the namespace. Registry backing is funded before the arena; the
 unchanged per-invocation registry debit is additionally retained conservatively.
 Repeated invocations share that one account and issuer without refunds.
-Qualification of these declared scopes remains pending.
 
 Interpreter execution retains the ordinary default 1,000,000 steps and accepts
 `--max-steps` under the existing finite option policy. Native and Wasm do not
@@ -113,19 +112,36 @@ bytes; the adapter verifies the expected module digest before instantiation.
 Trusted first installation of the host namespace and cross-copy shared issuer
 remain explicit assumptions, not properties of arbitrary supplied host code.
 
-## Authored owning gates
+## Executable acceptance
 
-The library owners are `fused_source::tests`: raw-source/default refusal and
-original 4096 result; exact/one-short accounts, fuel and checked failure with no
-poison publication; actual allocation observation through runtime frame Drop. The fixed test
-observer has 16,384 tracking slots to retain the original 4,096 simultaneous
-title allocations plus backing/frame/table allocations; tracking metadata is
-excluded and exhaustion still invalidates the observation. This is test
-instrumentation capacity, not a runtime/compiler quota.
-The `--test quickstart_v1` selectors `fused_source::` own real CLI source
-run/build, paired Wasm loading with three invocations and exact/one-short
-accounts, tampered module refusal, fresh publication and pre-IO denial controls. Native receiver gates live in
-`codegen::selected_fused_row::source_profile::tests`. Wasm and the consolidated
-three-target receipt remain necessary qualification; authored gates are not
-execution evidence. The broader hostile/profile/ownership matrix remains open
-until all owning checks execute on the published source.
+The local qualification used the production source at `dbd41b589`. The three
+`quickstart_v1` tests under `fused_source::` exercised the built CLI. The
+unchanged 4,096-row fixture returned `8386560` on the interpreter and native
+routes. They covered default-route SPX-T267, pre-read option refusals,
+interpreter exact and one-short funding, and fresh publication. The paired
+Wasm loader ran three invocations against a single account and checked exact
+and one-short funding, normalized arithmetic failure, full-width signed
+results and tampered-module refusal.
+
+The native source account owners exercised exact and one-short cumulative
+funding, normalized status, repeated invocations, allocation observation and
+settlement. The Wasm package owners covered deterministic emission, manifest
+bindings, original-source cumulative funding, and refusal of substituted
+inputs. The `owned_data` integration test
+`maximum_admitted_owned_rows_preserve_views_order_and_nonallocating_reentry`
+ran the unchanged fixture through interpreter, native C11 at O0 and O2, and
+the paired Core-Wasm loader. It covered view contents and ordering, and the
+native allocator guard covered repeated read-through-cleanup execution.
+
+The 34 selected source, HIR and interpreter owner checks covered independent
+derivation, forged-input refusals, legacy admission, interpreter fuel,
+failure cleanup and actual runtime allocation through Drop. Their fixed
+observer has 16,384 tracking slots to retain the 4,096 simultaneous title
+allocations plus backing, frame and table allocations. Tracking metadata is
+excluded from the observation and observer exhaustion invalidates the result.
+
+Two fresh CLI builds into separate directories produced byte-identical
+native executables and byte-identical four-file Wasm packages at the same
+explicit 16,777,216-byte account limit. Both used
+`tests/fixtures/record-traversal-maximum.spx` with SHA-256
+`5dfddfe4c864f5a50680238abd4256e8b956f5c1df37fbc3151d065a45ee4fb3`.

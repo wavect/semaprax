@@ -2,8 +2,8 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: source implementation; qualification pending. OPT779 remains open until
-its source, HIR, cleanup, cache and three-backend acceptance gates pass.
+Status: focused OPT779 source, HIR, cleanup, cache and three-backend
+qualification passed, including the Catalog command adoption.
 
 This is an additive internal language rule over the existing bounded nested
 owned-record profiles. It does not change Project/public aggregate ABIs,
@@ -41,17 +41,24 @@ retain sticky status, canonical settlement and late result publication.
 Owning controls include the independent recursive unpack/rebuild runtime oracle
 in `nested_collection_record::subtree`, exact cleanup/graph prefix and mutation
 checks in `nested_record_destructure_tests::subtree`, and existing nested-record
-limit, loan, cache, source-identity and backend-hostile gates. Authored controls
-are not execution evidence. Original Catalog23 forwarding is unchanged until
-this complete acceptance boundary is qualified.
+limit, loan, cache, source-identity and backend-hostile gates. The exact and
+one-short builder checks covered actual resolution and independent replay
+through sticky refusal and Drop.
+
+Catalog binds `CatalogResult.report` and forwards that owner to the existing
+encoder after the validity check. The adopted command and the frozen recursive
+unpack/rebuild command passed all 23 original cases at native O0 and O2 with
+identical status, stdout and stderr. The ordinary Project native build and
+the existing differential routes passed the same corpus.
 
 The additional `nested_collection_record::subtree::lifetime` owners keep a
 transferred child live on actual Break/Continue paths, and instrument the native
 forward-entry to first-consumer boundary for allocator requests and memcpy/
 memmove payload work and every realloc request, alongside the old recursive control. The observer also
 requires three exercised boundaries and complete canonical settlement at O0/O2;
-it excludes compiler preparation. These authored controls are pending execution,
-not a whole-backend memory or application-fit claim.
+it excludes compiler preparation. The probes passed on both native builds.
+The owning three-backend cases also passed with live subtree cleanup across
+Break and Continue and with late field, call and contract failures.
 
 Independent ordinary replay now compares inventory entry places and supplemental
 slots directly from current immutable HIR instead of collecting duplicate owned

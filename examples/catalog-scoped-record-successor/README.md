@@ -25,8 +25,7 @@ These views retain their original vector through their last use. Response
 the required ID/department/priority/stock/mark JSON member order. The real
 encoder preserves vector and metrics order. No pointer or token spelling grants
 sorting authority. The retained Tag-wrapper sources remain differential controls
-for all 23 cases. Application qualification is pending; removing conversion
-vectors changes allocation-failure ordinals, with no physical savings claimed.
+for all 23 cases. Both routes passed the unchanged application corpus.
 
 The report is below 65536 bytes for every admitted 256-row/16-byte-ID value
 (even a conservative 128 bytes per row plus 128 metrics bytes is smaller).

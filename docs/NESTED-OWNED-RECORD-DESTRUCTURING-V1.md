@@ -29,7 +29,7 @@ exports, Components, and public aggregate ABIs remain closed. Arm results are
 Copy-only in this tranche.
 
 The additive internal whole-child binding rule is specified separately in
-[v2](NESTED-OWNED-RECORD-DESTRUCTURING-V2.md); its qualification is pending.
+[v2](NESTED-OWNED-RECORD-DESTRUCTURING-V2.md), with focused qualification.
 This v1 contract and frozen public profiles retain their existing boundaries.
 
 ## Exact recursive pattern

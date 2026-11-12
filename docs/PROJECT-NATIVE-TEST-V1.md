@@ -1,9 +1,8 @@
 # Project Native Tests v1
 
-Status: source implementation authored for Project v26 and v28
-`source-command` profiles. The owning executable gate is pending current-head
-verification; this document makes no hosted, physical-device, or production
-qualification claim. The completion matrix owns product status.
+The Project v26 native-test gate passed on hosted macOS. The Project v28
+effectful result-range gate passed locally on macOS. The completion matrix
+owns product status.
 
 Audience: users of native-only source-command Projects, CLI authors, and
 compiler contributors.
@@ -99,9 +98,14 @@ does not carry an unconditional physical-cleanup guarantee.
 The owning gate must exercise the native route for both source-command profile
 versions, including the selected root set and stable ordering, pure and
 effectful results, interpreter-route `SPX-F102` preservation, timeout and
-output bounds, and scratch cleanup on ordinary outcomes. Until that executable
-gate passes on the current head, this route remains pending in the completion
-matrix.
+output bounds, and scratch cleanup on ordinary outcomes.
+
+The hosted macOS Project Manifest job at `80099513c` passed all 15 CLI tests,
+including the original 100 ms recovery test. The local Project API tests
+passed declared-root selection and manifest-bounded argv and file access.
+Six CLI unit tests covered argument limits, canonical results, host refusal,
+output capture, and timing observations.
+[Hosted Project Manifest job](https://github.com/wavect/semaprax/actions/runs/43212603758/job/131164291990)
 
 The focused integration selectors are:
 
@@ -133,9 +137,22 @@ checks from long parent polling gaps. They do not measure child CPU or identify
 loader/scheduler causes. No polling counter or timestamp is sampled when the
 flag is absent; the existing wait order and five-millisecond sleep are unchanged.
 Timing values are diagnostic observations, not deterministic pins or acceptance
-criteria. The original 100 ms recovery control remains unchanged and unqualified
-until its owning executable gate actually passes.
+criteria. The original 100 ms recovery control passed in the hosted macOS job.
 
+A local macOS run reached the unchanged 100 ms deadline for the infinite case
+and its two constant-zero controls. The captured control executables have the
+same SHA-256. Direct first launches of those bytes and byte-identical copies
+took 143–176 ms and produced the expected `0\n`; repeat launches of the same
+files took about 2 ms. The reproduction establishes cold-launch sensitivity
+without attributing the delay to a particular OS component. A subsequent local
+run reproduced the timeout of the constant-zero controls. Fresh, byte-identical
+copies on both the internal and external SSD took 140–572 ms to launch and
+return. A separate local run of the same timeout and reentry fixture passed
+with an explicitly selected 2,000 ms deadline.
+
+The v28 CLI range regression passed. An effectful case returned `256`, selected
+exit code 1 and the range diagnostic, then the next declared case completed and
+the scratch directory was empty.
 
 The owning test harness alone accepts an explicit
 `SEMAPRAX_NATIVE_TEST_DIAGNOSTICS=<directory>` output directory. It uses a local

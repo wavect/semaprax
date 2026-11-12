@@ -65,6 +65,10 @@ struct NativeFixture {
 
 impl NativeFixture {
     fn new(label: &str, tests: &str) -> Self {
+        Self::with_project(label, MANIFEST, APP, tests)
+    }
+
+    fn with_project(label: &str, manifest: &str, app: &str, tests: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
             "semaprax-project-native-test-cli-{label}-{}-{}",
             std::process::id(),
@@ -74,8 +78,8 @@ impl NativeFixture {
         let root = root.canonicalize().unwrap();
         let scratch = root.join("scratch");
         std::fs::create_dir(&scratch).unwrap();
-        std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
-        for (name, source) in [("app.spx", APP), ("tests.spx", tests)] {
+        std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+        for (name, source) in [("app.spx", app), ("tests.spx", tests)] {
             let path = root.join(name);
             let program = semaprax::parse(source, &path).unwrap();
             std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
@@ -181,6 +185,71 @@ fn native_cli_selects_main_and_named_cases_and_reports_untruncated_result() {
     );
     assert_eq!(cases[1]["result"], 256);
     fixture.scratch_empty();
+}
+
+#[test]
+#[cfg_attr(windows, ignore = "native SourceCommand adapter is Unix-only")]
+fn native_cli_resource_command_rejects_effectful_result_outside_exit_status_range() {
+    let manifest = MANIFEST
+        .replace("source-command.v1", "source-command.resource-output.v1")
+        .replace("[dependencies]\nstd.int.decimal = \"=0.1.0\"\n\n", "");
+    let app = r#"module decimal.command;
+permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+@id("decimal.command.main")
+fn main() -> i64 uses { fs.read, process.args.read, process.stderr.write, process.stdout.write }
+{
+    if args_len() != 1usize {
+        let message = "usage";
+        let view = string_as_str(message);
+        let written = stderr_append(str_as_bytes(view));
+        2
+    } else {
+        let path = arg_utf8(0usize);
+        let input = file_read_text(path);
+        let view = string_as_str(input);
+        let written = stdout_append(str_as_bytes(view));
+        0
+    }
+}
+"#;
+    let tests = r#"module decimal.tests;
+permit { process.args.read }
+@id("decimal.tests.main") fn main() -> i64 { 0 }
+@id("decimal.tests.test_a_range")
+fn test_a_range() -> i64 uses { process.args.read } { if args_len() == 0usize { 256 } else { 1 } }
+@id("decimal.tests.test_z_after")
+fn test_z_after() -> i64 uses { process.args.read } { if args_len() == 0usize { 0 } else { 1 } }
+"#;
+    let fixture = NativeFixture::with_project("resource-result-range", &manifest, app, tests);
+    let default = fixture.cli(&["test", "--json"]);
+    assert_eq!(default.status.code(), Some(1));
+    assert!(
+        stdout(&default).contains("SPX-F102"),
+        "{}",
+        stdout(&default)
+    );
+    let output = fixture.cli(&["test", "--target", "native", "--json"]);
+    assert_eq!(output.status.code(), Some(1), "{}", stderr(&output));
+    let envelope = json(&output);
+    assert_eq!(envelope["schema"], "semaprax.native-test.v1");
+    assert_eq!(envelope["passed"], false);
+    let cases = envelope["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 3);
+    assert_eq!(cases[0]["role"], "main");
+    assert_eq!(cases[0]["passed"], true);
+    assert_eq!(cases[1]["stable_id"], "decimal.tests.test_a_range");
+    assert_eq!(cases[1]["passed"], false);
+    assert_eq!(cases[1]["exit_code"], 1);
+    assert_eq!(cases[1]["stdout"], "");
+    assert_eq!(
+        cases[1]["stderr"],
+        "SEMAPRAX source resource command: main returned 256, outside the exit status range 0..=255\n"
+    );
+    assert_eq!(cases[2]["stable_id"], "decimal.tests.test_z_after");
+    assert_eq!(cases[2]["passed"], true);
+    assert_eq!(cases[2]["exit_code"], 0);
+    fixture.scratch_empty();
+    assert_eq!(std::fs::read_dir(&fixture.scratch).unwrap().count(), 0);
 }
 
 #[test]

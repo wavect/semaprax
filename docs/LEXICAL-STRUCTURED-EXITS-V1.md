@@ -285,9 +285,15 @@ completes only the empty uncertified entry refusal. Any other unauthenticated,
 ambiguous or forged link still refuses with SPX-B104 naming the function, both
 exits, the conflicting slots and the nonlexical reason. This mode grants no
 general nonlexical cleanup authority. It adds no source, graph, cleanup-plan or
-canonical change, and claims no runtime or token advantage. Its witness is the
-local metered O0/O2 parity of one loop-free checked source against the
-interpreter; that is source-authored evidence, not a qualification.
+canonical change.
+
+The OPT772 gate passed all 16 native routing controls and both metered
+terminal-order suites. The loop-free witness agreed with interpreter status,
+result and absolute fuel on 13 routes at native O0 and O2. Native observed
+each canonical finalizer sequence, including failures before and after the join,
+requires/ensures refusal, entry fuel, call depth and successful reentry.
+The separate unchanged ShiftSim scheduler passed Project admission and the
+15-case native corpus at O0 and O2.
 Core Wasm branches use validated lexical-depth bindings and staged result locals,
 then the same postcondition/cleanup epilogue. Neither emitter manufactures target
 or cleanup authority from source spans, C labels or Wasm stack layout. Cache and

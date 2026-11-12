@@ -126,7 +126,11 @@ pub(super) fn shape(
             budget,
         )?;
     }
-    if super::queries::vector_element!(permit, function, budget, program, ty).is_some() {
+    let iterator = program.retained_static_byte_iterators()
+        && crate::iterator_ops::is_iter(ty)
+        && crate::iterator_ops::element(ty) == Some(&ResolvedType::Bytes);
+    if iterator || super::queries::vector_element!(permit, function, budget, program, ty).is_some()
+    {
         return crate::cleanup_plan::replay::inventory_coverage::paid::receive!(
             budget,
             function,
@@ -144,7 +148,11 @@ pub(super) fn shape(
             "selected lifecycle call receiving",
             lifecycle_leaf(
                 function,
-                crate::hir::CompilerDeclaration::VecDrop,
+                if iterator {
+                    crate::hir::CompilerDeclaration::IterDrop
+                } else {
+                    crate::hir::CompilerDeclaration::VecDrop
+                },
                 next,
                 budget,
             )

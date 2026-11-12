@@ -233,6 +233,10 @@ use crate::hir::ResolvedType;
 let program:&dyn crate::cleanup::ReplayContext=$program;let ty:&crate::hir::ResolvedType=$ty;
 'query:{
 if *ty==ResolvedType::Never {break 'query false;}
+if program.retained_static_byte_iterators()
+    && crate::iterator_ops::is_iter(ty)
+    && crate::iterator_ops::element(ty) == Some(&ResolvedType::Bytes)
+{break 'query true;}
 if crate::hir::borrowed_scalar::option_u8::is_type(ty) {
     if crate::hir::borrowed_scalar::option_u8::authenticated(program.declarations(),ty) {break 'query false;}
     return Err($permit.refuse(crate::cleanup_plan::renewal_profile::child_refusal::Refusal::TypeDrop(crate::cleanup_plan::renewal_profile::type_drop_refusal::TypeDropRefusal::UnauthenticatedOption)));

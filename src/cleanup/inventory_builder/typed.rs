@@ -253,6 +253,12 @@ impl InventoryBuilder<'_> {
             };
         }
         self.prepay_collection(ty)?;
+        if self.program.retained_static_byte_iterators()
+            && crate::iterator_ops::element(ty) == Some(&ResolvedType::Bytes)
+        {
+            self.charge(1)?;
+            return Ok(true);
+        }
         Ok(needs_drop_in!(self.program, ty))
     }
     fn shape_for_type(

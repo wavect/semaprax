@@ -259,6 +259,32 @@ impl InventoryBuilder<'_> {
             match pattern {
                 ResolvedMatchPattern::Variant { .. }
                     if crate::hir::borrowed_scalar::option_u8::pattern(pattern) => {}
+                ResolvedMatchPattern::Variant {
+                    variant,
+                    case,
+                    fields,
+                } if self.program.retained_static_byte_iterators()
+                    && variant.as_str() == crate::iterator_ops::STEP_ID
+                    && match (case.as_str(), fields.as_slice()) {
+                        (crate::iterator_ops::DONE_ID, []) => true,
+                        (crate::iterator_ops::YIELD_ID, [item, rest]) => {
+                            item.field.as_str() == crate::iterator_ops::ITEM_ID
+                                && item.binding.ty == ResolvedType::Bytes
+                                && rest.field.as_str() == crate::iterator_ops::REST_ID
+                                && crate::iterator_ops::is_iter(&rest.binding.ty)
+                                && crate::iterator_ops::element(&rest.binding.ty)
+                                    == Some(&ResolvedType::Bytes)
+                                && matches!(
+                                    item.binding.ownership,
+                                    OwnershipMode::Own | OwnershipMode::Borrow
+                                )
+                                && rest.binding.ownership == item.binding.ownership
+                        }
+                        _ => false,
+                    } =>
+                {
+                    self.charge(fields.len() + 1)?;
+                }
                 ResolvedMatchPattern::Binding(binding)
                     if binding.ownership == OwnershipMode::Value
                         && crate::hir::is_scalar_resolved_type(&binding.ty) => {}

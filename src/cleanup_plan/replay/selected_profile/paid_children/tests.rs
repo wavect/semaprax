@@ -70,6 +70,45 @@ fn retained_byte_iterator_preflight_replays_the_typed_latch_and_its_exact_budget
         let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
         assert!(selected_profile::paid::validate(context, function, &mut short).is_err());
 
+        use crate::cleanup_plan::replay::inventory_coverage::paid::validate_inventory_coverage;
+        let mut measured = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        validate_inventory_coverage(context, function, &mut measured)
+            .map_err(|e| detailed(function, e))
+            .unwrap();
+        let used = measured.physical.as_deref().unwrap().charged();
+        let mut exact = ReplayBudget::with_physical(function, used).unwrap();
+        validate_inventory_coverage(context, function, &mut exact).unwrap();
+        assert_eq!(exact.physical.as_deref().unwrap().charged(), used);
+        let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
+        assert!(validate_inventory_coverage(context, function, &mut short).is_err());
+
+        let mut forged = function.clone();
+        let flag = forged
+            .cleanup
+            .flags
+            .iter_mut()
+            .find(|flag| flag.place.projections.len() == 2)
+            .expect("case-qualified iterator flag");
+        flag.place.projections.swap(0, 1);
+        let mut budget = ReplayBudget::with_physical(&forged, usize::MAX).unwrap();
+        assert!(validate_inventory_coverage(context, &forged, &mut budget).is_err());
+
+        let mut forged = function.clone();
+        let slot = forged
+            .cleanup_plan
+            .slots
+            .iter_mut()
+            .find(|slot| {
+                matches!(
+                    slot.storage,
+                    crate::cleanup_plan::StorageId::CallArgument { .. }
+                ) && crate::iterator_ops::is_iter(&slot.ty)
+            })
+            .expect("owned iterator argument slot");
+        slot.field_liveness_shape = crate::cleanup::FieldLivenessShape::NoDrop;
+        let mut budget = ReplayBudget::with_physical(&forged, usize::MAX).unwrap();
+        assert!(validate_inventory_coverage(context, &forged, &mut budget).is_err());
+
         for attack in 0..3 {
             let mut hostile = function.clone();
             let ResolvedExprKind::Block { statements, .. } = &mut hostile.body.kind else {

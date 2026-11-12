@@ -4,7 +4,7 @@ use super::{
 };
 use crate::cleanup::{
     CleanupFlag, CleanupPlace, CleanupStorageId, FieldLiveness, FieldLivenessShape, LivenessFlagId,
-    MAX_CLEANUP_OWNED_LEAVES,
+    VariantCaseLiveness, MAX_CLEANUP_OWNED_LEAVES,
 };
 use crate::cleanup_plan::ReplayClonePayload;
 use crate::hir::{DeclarationId, ResolvedFieldDeclaration, ResolvedType};
@@ -49,6 +49,19 @@ impl InventoryBuilder<'_> {
         );
         let program = self.program;
         self.prepay_collection(ty)?;
+        if program.retained_static_byte_iterators()
+            && crate::iterator_ops::element(ty) == Some(&ResolvedType::Bytes)
+        {
+            return if crate::iterator_ops::is_iter(ty) {
+                self.selected_lifecycle_shape(
+                    crate::hir::CompilerDeclaration::IterDrop,
+                    storage,
+                    None,
+                )
+            } else {
+                self.selected_byte_step_shape(storage)
+            };
+        }
         if crate::hir::borrowed_scalar::option_u8::is_type(ty) {
             needs_drop_in!(program, ty);
             return Ok(FieldLivenessShape::NoDrop);
@@ -66,6 +79,67 @@ impl InventoryBuilder<'_> {
             return self.selected_flat_record_shape(declaration, fields, storage);
         }
         self.selected_leaf_shape(ty, storage, None)
+    }
+    fn selected_byte_step_shape(
+        &mut self,
+        storage: CleanupStorageId,
+    ) -> Result<FieldLivenessShape, InventoryFailure> {
+        use crate::hir::CompilerDeclaration as C;
+        type Controls = (
+            CleanupStorageId,
+            DeclarationId,
+            Vec<VariantCaseLiveness>,
+            Vec<FieldLiveness>,
+            VariantCaseLiveness,
+            FieldLiveness,
+            [(C, C); 2],
+            C,
+            C,
+        );
+        receiving!(
+            &self.ledger,
+            FieldLivenessShape,
+            std::mem::size_of::<Controls>(),
+            9
+        );
+        let yielded = DeclarationId::compiler(C::IterYield);
+        let mut cases = Vec::new();
+        reserve(&self.ledger, &mut cases, 2)?;
+        cases.push(VariantCaseLiveness {
+            case: DeclarationId::compiler(C::IterDone),
+            case_index: 0,
+            fields: Vec::new(),
+        });
+        let mut fields = Vec::new();
+        reserve(&self.ledger, &mut fields, 2)?;
+        for (index, (field, lifecycle)) in [(C::IterItem, C::BytesDrop), (C::IterRest, C::IterDrop)]
+            .into_iter()
+            .enumerate()
+        {
+            let field = DeclarationId::compiler(field);
+            let shape = self.selected_lifecycle_shape(lifecycle, storage, Some(&field))?;
+            let case = self.clone_owned(&yielded)?;
+            let flag = self
+                .flags
+                .last_mut()
+                .expect("selected lifecycle appends a flag");
+            reserve(&self.ledger, &mut flag.place.projections, 1)?;
+            flag.place.projections.insert(0, case);
+            fields.push(FieldLiveness {
+                field,
+                field_index: index as u32,
+                shape,
+            });
+        }
+        cases.push(VariantCaseLiveness {
+            case: yielded,
+            case_index: 1,
+            fields,
+        });
+        Ok(FieldLivenessShape::Variant {
+            declaration: DeclarationId::compiler(C::IterStep),
+            cases,
+        })
     }
     pub(super) fn selected_leaf_shape(
         &mut self,

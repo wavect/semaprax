@@ -239,9 +239,11 @@ identities. These entries use the existing bounded digest and work debit.
 Earlier static body encodings keep their exact bytes. The authenticated
 module-local static receiver now checks the exact Bytes iterator call types,
 argument ownership, Done and Yield patterns, and the independently replayed
-latch under its existing paid preflight. The retained Project gate still
-requires selected structural and path replay of conditional variant
-ownership and iterator-scope cleanup.
+latch under its existing paid preflight. The cleanup inventory independently
+rebuilds the iterator drop leaf, the case-qualified Yield item and remainder
+flags, and the staged owned argument slots for `vec_into_iter` and `iter_next`.
+The retained Project gate still requires selected structural and path replay
+of conditional variant ownership and iterator-scope cleanup.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

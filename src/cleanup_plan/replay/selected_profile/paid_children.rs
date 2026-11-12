@@ -43,7 +43,7 @@ mod tests;
 
 pub(in crate::cleanup_plan::replay) use collections::type_key_bytes;
 
-pub(super) mod byte_iterator {
+pub(in crate::cleanup_plan::replay) mod byte_iterator {
     //! Closed preflight for the compiler-lowered Bytes iterator protocol.
     //! Latch and cleanup replay remain independent of these shape checks.
     use crate::hir::{
@@ -74,7 +74,7 @@ pub(super) mod byte_iterator {
             && fields.is_empty() && step(&expression.ty) && expression.ownership == OwnershipMode::Own)
     }
 
-    pub(in super::super) fn call(
+    pub(in crate::cleanup_plan::replay) fn call(
         function: &ResolvedFunction,
         expression: &ResolvedExpr,
         op: IteratorOp,

@@ -53,6 +53,12 @@ fn parameter<'a>(
             )
         }));
     }
+    if program.retained_static_byte_iterators() {
+        if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+            selected_profile::paid_children::byte_iterator::call(function, call, op, budget)?;
+            return Ok(args.get(index).map(|arg| (op.param_ownership(), &arg.ty)));
+        }
+    }
     if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
         return Ok(op
             .param_types()
@@ -148,7 +154,10 @@ pub(super) fn collect_supplemental(
                 {
                     if instance.is_some()
                         || (!type_arguments.is_empty()
-                            && crate::vec_ops::by_id(callee.as_str()).is_none())
+                            && crate::vec_ops::by_id(callee.as_str()).is_none()
+                            && !(program.retained_static_byte_iterators()
+                                && crate::iterator_ops::by_id(callee.as_str()).is_some()
+                                && type_arguments.as_slice() == [ResolvedType::Bytes]))
                     {
                         return Err(permit.family(
                             Reason::SelectedSupplementalCallDoesNotSupportGenericInstances,

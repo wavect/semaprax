@@ -75,7 +75,11 @@ mod prefix_stream {
         + 2 * size_of::<Result<Set, Diagnostic>>()
         + 4 * size_of::<Paid>()
         + 4 * size_of::<Option<usize>>()
-        + 2 * size_of::<[usize; 4]>();
+        + 2 * size_of::<[usize; 4]>()
+        + 4 * size_of::<&BTreeMap<Path, Availability>>()
+        + 4 * size_of::<&Set>()
+        + 8 * size_of::<bool>()
+        + 12 * size_of::<usize>();
 
     // Each original input advances its own iterator. Prepay the per-step fee
     // request here as well: there can be no more than one step per path plus EOF.
@@ -100,6 +104,14 @@ mod prefix_stream {
         + 8 * size_of::<bool>()
         + 4 * size_of::<Paid>()
         + 4 * size_of::<Option<usize>>();
+
+    const MIN_CONTROL: usize =
+        2 * size_of::<Option<usize>>() + 2 * size_of::<Paid>() + 4 * size_of::<usize>();
+
+    // Slice ordering may inspect every pair in the shorter projection path.
+    // Fund both borrowed operands and the comparison's result before the
+    // library comparator can inspect that pair.
+    const MIN_PAIR: usize = 4 * size_of::<&PlaceProjection>() + 2 * size_of::<std::cmp::Ordering>();
 
     const LCP_PAIR: usize =
         4 * size_of::<&PlaceProjection>() + 3 * size_of::<usize>() + 2 * size_of::<bool>();
@@ -156,6 +168,13 @@ mod prefix_stream {
         right: &ValidationBinding,
         mut visit: impl FnMut(Slice<'_>) -> Paid,
     ) -> Paid {
+        // An inventory that starts empty never contributes a head. The first
+        // occupied head needs no comparison with a previously selected path.
+        let inventories = usize::from(!left.moved_places.is_empty())
+            + usize::from(!right.moved_places.is_empty())
+            + usize::from(!left.definitely_partial.is_empty())
+            + usize::from(!right.definitely_partial.is_empty());
+        let step = STEP + inventories.saturating_sub(1) * MIN_CONTROL;
         reserve(
             left.moved_places
                 .len()
@@ -178,12 +197,17 @@ mod prefix_stream {
         ];
         let mut previous: Head<'_> = None;
         loop {
-            reserve(Some(STEP))?;
+            reserve(Some(step))?;
             let mut selected: Head<'_> = None;
             let mut sources = 0u8;
             for (index, &head) in heads.iter().enumerate() {
                 let Some(path) = head else { continue };
-                let order = selected.map_or(std::cmp::Ordering::Less, |least| path.cmp(least));
+                let order = if let Some(least) = selected {
+                    reserve(path.len().min(least.len()).checked_mul(MIN_PAIR))?;
+                    path.cmp(least)
+                } else {
+                    std::cmp::Ordering::Less
+                };
                 match order {
                     std::cmp::Ordering::Less => {
                         selected = Some(path);

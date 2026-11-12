@@ -241,3 +241,24 @@ collect's separated output/unvisited-input owners. Full deallocation, immutable
 inputs and no failed publication remain required. This proposal has only parse
 review; tests, complete invoices/allocation tuples and application owners are
 unrun. It establishes no application fit, #937 closure or measured efficiency.
+
+## Borrowed prefix stream (#937)
+
+The four sorted inventories contribute borrowed heads. After emitting a path's
+new prefixes, the stream advances every matching head. The preceding path
+determines which prefixes were already emitted. The original availability
+predicates still run left to right, and the final set owns each retained path.
+
+The join prepays the four initial occupancy checks and the arithmetic for the
+per-step comparison bound. An inventory that starts empty cannot contribute a
+head. Each reached comparison reserves its operands and result before reading
+the path projections. The existing prefix, retained-output, loan, moved-map
+and copy-on-write charges remain in force.
+
+All 12 measured scope joins at depths one through three used fewer allocated
+and charged bytes than the immediate old receiver. In the shallow single join,
+allocated bytes fell from 23,328 to 20,768 and charged bytes from 258,832 to
+257,728. The many-field HIR comparison used 5,091,288 allocated bytes and
+18,345,201 charged bytes, down from 5,152,088 and 18,815,083. Both receivers
+released all observed allocations. The qualification receipt records the
+cold, empty and all-reject cases separately.

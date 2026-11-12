@@ -193,6 +193,33 @@ fn stale_revision_and_mixed_invalid_plan_keep_exact_old_first_diagnostics() {
     std::fs::remove_dir_all(changed_root).unwrap();
 }
 
+pub(in crate::project) fn measure_draft_overlap(revision: &ProjectRevision) {
+    use crate::test_allocation_observer::{current_metrics, measure_with_capacity};
+
+    let entries = entries();
+    let ((first_live, overlap_live, remaining_live), metrics) =
+        measure_with_capacity(131_072, || {
+            let draft = derive_draft(revision, &entries).unwrap();
+            let first_live = current_metrics().live;
+            let regenerated = derive_draft(revision, &entries).unwrap();
+            assert!(draft == regenerated);
+            let overlap_live = current_metrics().live;
+            drop(regenerated);
+            let remaining_live = current_metrics().live;
+            drop(draft);
+            (first_live, overlap_live, remaining_live)
+        });
+
+    assert_eq!(counts(), [0, 0, 0]);
+    assert!(!metrics.invalid && metrics.live == 0);
+    assert_eq!(metrics.allocated, metrics.freed);
+    assert!(first_live > 0 && overlap_live > first_live);
+    assert_eq!(remaining_live, first_live);
+    eprintln!(
+        "OPT895 draft overlap first={first_live} both={overlap_live} after_replay_drop={remaining_live} {metrics:?}"
+    );
+}
+
 #[test]
 fn draft_layout_invoice_names_all_transport_and_backing_fields() {
     eprintln!(

@@ -129,11 +129,43 @@ and produced the same paired bundle. Paired CLI elapsed times were 22.8 and
 were 18.0 and 18.1 seconds. These local timings include process startup and
 output serialization.
 
-Private owning controls for OPT #895 are `project::json_codec::plan::tests::`
-and `project::application_starter::tests::` in the existing library harness. They
-retain complete immediate-old plan and starter drivers, full bundle/final-file
-byte and revision parity, all draft/receipt/source fields, reminted-hash and
-wrong-revision refusal, first diagnostic order, no source writes, ordinary-check
-invocation counts and complete allocation/Drop observations. They are authored
-and unrun; existing host no-partial-publication and held-input controls remain
-required. No earlier PASS qualifies this change.
+### Private starter replay qualification
+
+The paired flat-scalar fixture runs the complete saved and current plan and
+starter drivers. It compares the serialized bundle, every final file and both
+revisions, with and without command activation. The pre-activation candidate
+build, entry HIR validation and test HIR validation each ran twice in the saved
+starter and once in the current starter. Both drivers performed the final
+formatted Project build. The public derive-and-verify pair still performed two
+independent candidate checks. The refusal controls covered every draft field,
+source inventory, reminted hashes, wrong revisions, first diagnostic order
+and preservation of the authored files.
+
+The qualification passed eight library checks, six Project integration
+checks, five full-host CLI checks, seven held-input and staging checks,
+sixteen publication platform checks and scoped production Clippy.
+
+The local macOS arm64 observation measured the complete starter through Drop
+on the same two-entry Project. It warmed the immutable renderer tables before
+opening the observer. The observer tracks requested bytes and allocates
+replacement backing before releasing the old allocation during reallocation.
+These measurements are distinct from the Project builder budget.
+
+| Whole starter | Saved | Current |
+| --- | ---: | ---: |
+| Allocation events including replacements | 3,963,819 | 2,723,696 |
+| Reallocations within those events | 543,039 | 365,334 |
+| Cumulative requested bytes | 569,311,549 | 384,843,171 |
+| Peak live bytes | 8,054,507 | 8,054,224 |
+| Live bytes after Drop | 0 | 0 |
+
+On this build the unverified draft and its Result are 120 bytes each. The
+checked bundle and its Result are 192 bytes each. A candidate source header
+is 48 bytes. Path, source and receipt payloads have separate heap backing.
+The draft observation on the same fixture measured 149,940 live bytes after
+one draft, 299,880 with both complete drafts, and 149,940 after dropping the
+regenerated draft. Deriving and comparing the two drafts requested 12,480,180
+bytes cumulatively, peaked at 455,132 live bytes and released all observed
+backing. The phase recorded zero candidate builds and zero entry or test HIR
+validations. Production replay releases the regenerated draft before candidate
+admission.

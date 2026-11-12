@@ -1,5 +1,5 @@
 use super::*;
-use crate::project::json_codec::plan_tests::{counts, fixture};
+use crate::project::json_codec::plan_tests::{counts, fixture, measure_draft_overlap};
 const PLAN: &[u8] = br#"{"schema":"semaprax.json-codec-plan.v1","entries":[{"source":"src/first.spx","record":"first.row","profile":"flat-scalars.v1"},{"source":"src/second.spx","record":"second.row","profile":"flat-scalars.v1"}]}"#;
 fn authored(root: &std::path::Path) -> Vec<(String, Vec<u8>)> {
     [
@@ -135,6 +135,7 @@ fn whole_starter_allocation_observation_counts_complete_drop_without_gain_assump
     tokens::int_into(0, "0", &mut token);
     tokens::binary_operator_into(crate::ast::BinaryOp::Add, "+", &mut token);
     tokens::string_scalar_into(u32::from('a'), "a", &mut token);
+    measure_draft_overlap(&revision);
     let (_, old) = crate::test_allocation_observer::measure_with_capacity(131_072, || {
         let artifact =
             before::derive_application_starter(&revision, PLAN, "source-command.v1", None).unwrap();

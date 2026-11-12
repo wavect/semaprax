@@ -2,9 +2,8 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: source implementation; executable qualification pending. This does not
-qualify a runnable typed application while ordinary compiler admission refuses
-it (including the currently open source-capacity G171808 dependency).
+Status: local macOS arm64 evidence for fresh ShiftSim and selected-file
+LogLens starters. Matched setup and repair trials for #837 remain pending.
 
 The full host composes existing checked codec plans with an explicit command:
 
@@ -107,39 +106,35 @@ The v31 declared native test route is the explicit
 [collection-record pure test successor](PROJECT-NATIVE-TEST-COLLECTION-RECORD-PURE-V1.md).
 Other admitted source-command starters select the existing `--target native`.
 The old v31 native-target refusal remains unchanged. Typed application source
-and backend limits still fail closed before publication: this starter does not
-repair or suppress G171808, grant helpers special admission, or claim ShiftSim15
-passage before the real owning gate succeeds.
+and backend limits apply before publication. The local ShiftSim starter passed
+the original fifteen inputs under the current production limits.
 
-Owning pending checks:
+Owning checks:
 
 - `cli_new_project_v1 application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen`
   creates a fresh typed request/decision/response application, checks its
   canonical inventory and graph-bound receipt, executes the explicit native
-  tests/build and all original fifteen acceptance inputs. Its current compiler
-  dependency is a real failure, not a skipped or weakened expectation.
+  tests and build, and runs all original fifteen acceptance inputs.
 - `cli_new_project_v1 application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49`
   creates a selected-file project and executes declared native tests and the
-  unchanged independent CLI49 receiver. The receiver is test input, not an
-  installed product capability.
-- `cli_new_project_v1 new_project::application::tests::` owns partial writes,
+  original independent CLI49 receiver. Its runner passed 207 invocations,
+  including the retained exact-output and exit-status controls.
+- `semaprax-full` unit module `new_project::application::tests::` owns partial writes,
   old-source preservation, existing/symlink destinations/parents and malformed
   options. Its deterministic plan/activation swap controls replace an inspected
   regular input with a symlink or FIFO before the held open; both refuse before
-  staging and preserve external/authored files. `project_publication::application::tests::` owns exact arities/path
-  refusals. Existing scaffold physical namespace-race cases remain required.
+  staging and preserve external and authored files. The native package's
+  `project_publication` module owns exact inventory and physical namespace checks.
 - `project standard_library::application_json::starter::` and existing plan
   decoder/overlap/stale/source/bounds/receipt gates retain closed decoding,
   canonical replay and no authority escalation. Existing native test old-profile,
   result/timeout/output/settlement known answers remain required.
 
-No Cargo build, tests, Clippy, benchmark, hosted run or full gate was performed
-when authoring this source batch. The user prohibited full gates. Minimum exact
-owning checks are pending the parent's grouped compilation/verification budget.
+The [codec plan qualification](APPLICATION-JSON-CODEC-PLAN-V1.md#private-starter-replay-qualification)
+records the saved and current starter comparison and its observed draft costs.
 
 ## Starter invocation recovery (#837)
 
-Source implementation; focused executable qualification remains pending.
 Each explicit starter option (`--from`, `--codec-plan`, `--command-profile`,
 `--command-path`, or `--command-source`) selects the full host's closed starter
 invocation grammar. A request missing its plan or profile reports that complete

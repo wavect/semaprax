@@ -461,7 +461,7 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
     let reference = repo().join("experiments/selected-file-input/loglens");
     let manifest = std::fs::read_to_string(reference.join("semaprax.toml")).unwrap()
         .replace("\"loglens.spx\", \"unit.spx\"", "\"src/app.spx\", \"src/schema.spx\", \"src/tests.spx\"")
-        .replace("[targets]", "[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\nstd.data.json.scan = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n\n[targets]");
+        .replace("[dependencies]\n", "[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\nstd.data.json.scan = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n");
     std::fs::write(authored.join("semaprax.toml"), manifest).unwrap();
     std::fs::copy(reference.join("loglens.spx"), authored.join("src/app.spx")).unwrap();
     std::fs::copy(reference.join("unit.spx"), authored.join("src/tests.spx")).unwrap();

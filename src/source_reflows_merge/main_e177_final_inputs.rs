@@ -466,7 +466,11 @@ fn held(path: &Path, length: usize, expected: &str) -> Result<String, &'static s
     }
     held_4a6eb(path, length, expected)
 }
-fn held_4a6eb(path: &Path, length: usize, expected: &str) -> Result<String, &'static str> {
+pub(super) fn held_4a6eb(
+    path: &Path,
+    length: usize,
+    expected: &str,
+) -> Result<String, &'static str> {
     use std::io::Read;
     if length > SOURCE_CAP {
         return Err("bound");

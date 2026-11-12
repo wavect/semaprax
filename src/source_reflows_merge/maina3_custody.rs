@@ -58,12 +58,49 @@ pub(super) fn input(which: Input, source: &str, current: &str) -> String {
     if which.keys().binary_search(&source).is_err() {
         return current.to_owned();
     }
+    let predecessor = match which {
+        Input::Previous16c => previous16c_ingress(source, current),
+        Input::Maina3 | Input::Alias1ae | Input::MainE47 => None,
+    };
     super::project(
         &super::runtime_json::maina3_input(which, source),
         source,
-        current,
+        predecessor.as_deref().unwrap_or(current),
     )
 }
+
+const MERGE_SOURCE: &str = "src/source_reflows_merge.rs";
+const WHOLE76AD: &str =
+    include_str!("../../e/426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a");
+const BASE5F_PATH: &str = concat!(
+    "docs/evidence/accepted-whole-source-ingress-20261017/blobs/",
+    "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89.txt"
+);
+
+fn previous16c_ingress(source: &str, current: &str) -> Option<String> {
+    if source != MERGE_SOURCE || current != WHOLE76AD {
+        return None;
+    }
+
+    // Bind both complete archives before passing base5f into the original inverse.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let whole76ad = super::main_e177_final_inputs::held_4a6eb(
+        &root.join("e/426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"),
+        WHOLE76AD.len(),
+        "426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a",
+    )
+    .expect("complete whole76ad merge source");
+    assert_eq!(whole76ad, WHOLE76AD);
+    Some(
+        super::main_e177_final_inputs::held_4a6eb(
+            &root.join(BASE5F_PATH),
+            46_420,
+            "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89",
+        )
+        .expect("complete base5f merge source"),
+    )
+}
+
 pub(super) fn normalize(source: &str, current: &str) -> String {
     if source != "src/source_reflows_merge/runtime_json.rs" {
         return current.to_owned();
@@ -220,4 +257,22 @@ fn alias_root_lazy_domain_retains_complete_sources_and_refuses_drift() {
         }
     }
     assert_eq!(alias_directory_input("foreign", "unchanged"), "unchanged");
+}
+
+#[test]
+fn previous16c_merge_ingress_requires_complete_whole76ad_bytes() {
+    let before = previous16c_ingress(MERGE_SOURCE, WHOLE76AD).unwrap();
+    assert_eq!(
+        before,
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/accepted-whole-source-ingress-20261017/blobs/",
+            "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89.txt"
+        ))
+    );
+    let mut altered = WHOLE76AD.to_owned();
+    altered.replace_range(..1, "!");
+    assert!(previous16c_ingress(MERGE_SOURCE, &altered).is_none());
+    assert!(previous16c_ingress(MERGE_SOURCE, &WHOLE76AD[1..]).is_none());
+    assert!(previous16c_ingress("src/source_reflows.rs", WHOLE76AD).is_none());
 }

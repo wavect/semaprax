@@ -102,8 +102,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        697312,
-        "bb0b3187e51c50f6eaea6e4013c8f987d061caf3db8030e12d1a434b7670d24c",
+        697342,
+        "74210d89202f6464d125a7a279a2df06037419e230fe2d7aab383d0769f5fd2e",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130704,
-        "4db202c6bba911bfa78f50b3c99daa561dbe45df9aacdedffb3d36bf23f84deb",
+        "2578cd7de9141c25651b495db0ccf77114f7bd32305b912812c6d2a4130ab53c",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        617853,
-        "a140622845474ee7e10e67e3aaeea9009ce85cf3e80119a9a8b79b97ae3d7bd6",
+        618313,
+        "83218ab78d6ba576adbbf0711e6ae6853347bdacc495bca01ec1d3b306d693ea",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];

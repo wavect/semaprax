@@ -2,7 +2,8 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: source implementation; current-head executable gate pending.
+Status: partial. Focused local checks passed. OPT-719 still requires the
+ordinary-HIR helper and a passing full quality profile.
 
 `string_format(template, values...) -> string` is a compiler-owned operation.
 `template` must be an actual source string literal. Its decoded UTF-8 is at most
@@ -73,5 +74,40 @@ native allocation failure, repeated standalone Core-Wasm settlement, and
 aggregate Wasm host allocation refusal and reentry. The `literal_format`
 unit selectors additionally cover raw-template cache tag 33, independent source
 and synthetic-AST replay, malformed ownership/commit proofs, and private worker
-cleanup census. A current-head
-pass is required before this row can be marked implemented.
+cleanup census.
+
+## Local qualification
+
+At source revision `b2269e0d3f919ebf9638cb7fbdd372e8b8683880`, all eight
+focused language tests and all nineteen `literal_format` library tests
+passed. The same emitted C11 probe produced identical O0 and O2 observations
+for success, pre-commit failure, and worker allocation failure after commit.
+The standalone Core Wasm and aggregate Wasm tests exercised allocation refusal
+and reentry. `scripts/quality.sh full` stopped at `fmt-check` on existing
+formatting differences in `src/source_reflows/ci_inputs/successor_fronts.rs`.
+
+OPT-719 calls for an independently authenticated private monomorphic helper
+expressed using ordinary typed HIR. The dedicated HIR node and backend worker
+described above still need that replacement and the corresponding
+source-reconstruction and precharged-expansion checks.
+
+### Application comparison
+
+Each pair used the same local macOS arm64 `semaprax-full` compiler. Its
+SHA-256 was `92066a187bdca4beeecc142ea7ab99124c85676c480904b186d981eabda0fcee`.
+The concatenation arm restored just the earlier renderer expressions in a
+temporary copy of each project. LogLens used the `loglens.report` body from
+`403c261e2^`. ShiftSim used the command and declared-test expressions from
+`1667a4538^`, and both arms were canonicalized and installed through
+`semaprax-full new` with the same codec plan and collection-record command
+profile.
+
+| Application | Exact result across both arms | Concatenation binary SHA-256 | Checked-format binary SHA-256 |
+| --- | --- | --- | --- |
+| LogLens selected-file | Both declared native tests passed in each arm. The [unchanged driver](../experiments/selected-file-input/loglens/tests.mjs) observed identical exit status, stdout, and stderr for all 207 invocations. | `5a2a243599bcc9fd356be9a2118c7b61844c7a96232d918f2d734ee09a204976` | `30bb2619a0e138af6ffec58e588664b02f43f50022476ab7c0801c4145b9d248` |
+| ShiftSim typed record | All three declared typed native tests passed in each arm. The [original 15 cases](../benchmarks/event-sim-tokens-v1/acceptance/corpus.json) produced identical exit status, stdout, and stderr, including the escaped-input and leading-whitespace cases. | `3a821baf726a6a8ab414a4e119437d68a13becb1ed9b66a3daebd174fbb70419` | `981d7bf04246be721a67bd81882401739cd062e28c90c7fb0409ea5574477423` |
+
+The changed LogLens source file measured 10,771 bytes with concatenation and
+9,207 bytes with nine checked-format calls. The two changed ShiftSim files
+measured 6,858 and 6,829 bytes respectively, with two checked-format calls
+in the latter.

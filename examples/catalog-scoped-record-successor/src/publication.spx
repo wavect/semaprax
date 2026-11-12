@@ -45,5 +45,19 @@ fn publish(parts: own ReportParts) -> i64
     uses { process.stdout.write }
 {
     // Bytes allocation/clone/replacement stays outside every loop.
-    match own parts { ReportParts { body, trailer } => { let first = fragment(0, "report", string_as_str(body)); let second = fragment(1, "newline", string_as_str(trailer)); let backwards = vec_push<Publication>(vec_with_capacity<Publication>(2usize), second); let all = vec_push<Publication>(backwards, first); let ordered = vec_sort_owned<Publication>(all); let snapshot = vec_clone_at<Publication>(ordered, 0usize); let committed = vec_replace<Publication>(ordered, 0usize, snapshot); let report = vec_clone_at<Publication>(committed, 0usize); let newline = vec_clone_at<Publication>(committed, 1usize); let report_text = render_fragment(report); let newline_text = render_fragment(newline); let payload = string_concat(report_text, newline_text); let bytes = str_as_bytes(string_as_str(payload)); let written = stdout_write(bytes); if written == byte_len(bytes) { 0 } else { 1 } }, }
+    let first = fragment(0, "report", string_as_str(parts.body));
+    let second = fragment(1, "newline", string_as_str(parts.trailer));
+    let backwards = vec_push<Publication>(vec_with_capacity<Publication>(2usize), second);
+    let all = vec_push<Publication>(backwards, first);
+    let ordered = vec_sort_owned<Publication>(all);
+    let snapshot = vec_clone_at<Publication>(ordered, 0usize);
+    let committed = vec_replace<Publication>(ordered, 0usize, snapshot);
+    let report = vec_clone_at<Publication>(committed, 0usize);
+    let newline = vec_clone_at<Publication>(committed, 1usize);
+    let report_text = render_fragment(report);
+    let newline_text = render_fragment(newline);
+    let payload = string_concat(report_text, newline_text);
+    let bytes = str_as_bytes(string_as_str(payload));
+    let written = stdout_write(bytes);
+    if written == byte_len(bytes) { 0 } else { 1 }
 }

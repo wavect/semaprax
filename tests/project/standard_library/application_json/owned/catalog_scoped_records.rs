@@ -198,6 +198,25 @@ fn typed_catalog_derives_codecs_and_preserves_all_23_functional_cases() {
             snapshot.public_api_program(),
             "catalog.output_item",
         );
+        let publish = snapshot
+            .public_api_program()
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "catalog.publish")
+            .expect("checked Catalog publication");
+        for field in ["catalog.report_parts.body", "catalog.report_parts.trailer"] {
+            assert!(
+                publish.loan_plan.loans.iter().any(|loan| {
+                    loan.origin.root == publish.params[0].id
+                        && matches!(
+                            loan.origin.projections.as_slice(),
+                            [semaprax::hir::PlaceProjection::Field(id)] if id.as_str() == field
+                        )
+                        && !loan.end_edges.is_empty()
+                }),
+                "Catalog publication must borrow the live {field} field"
+            );
+        }
         assert!(graph.contains("catalog.request.json.utf8.owned.decode"));
         assert!(graph.contains("catalog.report.json.collection-response.encode"));
         let tests = snapshot.execute_test(&project::ProjectExecutionOptions::default())?;

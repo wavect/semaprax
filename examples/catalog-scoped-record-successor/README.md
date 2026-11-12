@@ -34,8 +34,10 @@ The command binds the whole owned `CatalogResult.report` and passes it directly
 to the encoder in the valid branch. Invalid results settle the bound report
 before returning the existing rejection. The recursive unpack and reconstruction
 remain an independent 23-case differential control.
-Ordered publication fragments own a String label and Bytes payload. The two
-fragment allocations, stable sort, clone and replacement occur outside loops;
+Ordered publication fragments own a String label and Bytes payload. The
+publication function borrows `parts.body` and `parts.trailer` directly from
+its checked report record when creating the two fragments. The fragment
+allocations, stable sort, clone and replacement occur outside loops;
 the existing Bytes/fuel/provider/ownership limits remain unchanged. Output
 refusal or short provider writes are status 1, distinct from invalid input's
 status 2 and exact `invalid catalog request\n` stderr line.

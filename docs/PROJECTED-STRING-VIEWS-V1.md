@@ -2,8 +2,9 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: source implementation and owning regressions authored for OPT-728;
-execution, public qualification and application adoption are pending.
+Status: focused source, replay and backend gates passed on macOS arm64.
+The response emitter and Catalog publication use the rooted views.
+Repository-wide qualification and matched agent trials remain pending.
 
 ## Meaning and admission
 
@@ -87,25 +88,22 @@ closed rather than interpreting the new path meaning.
 
 ## Executable obligations
 
-The following regression sources are staged, not executed:
+The five HIR and two interpreter tests passed for canonical source, exact
+graph/cache replay, full loan paths, field/root/origin forgery, temporary
+roots, active-loan movement, grouped arguments, and the existing String
+materialization limits. The shared-loan source suite passed all 14 cases,
+including overlapping assignment and movement after the view's last use.
+Both `owned_data::projected_string_views` cases passed on the interpreter,
+native O0/O2 and strict Core Wasm. They exercised NUL and Unicode, repeated
+borrowed reads, physical clone refusal, and first-status and owner settlement
+on success and failure.
 
-- `--lib hir::projected_string_view::tests::` (4): canonical source, exact
-  graph/cache replay, full loan paths, field/root/origin forgeries, temporary
-  roots, active-loan movement, inline grouped arguments and frozen profiles.
-- `--lib interpreter::projected_string_view::tests::` (1): repeated nested
-  borrowed views at the existing logical String-allocation and byte ceilings,
-  with room only for the two authored literals.
-- `--test owned_data projected_string_views::` (2): identical source on the
-  interpreter, native O0/O2 and strict Core Wasm; nested owned/borrowed roots,
-  NUL and Unicode, loops, aliasing, owning transfer after last use, physical
-  clone refusal, and repeated settlement on success, later-argument failure,
-  callee failure and range failure. Existing host stale-carrier and ownership
-  validation remain enabled.
+The response emitter forms views directly from authenticated String fields.
+Catalog's `publish` borrows `parts.body` and `parts.trailer` for its two
+fragment calls. The unchanged Catalog23 corpus passes on the typed v31
+command. Its owning Project test also checks that both field loans are rooted
+in the original `ReportParts` parameter and have recorded end edges.
 
-The ordinary full quality profile remains required for product qualification.
-The response generator retains its named borrow-match workaround until these
-gates qualify. Catalog23 and other original application requirements and
-strong TypeScript baselines must remain unchanged. The observed 773-byte
-workaround increase is an authored-source observation; it proves no token,
-turn, latency, billing or accepted-task-cost improvement. Fresh matched live
-campaigns own those claims separately.
+The repository-wide quality run stopped on the existing rustfmt drift in
+`src/source_reflows/ci_inputs/successor_fronts.rs`. Fresh matched live trials
+remain required to measure authored tokens, turns and accepted-task cost.

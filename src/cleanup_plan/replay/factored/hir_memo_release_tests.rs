@@ -3,7 +3,7 @@ use super::*;
 use canonical_shared::inline_singleton::hir_last_use;
 
 #[rustfmt::skip]
-fn compare_before_memo_release<'hir>(
+pub(super) fn compare_before_memo_release<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -149,6 +149,35 @@ fn compare_before_memo_release<'hir>(
 
 use crate::test_allocation_observer::measure;
 use sha2::{Digest, Sha256};
+// Independently build and canonicalize the HIR root before measuring release.
+pub(super) fn measure_legacy_release_work(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+) -> usize {
+    let mut budget = ReplayBudget::unobserved();
+    let built = build_comparison(program, function, &mut budget, None, None).unwrap();
+    let mut canonical = canonical(&built);
+    let hir = if canonical.cold_dead_node(built.hir_root) {
+        canonical.id_for_comparison(function, vec![(built.hir_root, 1)], &mut budget)
+    } else {
+        let mut receiving = receiving(function, &budget);
+        let canonical_id = canonical.canonical_dispatch(&budget.payer);
+        canonical_id(
+            &mut canonical,
+            function,
+            vec![(built.hir_root, 1)],
+            &mut budget,
+            &mut receiving,
+        )
+    };
+    assert!(hir.unwrap().is_some());
+    let remaining = budget.remaining;
+    assert!(canonical
+        .release_hir_storage(function, &mut budget, built.hir_root, built.plan_root)
+        .unwrap());
+    remaining - budget.remaining
+}
+
 fn fixture(width: usize) -> ResolvedProgram {
     let calls = std::iter::repeat_n("f()", width.max(1))
         .collect::<Vec<_>>()

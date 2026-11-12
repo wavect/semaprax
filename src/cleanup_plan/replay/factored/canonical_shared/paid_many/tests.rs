@@ -465,7 +465,11 @@ fn composed_flat_helpers_keep_sorted_sparse_multiplicity_overflow_and_prepublica
     reason = "The complete saved control retains its original expressions for independent parity checks."
 )]
 fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_order() {
-    use super::super::super::{compare_with_index_storage, lexical_plan_tests};
+    use super::super::super::{
+        compare_with_index_storage,
+        hir_memo_release_tests::{compare_before_memo_release, measure_legacy_release_work},
+        lexical_plan_tests,
+    };
     use std::fmt::Write as _;
     // The retained primitive source-body profile explicitly admits only
     // Condition and BorrowRecord latches (static_text/primitive/body_digest.rs).
@@ -519,7 +523,7 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
             program, &function, &mut old, None, None,
         );
         assert_eq!(
-            compare_with_index_storage(program, &function, &mut current, None, None),
+            compare_before_memo_release(program, &function, &mut current, None, None),
             expected
         );
         assert_eq!(
@@ -527,6 +531,19 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
             (old.remaining, old.skeleton_remaining)
         );
         assert_eq!(expected, Ok(Some(true)));
+        // Memo release was added after both saved callers. Measure it with
+        // its own HIR root and payer so the exact original cuts stay intact.
+        let release_work = measure_legacy_release_work(program, &function);
+        let mut shipping = ReplayBudget::unobserved();
+        assert_eq!(
+            compare_with_index_storage(program, &function, &mut shipping, None, None),
+            expected
+        );
+        assert_eq!(
+            (shipping.remaining + release_work, shipping.skeleton_remaining),
+            (old.remaining, old.skeleton_remaining)
+        );
+        eprintln!("OPT870 full replay old_work={} release_work={release_work}", initial - old.remaining);
         // The complete linked provider is intentionally too broad for the
         // closed selected flat-record lease. Preserve its exact refusal.
         let mut closed = ReplayBudget::with_physical(&function, 1 << 26).unwrap();
@@ -565,6 +582,7 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                             return Err(());
                         }
                     };
+                    let initial_work = budget.remaining;
                     // Both complete callers rebuild the same authenticated phase-site
                     // inventory under their own measured physical/work budget. The
                     // lease and its backing drop before inspecting the stopped budget.
@@ -589,7 +607,7 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                     let result = result
                         .map(|equal| {
                             assert_eq!(equal, Some(true));
-                            paid
+                            (paid, initial_work - budget.remaining, budget.skeleton_spent)
                         })
                         .map_err(|error| {
                             let _ = write!(failure, "stage=full-comparison immediate={old} limit={limit} paid={paid} remaining={} skeleton_remaining={} skeleton_spent={} lent_skeleton={} refusal_spent={} diagnostic={error:?}", budget.remaining, budget.skeleton_remaining, budget.skeleton_spent, budget.lent_skeleton, budget.refusal_spent);
@@ -605,9 +623,12 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
                 }
                 measured
             };
+            let before = ENTRIES.with(std::cell::Cell::get);
             let (result, metrics) = observe(1 << 26);
-            let exact = result.unwrap();
-            eprintln!("OPT870 actual comparison immediate={old} paid={exact} physical={metrics:?}");
+            let after = ENTRIES.with(std::cell::Cell::get);
+            let promotions = (after.0 - before.0, after.1 - before.1);
+            let (exact, work, skeleton_work) = result.unwrap();
+            eprintln!("OPT870 actual comparison immediate={old} paid={exact} work={work} skeleton_work={skeleton_work} promotions={promotions:?} physical={metrics:?}");
             assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
             for limit in [0, exact - 1, exact] {
                 let (result, metrics) = observe(limit);
@@ -628,16 +649,35 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
             prepared_result.unwrap();
         }
         let work = initial - old.remaining;
+        let mut unfunded_release = ReplayBudget::unobserved();
+        unfunded_release.remaining = work;
+        assert_eq!(
+            compare_with_index_storage(program, &function, &mut unfunded_release, None, None)
+                .unwrap_err().code,
+            "SPX-H006"
+        );
         for remaining in [0, work.saturating_sub(1), work] {
             let mut old = ReplayBudget::unobserved();
             let mut current = ReplayBudget::unobserved();
             old.remaining = remaining;
             current.remaining = remaining;
+            let expected = before_paid_many::comparison::compare_with_index_storage(
+                program, &function, &mut old, None, None
+            );
             assert_eq!(
-                compare_with_index_storage(program, &function, &mut current, None, None),
-                before_paid_many::comparison::compare_with_index_storage(
-                    program, &function, &mut old, None, None
-                )
+                compare_before_memo_release(program, &function, &mut current, None, None),
+                expected
+            );
+            let mut shipping = ReplayBudget::unobserved();
+            let released = if remaining == 0 { 0 } else { release_work };
+            shipping.remaining = remaining + released;
+            assert_eq!(
+                compare_with_index_storage(program, &function, &mut shipping, None, None),
+                expected
+            );
+            assert_eq!(
+                (shipping.remaining, shipping.skeleton_remaining),
+                (old.remaining, old.skeleton_remaining)
             );
             assert_eq!(
                 (current.remaining, current.skeleton_remaining),

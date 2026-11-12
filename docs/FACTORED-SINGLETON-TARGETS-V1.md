@@ -1,6 +1,6 @@
 # Factored singleton successor targets v1
 
-Status: private source contract; executable qualification is pending.
+Status: private source contract with local executable evidence for OPT #870.
 
 Audience: compiler contributors and reviewers.
 
@@ -101,25 +101,24 @@ and general weighted successor callers first acquire the helper arguments,
 return/receiving enums, vectors, tuples, arithmetic Options and nested Results.
 The existing fallible `reserve_vec` owner authenticates before acquisition,
 charges the complete geometric capacity before allocation, and owns allocation
-failure and capacity mismatch. Spare slots are charged; no previous node bill
-or caller Result supplies a credit. Two tuple insertions and the key comparison
-are debited before their execution. Publication replaces One only on success.
+failure and capacity mismatch. It charges spare capacity before either tuple
+is inserted. Publication replaces One only after successful promotion.
 
-Later flat targets retain the incoming bounded binary search and sorted
-insertion algorithm. Search work and bounded callback receiving slots precede
-search; an absent key pays insertion and shifts before growth and insertion.
-A present key uses checked addition before mutation. Both caller families pay
-the real helper/Result/borrowed vector receiving before forming that borrow.
-Sorted finish moves the already paid vector through the unchanged immutable Rc
-owner and pays its actual receiving boundary before formation. This removes the
-intermediate target tree and tree-to-vector conversion only on the paid route.
-The unobserved legacy route retains complete tree promotion/insertion/finish,
-including its original work order. No ceiling or allowance changes.
+The flat receiver uses sorted insertion and prepays the bounded binary-search
+callback roles. A present key uses checked addition before mutation. A new key
+acquires backing before insertion. The caller prepays the helper, Result and
+borrowed vector roles before forming the borrow. The list holds at most eight
+distinct targets. The next distinct target reserves the complete ordered tree,
+then moves the flat entries and inserts the new target. Finishing a flat list
+moves the paid vector into the existing immutable Rc owner after paying its
+receiving boundary.
 
-The paid route adds explicit search, insertion and helper receiving costs;
-promotion also keeps geometric spare capacity. Many/repeated cases can therefore
-have unfavorable work or charged-byte totals even when physical allocations
-fall. The local component measurements below show both outcomes.
+Both routes use the same per-move logical work tariff. The flat search and
+shifts fit within a fixed eight-row bound and add no payer-specific logical
+debit. The unobserved legacy route retains tree promotion, insertion and
+finish. The paid representation adds receiving costs and may retain geometric
+spare capacity. The measurements below show the resulting charged bytes and
+allocator requests separately.
 The complete immediate51c1 Canonicalizer, terminal implementation and production
 comparison caller compile in `before_paid_many`, using the original Targets and
 source-bound unchanged helpers. All115 existing helper/test sources and both
@@ -177,6 +176,42 @@ passed. All 13 Catalog Normalizer functional owners passed, and its
 older 64 MiB Catalog and ShiftSim controls both refused with SPX-G171.
 The application verdicts do not attribute a debit change to the flat
 successor receiver.
+
+### Complete source comparison after the custody repair
+
+The local macOS arm64 qualification passed 35 focused Rust checks, 29
+source-overlay checks and scoped production Clippy. The Rust run included
+the complete 115-helper custody check and the Catalog Normalizer builder.
+
+The frozen inline caller and the independently compiled caller from before
+memo release agreed on the original work cuts and diagnostics. The shipping
+caller agreed at its own cuts after the separately measured release debit.
+The shipping caller refused when it received only the original exact work
+allowance. The fixtures retain the independently enumerated PLAN multiset
+and the original Copy-latch authority refusal.
+
+| Source probe | Inline work | Shipping work | Memo-release work |
+| --- | ---: | ---: | ---: |
+| Scalar while | 1,466 | 1,582 | 116 |
+| Generated Copy latch | 3,391 | 3,637 | 246 |
+| Borrowed record latch | 2,546 | 2,721 | 175 |
+
+| Admitted physical probe | Paid bytes, inline to shipping | Allocator bytes, inline to shipping | Allocations | Reallocations | Peak live bytes, both |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Scalar while | 788,434 → 866,579 | 150,429 → 150,421 | 502 → 501 | 96 → 95 | 77,189 |
+| Borrowed record latch | 1,214,568 → 1,330,409 | 241,883 → 240,771 | 901 → 895 | 163 → 163 | 82,861 |
+
+Both admitted probes exercised the full authenticated comparison caller and
+settled all observed backing. Each caller kept its own exact, one-short and
+zero physical limits. The shipping borrowed-record probe made four unit
+and two general paid promotions. The scalar while probe made none. On the
+paid route, total work moved from 23,469 to 23,548 for the scalar while and
+from 1,250,041 to 1,250,161 for the borrowed record. The corresponding
+skeleton work stayed at 11,541 and 716,677.
+
+The larger invoices are cumulative reservations for the current whole caller.
+They include changes since the saved caller and do not isolate flat successor
+storage.
 
 ## Direct selected compatibility authentication closure (source only)
 

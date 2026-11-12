@@ -4,7 +4,7 @@ use super::{directory, instrument, symbol, SCHEMA};
 use semaprax::{codegen, format, hir, parse, project};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::{fmt::Write as _, fs, path::Path, process::Command};
+use std::{fmt::Write as _, fs, path::Path, process::Command, time::Instant};
 
 const BASELINE: &str = "fc9e5090daffaada9cdb738a410cd3ae92577785";
 const HISTORICAL_SHA256: &str = "c3ece1ef543c28c39f2615cb77c9fa325f15c16b46e1ed1074b79b8a627fdc67";
@@ -261,7 +261,7 @@ fn matched_historical_current_codec_physical_work() {
         .unwrap();
         fs::write(
             root.join("src/tests.spx"),
-            canonical("module consumer.tests;@id(\"consumer.tests\") fn tests()->i64{0}"),
+            canonical("module consumer.tests;@id(\"consumer.tests\") fn main()->i64{0}"),
         )
         .unwrap();
         let current = derive(&root);
@@ -324,7 +324,9 @@ fn matched_historical_current_codec_physical_work() {
                     "C compiler refused: {}",
                     String::from_utf8_lossy(&build.stderr)
                 );
+                let start = Instant::now();
                 let run = Command::new(&binary).output().unwrap();
+                let native_process_wall_ns = start.elapsed().as_nanos();
                 fs::write(
                     arm_path.join(format!("physical{optimization}.jsonl")),
                     &run.stdout,
@@ -346,12 +348,28 @@ fn matched_historical_current_codec_physical_work() {
                     .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
                     .collect::<Vec<_>>();
                 assert_eq!(records.len(), 3);
+                if arm == "current" && !escaped {
+                    let materialize = &records[0];
+                    assert_eq!(materialize["phase"], "materialize");
+                    assert_eq!(materialize["native_allocations"], 264);
+                    assert_eq!(materialize["input_memcpy_calls"], 264);
+                    assert_eq!(materialize["input_memcpy_bytes"], value.len() * 264);
+                }
                 let quote_increment = json!({
                     "method":"observed paired phase subtraction, including String temporaries",
                     "native_allocations":records[1]["native_allocations"].as_u64().unwrap().checked_sub(records[0]["native_allocations"].as_u64().unwrap()).expect("quote allocation increment"),
                     "explicit_memcpy_bytes":records[1]["explicit_memcpy_bytes"].as_u64().unwrap().checked_sub(records[0]["explicit_memcpy_bytes"].as_u64().unwrap()).expect("quote copy increment")
                 });
-                receipt["rows"].as_array_mut().unwrap().push(json!({"case":name,"arm":arm,"optimization":optimization,"c_sha256":sha(c.as_bytes()),"binary_sha256":sha(&fs::read(binary).unwrap()),"records":records,"quote_increment_over_materialization":quote_increment}));
+                receipt["rows"].as_array_mut().unwrap().push(json!({
+                    "case": name,
+                    "arm": arm,
+                    "optimization": optimization,
+                    "c_sha256": sha(c.as_bytes()),
+                    "binary_sha256": sha(&fs::read(binary).unwrap()),
+                    "native_process_wall_ns": native_process_wall_ns,
+                    "records": records,
+                    "quote_increment_over_materialization": quote_increment
+                }));
                 fs::write(
                     output.join("receipt.json"),
                     serde_json::to_vec_pretty(&receipt).unwrap(),

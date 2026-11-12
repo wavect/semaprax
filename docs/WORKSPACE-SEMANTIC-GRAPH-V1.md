@@ -961,11 +961,23 @@ physical frame size plus one 20-byte node: a per-slot bound for frame and arena
 storage together. Forecast formulas, budgets, floors, ceilings, the builder cap
 and failure selection are unchanged; this constant is the only forecast input
 that moves, by the node size minus the removed inline `String` slot. Its exact
-numeric value, and every pinned builder phase peak derived from it, must be
-re-derived from a compiled build before they are re-pinned; this source-only
-tranche asserts neither. No retained HIR identity storage is removed and no
-application recovery, token, runtime, memory or RSS gain is claimed; Catalog23
-and Shift15/MAX evidence requires actual owning execution.
+numeric value and pinned builder phase peaks require a compiled build.
+On macOS aarch64 with Rust 1.97.1, the compiler sources at `18142c8d0`
+reported 476 bytes per slot, including the 20-byte node. All 19 path arena
+and streamed identity checks passed. They compare the whole saved text
+receiver's HIR, ordered loan and cleanup plans, graph and cache bytes,
+foreign and malformed input diagnostics, and exact and short allocation
+frontiers through Drop.
+
+The unchanged Catalog and ShiftSim owners and compact Catalog Normalizer
+builder passed at the current 128 MiB ceiling. In a separate 64 MiB run of
+the same Catalog and ShiftSim fixtures before the status replay repair at
+`7268e5fbe`, Catalog's forecast of 64,909,260 bytes fit, then live HIR
+expression and type lowering requested 144 bytes with 74 remaining. ShiftSim
+refused its static forecast at `src/response.spx` after 60,265,703 bytes of
+retained output and a further 13,130,193-byte module forecast. These are
+compiler ledger observations. Qualification of application admission at
+64 MiB remains open.
 
 The unchanged literal 1 MiB identity receiver keeps all three invocations and
 full old HIR/work/static parity on success; physical refusal timing follows

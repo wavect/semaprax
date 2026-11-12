@@ -223,10 +223,18 @@ claim production recoverable String OOM or completion of OPT #724.
 
 All new definitions are unexecuted in this implementation tranche.
 
-Remaining completion obligations include the remaining retained lexical-renewal
-shapes, current-source execution of retained source/HIR and normal
-Project definitions, final producer bindings, and the complete owning gate. No efficiency or cost improvement is
-claimed without paired measurements.
+The 31 retained static-text checks passed on the compiler sources at
+`18142c8d0`, including exact and one-byte-short replay, imported provider and
+layout drift, and borrowed-record source-for controls. The authenticated
+command Project with static text and lexical Bytes renewal passed at Graph v77.
+
+The fixture from `06e2ca7f3` reproduced a remaining #745 gap on the same
+compiler. Direct source emitted and independently verified Graph v78 for the
+module combining static lexical renewal and finite owned iterator scratch.
+The authenticated Project using that module returned `SPX-G410` from retained
+static source-site authority. The source-body encoder and selected replay
+currently reject the owning iterator latch. The retained Graph v78 gate and
+its producer bindings remain open.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

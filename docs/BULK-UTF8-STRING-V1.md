@@ -2,9 +2,8 @@
 
 Audience: coding agents, compiler contributors and reviewers.
 
-Status: source implementation and focused regressions authored; execution and
-application qualification pending. OPT-731 remains open. Source-derived copy
-counts do not establish runtime, agent-token, or accepted-task cost savings.
+Status: focused local source, replay, backend and application qualification
+for OPT-731. Matched accepted-task agent efficiency remains a separate measure.
 
 ## Contract
 
@@ -92,7 +91,7 @@ Terminated native String representations also refuse this operation.
 
 ## Owning gates
 
-All following gates are authored, not executed by this source batch:
+Focused owning gates:
 
 - `--lib string_ops::bulk_utf8_tests::` (3): canonical/graph/cache round trip,
   stale source/identity, forged signatures/instances/ownership, source loans,
@@ -100,7 +99,7 @@ All following gates are authored, not executed by this source batch:
 - `--lib interpreter::string_operations::bulk_utf8_tests::` (2): exact one-copy
   logical accounting, count/byte boundaries, malformed-before-charge, shared
   private-call meter and empty input.
-- `--test owned_data bulk_utf8::` (3): interpreter, native C11 O0/O2, strict
+- `--test owned_data bulk_utf8::` (4): interpreter, native C11 O0/O2, strict
   private Wasm host and production browser adapter. Valid Unicode/NUL/BOM/
   noncharacters, invalid bytes outside selected ranges, detached results,
   empty/131072-byte internal inputs and repeated loop calls; thirteen malformed
@@ -111,10 +110,11 @@ All following gates are authored, not executed by this source batch:
   `hir::validation::call_parameters::tests` enumerate all 37 StringOps,
   including the new exact reserved identity and borrowed parameter mode.
 
-Regenerate only affected authentic artifact pins in the grouped qualification
-flow. The production browser runtime source changes, but ordinary Call graph
-and cache formats and old intrinsic/import ordering do not. Original application
-acceptance and matched agent benchmarks remain separate obligations.
+The UTF-8 application owners passed the 264-by-16 identifier and 264-by-64
+raw, escaped and mixed String cases against independent canonical bytes.
+The original Catalog23 and ShiftSim15 corpora passed. Workspace checking
+and the advisory tests passed. Workspace Clippy reproduced the unchanged
+baseline's 33 diagnostics byte for byte.
 
 ## Paired native physical observations
 

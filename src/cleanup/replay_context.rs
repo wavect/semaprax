@@ -49,6 +49,11 @@ pub(crate) trait ReplayContext {
     fn selected_flat_records(&self) -> bool {
         false
     }
+    /// Only the source-authenticated static receiver requests the closed Bytes
+    /// iterator preflight. Complete cleanup and lexical replay still run.
+    fn retained_static_byte_iterators(&self) -> bool {
+        false
+    }
     /// Only an exact-source checked allocation projection can lend this opaque
     /// current member. Ordinary/decoded contexts do not select allocation replay.
     fn allocation_function<'a>(

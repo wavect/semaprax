@@ -57,6 +57,9 @@ impl ReplayContext for Context<'_> {
     fn function_instances(&self) -> &[ResolvedFunctionInstance] {
         &[]
     }
+    fn retained_static_byte_iterators(&self) -> bool {
+        self.vector.is_some()
+    }
 }
 
 #[cfg(test)]

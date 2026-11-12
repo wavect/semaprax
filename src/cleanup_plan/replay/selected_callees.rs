@@ -161,6 +161,9 @@ impl ReplayContext for Context<'_> {
     fn function_instances(&self) -> &[crate::hir::ResolvedFunctionInstance] {
         self.source.function_instances()
     }
+    fn retained_static_byte_iterators(&self) -> bool {
+        self.source.retained_static_byte_iterators()
+    }
     fn resolve_call_target(
         &self,
         callee: &crate::hir::DeclarationId,

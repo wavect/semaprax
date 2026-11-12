@@ -95,6 +95,9 @@ impl ReplayContext for Context<'_> {
     fn selected_flat_records(&self) -> bool {
         true
     }
+    fn retained_static_byte_iterators(&self) -> bool {
+        self.source.retained_static_byte_iterators()
+    }
     fn primitive_renewals<'a>(
         &'a self,
         function: &ResolvedFunction,

@@ -236,9 +236,12 @@ returned `SPX-G410` from retained static source-site authority.
 The static source-body encoder now binds the Bytes iterator's typed calls,
 Done and Yield cases, generated field bindings, and all four owning-latch
 identities. These entries use the existing bounded digest and work debit.
-Earlier static body encodings keep their exact bytes. The retained Project
-gate still requires selected replay to independently authenticate the Bytes
-iterator types, calls, patterns, and canonical cleanup at that latch.
+Earlier static body encodings keep their exact bytes. The authenticated
+module-local static receiver now checks the exact Bytes iterator call types,
+argument ownership, Done and Yield patterns, and the independently replayed
+latch under its existing paid preflight. The retained Project gate still
+requires selected structural and path replay of conditional variant
+ownership and iterator-scope cleanup.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

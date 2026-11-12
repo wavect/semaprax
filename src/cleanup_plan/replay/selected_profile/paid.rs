@@ -1,6 +1,8 @@
 //! Paid selected-local static refusals; arbitrary child Diagnostics stay explicit.
 use super::super::selected_context::paid::refusal;
-use super::paid_children::{self, collections, flat_records, row_loan, string_transfer};
+use super::paid_children::{
+    self, byte_iterator, collections, flat_records, row_loan, string_transfer,
+};
 use super::{
     expression_facts, Frame, OwnershipMode, ReplayBudget, ResolvedExprKind, ResolvedFunction,
     ResolvedMatchPattern, ResolvedType, DEPTH,
@@ -19,6 +21,7 @@ pub(in super::super) fn validate(
     if !budget.selected() {
         return Ok(());
     }
+    let byte_iterators = program.retained_static_byte_iterators();
     flat_records::module(program, function, budget)?;
     if matches!(function.return_type, ResolvedType::Nominal { .. }) {
         collections::prepay(
@@ -83,6 +86,7 @@ pub(in super::super) fn validate(
                     )?;
                 }
                 if expression.ty != ResolvedType::Never
+                    && !(byte_iterators && byte_iterator::local_type(&expression.ty))
                     && !flat_records::admitted(program, &expression.ty, function, budget)?
                 {
                     return Err(refusal(
@@ -101,6 +105,8 @@ pub(in super::super) fn validate(
                 }
                 flat_records::expression(program, function, expression, budget)?;
                 match &expression.kind {
+                    ResolvedExprKind::ConstructVariant { .. }
+                        if byte_iterators && byte_iterator::done(expression) => {}
                     ResolvedExprKind::ConstructVariant { .. }
                     | ResolvedExprKind::UpdateRecord { .. }
                     | ResolvedExprKind::Upcast { .. }
@@ -161,12 +167,14 @@ pub(in super::super) fn validate(
                             match statement {
                                 crate::hir::ResolvedStatement::Let { binding, .. }
                                 | crate::hir::ResolvedStatement::Assign { binding, .. }
-                                    if !flat_records::admitted(
-                                        program,
-                                        &binding.ty,
-                                        function,
-                                        budget,
-                                    )? =>
+                                    if !(byte_iterators
+                                        && byte_iterator::local_type(&binding.ty))
+                                        && !flat_records::admitted(
+                                            program,
+                                            &binding.ty,
+                                            function,
+                                            budget,
+                                        )? =>
                                 {
                                     return Err(refusal(
                                         function,
@@ -191,12 +199,18 @@ pub(in super::super) fn validate(
                                 } => {
                                     if matches!(
                                         latch,
+                                        crate::hir::LoopLatchKind::SourceForStep {
+                                            kind: crate::hir::SourceForKind::OwnedIterator,
+                                            ..
+                                        }
+                                    ) || (matches!(
+                                        latch,
                                         crate::hir::LoopLatchKind::OwnedIteratorStep { .. }
-                                            | crate::hir::LoopLatchKind::SourceForStep {
-                                                kind: crate::hir::SourceForKind::OwnedIterator,
-                                                ..
-                                            }
-                                    ) {
+                                    ) && !(byte_iterators
+                                        && matches!(&condition.kind,
+                                                ResolvedExprKind::Match { scrutinee, .. }
+                                                    if byte_iterator::step(&scrutinee.ty))))
+                                    {
                                         return Err(refusal(
                                             function,
                                             budget,
@@ -270,17 +284,23 @@ pub(in super::super) fn validate(
                         }
                     }
                     ResolvedExprKind::Match {
-                        scrutinee, arms, ..
+                        mode,
+                        scrutinee,
+                        arms,
                     } => {
-                        if matches!(scrutinee.ty, ResolvedType::Nominal { .. }) {
-                            return Err(refusal(
-                                function,
-                                budget,
-                                "selected direct records do not admit owning or destructuring matches",
-                            ));
-                        }
-                        for arm in arms {
-                            validate_pattern(function, &arm.pattern, budget, 0)?;
+                        if byte_iterators && byte_iterator::step(&scrutinee.ty) {
+                            byte_iterator::arms(function, *mode, arms, budget)?;
+                        } else {
+                            if matches!(scrutinee.ty, ResolvedType::Nominal { .. }) {
+                                return Err(refusal(
+                                    function,
+                                    budget,
+                                    "selected direct records do not admit owning or destructuring matches",
+                                ));
+                            }
+                            for arm in arms {
+                                validate_pattern(function, &arm.pattern, budget, 0)?;
+                            }
                         }
                     }
                     ResolvedExprKind::Call {
@@ -293,6 +313,13 @@ pub(in super::super) fn validate(
                         if collections::call(program, function, expression, budget)? {
                             frames[depth - 1] = Some((cursor, true));
                             continue;
+                        }
+                        if byte_iterators {
+                            if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                                byte_iterator::call(function, expression, op, budget)?;
+                                frames[depth - 1] = Some((cursor, true));
+                                continue;
+                            }
                         }
                         if instance.is_some() || !type_arguments.is_empty() {
                             return Err(refusal(

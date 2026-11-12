@@ -34,6 +34,104 @@ fn nodes(root: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     }
     found
 }
+
+#[test]
+fn retained_byte_iterator_preflight_replays_the_typed_latch_and_its_exact_budget() {
+    use crate::hir::{LoopLatchKind, ResolvedStatement};
+
+    let fixture = SourceRecordReplayFixture::new(
+        r#"module static.iterator;
+@id("app.main") fn main()->i64 {
+ let key=str"x";
+ let first=vec_push<Bytes>(vec_with_capacity<Bytes>(2usize),bytes_zeroed(1usize));
+ let values=vec_push<Bytes>(first,bytes_zeroed(2usize));
+ let mut count=0;
+ for own item in vec_into_iter<Bytes>(values) {
+  let scratch=bytes_zeroed(3usize);
+  count=count+2;
+  if byte_len(bytes_as_slice(item))==1usize {continue;};
+  if byte_len(bytes_as_slice(scratch))!=3usize {return 0;};
+  0
+ }
+ return count+str_len_bytes(key);
+}
+"#,
+    );
+    fixture.with_prepared_context(|context| {
+        let function = context.functions().get(0).unwrap();
+        let mut measured = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+        selected_profile::paid::validate(context, function, &mut measured)
+            .map_err(|e| detailed(function, e))
+            .unwrap();
+        let used = measured.physical.as_deref().unwrap().charged();
+        let mut exact = ReplayBudget::with_physical(function, used).unwrap();
+        selected_profile::paid::validate(context, function, &mut exact).unwrap();
+        assert_eq!(exact.physical.as_deref().unwrap().charged(), used);
+        let mut short = ReplayBudget::with_physical(function, used - 1).unwrap();
+        assert!(selected_profile::paid::validate(context, function, &mut short).is_err());
+
+        for attack in 0..3 {
+            let mut hostile = function.clone();
+            let ResolvedExprKind::Block { statements, .. } = &mut hostile.body.kind else {
+                panic!("function block");
+            };
+            let inner = statements
+                .iter_mut()
+                .find_map(|statement| {
+                    let ResolvedStatement::Let { value, .. } = statement else {
+                        return None;
+                    };
+                    let ResolvedExprKind::Block { statements, .. } = &mut value.kind else {
+                        return None;
+                    };
+                    matches!(
+                        statements.last(),
+                        Some(ResolvedStatement::LexicalWhile { .. })
+                    )
+                    .then_some(statements)
+                })
+                .expect("owning wrapper");
+            let [ResolvedStatement::Let { value: seed, .. }, ResolvedStatement::LexicalWhile {
+                condition, latch, ..
+            }] = inner.as_mut_slice()
+            else {
+                panic!("lowered seed and loop");
+            };
+            match attack {
+                0 => {
+                    let LoopLatchKind::OwnedIteratorStep {
+                        next, assignment, ..
+                    } = latch
+                    else {
+                        panic!("owned latch");
+                    };
+                    *next = assignment.clone();
+                }
+                1 => {
+                    let ResolvedExprKind::Call { args, .. } = &mut seed.kind else {
+                        panic!("iterator seed");
+                    };
+                    args[0].ownership = OwnershipMode::Borrow;
+                }
+                2 => {
+                    let ResolvedExprKind::Match { arms, .. } = &mut condition.kind else {
+                        panic!("iterator condition");
+                    };
+                    let crate::hir::ResolvedMatchPattern::Variant { fields, .. } =
+                        &mut arms[1].pattern
+                    else {
+                        panic!("yielded fields");
+                    };
+                    fields.swap(0, 1);
+                }
+                _ => unreachable!(),
+            }
+            let mut budget = ReplayBudget::with_physical(&hostile, usize::MAX).unwrap();
+            assert!(selected_profile::paid::validate(context, &hostile, &mut budget).is_err());
+        }
+    });
+}
+
 #[test]
 fn full_original_context_string_vector_record_corpora_and_renewal_identities_match_through_drop() {
     for source in [fixtures::STRING, fixtures::VECTOR, fixtures::RECORD] {

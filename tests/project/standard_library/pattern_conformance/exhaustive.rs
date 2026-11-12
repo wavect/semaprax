@@ -70,12 +70,12 @@ fn array(bytes: &[u8]) -> String {
             .join(", ")
     )
 }
-fn prefix(grammar: Grammar) -> String {
+fn prefix(pattern: &[u8]) -> String {
     let imports = include_str!("../pattern_examples.spx");
     let imports = imports.split("// Compile once").next().unwrap();
     format!(
         "{imports}\n@id(\"fixture.pattern.examples.main\")\nfn main() -> i64 {{\nlet pattern = {}; let pattern_view = array_as_slice(pattern);\nlet initial = make(); let mut matcher: Matcher = compile(initial, pattern_view, 262144usize);\nlet ready = result_valid(matcher) && status(matcher) == 0usize;\n",
-        array(grammar.pattern())
+        array(pattern)
     )
 }
 fn observed() -> &'static str {
@@ -140,7 +140,7 @@ fn ascii_source(grammar: Grammar, key: bool) -> (String, i64) {
     (
         format!(
             "{}\nlet expected_bytes = {}; let expected_view = array_as_slice(expected_bytes);\nlet expected_starts = {}; let starts_view = array_as_slice(expected_starts);\nlet inputs = {}; let inputs_view = array_as_slice(inputs);\nlet mut index = 0usize; let mut correct = true; let mut total = 0;\nwhile index < 128usize {{\nlet offset = index * 3usize; let view = byte_range(inputs_view, offset, offset + 3usize);\nlet expected = match byte_get(expected_view, index) {{ Option::Some {{ value }} => value == 1u8, Option::None {{}} => false, }};\nlet expected_start = match byte_get(starts_view, index) {{ Option::Some {{ value }} => usize_from_u8(value), Option::None {{}} => 0usize, }};\nmatcher = full_match(matcher, view, 262144usize);\nif {packet} {{ 0 }} else {{ correct = false; 0 }}\nif status(matcher) == 1usize {{ total = total + {}; 0 }} else {{ 0 }}\nindex = index + 1usize; 0\n}}\nif ready && correct {{ total }} else {{ -1 }}\n}}\n",
-            prefix(grammar),
+            prefix(grammar.pattern()),
             array(&expectations),
             array(&starts),
             array(&cases),
@@ -172,7 +172,7 @@ fn long_source(grammar: Grammar, matches: bool) -> (String, i64) {
     (
         format!(
             "{}\nlet input = \"{literal}\"; let text = string_as_str(input); let view = str_as_bytes(text);\nlet mut renewal = 0usize;\nwhile renewal < 1usize {{\nmatcher = full_match(matcher, view, 262144usize);\nrenewal = renewal + 1usize;\n0\n}}\nif ready && {packet} {{ if status(matcher) == 1usize {{ {} }} else {{ 0 }} }} else {{ -1 }}\n}}\n",
-            prefix(grammar),
+            prefix(grammar.pattern()),
             observed()
         ),
         expected,
@@ -228,6 +228,19 @@ std.pattern = "=0.1.0"
         let actual = interpreter_i64(entry.outcome(), label);
         assert_eq!(actual, expected, "independent ASCII capture oracle: {label}");
         assert!(entry.steps_used() <= 1_000_000);
+        let exact = project::ProjectExecutionOptions::new(options.max_bytes, entry.steps_used())
+            .map_err(|error| vec![error])?;
+        let at_limit = snapshot.execute_entry(&exact)?;
+        assert_eq!(at_limit.outcome(), entry.outcome(), "{label}: exact fuel");
+        assert_eq!(at_limit.steps_used(), exact.max_steps);
+        let one_short = project::ProjectExecutionOptions::new(options.max_bytes, exact.max_steps - 1)
+            .map_err(|error| vec![error])?;
+        let refused = snapshot.execute_entry(&one_short)?;
+        assert_eq!(
+            refused.outcome(),
+            &project::ProjectExecutionOutcome::FuelExhausted,
+            "{label}: one step short"
+        );
         let c = codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;
         // Rename only the generated wrapper, retaining the exact HIR provider.
         // Observe four real invocations and physical malloc/calloc/free settlement.
@@ -247,6 +260,61 @@ std.pattern = "=0.1.0"
         super::assert_adjacent_refusal(&directory, &wasm_path, live_bound, actual);
         Ok(())
     }).unwrap();
+}
+
+#[test]
+fn public_capture_work_cuts_and_hostile_repeats_keep_distinct_packets() {
+    let scratch = temporary("pattern-work-cuts");
+    // The short greedy path charges 128 header, 18 atom validation, 10
+    // capture validation, 34 dispatch/frame, 4 scan and 9 terminal units.
+    // Publishing two captures adds 90. A refusal publishes only the
+    // 32-unit packet instead, with no capture spans.
+    let greedy = b"(a*)(a*)".as_slice();
+    for (label, pattern, input, limit, check) in [
+        (
+            "exact",
+            greedy,
+            b"aa".as_slice(),
+            293,
+            "status(observed) == 1usize && reason(observed) == 0usize
+             && work_used(observed) == 293usize && capture_count(observed) == 2usize
+             && capture_start(observed, 0usize) == 0usize && capture_end(observed, 0usize) == 2usize
+             && capture_start(observed, 1usize) == 2usize && capture_end(observed, 1usize) == 2usize",
+        ),
+        (
+            "one-short",
+            greedy,
+            b"aa".as_slice(),
+            292,
+            "status(observed) == 4usize && reason(observed) == 7usize
+             && work_used(observed) == 235usize && capture_count(observed) == 0usize",
+        ),
+        (
+            "hostile-repeats",
+            b"a*a*a*a*a*a*a*a*b".as_slice(),
+            b"aaaaaaaa".as_slice(),
+            4096,
+            "status(observed) == 4usize && reason(observed) == 7usize
+             && work_used(observed) <= 4096usize && capture_count(observed) == 0usize",
+        ),
+    ] {
+        let source = format!(
+            r#"{}
+let input = {};
+let view = array_as_slice(input);
+if ready {{
+    let observed = full_match(matcher, view, {limit}usize);
+    if result_valid(observed) && detail(observed) == 0usize
+        && detail_domain(observed) == 0usize && {check} {{ 1 }} else {{ -1 }}
+}} else {{ -2 }}
+}}
+"#,
+            prefix(pattern),
+            array(input),
+        );
+        run(&scratch, label, &source, 1, 1);
+    }
+    fs::remove_dir_all(scratch).unwrap();
 }
 
 #[test]

@@ -96,7 +96,22 @@ For a line cut from a larger file, apply them to that line; conversion to an
 enclosing-file offset must add the line's start. Applying them through
 `string_slice` retains its ordinary bounds and UTF-8 boundary checks.
 
-The bounded engine may refuse ambiguous searches before deciding a semantic match. Logical work and ordinary interpreter AST fuel are separate limits. No limit is raised here: final qualification must preserve the complete LogLens 49 obligations, independent header/key-value meanings, long valid and nonmatching records, exact work witnesses, hostile carrier controls, and interpreter/native C11/Core-Wasm settlement on these exact source bytes.
+The bounded engine may refuse ambiguous searches before deciding a semantic
+match. Logical work and ordinary interpreter fuel are separate limits.
+
+The native LogLens package adapter passed the original 33 checks and all 16
+independent SPEC boundary invocations, including a run with the historical
+64 MiB compiler builder ceiling. The public package's header and key/value
+fixtures exhaust all 128 ASCII bytes at both positions and exercise valid and
+nonmatching 8,192-byte values. They run on the interpreter at the ordinary
+1,000,000-step limit, native C11 at `-O0` and `-O2`, and Core Wasm, with
+exact and one-short interpreter fuel checks. [OPT #706](https://github.com/wavect/semaprax/issues/706)
+
+For `(a*)(a*)` on `aa`, the public package publishes captures `[0, 2)` and
+`[2, 2)` at 293 work units. A limit of 292 returns the work-refusal packet
+with no captures. The same public gate checks that a near miss with eight
+adjacent repeats reaches a work refusal at a 4,096-unit limit. The full package
+gate exercises malformed carriers and verifies native and Core Wasm settlement.
 
 `std.pattern.internal.*` declarations remain explicit, checked implementation source. API inventory selection controls supported interface documentation; it is not source privacy and conveys no capability.
 

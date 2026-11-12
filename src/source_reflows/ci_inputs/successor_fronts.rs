@@ -325,6 +325,10 @@ pub(in super::super) fn compact_frontier_entry(source: &str, supplied: &str) -> 
     Some(before)
 }
 
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> String {
     if (owner, source)
         == (
@@ -499,6 +503,10 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
     restored
 }
 
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 fn interface754_scratch_before_format(compiled: &str) -> String {
     const FORMATTED: &str = concat!(
         "    assert!(\n",
@@ -518,10 +526,18 @@ fn interface754_scratch_before_format(compiled: &str) -> String {
     compiled.replacen(FORMATTED, BEFORE, 1)
 }
 
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 const REGISTRY_SCRATCH_BEFORE: &str =
     "0bf3a868125c5d381ead3b67127f622085d8fba09b23862db68bdad13c271ec6";
 
 // The two retained registry fixtures also predate the test data transport.
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 fn registry_scratch_before_transport(root: &std::path::Path, mut prior: String) -> String {
     const TRANSPORT_EDITS: [(&str, &str); 2] = [
         (
@@ -563,6 +579,10 @@ fn registry_scratch_before_transport(root: &std::path::Path, mut prior: String) 
 }
 
 // Only these four exact current fronts may precede the immutable26 input epochs.
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 fn next_custody_front(
     owner: &str,
     source: &str,
@@ -678,6 +698,10 @@ fn next_custody_front(
 
 // Only the two complete OPT925 test successors may acquire their fixed b23
 // source epochs before the entire unchanged original26 inverse is applied.
+#[allow(
+    dead_code,
+    reason = "Used by historical workspace consumers that are absent from the standalone Wasm audit"
+)]
 fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str) -> Option<String> {
     if owner != "cfgtest-repair" {
         return None;

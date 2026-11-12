@@ -90,6 +90,10 @@ pub(super) fn read(
 
 // Called in the existing complete incoming-provider owner before fixture data,
 // outside allocation/work observations. No original fixture is ever modified.
+#[allow(
+    dead_code,
+    reason = "Some standalone source-audit harnesses use the reader while its owning tests run these controls"
+)]
 pub(super) fn controls() {
     use std::cell::Cell;
     use std::io::Cursor;

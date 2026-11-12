@@ -134,8 +134,8 @@ capsule replay bytes.
 
 The same nested-response authoring card now names additive
 `bounded-nested-response.v2` String-slot composition, its distinct identities
-and unchanged caps; v1 refusal remains explicit. Both source versions await
-focused executable qualification. Contract: [v2](APPLICATION-JSON-NESTED-RESPONSE-V2.md).
+and existing caps. The v1 String-vector refusal is explicit. Focused v2 source,
+Project and backend checks passed. [V2 contract](APPLICATION-JSON-NESTED-RESPONSE-V2.md)
 
 ## Search existing authoring cards
 

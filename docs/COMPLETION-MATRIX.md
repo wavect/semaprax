@@ -322,6 +322,12 @@ Exact output and one-short refusal agree across the supported backends.
 The native observations report buffer reservation, String allocation and
 final payload copy separately.
 
+The [nested response v2](APPLICATION-JSON-NESTED-RESPONSE-V2.md) profile
+(OPT #808) passed its generator, Project and native physical checks. It reads
+primitive String vectors through scoped slots. Preflight and short refusal
+reserve no output, and a successful response uses one Bytes reservation and
+one final String allocation and payload copy.
+
 The [static borrowed UTF-8 literal v1](STATIC-BORROWED-UTF8-LITERALS-V1.md)
 profile (OPT #740) has focused local source, graph, cache and backend
 qualification. The generated collection-response codec writes the same JSON

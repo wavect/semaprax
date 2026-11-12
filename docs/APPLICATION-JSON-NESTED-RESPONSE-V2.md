@@ -1,7 +1,6 @@
 # Bounded nested application response JSON v2
 
-Status: authored source and owning regression definitions for OPT808;
-executable qualification and application/token measurements remain pending.
+Status: focused OPT808 source, Project, backend and physical allocation qualification passed.
 
 Audience: agents authoring JSON response composition, compiler contributors,
 and reviewers.
@@ -40,10 +39,11 @@ materialization, not zero-copy or a recoverable native String allocator. Fatal
 String/Bytes allocation policy and sticky ordinary Vec allocation refusal remain
 unchanged. Neither allocation metrics nor live-owner counts are normalized.
 
-Owning definitions are the existing `project::json_codec::nested_response::tests`
+Owning gates are the existing `project::json_codec::nested_response::tests`
 module, `project` harness `standard_library::application_json::nested_response::string_vectors`,
 and `native` harness `string_settlement::codec_allocation::string_vectors`.
-Definitions cover complete request→decision→response with detached owners,
+Seven generator checks, 18 Project checks and two native allocation checks
+passed. The complete request→decision→response case uses detached owners,
 independent JSON values/escaping oracles, empty and duplicate values, NUL/Unicode,
 first/last slots, exact/one-over byte and item bounds, two nested paths, exact
 131072/131073 escaped wire sizes and one-short output. The output-cap oracle
@@ -58,10 +58,9 @@ and one String allocation and one final complete payload memcpy. Slot extraction
 also performs
 real descriptor memcpy; total copy counters retain every such byte, with separate
 operation/owner-based counters and an eight-byte payload classification control.
-They retain actual receiving Drop and fatal unpublished-result controls; fatal retirement is not zero-leak
-recovery evidence. Interpreter/native O0/O2/Core-Wasm parity and these physical
-observations are authored definitions, not results. No backend, hosted, live
-agent-cost, or full issue-completion claim is established before execution.
+The native probes passed the actual receiving Drop and fatal unpublished-result
+controls. The Project cases passed on the interpreter, native C11 O0/O2 and
+strict Core Wasm. Matched application measurements remain a separate follow-up.
 
 The versioned suitability-v1 report keeps its closed twelve-profile inventory;
 this additive selector is explicitly discoverable in CLI profile help and the

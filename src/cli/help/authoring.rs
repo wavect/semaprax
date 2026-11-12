@@ -279,7 +279,7 @@ pub(super) fn lookup(query: &str) -> Result<String, String> {
             "Direct nested decoding remains unchanged. Contract: docs/APPLICATION-JSON-NESTED-REQUEST-V1.md; caller route language-command-io.nested-outcome.v1 remains independently checked.\n"
         ).to_owned()),
         "author:json-nested-response" => Ok(concat!(
-            "Bounded nested JSON response source; qualification pending.\n",
+            "Bounded nested JSON response source. Focused v2 qualification passed.\n",
             "bounded-nested-response.v1 and additive bounded-nested-response.v2 require canonical --max-string-bytes 1..64 and --max-array-items 1..256. Caller Project/profile/capabilities independently admit ordinary reads and results.\n",
             "Explicit monomorphic acyclic records: depth 8, at most 64 expanded paths, 1..8 fields each, i64/u8/usize/bool/string leaves and at most two expanded Vec fields. Elements: Copy scalars or flat 1..8-field rows with at most two Strings. V1: Primitive Vec<string> refuses (SPX-J180). V2 adds vec_str_at(values,at) inside named borrow Vec<string> helpers; no clones, projected/temporary slot roots, optional/variant schema, recursion or new Vec shape.\n",
             "V1 APIs: json_Root_nested_response_encoded_len(value: borrow Root) -> usize and json_Root_nested_response_encode(value: borrow Root, output_limit: usize) -> RootJsonNestedResponseEncode. V2 uses nested_response_v2 and RootJsonNestedResponseV2Encode, with nested-response-v2 identities. Outcomes: Encoded { text: string } or Refused { required: usize }; usize::MAX means selected value or 131072-byte output bounds exceeded.\n",
@@ -905,6 +905,7 @@ mod tests {
         }
         let nested_response = lookup("author:json-nested-response").unwrap();
         for required in [
+            "Focused v2 qualification passed",
             "bounded-nested-response.v1",
             "bounded-nested-response.v2",
             "vec_str_at(values,at)",

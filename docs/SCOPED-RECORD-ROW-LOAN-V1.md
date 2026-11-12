@@ -1,8 +1,7 @@
 # Scoped Record Row Loan v1
 
-Status: source implementation batch for OPT #775; executable qualification is
-pending. No owning gate has been executed for this tranche and no performance
-or allocation result is claimed.
+Status: locally qualified for the bounded Row Loan v1 profile on the
+interpreter, native C11 O0/O2 and strict private Core-Wasm.
 Audience: coding agents, compiler contributors and reviewers.
 
 This additive contract extends
@@ -135,7 +134,7 @@ argument before interpreting a retained descriptor. This applies equally to a
 cold build and a warm consumer. A forged descriptor against still-admitted
 borrowed-provider source retains its independent `SPX-G173` mismatch refusal.
 
-## Qualification definitions
+## Adoption and owning verification
 
 Owning definitions are authored in `tests/language/record_vec_traversal.rs`
 (source, HIR, graph, forged descriptors and refusals),
@@ -148,6 +147,15 @@ loan, and a canonical contract failure on all three engines),
 current provider helper and refuses provider drift exactly as a cold build),
 `src/cli/help/authoring.rs`, and
 `src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs`
-(imported helper success, proof and drift refusals). Definitions are not
-execution evidence. Allocation-fault sweeps, maximum-capacity traversal,
-Catalog/ShiftSim adoption and matched agent campaigns remain unqualified.
+(imported helper success, proof and drift refusals). The owning source, HIR,
+loan, graph, cache, help and backend checks passed. Native and strict Core-Wasm
+probes exercised allocation refusal, cleanup and repeated entry. The
+8,192-row boundary retained ascending order and allocation-free reads.
+The same-source controls verified argument failure order and loan expiration
+before continue and early return.
+
+ShiftSim lends existing Worker rows to its availability helper and retains
+the indexed receiver for the overlength boundary. Catalog lends its existing
+input rows to the scalar validation helper. Each selected field is read once.
+All 15 ShiftSim and 23 Catalog cases and their retained traversal controls
+passed at ordinary limits. Agent tokens, turns and cost remain unmeasured.

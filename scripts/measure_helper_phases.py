@@ -117,6 +117,7 @@ def main() -> int:
                 "samples": len(group),
                 "median_elapsed_ns": statistics.median(item["elapsed_ns"] for item in group),
                 "reservation_ledger_bytes": [item["reservation_ledger_bytes"] for item in group],
+                "detached_replay_ledger_bytes": [item.get("detached_replay_ledger_bytes") for item in group],
                 "replay_work_units": [item["replay_work_units"] for item in group],
                 "skeleton_work_units": [item.get("skeleton_work_units") for item in group],
             })

@@ -165,7 +165,7 @@ renewal tree maps remain separate, so helper sites introduce no opaque tree
 nodes or copied identity backing. The checked census refuses before insertion
 when its backing reservation fails.
 
-## Deferred paired construction and replay measurement (OPT #738)
+## Paired construction, replay and validation measurement (OPT #738)
 
 `scripts/measure_helper_phases.py` prepares one actual CollectionResponse
 replacement through the ordinary authenticated Project derivation and replay
@@ -181,9 +181,11 @@ The private test-only construction control preserves old-plan overlap census,
 staging reservation and complete delayed-publication carrier on both routes.
 The indexed route builds a fresh module index inside each timed sample; the
 independent route uses the existing per-function proof path. Both omit the
-production test-only observational capacity-high-water probe. Replay likewise
-uses one shared global budget over the complete program on each route, selecting
-only whether fresh helper facts are shared or independently reconstructed.
+production test-only observational capacity-high-water probe. Both replay
+routes use the current invocation-owned fact, status and continuation
+receivers over the complete program. They share the production work limit
+and detached scratch ceiling. Only the indexed route retains a helper
+index. The independent route authenticates helper facts as needed.
 The existing per-builder test-only capacity probes remain enabled on both
 routes, including their route-dependent backing census. Reported construction
 time is therefore instrumented test-harness phase wall time, not uninstrumented
@@ -204,22 +206,21 @@ locked offline dependencies, one Cargo job, and a private target directory under
 this worktree. Compilation is separately logged and never included in phase
 latency. Each iteration rotates indexed/independent ordering. Warmup records
 remain in the raw JSONL and are excluded only from the median summary. Every
-requested construction/replay pair must succeed; missing/duplicate samples,
+requested construction, replay and validation pair must succeed. Missing or duplicate samples,
 source or binary drift, or mismatched generated/application source digests leave
 the run unqualified. Raw stdout, stderr, build messages, actual source bytes,
 toolchain, source revision, binary digest and all sample records are retained.
 
-`elapsed_ns` is compiler-phase wall time. `reservation_ledger_bytes` is the
-actual sticky reservation ledger debit under the unchanged 67,108,864-byte
-measurement reservation limit; it is not measured heap use, allocation count
-or RSS. Replay reports its existing work and skeleton budget debits separately
-(including conservative skeleton preflight, rather than a complete count of all
-helper proof node visits);
-construction has no corresponding complete work counter and reports null.
-Fixed harness/process context is not live application cost. This measures
-cleanup construction and replay, not source verification or resolution, physical
-JSON execution, kernel crossings (OPT #708), billing, or accepted-task efficiency.
-No measurement result or improvement is claimed before this driver is run.
+`elapsed_ns` records compiler-phase wall time. `reservation_ledger_bytes`
+records cumulative reservation requests. Construction and full validation
+use the existing 67,108,864-byte builder measurement limit. Standalone
+replay uses the production detached scratch ceiling of 4 GiB on 64-bit
+hosts. Full validation reports its nested detached replay debit separately
+as `detached_replay_ledger_bytes`. Replay also reports the work and skeleton
+budget debits, including conservative skeleton preflight. Construction
+reports null for work units. These measurements cover compiler phases.
+Physical memory, runtime JSON execution and accepted-task costs require
+their own evidence.
 
 The normal owning definition is
 `cleanup_plan::phase_measurement::paired_routes_preserve_complete_program_plans_and_independent_replay`.

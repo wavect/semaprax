@@ -36,11 +36,11 @@ fn verify_pair(program: &crate::hir::ResolvedProgram) {
             });
         assert!(!overflowed);
         assert_eq!(constructed_bytes(&built.unwrap()), expected);
-        let (replayed, overflowed, _) =
-            crate::bounded_output::with_limit_usage(RESERVATION_LIMIT, || {
-                replay::phase_measurement::replay(program, indexed)
-            });
-        assert!(!overflowed);
+        let (replayed, overflowed, reserved) = replay::phase_measurement::replay(program, indexed);
+        assert!(
+            !overflowed,
+            "replay indexed={indexed} exhausted scratch after {reserved} bytes: {replayed:?}"
+        );
         replayed.unwrap();
     }
     assert_eq!(
@@ -108,7 +108,7 @@ fn generated_codec_construction_and_replay_measurement() {
         let helper_functions = program.functions.iter().filter(|function| index.has_sites(function)).count();
         assert!(helper_functions > 0, "workload must actually exercise helper sites");
         drop(index);
-        emit(serde_json::json!({"record":"context","schema":"semaprax.opt738.phase-measurement.v1","generated_source_sha256":sha(generated.as_bytes()),"app_source_sha256":sha(app.as_bytes()),"functions":program.functions.len(),"instances":program.function_instances.len(),"helper_functions":helper_functions,"reservation_limit":RESERVATION_LIMIT,"warmup":warmup,"samples":samples}));
+        emit(serde_json::json!({"record":"context","schema":"semaprax.opt738.phase-measurement.v1","generated_source_sha256":sha(generated.as_bytes()),"app_source_sha256":sha(app.as_bytes()),"functions":program.functions.len(),"instances":program.function_instances.len(),"helper_functions":helper_functions,"reservation_limit":RESERVATION_LIMIT,"replay_reservation_limit":validate::scratch_ledger::MAX_REPLAY_SCRATCH_BYTES,"warmup":warmup,"samples":samples}));
         let expected = plans(program);
         for iteration in 0..warmup+samples {
             for phase in ["construction", "replay", "validation"] {
@@ -122,16 +122,19 @@ fn generated_codec_construction_and_replay_measurement() {
                         assert_eq!(constructed_bytes(&output),expected);
                         emit(serde_json::json!({"record":"sample","phase":phase,"indexed":indexed,"iteration":iteration,"warmup":iteration<warmup,"elapsed_ns":elapsed_ns,"reservation_ledger_bytes":reserved,"replay_work_units":null,"status":"success"}));
                     } else if phase == "validation" {
+                        let before = crate::bounded_output::detached::detached_debits();
                         let (output, overflowed, reserved) = crate::bounded_output::with_limit_usage(RESERVATION_LIMIT, || {
                             if indexed {validate_program(program)} else {validate::owned::validate_program_unindexed_reference(program)}
                         });
                         let elapsed_ns=start.elapsed().as_nanos();
+                        let replay_reserved = crate::bounded_output::detached::detached_debits().checked_sub(before).unwrap();
                         assert!(!overflowed);output.unwrap();
-                        emit(serde_json::json!({"record":"sample","phase":phase,"indexed":indexed,"iteration":iteration,"warmup":iteration<warmup,"elapsed_ns":elapsed_ns,"reservation_ledger_bytes":reserved,"replay_work_units":null,"status":"success"}));
+                        emit(serde_json::json!({"record":"sample","phase":phase,"indexed":indexed,"iteration":iteration,"warmup":iteration<warmup,"elapsed_ns":elapsed_ns,"reservation_ledger_bytes":reserved,"detached_replay_ledger_bytes":replay_reserved,"replay_work_units":null,"status":"success"}));
                     } else {
-                        let (output, overflowed, reserved) = crate::bounded_output::with_limit_usage(RESERVATION_LIMIT, || replay::phase_measurement::replay(program,indexed));
+                        let (output, overflowed, reserved) = replay::phase_measurement::replay(program,indexed);
                         let elapsed_ns=start.elapsed().as_nanos();
-                        assert!(!overflowed);let (work,skeleton)=output.unwrap();
+                        assert!(!overflowed, "replay indexed={indexed} exhausted scratch after {reserved} bytes: {output:?}");
+                        let (work,skeleton)=output.unwrap();
                         emit(serde_json::json!({"record":"sample","phase":phase,"indexed":indexed,"iteration":iteration,"warmup":iteration<warmup,"elapsed_ns":elapsed_ns,"reservation_ledger_bytes":reserved,"replay_work_units":work,"skeleton_work_units":skeleton,"status":"success"}));
                     }
                 }

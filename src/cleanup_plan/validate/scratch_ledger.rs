@@ -22,7 +22,7 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 
 /// Per-program cleanup-replay charge ceiling (4 GiB on 64-bit hosts).
-const MAX_REPLAY_SCRATCH_BYTES: usize = if usize::BITS >= 64 {
+pub(in crate::cleanup_plan) const MAX_REPLAY_SCRATCH_BYTES: usize = if usize::BITS >= 64 {
     4 << 30
 } else {
     usize::MAX

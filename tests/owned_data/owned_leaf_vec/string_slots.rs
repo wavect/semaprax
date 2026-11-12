@@ -38,7 +38,12 @@ fn run(source: &str, failure: bool, mode: &str, allocations: Option<u64>) {
             2,
         );
     } else {
-        let generated = codegen::emit_c(&ast).unwrap();
+        let mut generated = codegen::emit_c(&ast).unwrap();
+        if mode == "slot-no-copy" {
+            let clone = "char *spx_string_clone(const char *spx_source) {";
+            assert_eq!(generated.matches(clone).count(), 1);
+            generated = generated.replacen(clone, &format!("{clone}\n    abort();"), 1);
+        }
         // Each lexical-control function references its terminal flag at the
         // shared epilogue; functions without lexical control declare neither.
         assert_eq!(
@@ -191,7 +196,7 @@ fn borrowed_and_owned_slot_views_share_nul_utf8_storage_and_expire_before_owned_
 }
 #[test]
 fn slot_index_failures_keep_vec_two_and_poisoned_result_across_reentry() {
-    for index in ["3usize", "18446744073709551615usize"] {
+    for index in ["3usize", "4usize", "18446744073709551615usize"] {
         let source = SOURCE.replace(
             "vec_str_at(values,0usize)",
             &format!("vec_str_at(values,{index})"),

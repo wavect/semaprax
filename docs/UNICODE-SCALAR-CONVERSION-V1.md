@@ -2,9 +2,9 @@
 
 Audience: language users and compiler contributors.
 
-Status: source implementation and owning regressions authored; current-head
-interpreter, native and Core Wasm execution is pending. This is the OPT-725
-conversion seam; it does not qualify a general application JSON codec.
+Status: focused local qualification for the OPT-725 conversion seam across
+source, replay, interpreter, native C11 and Core Wasm. General application
+JSON qualification remains tracked under OPT #724.
 
 `char_from_i64(value: i64) -> char`, persistent identity
 `core.num.char_from_i64`, copies exactly one Unicode scalar value. Accepted
@@ -48,7 +48,7 @@ Modules not naming this operation retain their prior projections;
 The frozen Conversions v1 catalog and all existing target/public boundaries
 remain unchanged. No new Unicode or collection resource limits are granted.
 
-Owning executable gates (authored, not yet executed for this change):
+Owning executable gates:
 
 - `--lib string_ops::unicode_scalar_tests`: canonical source/graph/cache
   roundtrip, source drift, forged retained calls, exact source diagnostics.
@@ -66,5 +66,8 @@ Owning executable gates (authored, not yet executed for this change):
   exercise lazy evaluation, operand and sibling failure order, live Bytes
   cleanup and an owned String staged before conversion failure.
 
-The existing integer/byte conversion and deterministic artifact gates remain
-required. This source batch provides no measured agent token or cost savings.
+The focused library and language gates passed 15 checks, including the
+`char_from_u8` compatibility control and exact graph and cache bytes. The
+independent UTF-8 request and nested-response wire checks passed with NUL,
+raw and escaped scalars, every control escape and numeric extrema. Agent
+token and cost qualification requires fresh matched live trials.

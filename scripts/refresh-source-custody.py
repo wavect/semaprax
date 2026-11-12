@@ -342,11 +342,32 @@ def compact_v11_names(ov, page, codec='v11'):
     return result
 
 
+def refresh_distinct_owner_offsets(text, carriers, updates):
+    import ast
+    table = re.search(r"^ finite_distinct_owners=(\{[^\n]*\})$", text, re.M)
+    assert table is not None, 'missing exact distinct-owner offsets'
+    previous = ast.literal_eval(table[1])
+    current = dict(previous)
+    for (carrier, source), offsets in previous.items():
+        if carrier not in updates:
+            continue
+        literal = 'include_str!("' + carriers[carrier]['base'] + source + '")'
+        data = updates[carrier].decode()
+        hits = tuple(match.start() for match in re.finditer(re.escape(literal), data))
+        assert len(hits) == len(offsets), (carrier, source, 'distinct owner count changed')
+        current[carrier, source] = hits
+    if current == previous:
+        return text
+    return text[:table.start(1)] + repr(current) + text[table.end(1):]
+
+
 def refresh_strict_module_pins(repo, guard, updates):
     config = copy.deepcopy(guard['CONFIG'])
     for source, data in updates.items():
-        if source in config['modules']:
-            config['modules'][source] = dict(length=len(data), sha256=sha(data))
+        for table in ('modules', 'carriers'):
+            if source in config[table]:
+                config[table][source].update(length=len(data), sha256=sha(data))
+    raw = refresh_distinct_owner_offsets(repo.raw(GUARD).decode(), config['carriers'], updates)
     if config != guard['CONFIG']:
         candidate = guard['_encode_configuration'](config)
         assert guard['_decode_configuration'](copy.deepcopy(candidate)) == config
@@ -356,10 +377,9 @@ def refresh_strict_module_pins(repo, guard, updates):
         assert len(new_config) <= guard['_OVERLAY_NS']['PAGE_CAP']
         repo.write(f'e/{sha(old_config)}', old_config)
         repo.write(path, new_config)
-        raw = repo.raw(GUARD).decode()
         raw = replace_once(raw, f'_CONFIG_LENGTH={len(old_config)}', f'_CONFIG_LENGTH={len(new_config)}', GUARD)
         raw = replace_once(raw, f"_CONFIG_SHA256='{sha(old_config)}'", f"_CONFIG_SHA256='{sha(new_config)}'", GUARD)
-        repo.write(GUARD, raw)
+    return repo.write(GUARD, raw)
 
 
 def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
@@ -413,7 +433,10 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
         row['current'] = dict(old, length=len(current), sha256=digest, archive=f'e/{digest}')
         repo.write(f'e/{digest}', current)
         changed.append(source)
+    strict_carriers = {source: repo.raw(source) for source in guard['CONFIG']['carriers']}
     if not changed:
+        if refresh_strict_module_pins(repo, guard, strict_carriers):
+            return [], repo.raw(OVERLAY_PY)
         return []
     for row in rows.values():
         if 'fragments' in row:
@@ -507,6 +530,7 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
 
     strict_sources = {source: repo.raw(source) for source in (*changed, successor['source'], owner)
                       if source in guard['CONFIG']['modules']}
+    strict_sources.update(strict_carriers)
     strict_sources[OVERLAY_RS] = rs.encode()
     refresh_strict_module_pins(repo, guard, strict_sources)
 

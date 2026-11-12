@@ -1,9 +1,9 @@
 //! Exact merged current join before either independently retained historical chain.
 use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation;
-const CURRENT_LENGTH: usize = 2327993;
+const CURRENT_LENGTH: usize = 2329397;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "ea628075cf9079254ec395a186c726a0f291628acad4261c5797e68246a2195a";
+const CURRENT_SHA: &str = "27b9cb279d6342c274c498d0508631e3fae1dc5a3c46c62ae0505b6dfd648bb5";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
@@ -17,9 +17,9 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs")), 2845, "6b070dcc9543929b7671d9e07ecb8c18d08d71f8cf869c9fa3c1bb669108d0af"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")), 86308, "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")), 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 34483, "9b0a44837b96345bec274eae1594041194ac6cee80b7d3861216e88a79b29d81"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 35376, "96eb3327ae6fb7a91bc5860872345bbc9f8912e9fc59b29d97a6d81d318b36e1"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs")), 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25134, "5f07abb62df0a437625541c68792b14314ea293a2d4bce792f46a2b7588f392d"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25183, "06c05d6c8deaf72da23183134d8b1d15be11303740a62696229795f777ec1258"),
     ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs")), 7075, "7cc391286fb5a3b24eb5aa2b5b1bacd8bb8599f9161d3f5dbc427a048c85b57c"),
     ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs")), 10800, "3f57f0045c8efcb0f0808e7d0a10f786cae7e99f18e2f8b3fd3448ed53be0106"),
     ("src/cleanup_plan/replay/path_join/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/mod.rs")), 50333, "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"),
@@ -141,7 +141,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/field_unique.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/field_unique.rs")), 7839, "8283a892cb8ce7b4ad460be23c4c80a70c4de92eed4606aec008b3ee8650f6c9"),
     ("src/workspace_graph/expected_projection/field_update.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/field_update.rs")), 7630, "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc"),
     ("src/workspace_graph/expected_projection/string_slots.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/string_slots.rs")), 11811, "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f"),
-    ("src/workspace_graph/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests.rs")), 68668, "e2c0662c308f33c4936acf9c5e935d7522dd5efa12eb4a31ac1267901eddbb76"),
+    ("src/workspace_graph/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/tests.rs")), 69130, "c8ea169d80af23c627b95bdfed494f827558a19998415b21ba1c0e2ab912cffd"),
     ("src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs")), 19806, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")), 34068, "1c284867e62b0585a7975471511a9192b49a5cc03d595bd8d019d2dad927ab08"),
     ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/workspace_oracle.rs")), 5815, "6c63393760f3fda3393673428df55a615bac6b25068b6d3d3d21f30aae7594bc"),
@@ -703,6 +703,10 @@ const PREVIOUS_MERGED_MEMBERS: &[(&str, usize, &str)] = &[
     ("src/cleanup_plan/replay_tests/factored.rs", 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
 ];
 fn previous_merged_member<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+    if source == "src/workspace_graph/tests.rs" {
+        assert_eq!(physical(source), Some(supplied));
+        return std::borrow::Cow::Owned(workspace_tests_before_callable_budget(supplied));
+    }
     use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
     let Some(&(_, length, sha)) = PREVIOUS_MERGED_MEMBERS.iter().find(|part| part.0 == source)
     else {
@@ -714,6 +718,26 @@ fn previous_merged_member<'a>(source: &str, supplied: &'a str) -> std::borrow::C
     assert_eq!((before.len(), digest(&before)), (length, sha.to_owned()));
     assert_eq!(physical(source), Some(supplied));
     std::borrow::Cow::Owned(before)
+}
+
+// Preserve the full workspace test member from before the original-cap witness.
+fn workspace_tests_before_callable_budget(supplied: &str) -> String {
+    const SHA: &str = "e2c0662c308f33c4936acf9c5e935d7522dd5efa12eb4a31ac1267901eddbb76";
+    const INVERSE: &str = r######"[[59985,60213,"    check_callable_limit(MAX_BUILDER_BYTES);\n}\n\n#[test]\nfn callable_limit_exact_advances_and_one_over_is_g171_at_original_budget() {\n    check_callable_limit(64 * 1024 * 1024);\n}\n\nfn check_callable_limit(builder_limit: usize) {\n",""],[60936,61025,"            || build_owned_with_builder_limit(vec![exact, leaf.clone()], builder_limit),\n","            || build_owned(vec![exact, leaf.clone()]),\n"],[61093,61303,"    // The helper proves both reference receivers finish without refusal.\n    // Their separate account has a ceiling, independent of builder consumption.\n    assert!((1..=1 << 28).contains(&reference_bytes));\n","    assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));\n"],[61456,61595,"    eprintln!(\"callable-limit-exact builder_limit={builder_limit} largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}\");\n","    eprintln!(\"callable-limit-exact largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}\");\n"],[61713,61793,"    let error = build_owned_with_builder_limit(vec![over, leaf], builder_limit)\n","    let error = build_owned(vec![over, leaf])\n"]]"######;
+    let edits: Vec<(usize, usize, String, String)> = serde_json::from_str(INVERSE).unwrap();
+    let mut prior = supplied.to_owned();
+    for (start, end, current, before) in edits.into_iter().rev() {
+        assert_eq!(prior.get(start..end), Some(current.as_str()));
+        prior.replace_range(start..end, &before);
+    }
+    let archive = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("e")
+        .join(SHA);
+    assert_eq!(
+        super::raw_reader::read(&archive, 68668, SHA, 2_097_152).unwrap(),
+        prior
+    );
+    prior
 }
 
 // Closed complete current members rejoin the exact prior146-member image.

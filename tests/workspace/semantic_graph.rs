@@ -504,6 +504,11 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             "projection duplicated shared helper `{helper}`"
         );
     }
+    let saved_builder = include_str!(
+        "../../src/workspace_graph/expected_projection/shared_local_callees/before903.rs"
+    );
+    let saved_builder_occurrences = projection.matches(saved_builder).count();
+    assert_eq!(saved_builder_occurrences, 2);
     for moved in [
         "struct SyntheticBuilderCosts",
         "fn synthetic_builder_bytes(",
@@ -514,9 +519,14 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "fn verify_resolved_call_edges(",
     ] {
         assert_eq!(
-            root.matches(moved).count() + projection.matches(moved).count(),
+            root.matches(moved).count() + production_projection.matches(moved).count(),
             1,
-            "expected one definition of `{moved}`"
+            "expected one current definition of `{moved}`"
+        );
+        assert_eq!(
+            projection.matches(moved).count(),
+            1 + saved_builder.matches(moved).count() * saved_builder_occurrences,
+            "complete current and saved definitions of `{moved}`"
         );
     }
     // Keep the complete child union for structural audits. The native/Wasm
@@ -599,7 +609,12 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     ));
     assert!(collect_source.contains("    edges.sort();\n    Ok(())\n}"));
     assert!(!collect_source.contains("workspace_call_sites"));
-    let verify_source = &projection[verify..];
+    let live_projection_owner = include_str!("../../src/workspace_graph/expected_projection.rs");
+    assert_eq!(projection.matches(live_projection_owner).count(), 1);
+    let (_, verify_and_tests) = live_projection_owner
+        .split_once("pub(super) fn verify_resolved_call_edges(")
+        .unwrap();
+    let (verify_source, _) = verify_and_tests.split_once("\n}\n\n#[cfg(test)]").unwrap();
     assert!(verify_source.contains("expected.sort();"));
     assert!(verify_source.contains("actual.sort();"));
     assert!(!verify_source.contains("collect_expected_edges("));

@@ -111,6 +111,25 @@ class AuthorityCheckTests(unittest.TestCase):
                          'restoring a manifest pin must preserve already-correct domain hashes')
 
 
+class DistinctOwnerOffsetsTests(unittest.TestCase):
+    def test_refresh_relocates_both_occurrences_and_refuses_new_ones(self):
+        carrier = 'tests/carrier.rs'
+        source = 'src/example.rs'
+        literal = b'include_str!("../src/example.rs")'
+        previous = {(carrier, source): (0, len(literal) + 1)}
+        guard = f' finite_distinct_owners={previous!r}\n'
+        carriers = {carrier: {'base': '../'}}
+        moved = b'// heading\n' + literal + b'\n' + literal
+        current = {(carrier, source): (moved.index(literal), moved.rindex(literal))}
+        self.assertEqual(
+            CUSTODY.refresh_distinct_owner_offsets(guard, carriers, {carrier: moved}),
+            f' finite_distinct_owners={current!r}\n',
+        )
+        with self.assertRaises(AssertionError):
+            CUSTODY.refresh_distinct_owner_offsets(
+                guard, carriers, {carrier: moved + b'\n' + literal})
+
+
 class DeclaredHistoryRefreshTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix='semaprax-declared-history-')

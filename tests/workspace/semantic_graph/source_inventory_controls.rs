@@ -297,5 +297,8 @@ pub(super) fn current_owned_source_inventory() -> String {
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/function_runtime.rs")),
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs")),
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs")),
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_census.rs")),
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_before.rs")),
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")),
     ].concat()
 }

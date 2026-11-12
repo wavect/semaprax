@@ -31,10 +31,10 @@ vectors changes allocation-failure ordinals, with no physical savings claimed.
 The report is below 65536 bytes for every admitted 256-row/16-byte-ID value
 (even a conservative 128 bytes per row plus 128 metrics bytes is smaller).
 Its encoder preflight uses a 65535-byte limit, leaving room for one newline.
-The command recursively destructures `CatalogResult.report` and its `Metrics`,
-then reconstructs the same declaration-ordered `Report` in the valid branch.
-A whole nested-record binding is refused with `SPX-O117`; invalid results still
-settle their transferred item vector before returning the existing rejection.
+The command binds the whole owned `CatalogResult.report` and passes it directly
+to the encoder in the valid branch. Invalid results settle the bound report
+before returning the existing rejection. The recursive unpack and reconstruction
+remain an independent 23-case differential control.
 Ordered publication fragments own a String label and Bytes payload. The two
 fragment allocations, stable sort, clone and replacement occur outside loops;
 the existing Bytes/fuel/provider/ownership limits remain unchanged. Output

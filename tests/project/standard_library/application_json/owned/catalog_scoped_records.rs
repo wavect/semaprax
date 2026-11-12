@@ -211,6 +211,22 @@ fn typed_catalog_derives_codecs_and_preserves_all_23_functional_cases() {
         .map_err(|error| vec![error])
     })
     .unwrap();
+    let command_path = root.join("src/app.spx");
+    let subtree_command = std::fs::read_to_string(&command_path).unwrap();
+    assert!(subtree_command.contains("CatalogResult { valid, report }"));
+    let recursive_command = include_str!("catalog-command-recursive-report.txt");
+    assert!(recursive_command.contains("report: Report { items: output_items"));
+    std::fs::write(&command_path, canonical(recursive_command)).unwrap();
+    let recursive_report_c =
+        project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+            codegen::emit_hir_c_with_stdin_stream_collection_records(
+                snapshot.public_api_program(),
+                "catalog.command",
+            )
+            .map_err(|error| vec![error])
+        })
+        .unwrap();
+    std::fs::write(&command_path, subtree_command).unwrap();
     let adopted_order = std::fs::read_to_string(root.join("src/order.spx")).unwrap();
     // Isolate only byte-for adoption; retain the current row traversal and
     // substitute the literal pre-adoption helper from the independent archive.
@@ -278,9 +294,10 @@ fn typed_catalog_derives_codecs_and_preserves_all_23_functional_cases() {
         .map_err(|error| vec![error])
     })
     .unwrap();
-    // All five sources execute every frozen raw-byte/all-channel row unchanged.
+    // Every source executes the complete frozen raw-byte and channel corpus.
     for (route, source) in [
         ("slot-views", &c_source),
+        ("recursive-report-control", &recursive_report_c),
         ("original-indexed-validation", &indexed_c),
         ("original-indexed-helper-only", &helper_only_c),
         ("joined", &joined_c),

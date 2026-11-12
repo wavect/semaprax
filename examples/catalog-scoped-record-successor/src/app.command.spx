@@ -34,13 +34,12 @@ fn reject() -> i64
     if written == byte_len(diagnostic) { 2 } else { 1 }
 }
 
-// Nested owned records use recursive patterns; rebuild the exact wire report only
-// after the validity branch so rejected results retain ordinary cleanup.
+// Bind the owned report once and pass it directly to the encoder on success.
 @id("catalog.decide")
 fn decide(outcome: own Decode) -> i64
     uses { process.stderr.write, process.stdout.write }
 {
-    match own outcome { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let catalog_result = run(Request { tags: tags, items: items }); match own catalog_result { CatalogResult { valid, report: Report { items: output_items, metrics: Metrics { selected, stock, checksum } } } => { if !valid { reject() } else { let report = Report { items: output_items, metrics: Metrics { selected: selected, stock: stock, checksum: checksum } }; let encoded = encode(report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } } }, } }, }
+    match own outcome { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let catalog_result = run(Request { tags: tags, items: items }); match own catalog_result { CatalogResult { valid, report } => { if !valid { reject() } else { let encoded = encode(report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } } }, } }, }
 }
 
 @id("catalog.command")

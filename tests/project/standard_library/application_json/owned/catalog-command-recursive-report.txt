@@ -1,0 +1,58 @@
+module catalog.app;
+use type @id("catalog.input_item") from catalog.request_schema as InputItem;
+use type @id("catalog.report") from catalog.response_schema as Report;
+use type @id("catalog.output_item") from catalog.response_schema as Item;
+use type @id("catalog.metrics") from catalog.response_schema as Metrics;
+use type @id("catalog.request") from catalog.request_schema as Request;
+use type @id("catalog.request.json.stream-input") from catalog.request_schema as StreamInput;
+use type @id("catalog.request.json.utf8.owned-result") from catalog.request_schema as Decode;
+use type @id("catalog.report.json.collection-response.encode-result") from catalog.response_schema as Encoded;
+use type @id("catalog.result") from catalog.model as CatalogResult;
+use type @id("catalog.report_parts") from catalog.publication as ReportParts;
+use function @id("catalog.request.json.stream.normalize") from catalog.request_schema as normalize;
+use function @id("catalog.request.json.utf8.owned.decode") from catalog.request_schema as decode;
+use function @id("catalog.report.json.collection-response.encode") from catalog.response_schema as encode;
+use function @id("catalog.run") from catalog.restock as run;
+use function @id("catalog.publish") from catalog.publication as publish;
+
+permit { process.stdin.read, process.stderr.write, process.stdout.write }
+
+// The pure callee settles stdin Bytes before publishing Decode to decide.
+@id("catalog.receive")
+fn receive(bytes: own Bytes, length: usize) -> Decode
+{
+    decode(byte_range(bytes_as_slice(bytes), 0usize, length))
+}
+
+@id("catalog.reject")
+fn reject() -> i64
+    uses { process.stderr.write }
+{
+    let message = "invalid catalog request\n";
+    let diagnostic = str_as_bytes(string_as_str(message));
+    let written = stderr_write(diagnostic);
+    if written == byte_len(diagnostic) { 2 } else { 1 }
+}
+
+// Nested owned records use recursive patterns; rebuild the exact wire report only
+// after the validity branch so rejected results retain ordinary cleanup.
+@id("catalog.decide")
+fn decide(outcome: own Decode) -> i64
+    uses { process.stderr.write, process.stdout.write }
+{
+    match own outcome { Decode::Error { code: _code, offset: _offset, field: _field } => reject(), Decode::Decoded { tags, items } => { let catalog_result = run(Request { tags: tags, items: items }); match own catalog_result { CatalogResult { valid, report: Report { items: output_items, metrics: Metrics { selected, stock, checksum } } } => { if !valid { reject() } else { let report = Report { items: output_items, metrics: Metrics { selected: selected, stock: stock, checksum: checksum } }; let encoded = encode(report, 65535usize); match own encoded { Encoded::Refused { required: _required } => 1, Encoded::Encoded { text } => publish(ReportParts { body: text, trailer: "\n" }), } } }, } }, }
+}
+
+@id("catalog.command")
+fn command() -> i64
+    uses { process.stdin.read, process.stderr.write, process.stdout.write }
+{
+    let normalized = normalize();
+    match own normalized { StreamInput::Error { code: _code, offset: _offset, field: _field } => reject(), StreamInput::Ready { bytes, length } => { let outcome = receive(bytes, length); decide(outcome) }, }
+}
+
+@id("catalog.app.main")
+fn main() -> i64
+{
+    0
+}

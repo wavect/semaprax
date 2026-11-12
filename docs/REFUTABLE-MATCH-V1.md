@@ -75,8 +75,13 @@ existing bounded heap continuation machine. Nested scalar matches do not start
 a recursive evaluator. Arm selection, guard-false fallthrough, sticky failure
 and owned String conditional-result transfers retain their exact order; the
 actual continuation frame layout is reserved before stack backing allocation.
-The existing depth, path and work limits remain unchanged. This is an authored
-implementation route; its grouped executable qualification remains pending.
+The existing depth, path and work limits remain unchanged.
+
+The grouped OPT752 gate passed with the default Rust test stack and the
+ordinary builder cap. The original `std.pattern` workspace build and
+interpreter, native C11 and Core-Wasm conformance passed. Four continuation
+regressions covered nested guards and String results, sticky failures, late
+hostile input, and exact and one-short work and backing reservations.
 
 ## Admitted profile (v1 only)
 

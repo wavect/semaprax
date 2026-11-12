@@ -153,14 +153,30 @@ The two whole-source failures first encounter
 `src/cleanup_plan/replay/factored/oracle_order.rs`. Its 31,188-byte frozen
 input from `51c1dfc49` still matches the sealed helper digest
 `a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011`.
-The current historical reader failed to acquire those bytes.
+The historical reader at that commit failed to acquire those bytes. The
+source-custody repair binds five complete helpers from that same sealed recipe
+to current compiled and physical inputs. Both source checks pass with all 115
+helper digests and the original forged and malformed-input cases.
 
 The full comparison stopped at its first unobserved work check. The saved
 caller left 31,998,534 units and the shipping caller left 31,998,418.
 Temporary test instrumentation measured all 116 units in the shipping HIR
 memo release for that case. Partition validation charged 79 units and
-private-key release charged 37. This run leaves the remaining complete
-comparison checks and matched application measurements pending.
+private-key release charged 37. The independent PLAN-only work-cut check and
+the release refusal check both passed on the custody repair. The complete
+cold caller check still failed its allocation tuple equality. Its pre-release
+caller measured 6,206 allocations, 352 reallocations and 960,776 requested
+bytes. The current caller measured 6,222 allocations, 364 reallocations and
+956,584 requested bytes. Both callers returned the same verdict and released
+all observed backing. Complete work-cut and matched application comparisons
+remain pending.
+
+The selected LogLens CLI, typed Catalog, and typed ShiftSim application owners
+passed. All 13 Catalog Normalizer functional owners passed, and its
+12-module graph built under the current 128 MiB builder cap. The
+older 64 MiB Catalog and ShiftSim controls both refused with SPX-G171.
+The application verdicts do not attribute a debit change to the flat
+successor receiver.
 
 ## Direct selected compatibility authentication closure (source only)
 

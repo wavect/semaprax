@@ -104,3 +104,36 @@ monomorphization and symbol mangling. These sampled peaks describe
 different incomplete phases. Neither arm linked a new executable, so this
 pair cannot establish a memory improvement or test inventory parity.
 The 14 source-authority tests and current source-pin check passed separately.
+
+## Current full library-test codegen-unit comparison
+
+At `f0bae5b682351de082219c2053d59c34e855d2ba`, the same 18 GiB host
+and Rust 1.97.1 targeted the complete library-test artifact sequentially.
+The builds reused cached dependency artifacts and forced fresh primary
+compilations through `cargo rustc --locked --offline --jobs 1 -p semaprax
+--lib --profile test -- -Ccodegen-units=N`. Both used optimization level 0,
+zero debug info, no incremental compilation and a measurement wrapper that
+passed through Cargo's jobserver descriptors. The captured primary rustc
+arguments differed only in the artifact suffix and codegen-unit count.
+
+| Codegen units | Cargo wall seconds | rustc seconds | Kernel rustc peak RSS (bytes) | Sampled peak elapsed seconds |
+| --- | ---: | ---: | ---: | ---: |
+| 256 | 91.81 | 90.68 | 6,489,948,160 | 30.88 |
+| 64 | 87.18 | 86.52 | 7,026,163,712 | 28.57 |
+
+The host guard stopped both compilers after three consecutive one-second
+samples at macOS memory pressure level 2. The one-second stack capture
+starting at 30.44 seconds in the 256-unit arm placed its sampled peak
+inside HIR type checking. That phase precedes code generation. The two
+incomplete runs cannot establish a causal codegen-unit saving or linked
+test inventory parity.
+
+The previously linked five-worker library-test artifact for the same
+source tree listed 11,533 tests and zero benchmarks. Its complete test-list
+SHA-256 was
+`9973fc3af0904d041236fe417d0141677279c46e2a5d333dd1f5d73b76f41109`.
+All ten byte-traversal receiver tests passed on that artifact, including the
+complete immediate predecessor and its inverse. The 14 source-authority
+tests passed independently. The remaining bootstrap comparison needs two
+successful one-worker builds with exact executable inventories and an
+intervention that targets the measured high-water phase.

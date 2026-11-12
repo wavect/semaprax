@@ -49,10 +49,8 @@ impl<E> Funding<'_, '_, E> {
     }
 }
 
-/// Inline control carrier with the six fields of the owning `census_error`.
-/// Every funded diagnostic is discarded by `refusal`, so nothing owned is ever
-/// built on this route and no unpaid backing exists; the ordinary and selected
-/// routes keep the original owning constructor.
+/// Inline control carrier with the six public fields of the ordinary census
+/// diagnostic. Both routes borrow the static message on refusal.
 fn census_static() -> crate::diagnostic::Diagnostic {
     crate::diagnostic::Diagnostic::io_static(CENSUS_CODE, CENSUS_MESSAGE)
 }
@@ -323,8 +321,10 @@ mod tests {
 
     #[test]
     fn static_census_carrier_has_the_six_original_fields_and_stays_borrowed() {
-        let owning = census_error();
+        let owning = census_error_before_static();
+        let ordinary = census_error();
         let carrier = census_static();
+        assert_eq!(ordinary, owning);
         assert_eq!(carrier, owning);
         assert_eq!(carrier.code, owning.code);
         assert_eq!(carrier.severity, owning.severity);
@@ -332,6 +332,7 @@ mod tests {
         assert_eq!(carrier.path, owning.path);
         assert_eq!(carrier.span, owning.span);
         assert_eq!(carrier.help, owning.help);
+        assert!(matches!(ordinary.message, std::borrow::Cow::Borrowed(_)));
         assert!(matches!(carrier.message, std::borrow::Cow::Borrowed(_)));
         assert!(matches!(owning.message, std::borrow::Cow::Owned(_)));
     }

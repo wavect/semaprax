@@ -217,8 +217,15 @@ when forwarded to such a helper. Borrowed-frame depth still tracks balanced
 entry and cleanup; it does not establish foreign-input authority. Byte reads
 likewise validate the existing internal view against its 131,072-byte capacity,
 including any selected stream epoch, after the separate external entry guard.
-They do not reapply the 65,536-byte foreign-root limit to an internal view. The source
-repair and focused cross-backend/root-bound regressions await execution.
+They do not reapply the 65,536-byte foreign-root limit to an internal view.
+The focused OPT-726 gates passed a zero-argument caller that forwards a full
+131,072-byte owned buffer on the interpreter, native C11 O0/O2 and strict
+Core Wasm. Native controls admitted exactly 65,536 external bytes as a
+single Slice and as mixed Str/Slice roots, and preserved distinct individual
+and cumulative diagnostics at one byte over. Success and selected-failure
+reentry settled the existing owners. A full escaped 264-by-64 decoded-byte
+request passed the private owned-buffer route with the original raw-input
+and foreign-root contracts.
 
 The exact source composition
 `str_as_bytes(string_as_str(owner))` is also admitted when `owner` is one

@@ -2,10 +2,9 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: authored direct-source and retained Project adapter for OPT #740;
-qualification pending. Retained static literals combined with lexical renewal
-still have a closed composition route, described below. This is not a completed
-issue, hosted gate, physical allocation receipt, or public provider profile.
+Status: focused local qualification for the direct-source and retained Project
+profiles in OPT #740. The later retained composition profiles and remaining
+OPT #745 obligations are described below.
 
 The adjacent form `str"priority"` denotes immutable UTF-8 with type `borrow str`.
 An ordinary `"priority"` continues to construct an owning String. The contextual
@@ -89,7 +88,7 @@ certificates explicitly refuse static literals until their own profiles support
 the root. No host permission, ABI, raw input limit, runtime counter or memory
 cap is increased.
 
-Authored owning definitions, not executed in this tranche:
+Focused owning gates:
 
 - `hir::static_text::tests::`: source/canonical/current graph/cache round trip,
   stale graph, exact/+1 pool, backing exact/one-short reservation, forged view,
@@ -105,6 +104,21 @@ Authored owning definitions, not executed in this tranche:
   and absence without selected backing.
 - The `static_utf8::` Project definition authenticates the held source,
   executes the existing writer, and refuses drift at final recheck.
+- `collection_response_generated_static_keys_match_direct_and_indexed_renderers`
+  derives and verifies a collection-response codec, then uses explicit static
+  roots for three generated key sites. The root encoder calls the direct
+  metrics renderer once and the indexed row renderer twice. The original
+  codec and the explicit-root fixture each match the independent JSON oracle
+  on the interpreter, native C11 O0/O2, and strict Core Wasm.
+
+A separate matched two-row run changed two generated sites for a 64-byte
+field name. Each canonical key fragment went from 532 source bytes to 139
+and carried the same 67 decoded bytes. The complete generated source went
+from 19,569 to 18,783 bytes. Native execution made exactly 303 output byte
+writes for the 303-byte JSON result in each of the four runs. The emitted C
+source went from 420,389 to 419,276 bytes, and the Core Wasm module went from
+42,753 to 44,855 bytes. Agent token and cost qualification requires fresh
+matched accepted-task cohorts.
 
 A selected retained composition now has authored implementation and regression
 definitions for module-local primitive signatures, static literals and lexical

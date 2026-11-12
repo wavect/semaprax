@@ -1,6 +1,6 @@
 # Invocation-selected file input v1
 
-Status: authored bounded native Unix profile; executable qualification pending.
+Status: focused executable qualification passed on macOS arm64.
 Audience: compiler implementers and authors of bounded native file commands.
 No interpreter, Wasm, Web, npm, Windows, hosted, physical-device, or fresh
 LogLens improvement claim is made. Historical CLI boundary failures motivated
@@ -103,12 +103,17 @@ cache artifacts or semantic evidence.
 
 ## Owning qualification
 
-Required native O0/O2 witnesses cover unchanged argument order and modes,
-usage before lazy acquisition, absolute/parent-relative selections, hidden
-names/spaces, explicitly selected symlinks, held-descriptor substitution,
-nonregular files, missing grants, wrong keys, invalid UTF-8, exact/one-short
-limits, aggregate limits, root failure and settlement before publication.
-Canonical manifests and Project graph selectors must replay the new facts;
-ordinary relative-root no-follow refusals remain required controls. Original
-CLI49 acceptance remains unchanged; later fresh matched trials own any claim
-of reduced launcher source or fewer repair turns.
+The Project source-command suite passed on compiler source
+`7d27641abb9a80b357beaf602b96ee3ffc4fd752` using Rust 1.97.1 and Apple
+Clang 21.0.0. Native O0/O2 witnesses exercised argument order and modes,
+usage before lazy acquisition, absolute and parent-relative selections,
+hidden names and spaces, explicitly selected symlinks, and reads through the
+held descriptor after pathname replacement. They covered nonregular files,
+missing grants, wrong keys, invalid UTF-8, inclusive file and cumulative
+read bounds, detectable drift, root failure and settlement before publication.
+Project graph and lock checks confirmed the v33 selector and portable-route
+refusals. The ordinary v26 and v28 native controls exercised direct relative
+file reads and refusal of both final-component and intermediate symlinks.
+
+The [v34 adoption](INVOCATION-SELECTED-FILE-RESOURCE-V1.md) passed the
+original CLI49 acceptance. Fresh matched trials remain pending.

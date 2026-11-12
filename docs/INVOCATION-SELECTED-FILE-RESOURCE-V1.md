@@ -1,6 +1,6 @@
 # Invocation-selected file resource input v1
 
-Status: authored additive native profile and LogLens adoption; qualification pending.
+Status: focused native profile and LogLens qualification passed on macOS arm64.
 Audience: compiler maintainers and bounded native CLI application authors.
 
 The closed profile `source-command.selected-file.resource-output.v1` selects
@@ -50,12 +50,18 @@ repeated options. The finite physical invocation bounds do not impose a numeric
 byte-count ceiling inside the admitted file. Historical acceptance is retained
 provenance, never acceptance for this adaptation or evidence of savings.
 
-`project::source_command::selected_file_resource` owns O0/O2 raw argv order,
-66000-byte output and exact v33 refusal controls; `loglens_selected_file` owns
-the unchanged historical 33 plus 16 independent SPEC boundary qualification,
-retained candidate tests and additive selected-path controls. The optional
-future Codex setup flag `--selected-file-resource-v1` authenticates compiler
-help, appends only SEMAPRAX capability guidance, leaves TypeScript prompts and
-SPEC/corpus/oracle unchanged, and snapshots the setup source and note hashes.
-No benchmarks or matched campaigns have run for this source. Production and
-application qualification, physical recovery and measured savings remain open.
+`project::source_command::selected_file_resource` passed at native O0 and O2
+on compiler source `7d27641abb9a80b357beaf602b96ee3ffc4fd752`. It covered
+the v34 graph and lock selectors, raw argv order, inclusive argv bounds,
+66,000-byte output and the v33 refusals. At each optimization level,
+`loglens_selected_file` passed all 33 historical checks and all 16 independent
+SPEC boundary checks, the retained assertions and additive selected-path
+controls. The public CLI independently checked the canonical manifest, ran the
+declared native Project test and built the checked-in launcher fixture, which
+also passed CLI49.
+
+The optional Codex setup flag `--selected-file-resource-v1` authenticates
+compiler help and snapshots the setup source and note hashes. Its tests cover
+exact capability binding, drift refusal and preservation of the default setup
+and TypeScript prompt. Fresh matched campaigns and physical allocation
+recovery remain pending.

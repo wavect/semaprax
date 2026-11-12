@@ -78,6 +78,44 @@ fn selected(binary: &Path, cwd: &Path, path: &str) -> std::process::Output {
 }
 
 #[test]
+fn legacy_file_commands_refuse_symlinks_at_each_path_boundary() {
+    for manifest in [super::MANIFEST, RESOURCE_MANIFEST] {
+        let fixture = Fixture::new(APP, manifest);
+        let binary = fixture.0.join("legacy-command");
+        project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            snapshot.build_native(&binary)
+        })
+        .unwrap();
+
+        std::fs::create_dir(fixture.0.join("data")).unwrap();
+        std::fs::write(fixture.0.join("data/input"), b"kept\n").unwrap();
+        std::os::unix::fs::symlink("data/input", fixture.0.join("file-link")).unwrap();
+        std::os::unix::fs::symlink("data", fixture.0.join("dir-link")).unwrap();
+        let invoke = |path: &str| {
+            Command::new(&binary)
+                .current_dir(&fixture.0)
+                .args(["read", path, "--text"])
+                .output()
+                .unwrap()
+        };
+
+        let accepted = invoke("data/input");
+        assert!(accepted.status.success(), "{accepted:?}");
+        assert_eq!(accepted.stdout, b"kept\n");
+        assert!(accepted.stderr.is_empty(), "{accepted:?}");
+        for path in ["file-link", "dir-link/input"] {
+            let refused = invoke(path);
+            assert_eq!(refused.status.code(), Some(1), "{path}: {refused:?}");
+            assert!(refused.stdout.is_empty(), "{path}: {refused:?}");
+            assert!(
+                String::from_utf8_lossy(&refused.stderr).contains("semaprax.filesystem.v1/7"),
+                "{path}: {refused:?}"
+            );
+        }
+    }
+}
+
+#[test]
 fn manifest_graph_and_unsupported_routes_are_exact() {
     let fixture = fixture(APP);
     project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {

@@ -1,6 +1,7 @@
 # Finite owned iterator byte scratch v1
 
-Status: authored selective implementation; executable qualification is pending.
+Status: focused local interpreter, native C11 and strict Core-Wasm checks
+passed. Import-free provider qualification remains open.
 Audience: compiler contributors, agents and reviewers.
 
 This OPT741 profile adds iteration-local literal-sized `bytes_zeroed` owners to
@@ -70,13 +71,15 @@ Frozen graph/from-parts/evidence routes refuse this profile. Legacy programs
 keep their old graph/cache bytes. HIR/cache nodes are unchanged and every cache
 consumer replays the new capacity proof from actual nodes before execution.
 
-Authored gates are `finite_byte_scratch::tests::` and
-`owned_data::lexical_exits::finite_scratch::`. The original
-`lexical_exits::iterator_resume::` eight-copy/eight-drop oracle and all original
-`cleanup_backends::lexical_exits::` native O0/O2 settlement and seven-String
-assertions remain intact. They require actual execution after the complete
-implementation batch joins. Authored tests and this contract are not results.
+The focused source/HIR and backend gates passed, including the original
+`lexical_exits::iterator_resume::` eight-copy/eight-drop oracle and hostile
+resume controls. Native O0 and O2 ran the original normal/continue/break
+fixture and its all-abrupt control four times per context. The observer at
+the actual `bytes_zeroed` constructor recorded seven payload allocations
+and seven frees per invocation, totaling 22 requested bytes and peaking at
+five live payloads. Both variants settled every tracked allocation and
+vector handle. The separate seven-String assertion retains its own fixture.
 
-4096 retained row payload construction and outer Vec accumulation are excluded;
-OPT733 remains independently open. General quota/recovery work and selected
-String allocation remain separate OPT724 obligations.
+The accumulating 4096-row witness and outer Vec accumulation are outside
+this profile. General quota/recovery work and selected String allocation
+remain separate OPT724 obligations.

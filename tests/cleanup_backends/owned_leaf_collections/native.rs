@@ -12,6 +12,32 @@ pub(crate) enum Failure {
 }
 
 pub(crate) fn run(source: &str, code: u32, expected: i64, failure: Failure) {
+    run_with_probe(source, code, expected, failure, None);
+}
+
+pub(crate) fn run_observing_zeroed_payloads(
+    source: &str,
+    expected: i64,
+    allocations: usize,
+    requested: usize,
+    peak: usize,
+) {
+    run_with_probe(
+        source,
+        0,
+        expected,
+        Failure::None,
+        Some((allocations, requested, peak)),
+    );
+}
+
+fn run_with_probe(
+    source: &str,
+    code: u32,
+    expected: i64,
+    failure: Failure,
+    zeroed_payloads: Option<(usize, usize, usize)>,
+) {
     let ast = semaprax::check(source, "owned-leaf-native.spx").expect("source admission");
     let resolved = hir::resolve(&ast).expect("resolved admission");
     hir::validate(&resolved).expect("independent ownership replay");
@@ -50,12 +76,21 @@ pub(crate) fn run(source: &str, code: u32, expected: i64, failure: Failure) {
     let clone_sites = usize::from(has_leaf_clone);
     assert_eq!(generated.matches(string_site).count(), clone_sites);
     assert_eq!(generated.matches(bytes_site).count(), clone_sites);
-    let tracked = generated
+    let mut tracked = generated
         .replace(
             string_site,
             "struct spx_string_v10 *copy = fixture_clone_malloc(",
         )
         .replace(bytes_site, "copy.ptr = fixture_clone_malloc(");
+    if zeroed_payloads.is_some() {
+        let constructor = "uint8_t *payload = (uint8_t *)calloc((size_t)count, sizeof(uint8_t));";
+        assert_eq!(tracked.matches(constructor).count(), 1);
+        tracked = tracked.replace(
+            constructor,
+            "uint8_t *payload = (uint8_t *)fixture_zeroed_payload((size_t)count, sizeof(uint8_t));",
+        );
+    }
+    let (byte_allocations, byte_requested, byte_peak) = zeroed_payloads.unwrap_or((0, 0, 0));
     let clone_leaf = match failure {
         Failure::CloneLeaf(leaf) => leaf,
         _ => 0,
@@ -72,6 +107,7 @@ int main(void) {{
  if(!spx_context_init(&context,UINT64_C(17),entries,32,NULL,NULL,NULL))return 1;
  for(unsigned repeat=0;repeat<4;++repeat){{
   fixture_clone_attempts=0;fixture_refusals=0;
+  fixture_byte_allocations=0;fixture_byte_frees=0;fixture_byte_requested=0;fixture_byte_peak=0;
   fixture_clone_failure={clone_leaf};fixture_realloc_failure={refuse_realloc};
   int64_t result=INT64_C(123456789);uint32_t before=context.status_arena.length;
   spx_status_token status=spx_decl_6f776e65642e6c6561662e6d61696e(&context,&result);
@@ -86,6 +122,8 @@ int main(void) {{
   for(uint32_t j=0;j<SPX_VEC_AUTHORITY_CAPACITY;++j)if(context.vec_authority[j].live)return 5;
   if(fixture_refusals!=({clone_leaf}!=0||{refuse_realloc}!=0))return 6;
   if({clone_leaf}!=0&&fixture_clone_attempts!={clone_leaf})return 7;
+  if(fixture_byte_allocations!={byte_allocations}||fixture_byte_frees!={byte_allocations}
+     ||fixture_byte_requested!={byte_requested}||fixture_byte_peak!={byte_peak}||fixture_byte_live)return 8;
  }}return 0;
 }}
 "#

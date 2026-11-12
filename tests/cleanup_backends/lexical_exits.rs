@@ -307,12 +307,9 @@ fn native_owning_loop_normal_then_continue_then_break_settles_every_owner_o0_o2(
     let entry = r#"@id("app.main")"#;
     assert_eq!(OWNED_BREAK.matches(entry).count(), 1);
     let source = OWNED_BREAK.replace(entry, r#"@id("owned.leaf.main")"#);
-    super::owned_leaf_collections::native::run(
-        &source,
-        0,
-        9,
-        super::owned_leaf_collections::native::Failure::None,
-    );
+    // Outer Bytes, three iterator items and one scratch owner per iteration.
+    // The native observer measures the actual constructor and drop events.
+    super::owned_leaf_collections::native::run_observing_zeroed_payloads(&source, 9, 7, 22, 5);
     let normal_tail = "if seen == 2 { continue; };\n        if seen == 3 { break; };\n        0";
     assert_eq!(source.matches(normal_tail).count(), 1);
     let all_abrupt = source.replace(
@@ -321,12 +318,7 @@ fn native_owning_loop_normal_then_continue_then_break_settles_every_owner_o0_o2(
     );
     // Both finite advance domains must run their own canonical scope cleanup;
     // the ordinary body and inactive Done arm have no normal completion.
-    super::owned_leaf_collections::native::run(
-        &all_abrupt,
-        0,
-        9,
-        super::owned_leaf_collections::native::Failure::None,
-    );
+    super::owned_leaf_collections::native::run_observing_zeroed_payloads(&all_abrupt, 9, 7, 22, 5);
 }
 
 #[test]

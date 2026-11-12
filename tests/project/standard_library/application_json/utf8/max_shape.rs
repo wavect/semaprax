@@ -97,10 +97,12 @@ fn install_identifiers(app: &str) -> std::path::PathBuf {
     root
 }
 
-fn append_check(app: &mut String, input_len: usize, expected_len: usize) {
+fn append_check(app: &mut String, input_len: usize, canonical: &[u8]) {
+    let expected_len = canonical.len();
+    let expected = serde_json::to_string(std::str::from_utf8(canonical).unwrap()).unwrap();
     app.push_str(&format!(
         r#"@id("consumer.main") fn main()->i64 {{
-let mut buffer=witness();let canonical=expected();
+let mut buffer=witness();let canonical=str{expected};
 let decoded=decode(byte_range(bytes_as_slice(buffer),0usize,{input_len}usize));
 // A late grammar fault after the complete maximum shape must remain a typed
 // grammar error at its absolute supplied-input offset, never partial success.
@@ -114,7 +116,7 @@ let required=encoded_len(labels,rows);
 let short=encode(labels,rows,{}usize);
 let short_ok=match own short{{Encoded::Encoded{{text:short_text}}=>false,Encoded::Refused{{required:size}}=>size=={expected_len}usize,}};
 let full=encode(labels,rows,{expected_len}usize);match own full{{Encoded::Refused{{required:refused_count}}=>0,Encoded::Encoded{{text}}=>{{
-let actual=str_as_bytes(string_as_str(text));let wanted=byte_range(bytes_as_slice(canonical),0usize,{expected_len}usize);
+let actual=str_as_bytes(string_as_str(text));let wanted=str_as_bytes(canonical);
 let mut same=byte_len(actual)==byte_len(wanted);let mut at=0usize;
 while same && at<byte_len(wanted){{same=match byte_get(actual,at){{Option::None{{}}=>false,Option::Some{{value:a}}=>match byte_get(wanted,at){{Option::None{{}}=>false,Option::Some{{value:b}}=>a==b,}},}};at=at+1usize;same && at<byte_len(wanted)}}
 if count_ok && string_len(first)==__VALUE_BYTES__ && string_len(last.text)==__VALUE_BYTES__ && required=={expected_len}usize && short_ok && malformed_ok && same{{727}}else{{0}}
@@ -141,34 +143,16 @@ fn append_identifier(app: &mut String, prefix: u8, index: &str, escaped: bool) {
     super::write_fixed(app, b"\"");
 }
 
-fn append_expected_identifier(app: &mut String, prefix: u8, index: &str) {
-    // Independent canonical oracle: zero-padded decimal formatting, rather
-    // than the input writer's positional division/modulo digit extraction.
-    super::write_fixed(app, b"\"");
-    super::write_fixed(app, &[prefix]);
-    super::write_fixed(app, b"AAAAAAAAAAAA");
-    app.push_str(&format!("let digits=string_from_usize({index});let bytes=str_as_bytes(string_as_str(digits));let mut padding=byte_len(bytes);while padding<3usize{{buffer=bytes_set(buffer,cursor,48u8);cursor=cursor+1usize;padding=padding+1usize;padding<3usize}}let mut digit=0usize;while digit<byte_len(bytes){{let value=match byte_get(bytes,digit){{Option::Some{{value}}=>value,Option::None{{}}=>0u8,}};buffer=bytes_set(buffer,cursor,value);cursor=cursor+1usize;digit=digit+1usize;digit<byte_len(bytes)}}\n"));
-    super::write_fixed(app, b"\"");
-}
-
-fn identifier_wire(app: &mut String, function: &str, length: usize, escaped: bool) {
-    app.push_str(&format!("@id(\"consumer.{function}\") fn {function}()->Bytes{{let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", length + 1));
+fn identifier_wire(app: &mut String, length: usize, escaped: bool) {
+    app.push_str(&format!("@id(\"consumer.witness\") fn witness()->Bytes{{let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", length + 1));
     super::write_fixed(app, b"{\"labels\":[");
     app.push_str("let mut label=0usize;while label<8usize{let _ = if label>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
-    if function == "expected" {
-        append_expected_identifier(app, b'S', "label");
-    } else {
-        append_identifier(app, b'S', "label", escaped);
-    }
+    append_identifier(app, b'S', "label", escaped);
     app.push_str("label=label+1usize;label<8usize}\n");
     super::write_fixed(app, b"],\"rows\":[");
     app.push_str("let mut row=0usize;while row<256usize{let _ = if row>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
     super::write_fixed(app, b"{\"number\":0,\"text\":");
-    if function == "expected" {
-        append_expected_identifier(app, b'P', "row");
-    } else {
-        append_identifier(app, b'P', "row", escaped);
-    }
+    append_identifier(app, b'P', "row", escaped);
     super::write_fixed(app, b"}");
     app.push_str("row=row+1usize;row<256usize}\n");
     super::write_fixed(app, b"]}");
@@ -194,9 +178,8 @@ fn owned_identifier_maximum_shape_preserves_exact_16_byte_ids_and_short_output()
         let length = canonical.len() + if escaped { 264 * 16 * 5 } else { 0 };
         assert!(length < 131072);
         let mut app = imports_for("identifier", "");
-        identifier_wire(&mut app, "witness", length, escaped);
-        identifier_wire(&mut app, "expected", canonical.len(), false);
-        append_check(&mut app, length, canonical.len());
+        identifier_wire(&mut app, length, escaped);
+        append_check(&mut app, length, &canonical);
         let app = app.replace("__VALUE_BYTES__", "16");
         let root = install_identifiers(&app);
         qualify_shape(&root, "identifier.input.json.owned.decode");
@@ -225,8 +208,8 @@ fn append_token(app: &mut String) {
     app.push_str("let mut part=0usize;while part<byte_len(token_view){let byte=match byte_get(token_view,part){Option::Some{value}=>value,Option::None{}=>0u8,};buffer=bytes_set(buffer,cursor,byte);cursor=cursor+1usize;part=part+1usize;part<byte_len(token_view)}\n");
 }
 
-fn unicode_wire(app: &mut String, function: &str, token: &[u8], length: usize) {
-    app.push_str(&format!("@id(\"consumer.{function}\") fn {function}()->Bytes{{let token={};let token_view=array_as_slice(token);let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", array(token), length + 1));
+fn unicode_wire(app: &mut String, token: &[u8], length: usize) {
+    app.push_str(&format!("@id(\"consumer.witness\") fn witness()->Bytes{{let token={};let token_view=array_as_slice(token);let mut buffer=bytes_zeroed({}usize);let mut cursor=0usize;\n", array(token), length + 1));
     super::write_fixed(app, b"{\"labels\":[");
     app.push_str("let mut label=0usize;while label<8usize{let _ = if label>0usize{buffer=bytes_set(buffer,cursor,44u8);cursor=cursor+1usize;true}else{true};\n");
     append_token(app);
@@ -274,9 +257,8 @@ fn utf8_maximum_shape_preserves_raw_escaped_and_mixed_64_byte_values() {
         assert!(length < 131072);
         assert!(canonical.len() <= 131072);
         let mut app = imports_for("unicode", "utf8.");
-        unicode_wire(&mut app, "witness", &input_token, length);
-        unicode_wire(&mut app, "expected", &canonical_token, canonical.len());
-        append_check(&mut app, length, canonical.len());
+        unicode_wire(&mut app, &input_token, length);
+        append_check(&mut app, length, &canonical);
         let app = app.replace("__VALUE_BYTES__", "64");
         let root = install(&format!("utf8-json-maximum-{label}"), &app, 64);
         command_manifest(&root);

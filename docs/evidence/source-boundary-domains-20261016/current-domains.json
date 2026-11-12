@@ -3234,8 +3234,8 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "a697ae0a15438ae0d4f47359cb02c8e6d9b48b15435cd0db13b029410f30b30e",
-      "full_raw_sha256": "58dfbd9f73ae99a17b0baff28bfb1fb5850a1edc6bbfe319a3ff200a52b8430e",
+      "full_manifest_sha256": "4bf6742dc75506b3d720c729c73d1934f323926048c84c0429af02d375e915c6",
+      "full_raw_sha256": "b23a3ffabd6df47d58ba3bfff71491cf355bf2d946c706b48667903ed214d319",
       "full_authenticated_production_sha256": "7531d2c35c316350f2f34b769f928490c75d9930d1457b4efe15d7c8d3a8d1ac"
     },
     "projection": {

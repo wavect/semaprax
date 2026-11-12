@@ -443,9 +443,8 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
     let registry_scratch = owner == "interface754"
         && source
             == "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs";
-    let registry_archive = registry_scratch
-        && supplied.len() == 17719
-        && digest(supplied) == REGISTRY_SCRATCH_BEFORE;
+    let registry_archive =
+        registry_scratch && supplied.len() == 17719 && digest(supplied) == REGISTRY_SCRATCH_BEFORE;
     let interface_predecessor =
         owner == "interface754" && supplied == row["before_text"].as_str().unwrap();
     let constructor = constructor903_before(source, compiled);
@@ -490,7 +489,10 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
     if registry_scratch {
         let before = registry_scratch_before_transport(root, restored);
         if registry_archive {
-            assert_eq!(before, supplied, "complete inherited registry scratch input");
+            assert_eq!(
+                before, supplied,
+                "complete inherited registry scratch input"
+            );
         }
         return before;
     }

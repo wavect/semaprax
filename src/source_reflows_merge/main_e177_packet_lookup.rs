@@ -860,12 +860,9 @@ fn assert_transitive_context_source() {
     let root = include_str!("main_e177_final_inputs.rs");
     {
         let mut restored = ("fn stage_current_context".to_owned() + child.split_once("\nfn stage_current_context").unwrap().1.split_once("\nfn current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> String {").unwrap().0).trim_end().to_owned();
-        for (offset, after, before) in [
-            (0usize, "fn stage_current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<String> {\n    stage_with_context(authenticated, canonical, row)?;\n    Some(super::overlay_v2::image(&row[\"current\"]).unwrap())\n", "pub(super) fn stage_current(row: &Value) -> Option<String> {\n    stage(row)?;\n    Some(image(&row[\"current\"]).unwrap())\n"),
-        ] {
-            assert_eq!(&restored[offset..offset + after.len()], after);
-            restored.replace_range(offset..offset + after.len(), before);
-        }
+        let (offset, after, before) = (0usize, "fn stage_current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<String> {\n    stage_with_context(authenticated, canonical, row)?;\n    Some(super::overlay_v2::image(&row[\"current\"]).unwrap())\n", "pub(super) fn stage_current(row: &Value) -> Option<String> {\n    stage(row)?;\n    Some(image(&row[\"current\"]).unwrap())\n");
+        assert_eq!(&restored[offset..offset + after.len()], after);
+        restored.replace_range(offset..offset + after.len(), before);
         let original = "pub(super) fn stage_current(".to_owned()
             + overlay
                 .split_once("pub(super) fn stage_current(")
@@ -1107,12 +1104,9 @@ fn assert_transitive_context_source() {
                 .0)
             .trim_end()
             .to_owned();
-        for (offset, after, before) in [
-            (0usize, "fn direct_row_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n    if authenticated[\"rows\"].as_array().unwrap().iter().any(|row| row[\"source\"] == source) {\n        with_packet_direct_context(authenticated, stage, source, expected, supplied)\n    } else { supplied.to_owned() }\n", "fn value_direct_4a6eb(source: &str, expected: &str, supplied: &str) -> String {\n    let current = packet();\n    if current[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .any(|row| row[\"source\"] == source)\n    {\n        packet_lookup::with_packet(&current, source, expected, supplied)\n    } else {\n        supplied.to_owned()\n    }\n"),
-        ] {
-            assert_eq!(&restored[offset..offset + after.len()], after);
-            restored.replace_range(offset..offset + after.len(), before);
-        }
+        let (offset, after, before) = (0usize, "fn direct_row_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n    if authenticated[\"rows\"].as_array().unwrap().iter().any(|row| row[\"source\"] == source) {\n        with_packet_direct_context(authenticated, stage, source, expected, supplied)\n    } else { supplied.to_owned() }\n", "fn value_direct_4a6eb(source: &str, expected: &str, supplied: &str) -> String {\n    let current = packet();\n    if current[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .any(|row| row[\"source\"] == source)\n    {\n        packet_lookup::with_packet(&current, source, expected, supplied)\n    } else {\n        supplied.to_owned()\n    }\n");
+        assert_eq!(&restored[offset..offset + after.len()], after);
+        restored.replace_range(offset..offset + after.len(), before);
         let original = "fn value_direct_4a6eb(".to_owned()
             + root
                 .split_once("fn value_direct_4a6eb(")

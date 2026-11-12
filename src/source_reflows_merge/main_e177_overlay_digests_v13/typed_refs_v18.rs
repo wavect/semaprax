@@ -694,7 +694,7 @@ fn compact_suffix(raw: &[u8; 32]) -> String {
     result.push_str(".txt");
     result
 }
-fn compact_pair<'a>(value: &'a Value, prefixes: usize) -> Result<(u64, &'a str), &'static str> {
+fn compact_pair(value: &Value, prefixes: usize) -> Result<(u64, &str), &'static str> {
     let pair = value.as_array().ok_or("v20 archive pair")?;
     if pair.len() != 2 {
         return Err("v20 archive pair");

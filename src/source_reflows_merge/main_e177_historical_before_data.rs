@@ -1088,7 +1088,7 @@ mod invocation_acquisition_tests {
         let scope = fixture.route();
         let mut paths = Vec::new();
         for &(path, _, _) in overlay_v2::INVOCATION_PACKET_READS {
-            if !paths.iter().any(|old: &&str| *old == path) {
+            if !paths.contains(&path) {
                 paths.push(path);
             }
         }

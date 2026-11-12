@@ -273,6 +273,7 @@ def install(args: argparse.Namespace) -> Path:
     if len(directories) != len(packages) or set(directories) != set(registry):
         raise ValueError("package catalog differs from actual bundled registry")
     selected_dependencies = dependencies.closure(manifest, registry)
+    bundled_sources = {}
     for name in selected_dependencies:
         package = registry[name]
         directory = directories[name]
@@ -284,7 +285,7 @@ def install(args: argparse.Namespace) -> Path:
             raise ValueError("bundled include differs from package catalog")
         dependency_manifest = tomllib.loads(committed(root + "semaprax.toml").decode())
         dependencies.validate_package(package, dependency_manifest, included[len(root):])
-        committed(included)
+        bundled_sources[package["workspace_path"]] = committed(included)
     subject()
     output = args.output.absolute()
     if output.resolve().is_relative_to(repo.resolve()) or output.exists() or output.is_symlink():
@@ -363,7 +364,7 @@ def install(args: argparse.Namespace) -> Path:
             result["generated_outputs"].append({"path": module, "sha256": sha(data), "bytes": len(data)})
 
         candidates = paired.derive(args.application, compiler, bootstrap, generated, run, unchanged,
-                                   sys.modules[__name__], replayed)
+                                   sys.modules[__name__], replayed, bundled_sources=bundled_sources)
         result["paired_bundle_sha256"] = sha(read_regular(generated / "candidate.json", paired.BUNDLE_LIMIT))
         unchanged()
         result["stage"] = "install-source"

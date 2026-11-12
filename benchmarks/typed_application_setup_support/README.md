@@ -28,7 +28,9 @@ bundled resolver/version/registry shapes fail closed; setup never downloads a
 package or copies caches. The selected original manifest and source bytes are
 checked against Git, then retained using `compiler_output_provenance.capture_inputs`.
 One paired-plan derivation and its complete byte-exact replay use the unchanged private
-bootstrap. Only after both succeed are both module replacements and the
+bootstrap. Both bundle inventories include the exact committed bundled dependency
+sources under their compiler workspace paths. Only after both inventories
+match are the two authored module replacements and the
 reviewed `app.command.spx` installed in another private tree.
 
 The helper checks canonical source and the complete installed Project, records

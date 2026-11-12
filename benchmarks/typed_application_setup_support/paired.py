@@ -33,7 +33,7 @@ def plan_bytes(application, api):
     return (json.dumps(plan(application, api), sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
-def validate(encoded, application, authored_root: Path, api):
+def validate(encoded, application, authored_root: Path, api, *, bundled_sources):
     if not encoded or len(encoded) > BUNDLE_LIMIT:
         raise ValueError("paired bundle exceeds byte bound")
     value = json.loads(encoded, object_pairs_hook=_object)
@@ -48,7 +48,8 @@ def validate(encoded, application, authored_root: Path, api):
     manifest = api.validate_manifest(application, api.read_regular(authored_root / "semaprax.toml"))
     if not isinstance(value["manifest"], str) or api.tomllib.loads(value["manifest"]) != manifest:
         raise ValueError("paired bundle manifest differs from authored original")
-    paths = sorted(manifest["modules"]["sources"])
+    authored_paths = set(manifest["modules"]["sources"])
+    paths = sorted(authored_paths | bundled_sources.keys())
     inventories = []
     for field in ("authored_sources", "candidate_sources"):
         rows = value[field]
@@ -64,7 +65,10 @@ def validate(encoded, application, authored_root: Path, api):
             total += len(data)
             if total > SOURCE_LIMIT or row["sha256"] != "sha256:" + api.sha(data):
                 raise ValueError("paired source bytes or digest differ")
-            if field == "authored_sources" and data != api.read_regular(authored_root / path):
+            if path in bundled_sources and data != bundled_sources[path]:
+                raise ValueError("paired bundled source differs from committed dependency")
+            if (field == "authored_sources" and path in authored_paths
+                    and data != api.read_regular(authored_root / path)):
                 raise ValueError("paired authored original source differs")
             sources[path] = data
         inventories.append(sources)
@@ -99,7 +103,7 @@ def validate(encoded, application, authored_root: Path, api):
     return outputs
 
 
-def derive(application, compiler, bootstrap, generated, run, unchanged, api, on_replayed=None):
+def derive(application, compiler, bootstrap, generated, run, unchanged, api, on_replayed=None, *, bundled_sources):
     policy = generated / "codec-plan.json"
     policy.write_bytes(plan_bytes(application, api))
     for label, output in (("derive-plan", generated / "candidate.json"),
@@ -112,7 +116,7 @@ def derive(application, compiler, bootstrap, generated, run, unchanged, api, on_
     replay = api.read_regular(generated / "candidate.replay.json", BUNDLE_LIMIT)
     if first != replay:
         raise ValueError("complete paired candidate differs from same-bootstrap replay")
-    outputs = validate(first, application, bootstrap, api)
+    outputs = validate(first, application, bootstrap, api, bundled_sources=bundled_sources)
     unchanged()
     if on_replayed is not None:
         for path, *_ in api.generator_jobs(application):
@@ -120,10 +124,10 @@ def derive(application, compiler, bootstrap, generated, run, unchanged, api, on_
     return outputs
 
 
-def retained(application, generated, authored, api):
+def retained(application, generated, authored, api, *, bundled_sources):
     if api.read_regular(generated / "codec-plan.json", 16384) != plan_bytes(application, api):
         raise ValueError("retained paired plan differs")
     first = api.read_regular(generated / "candidate.json", BUNDLE_LIMIT)
     if first != api.read_regular(generated / "candidate.replay.json", BUNDLE_LIMIT):
         raise ValueError("retained complete paired replay differs")
-    return validate(first, application, authored, api), api.sha(first)
+    return validate(first, application, authored, api, bundled_sources=bundled_sources), api.sha(first)

@@ -115,6 +115,7 @@ def verify(args, *, api) -> Path:
         raise ValueError("authored source inventory differs from the closed specimen")
     example = "examples/" + api.EXAMPLES[args.application]["directory"] + "/"
     selected_by_path = {row["path"]: row for row in selected}
+    selected_bytes = {}
     for row in selected:
         path = row["path"]
         mode = subprocess.check_output(["git", "-C", str(repo), "ls-tree", source, "--", path]).decode().split()
@@ -122,6 +123,7 @@ def verify(args, *, api) -> Path:
         if (not mode or mode[0] not in ("100644", "100755")
                 or committed != api.read_regular(repo / path) or api.sha(committed) != row["sha256"]):
             raise ValueError(f"selected committed setup source changed: {path}")
+        selected_bytes[path] = committed
     for row in authored:
         original = selected_by_path.get(example + row["path"])
         if original is None or (original["sha256"], original["bytes"]) != (row["sha256"], row["bytes"]):
@@ -171,7 +173,10 @@ def verify(args, *, api) -> Path:
     generated_by_path = {row["path"]: row for row in generated}
     if result["schema"] == "semaprax.typed-application-setup.v2":
         from . import paired
-        outputs, digest = paired.retained(args.application, root / "generated", root / "authored-inputs/inputs", api)
+        bundled_sources = {registry[name]["workspace_path"]: selected_bytes[registry[name]["source"]]
+                           for name in dependencies}
+        outputs, digest = paired.retained(args.application, root / "generated", root / "authored-inputs/inputs", api,
+                                          bundled_sources=bundled_sources)
         if result.get("paired_bundle_sha256") != digest:
             raise ValueError("retained complete paired bundle binding differs")
         if set(outputs) != set(generated_by_path) or len(outputs) != len(generated_by_path):

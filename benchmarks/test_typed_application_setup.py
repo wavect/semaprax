@@ -379,6 +379,8 @@ class TypedApplicationSetupTests(unittest.TestCase):
 
 
 class PairedPlanSetupTests(unittest.TestCase):
+    bundled_sources = {"dependencies/std.io/0.1.0/io.spx": b"module std.io;\n"}
+
     def test_reviewed_application_policies_match_operator_exact_selectors(self):
         repo = Path(setup.__file__).resolve().parents[1]
         for application in setup.EXAMPLES:
@@ -387,7 +389,7 @@ class PairedPlanSetupTests(unittest.TestCase):
 
     def fixture(self):
         temporary = self.enterContext(tempfile.TemporaryDirectory())
-        root = Path(temporary)
+        root = Path(temporary).resolve()
         bootstrap, generated = root / "bootstrap", root / "generated"
         bootstrap.mkdir(); generated.mkdir()
         example = Path(setup.__file__).resolve().parents[1] / "examples" / setup.EXAMPLES["catalog"]["directory"]
@@ -400,6 +402,9 @@ class PairedPlanSetupTests(unittest.TestCase):
             data = (example / path).read_bytes()
             target = bootstrap / path; target.parent.mkdir(exist_ok=True); target.write_bytes(data)
             rows.append({"path": path, "source": data.decode(), "sha256": "sha256:" + setup.sha(data)})
+        for path, data in self.bundled_sources.items():
+            rows.append({"path": path, "source": data.decode(), "sha256": "sha256:" + setup.sha(data)})
+        rows.sort(key=lambda row: row["path"])
         candidate = [dict(row) for row in rows]
         entries = []
         for policy in sorted(setup.paired.plan("catalog", setup)["entries"], key=lambda row: row["source"]):
@@ -429,10 +434,12 @@ class PairedPlanSetupTests(unittest.TestCase):
             Path(argv[-1]).write_bytes(json.dumps(bundle).encode())
         outputs = setup.paired.derive("catalog", Path("compiler"), bootstrap, generated,
                                       run, lambda: None, setup,
-                                      lambda path, data: staged.append((path, data)))
+                                      lambda path, data: staged.append((path, data)),
+                                      bundled_sources=self.bundled_sources)
         self.assertEqual(commands, ["derive-plan", "replay-plan"])
         self.assertEqual(dict(staged), outputs)
         self.assertEqual(len(outputs), 2)
+        self.assertTrue(self.bundled_sources.keys().isdisjoint(outputs))
         self.assertFalse((bootstrap / "candidate").exists())
 
     def test_partial_or_changed_complete_replay_never_stages_first_module(self):
@@ -444,22 +451,43 @@ class PairedPlanSetupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "complete paired candidate differs"):
             setup.paired.derive("catalog", Path("compiler"), bootstrap, generated,
                                 run, lambda: None, setup,
-                                lambda path, data: staged.append((path, data)))
+                                lambda path, data: staged.append((path, data)),
+                                bundled_sources=self.bundled_sources)
         self.assertEqual(staged, [])
 
     def test_complete_inventory_receipt_and_original_bytes_are_checked(self):
         import copy
         bootstrap, _, bundle = self.fixture()
-        self.assertEqual(len(setup.paired.validate(json.dumps(bundle).encode(), "catalog", bootstrap, setup)), 2)
+        def validate(value):
+            return setup.paired.validate(json.dumps(value).encode(), "catalog", bootstrap, setup,
+                                         bundled_sources=self.bundled_sources)
+
+        self.assertEqual(len(validate(bundle)), 2)
         mutations = [lambda value: value["candidate_sources"].pop(),
                      lambda value: value["entries"][0].update(max_string_bytes=17),
-                     lambda value: value["authored_sources"][0].update(source="changed original"),
+                     lambda value: value["authored_sources"][-1].update(source="changed original"),
                      lambda value: value["entries"][0].update(generated_declarations=[])]
         for mutate in mutations:
             with self.subTest(mutation=mutate):
                 changed = copy.deepcopy(bundle); mutate(changed)
                 with self.assertRaises(ValueError):
-                    setup.paired.validate(json.dumps(changed).encode(), "catalog", bootstrap, setup)
+                    validate(changed)
+
+    def test_paired_bundle_rejects_rehashed_dependency_drift_and_missing_dependency(self):
+        bootstrap, _, bundle = self.fixture()
+        dependency = next(iter(self.bundled_sources))
+        for field in ("authored_sources", "candidate_sources"):
+            row = next(row for row in bundle[field] if row["path"] == dependency)
+            row["source"] = "module forged;"
+            row["sha256"] = "sha256:" + setup.sha(row["source"].encode())
+        with self.assertRaisesRegex(ValueError, "paired bundled source differs from committed dependency"):
+            setup.paired.validate(json.dumps(bundle).encode(), "catalog", bootstrap, setup,
+                                  bundled_sources=self.bundled_sources)
+        for field in ("authored_sources", "candidate_sources"):
+            bundle[field] = [row for row in bundle[field] if row["path"] != dependency]
+        with self.assertRaisesRegex(ValueError, "paired complete source inventory differs"):
+            setup.paired.validate(json.dumps(bundle).encode(), "catalog", bootstrap, setup,
+                                  bundled_sources=self.bundled_sources)
 
 
 if __name__ == "__main__":

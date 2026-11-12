@@ -64,7 +64,8 @@ def main() -> int:
     context["binary_sha256"] = sha(binary)
     context["binary"] = str(binary)
     context["run_command"] = [str(binary), SELECTOR, "--exact", "--ignored", "--nocapture", "--test-threads=1"]
-    with tempfile.TemporaryDirectory(prefix="opt738-generated-") as temporary:
+    temporary_parent = Path(tempfile.gettempdir()).resolve(strict=True)
+    with tempfile.TemporaryDirectory(prefix="opt738-generated-", dir=temporary_parent) as temporary:
         fixture = Path(temporary)
         (fixture / "src").mkdir()
         (fixture / "semaprax.toml").write_bytes((root / "tests/native/string_settlement/bulk_utf8/semaprax.toml").read_bytes())

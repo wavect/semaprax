@@ -4,12 +4,12 @@
 use crate::hir::*;
 use sha2::{Digest, Sha256};
 const DOMAIN: &[u8] = b"semaprax.retained-primitive-body.v2\0";
-struct Encoder<'a> {
+struct Encoder<'a, const BYTE_ITERATOR: bool> {
     hash: Sha256,
     work: usize,
     debit: Option<&'a mut dyn FnMut(usize) -> Option<()>>,
 }
-impl Encoder<'_> {
+impl<const BYTE_ITERATOR: bool> Encoder<'_, BYTE_ITERATOR> {
     fn bytes(&mut self, bytes: &[u8]) -> Option<()> {
         let units = bytes.len().checked_add(1)?;
         let remaining = self.work.checked_sub(units)?;
@@ -44,8 +44,15 @@ impl Encoder<'_> {
         {
             let vector = declaration.as_str() == crate::prelude::VEC_ID
                 && matches!(arguments.as_slice(), [element] if admitted_vec_element(element));
+            let byte_iterator = BYTE_ITERATOR
+                && matches!(
+                    declaration.as_str(),
+                    crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
+                )
+                && arguments.as_slice() == [ResolvedType::Bytes];
             if !arguments.is_empty()
                 && !vector
+                && !byte_iterator
                 && (!crate::hir::borrowed_scalar::option_u8::selected_profile_ready()
                     || !crate::hir::borrowed_scalar::option_u8::is_type(ty))
             {
@@ -186,6 +193,31 @@ impl Encoder<'_> {
                 }
                 Some(())
             }
+            ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } if BYTE_ITERATOR
+                && variant.as_str() == crate::iterator_ops::STEP_ID
+                && match (case.as_str(), fields.as_slice()) {
+                    (crate::iterator_ops::DONE_ID, []) => true,
+                    (crate::iterator_ops::YIELD_ID, [item, rest]) => {
+                        item.field.as_str() == crate::iterator_ops::ITEM_ID
+                            && rest.field.as_str() == crate::iterator_ops::REST_ID
+                    }
+                    _ => false,
+                } =>
+            {
+                self.text("byte-iterator-step-pattern")?;
+                self.text(variant.as_str())?;
+                self.text(case.as_str())?;
+                self.number(fields.len() as u64)?;
+                for field in fields {
+                    self.text(field.field.as_str())?;
+                    self.binding(&field.binding)?;
+                }
+                Some(())
+            }
             ResolvedMatchPattern::Variant { .. } | ResolvedMatchPattern::Record { .. } => None,
         }
     }
@@ -282,12 +314,19 @@ impl Encoder<'_> {
                     return None;
                 }
                 if !type_arguments.is_empty() {
-                    if crate::vec_ops::by_id(callee.as_str()).is_none()
-                        || !matches!(type_arguments.as_slice(), [element] if admitted_vec_element(element))
+                    let tag = if crate::vec_ops::by_id(callee.as_str()).is_some()
+                        && matches!(type_arguments.as_slice(), [element] if admitted_vec_element(element))
                     {
+                        "monomorphic-vec-type-argument"
+                    } else if BYTE_ITERATOR
+                        && crate::iterator_ops::by_id(callee.as_str()).is_some()
+                        && type_arguments.as_slice() == [ResolvedType::Bytes]
+                    {
+                        "monomorphic-byte-iterator-type-argument"
+                    } else {
                         return None;
-                    }
-                    self.text("monomorphic-vec-type-argument")?;
+                    };
+                    self.text(tag)?;
                     self.ty(&type_arguments[0])?;
                 }
                 self.text("call")?;
@@ -455,6 +494,20 @@ impl Encoder<'_> {
                 self.text(field.as_str())?;
                 self.expression(base, depth + 1)
             }
+            E::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } if BYTE_ITERATOR
+                && variant.as_str() == crate::iterator_ops::STEP_ID
+                && case.as_str() == crate::iterator_ops::DONE_ID
+                && fields.is_empty()
+                && crate::iterator_ops::element(&expression.ty) == Some(&ResolvedType::Bytes) =>
+            {
+                self.text("byte-iterator-done")?;
+                self.text(variant.as_str())?;
+                self.text(case.as_str())
+            }
             E::Closure { .. }
             | E::FunctionReference { .. }
             | E::Invoke { .. }
@@ -523,14 +576,29 @@ impl Encoder<'_> {
                 match latch {
                     LoopLatchKind::Condition => self.text("lexical-while-condition")?,
                     // A borrowed record traversal binds its generated step by
-                    // identity; selected replay independently validates the
-                    // latch. Copy and owning-iterator latches stay refused.
+                    // identity; selected replay independently validates the latch.
                     LoopLatchKind::SourceForStep {
                         kind: SourceForKind::BorrowRecord,
                         step,
                     } => {
                         self.text("lexical-while-source-for-borrow-record")?;
                         self.text(step.as_str())?;
+                    }
+                    LoopLatchKind::OwnedIteratorStep {
+                        next,
+                        assignment,
+                        step,
+                        remainder,
+                    } if BYTE_ITERATOR => {
+                        self.text("lexical-while-byte-iterator")?;
+                        for identity in [
+                            next.as_str(),
+                            assignment.as_str(),
+                            step.as_str(),
+                            remainder.as_str(),
+                        ] {
+                            self.text(identity)?;
+                        }
                     }
                     _ => return None,
                 }
@@ -542,32 +610,28 @@ impl Encoder<'_> {
         }
     }
 }
-pub(in crate::workspace_graph) fn typed(
-    function: &ResolvedFunction,
-    source_revision: &[u8; 32],
-) -> Option<[u8; 32]> {
-    typed_with_work(function, source_revision).map(|(digest, _)| digest)
-}
-pub(in crate::workspace_graph) fn typed_with_work(
-    function: &ResolvedFunction,
-    source_revision: &[u8; 32],
-) -> Option<([u8; 32], usize)> {
-    let (digest, spent) = typed_attempt(function, source_revision);
-    digest.map(|digest| (digest, spent))
-}
 /// Preserve successful byte/node debits even when a hostile body cannot encode.
-pub(in crate::workspace_graph) fn typed_attempt(
+pub(in crate::workspace_graph) fn typed_static_attempt_metered(
     function: &ResolvedFunction,
     source_revision: &[u8; 32],
+    debit: Option<&mut dyn FnMut(usize) -> Option<()>>,
 ) -> (Option<[u8; 32]>, usize) {
-    typed_attempt_metered(function, source_revision, None)
+    encode::<true>(function, source_revision, debit)
 }
 pub(in crate::workspace_graph) fn typed_attempt_metered(
     function: &ResolvedFunction,
     source_revision: &[u8; 32],
     debit: Option<&mut dyn FnMut(usize) -> Option<()>>,
 ) -> (Option<[u8; 32]>, usize) {
-    let mut encoder = Encoder {
+    encode::<false>(function, source_revision, debit)
+}
+
+fn encode<const BYTE_ITERATOR: bool>(
+    function: &ResolvedFunction,
+    source_revision: &[u8; 32],
+    debit: Option<&mut dyn FnMut(usize) -> Option<()>>,
+) -> (Option<[u8; 32]>, usize) {
+    let mut encoder = Encoder::<BYTE_ITERATOR> {
         hash: Sha256::new(),
         work: 1_048_576,
         debit,
@@ -622,11 +686,144 @@ pub(in crate::workspace_graph) fn source(path: &str, module: &str, source: &str)
 pub(in crate::workspace_graph) fn scratch_bytes() -> usize {
     // Fixed SHA state; no formatter or materialized source is created.
     // Expression recursion is independently bounded to 256 and constructs no heap.
-    std::mem::size_of::<Encoder<'_>>() + std::mem::size_of::<Sha256>()
+    std::mem::size_of::<Encoder<'_, false>>() + std::mem::size_of::<Sha256>()
 }
 
 fn admitted_vec_element(ty: &ResolvedType) -> bool {
     crate::vec_ops::resolved_element_is_admitted(ty)
         || matches!(ty, ResolvedType::String | ResolvedType::Bytes)
         || matches!(ty, ResolvedType::Nominal { declaration, arguments } if arguments.is_empty() && declaration.as_str() != crate::prelude::VEC_ID)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SOURCE: &str = r#"module static.scratch;
+@id("app.main") fn main()->i64 {
+ let key=str"x";
+ let a=vec_push<Bytes>(vec_with_capacity<Bytes>(2usize),bytes_zeroed(1usize));
+ let values=vec_push<Bytes>(a,bytes_zeroed(2usize));
+ let mut count=0;
+ for own item in vec_into_iter<Bytes>(values) {
+  let scratch=bytes_zeroed(3usize);
+  count=count+2;
+  if byte_len(bytes_as_slice(item))==1usize {continue;};
+  if byte_len(bytes_as_slice(scratch))!=3usize {return 0;};
+  0
+ }
+ return count + str_len_bytes(key);
+}
+"#;
+
+    #[test]
+    fn static_body_binds_each_owned_byte_iterator_latch_identity() {
+        let ast = crate::check(SOURCE, "static-scratch.spx").unwrap();
+        let resolved = crate::hir::resolve(&ast).unwrap();
+        let function = resolved
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "app.main")
+            .unwrap();
+        let revision = source("static-scratch.spx", "static.scratch", SOURCE);
+        assert!(typed_attempt_metered(function, &revision, None).0.is_none());
+        let (digest, _) = typed_static_attempt_metered(function, &revision, None);
+        assert!(digest.is_some());
+        for changed_field in 0..4 {
+            let mut changed = function.clone();
+            let ResolvedExprKind::Block { statements, .. } = &mut changed.body.kind else {
+                panic!("function body");
+            };
+            let latch = statements
+                .iter_mut()
+                .find_map(|statement| {
+                    let ResolvedStatement::Let { value, .. } = statement else {
+                        return None;
+                    };
+                    let ResolvedExprKind::Block { statements, .. } = &mut value.kind else {
+                        return None;
+                    };
+                    match statements.last_mut() {
+                        Some(ResolvedStatement::LexicalWhile { latch, .. }) => Some(latch),
+                        _ => None,
+                    }
+                })
+                .expect("lowered iterator latch");
+            let LoopLatchKind::OwnedIteratorStep {
+                next,
+                assignment,
+                step,
+                remainder,
+            } = latch
+            else {
+                panic!("owned iterator latch");
+            };
+            match changed_field {
+                0 => *next = assignment.clone(),
+                1 => *assignment = next.clone(),
+                2 => *step = remainder.clone(),
+                3 => *remainder = step.clone(),
+                _ => unreachable!(),
+            }
+            let changed = typed_static_attempt_metered(&changed, &revision, None)
+                .0
+                .unwrap();
+            assert_ne!(digest, Some(changed));
+        }
+    }
+
+    #[test]
+    fn static_body_iterator_encoding_preserves_exact_debits_and_earlier_bytes() {
+        let ast = crate::check(SOURCE, "static-scratch.spx").unwrap();
+        let resolved = crate::hir::resolve(&ast).unwrap();
+        let function = resolved
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "app.main")
+            .unwrap();
+        let revision = source("static-scratch.spx", "static.scratch", SOURCE);
+        let mut bytes = 0usize;
+        let (digest, work) = typed_static_attempt_metered(
+            function,
+            &revision,
+            Some(&mut |units| {
+                bytes = bytes.checked_add(units)?;
+                Some(())
+            }),
+        );
+        assert!(digest.is_some());
+        for (limit, expected) in [(bytes, digest), (bytes - 1, None)] {
+            let mut left = limit;
+            let (actual, spent) = typed_static_attempt_metered(
+                function,
+                &revision,
+                Some(&mut |units| {
+                    left = left.checked_sub(units)?;
+                    Some(())
+                }),
+            );
+            assert_eq!(actual, expected);
+            if actual.is_some() {
+                assert_eq!((left, spent), (0, work));
+            } else {
+                assert!(spent < work);
+            }
+        }
+
+        let legacy = r#"module static.earlier; @id("app.main") fn main()->i64 { return str_len_bytes(str"x"); }"#;
+        let ast = crate::check(legacy, "static-earlier.spx").unwrap();
+        let resolved = crate::hir::resolve(&ast).unwrap();
+        let function = resolved
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "app.main")
+            .unwrap();
+        let revision = source("static-earlier.spx", "static.earlier", legacy);
+        let before = typed_attempt_metered(function, &revision, None);
+        assert!(before.0.is_some());
+        assert_eq!(
+            typed_static_attempt_metered(function, &revision, None),
+            before
+        );
+    }
 }

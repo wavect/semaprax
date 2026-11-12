@@ -233,7 +233,7 @@ fn capture_with_matching<const LEGACY: bool>(
                 return Err(fail());
             }
         }
-        if body_digest::typed_attempt_metered(
+        if body_digest::typed_static_attempt_metered(
             function,
             &source_revision,
             Some(&mut |units| {
@@ -290,7 +290,7 @@ fn capture_with_matching<const LEGACY: bool>(
             name: crate::bounded_output::budgeted_clone(&function.name),
             params,
             result: records::clone_type(&current.return_type)?,
-            body: body_digest::typed_attempt_metered(
+            body: body_digest::typed_static_attempt_metered(
                 current,
                 &source_revision,
                 Some(&mut |units| {
@@ -360,7 +360,8 @@ pub(in crate::workspace_graph) fn body_matches(
     source: &FunctionFact,
     function: &hir::ResolvedFunction,
 ) -> bool {
-    body_digest::typed(function, &inventory.source_revision) == Some(source.body)
+    body_digest::typed_static_attempt_metered(function, &inventory.source_revision, None).0
+        == Some(source.body)
 }
 pub(in crate::workspace_graph) fn body_matches_metered(
     inventory: &Inventory,
@@ -368,7 +369,7 @@ pub(in crate::workspace_graph) fn body_matches_metered(
     function: &hir::ResolvedFunction,
     debit: &mut dyn FnMut(usize) -> Option<()>,
 ) -> bool {
-    body_digest::typed_attempt_metered(function, &inventory.source_revision, Some(debit)).0
+    body_digest::typed_static_attempt_metered(function, &inventory.source_revision, Some(debit)).0
         == Some(source.body)
 }
 pub(in crate::workspace_graph) fn digest_scratch_bytes() -> usize {

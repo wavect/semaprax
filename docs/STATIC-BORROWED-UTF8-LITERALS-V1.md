@@ -228,13 +228,17 @@ The 31 retained static-text checks passed on the compiler sources at
 layout drift, and borrowed-record source-for controls. The authenticated
 command Project with static text and lexical Bytes renewal passed at Graph v77.
 
-The fixture from `06e2ca7f3` reproduced a remaining #745 gap on the same
-compiler. Direct source emitted and independently verified Graph v78 for the
-module combining static lexical renewal and finite owned iterator scratch.
-The authenticated Project using that module returned `SPX-G410` from retained
-static source-site authority. The source-body encoder and selected replay
-currently reject the owning iterator latch. The retained Graph v78 gate and
-its producer bindings remain open.
+The fixture from `06e2ca7f3` reproduced a remaining #745 gap. Direct source
+emitted and independently verified Graph v78 for the module combining static
+lexical renewal and finite owned iterator scratch. The authenticated Project
+returned `SPX-G410` from retained static source-site authority.
+
+The static source-body encoder now binds the Bytes iterator's typed calls,
+Done and Yield cases, generated field bindings, and all four owning-latch
+identities. These entries use the existing bounded digest and work debit.
+Earlier static body encodings keep their exact bytes. The retained Project
+gate still requires selected replay to independently authenticate the Bytes
+iterator types, calls, patterns, and canonical cleanup at that latch.
 
 
 The OPT #887 failure-37/109 source-only correction keeps generic lexical exits

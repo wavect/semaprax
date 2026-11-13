@@ -67,6 +67,17 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
             spare: None,
         })
     }
+    pub(super) fn check_partition(
+        &mut self,
+        extent: u64,
+        count: u64,
+        width: u64,
+    ) -> Result<(), Preparation> {
+        self.registry
+            .partition_geometry(extent, count, width)
+            .map(|_| ())
+            .map_err(|error| self.registry.preparation_failure(error))
+    }
     pub(crate) fn partition(
         &mut self,
         owner: R::Owner,

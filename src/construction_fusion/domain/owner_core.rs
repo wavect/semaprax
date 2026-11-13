@@ -676,6 +676,9 @@ impl<'a, R: Runtime> Core<'a, R> {
         })();
         self.select(result)
     }
+    pub(crate) fn has_live_owners(&self) -> bool {
+        self.live != 0
+    }
     fn release_last(&mut self) {
         if self.live == 0 {
             if let Some(owner) = self.backing.take() {

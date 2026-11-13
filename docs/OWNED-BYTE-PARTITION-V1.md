@@ -127,8 +127,8 @@ capacity, generation records, backing administration and Vec backing. A selected
 invocation must precharge its complete inventory before allocation. A bounded
 count alone does not prove total metadata size or repeated whole-backing partition
 capacity; child repartitioning remains closed.
-Native and private Core-Wasm reserve up to 8,192 child slots across held
-preparations and committed backing tables. The full table charge lasts through
+The private interpreter, native and Core-Wasm receivers use an 8,192-child
+limit across committed backing tables and any outstanding preparations. The full table charge lasts through
 the backing's last child, even when earlier children settle. After the last
 child settles, a new partition may use that capacity. This release leaves the
 32-event and 2 MiB cumulative backing counters intact. The executable contract
@@ -246,8 +246,9 @@ shared rule. With 8,192 children issued, a single retained child keeps the
 whole table charged. After it settles, the next partition succeeds and the
 retired carrier still refuses. Both runtime controls observe two backing events
 and 8,193 cumulative payload bytes. The repeated source fixture exercises the
-native and paired Wasm emitters. The direct interpreter source entry still
-accepts one partition per invocation.
+native and paired Wasm emitters. The interpreter registry drops the settled
+table and leaves its context index vacant so later partitions cannot revive an
+old receipt. Its direct source entry still accepts one partition per invocation.
 
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.

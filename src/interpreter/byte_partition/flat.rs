@@ -1,10 +1,7 @@
 //! Affine flat partition containers. No Arc control block or second value array.
 //! Actual language result/iterator installation remains sealed and closed.
 use super::{loans::Loans, InvocationRuntime, Owner};
-use crate::construction_fusion::{
-    domain::Refusal,
-    partition::{operation, Preparation},
-};
+use crate::construction_fusion::{domain::Refusal, partition::Preparation};
 use std::{alloc::Layout, vec::IntoIter};
 
 #[derive(Debug, PartialEq)]
@@ -25,11 +22,8 @@ impl PartitionVec {
         count: u64,
         width: u64,
     ) -> Result<Self, (Preparation, R::Owner)> {
-        if let Err(error) = receiver.active() {
-            return Err((Preparation::Authority(error), owner));
-        }
-        if let Err(error) = operation::prepare(R::bytes(&owner).len() as u64, count, width) {
-            return Err((receiver.preparation_failure(error), owner));
+        if let Err(error) = receiver.check_partition(R::bytes(&owner).len() as u64, count, width) {
+            return Err((error, owner));
         }
         if let Err(error) = receiver.reserve_consumer(Layout::new::<Self>()) {
             return Err((Preparation::Authority(error), owner));

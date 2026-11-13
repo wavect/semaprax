@@ -1,5 +1,5 @@
 //! Closed whole-view registry receiver. No source installer is granted here.
-use super::{authority::LoanCapacity, InvocationRuntime, Owner, Registry, State};
+use super::{authority::LoanCapacity, ContextSlot, InvocationRuntime, Owner, Registry, State};
 use crate::construction_fusion::domain::{owner_core::Core, Issuer, ModuleIdentity, Refusal};
 use std::alloc::Layout;
 impl<R: InvocationRuntime> Registry<R> {
@@ -29,9 +29,9 @@ impl<R: InvocationRuntime> Registry<R> {
                 runtime.reserve_metadata(Layout::new::<Self>())?;
             }
             if let Some(count) = replacement {
-                runtime.reserve_metadata(Layout::new::<Vec<Box<State<R>>>>())?;
+                runtime.reserve_metadata(Layout::new::<Vec<ContextSlot<R>>>())?;
                 runtime.reserve_metadata(
-                    Layout::array::<Box<State<R>>>(count).map_err(|_| Refusal::Metadata)?,
+                    Layout::array::<ContextSlot<R>>(count).map_err(|_| Refusal::Metadata)?,
                 )?;
             }
             runtime.reserve_metadata(Layout::new::<State<R>>())?;
@@ -68,7 +68,11 @@ impl<R: InvocationRuntime> Registry<R> {
         }
         let context = self.contexts.len();
         let receipt = children[0].receipt();
-        self.contexts.push(Box::new(State { core, children }));
+        self.contexts.push(Some(Box::new(State {
+            core,
+            children,
+            table_slots: 0,
+        })));
         self.header_paid = true;
         Ok(Owner {
             invocation: self.invocation,

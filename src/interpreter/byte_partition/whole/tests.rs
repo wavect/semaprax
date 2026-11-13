@@ -1,4 +1,4 @@
-use super::{Core, Issuer, ModuleIdentity, Registry, State};
+use super::{ContextSlot, Core, Issuer, ModuleIdentity, Registry, State};
 use crate::construction_fusion::domain::owner_core::Child;
 use crate::interpreter::byte_partition::{
     authority::LoanCapacity,
@@ -82,8 +82,8 @@ fn whole_metadata_has_independent_exact_short_and_children_cannot_mint_whole() {
     type R = Probe;
     let units = Core::<R>::whole_test_table_units();
     let required = Layout::new::<Registry<R>>().size()
-        + Layout::new::<Vec<Box<State<R>>>>().size()
-        + Layout::array::<Box<State<R>>>(1).unwrap().size()
+        + Layout::new::<Vec<ContextSlot<R>>>().size()
+        + Layout::array::<ContextSlot<R>>(1).unwrap().size()
         + Layout::new::<State<R>>().size()
         + Layout::new::<Core<'static, R>>().size()
         + units[0].size()

@@ -4,7 +4,7 @@
 use crate::construction_fusion::domain::owner_core::{Child, Core, Loan, Receipt, Runtime};
 use crate::construction_fusion::{
     domain::{Issuer, ModuleIdentity, Refusal},
-    partition::{operation, Preparation},
+    partition::{operation, Fault, Geometry, Preparation},
 };
 use std::{
     alloc::Layout,
@@ -29,7 +29,10 @@ pub(crate) trait InvocationRuntime: Runtime {
 struct State<R: Runtime> {
     core: Core<'static, R>,
     children: Vec<Child<'static>>,
+    table_slots: usize,
 }
+type ContextSlot<R> = Option<Box<State<R>>>;
+
 /// Affine private receipt: no Clone, serializer, pointer adapter, or public ABI.
 #[derive(Debug, PartialEq)]
 pub(crate) struct Owner {
@@ -46,7 +49,8 @@ pub(crate) struct View {
 pub(crate) struct Registry<R: InvocationRuntime> {
     runtime: R,
     invocation: u64,
-    contexts: Vec<Box<State<R>>>,
+    contexts: Vec<ContextSlot<R>>,
+    child_table_slots: usize,
     header_paid: bool,
     failed: Option<Refusal>,
 }
@@ -59,6 +63,7 @@ impl<R: InvocationRuntime> Registry<R> {
             runtime,
             invocation,
             contexts: Vec::new(),
+            child_table_slots: 0,
             header_paid: false,
             failed: None,
         })
@@ -86,8 +91,24 @@ impl<R: InvocationRuntime> Registry<R> {
         }
         self.contexts
             .get_mut(context)
-            .map(Box::as_mut)
+            .and_then(Option::as_deref_mut)
             .ok_or(Refusal::Identity)
+    }
+    fn partition_geometry(
+        &self,
+        extent: u64,
+        count: u64,
+        width: u64,
+    ) -> Result<Geometry, Preparation> {
+        self.active().map_err(Preparation::Authority)?;
+        let geometry = operation::prepare(extent, count, width)?;
+        let remaining = (crate::vec_ops::MAX_CAPACITY as usize)
+            .checked_sub(self.child_table_slots)
+            .ok_or(Preparation::Authority(Refusal::Metadata))?;
+        if geometry.count > remaining {
+            return Err(Preparation::Fault(Fault::MetadataCapacity));
+        }
+        Ok(geometry)
     }
     /// Core receives only a handle to the held caller account; no replacement
     /// runtime can be supplied at this operation.
@@ -108,11 +129,8 @@ impl<R: InvocationRuntime> Registry<R> {
         width: u64,
         capacity: Option<&authority::LoanCapacity<'_>>,
     ) -> Result<Vec<Owner>, (Preparation, R::Owner)> {
-        if let Err(error) = self.active() {
-            return Err((Preparation::Authority(error), owner));
-        }
-        let geometry = match operation::prepare(R::bytes(&owner).len() as u64, count, width) {
-            Ok(g) => g,
+        let geometry = match self.partition_geometry(R::bytes(&owner).len() as u64, count, width) {
+            Ok(geometry) => geometry,
             Err(error) => return Err((self.preparation_failure(error), owner)),
         };
         let next_capacity = if self.contexts.len() == self.contexts.capacity() {
@@ -136,7 +154,7 @@ impl<R: InvocationRuntime> Registry<R> {
             if let Some(capacity) = next_capacity {
                 // Full replacement is charged while the old backing is live.
                 runtime.reserve_metadata(
-                    Layout::array::<Box<State<R>>>(capacity).map_err(|_| Refusal::Metadata)?,
+                    Layout::array::<ContextSlot<R>>(capacity).map_err(|_| Refusal::Metadata)?,
                 )?;
             }
             runtime.reserve_metadata(Layout::new::<State<R>>())?;
@@ -214,7 +232,12 @@ impl<R: InvocationRuntime> Registry<R> {
                 receipt: value.receipt(),
             });
         }
-        self.contexts.push(Box::new(State { core, children }));
+        self.child_table_slots += geometry.count;
+        self.contexts.push(Some(Box::new(State {
+            core,
+            children,
+            table_slots: geometry.count,
+        })));
         Ok(output)
     }
     fn apply<T>(
@@ -334,7 +357,21 @@ impl<R: InvocationRuntime> Registry<R> {
     }
     /// Exact canonical leaf action, never a mixed-container pre-finalizer sweep.
     pub(crate) fn settle(&mut self, owner: &mut Owner) -> Result<(), Refusal> {
-        self.apply(owner, true, |core, child| core.drop_owner(child))
+        let last_child = self.apply(owner, true, |core, child| {
+            core.drop_owner(child)?;
+            Ok(!core.has_live_owners())
+        })?;
+        if last_child {
+            // Keep the context ordinal vacant so an old receipt can never
+            // name a newly allocated backing table.
+            let state = self.contexts[owner.context]
+                .take()
+                .expect("settled partition context");
+            let table_slots = state.table_slots;
+            drop(state);
+            self.child_table_slots -= table_slots;
+        }
+        Ok(())
     }
 }
 #[cfg(test)]

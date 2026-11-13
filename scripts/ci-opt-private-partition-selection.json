@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
   "filters": 4,
-  "expected_tests": 14,
+  "expected_tests": 33,
   "commands": [
     {
       "owner": "OPT746 checked source and HIR partition authority",
@@ -11,11 +11,11 @@
       "expected_tests": 2
     },
     {
-      "owner": "OPT746 direct interpreter partition account and cleanup",
+      "owner": "OPT746 interpreter partition entry, registry, loans and owned settlement",
       "binary": "lib",
-      "filter": "interpreter::byte_partition::direct::tests::",
+      "filter": "interpreter::byte_partition::",
       "exact": false,
-      "expected_tests": 6
+      "expected_tests": 25
     },
     {
       "owner": "OPT746 generated C11 partition at O0 and O2",

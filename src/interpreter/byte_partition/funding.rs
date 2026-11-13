@@ -2,7 +2,9 @@
 //! it neither copies them nor creates a second logical payload allowance.
 //! A caller supplies real finite physical funding. The layout-derived upper is
 //! a forecast, not proof that a host has funded it or source admission authority.
-use super::{authority::LoanCapacity, loans::Loans, InvocationRuntime, Owner, Registry, State};
+use super::{
+    authority::LoanCapacity, loans::Loans, ContextSlot, InvocationRuntime, Owner, Registry, State,
+};
 use crate::construction_fusion::domain::{
     owner_core::{Core, Runtime},
     Issuer, ModuleIdentity, Refusal,
@@ -160,7 +162,7 @@ pub(crate) fn upper(capacity: &LoanCapacity<'_>) -> Result<usize, Refusal> {
     }
     let mut replacement = 1;
     while replacement <= contexts {
-        add(Layout::array::<Box<State<Handle<'_, '_>>>>(replacement)
+        add(Layout::array::<ContextSlot<Handle<'_, '_>>>(replacement)
             .map_err(|_| Refusal::Metadata)?
             .size())?;
         replacement = replacement.checked_mul(2).ok_or(Refusal::Metadata)?;

@@ -1,6 +1,8 @@
 use super::{InvocationRuntime, Owner, Registry};
 use crate::construction_fusion::{
-    domain::owner_core::Runtime, domain::Refusal, partition::Preparation,
+    domain::owner_core::Runtime,
+    domain::Refusal,
+    partition::{Fault, Preparation},
 };
 use std::{alloc::Layout, cell::RefCell, rc::Rc};
 #[derive(Default)]
@@ -193,6 +195,46 @@ fn real_table_allocations_exact_one_short_overlap_and_abandonment_are_monotonic(
     drop(registry);
     assert_eq!(probe.0.borrow().releases, 2); // administrative abandonment only
 }
+#[test]
+fn child_table_remains_charged_until_last_child_settles() {
+    let probe = account(usize::MAX);
+    let mut registry = Registry::new(probe.clone()).unwrap();
+    let mut children = registry
+        .partition(vec![0; 8192].into_boxed_slice(), 8192, 1)
+        .unwrap();
+    let mut last = children.pop().unwrap();
+    for child in &mut children {
+        registry.settle(child).unwrap();
+    }
+    drop(children);
+    let next = vec![7].into_boxed_slice();
+    let next_pointer = next.as_ptr();
+    let charged = probe.charged();
+    let (error, next) = registry.partition(next, 1, 1).unwrap_err();
+    assert_eq!(error, Preparation::Fault(Fault::MetadataCapacity));
+    assert_eq!(next.as_ptr(), next_pointer);
+    assert_eq!(probe.charged(), charged);
+    assert_eq!(probe.0.borrow().releases, 0);
+
+    let stale = Owner {
+        invocation: last.invocation,
+        context: last.context,
+        child: last.child,
+        receipt: last.receipt,
+    };
+    registry.settle(&mut last).unwrap();
+    assert_eq!(registry.child_table_slots, 0);
+    assert!(registry.contexts[stale.context].is_none());
+    assert_eq!(probe.0.borrow().releases, 1);
+    assert_eq!(probe.charged(), charged);
+    let mut next = registry.partition(next, 1, 1).unwrap();
+    assert_eq!(read(&mut registry, &next[0]), [7]);
+    assert_eq!(registry.extent(&stale), Err(Refusal::Identity));
+    registry.settle(&mut next[0]).unwrap();
+    assert_eq!(probe.0.borrow().releases, 2);
+    assert_eq!(registry.child_table_slots, 0);
+}
+
 #[test]
 fn foreign_stale_live_loan_and_clone_exhaustion_refuse_without_publication() {
     let probe = account(usize::MAX);

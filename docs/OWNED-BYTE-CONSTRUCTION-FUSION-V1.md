@@ -166,6 +166,23 @@ loader. The ordinary route reports `SPX-T267`. Changing the destination
 capacity or unit induction causes `SPX-F130` before Wasm publication.
 The local runs used the `c28cc4432` compiler build and Node v24.15.0.
 
+A rerun at source checkout `2a308ec14` compiled the current quickstart test
+harness with Rust 1.97.1 against the retained `c28cc4432` library and standalone
+CLI. All four fused-source CLI tests passed, covering the original and
+alternate programs, native build and execution, deterministic paired Wasm
+artifacts, funding refusal, and unsupported routes. The unchanged maximum
+traversal test also passed in the retained `owned_data` image. The retained
+library image passed 18 focused tests covering capacity, cache replay, native
+O0/O2 and paired Wasm package ownership.
+
+The original fixture SHA-256 was
+`5dfddfe4c864f5a50680238abd4256e8b956f5c1df37fbc3151d065a45ee4fb3`.
+The standalone compiler SHA-256 was
+`de70b5ec8e087ec4e718e6ecd14d26a873a3721cb7c309ee70fdf97528754e08`.
+These results qualify the retained compiler and current CLI harness together.
+The current compiler, the full #746 dependency, and matched agent costs
+remain open qualification work.
+
 ## Separate ordinary finite capacity prerequisite
 
 [Finite owned-row construction v1](FINITE-OWNED-ROW-CONSTRUCTION-V1.md) is an

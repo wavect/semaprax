@@ -166,6 +166,7 @@ pub(super) fn bounds(
                 terminal_paths: MAX_REPLAY_PATHS.saturating_add(1),
                 work: ceiling,
                 skeleton_work: ceiling,
+                all_blocks_reachable: false,
             });
         }
     }
@@ -176,6 +177,7 @@ pub(super) fn bounds(
         terminal_paths,
         work: total,
         skeleton_work,
+        all_blocks_reachable: visited == plan.blocks.len(),
     })
 }
 

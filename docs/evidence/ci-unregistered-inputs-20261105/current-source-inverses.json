@@ -227,14 +227,24 @@
     ]
   },
   "src/cleanup_plan/replay/cfg_bounds/tests/old.rs": {
-    "sha256": "bcec7c6be99731ee27869d6fd75a134504b3173920372f25128de2dbfeb8cac1",
-    "length": 5700,
+    "sha256": "8027eb8f3c030723fb55ab34d02ec913e4649898c25320eebef0927ad514b557",
+    "length": 5805,
     "prior": "dae232ff12e15f58497c9d527ed4be1ecbce25fd5cd7e5b8a1081e3155b09fcb",
     "prior_length": 5551,
     "inverse": [
       [
         0,
         "#![allow(\n    clippy::duplicate_mod,\n    reason = \"Compile the complete implementation against independent current and historical replay owners.\"\n)]\n",
+        ""
+      ],
+      [
+        5407,
+        "                all_blocks_reachable: false,\n",
+        ""
+      ],
+      [
+        5736,
+        "        all_blocks_reachable: visited == plan.blocks.len(),\n",
         ""
       ]
     ]

@@ -148,13 +148,37 @@ fn invoice(program: &ResolvedProgram) -> (usize, usize) {
     let before = run(program, true, usize::MAX, 0, true);
     let current = run(program, false, usize::MAX, 0, true);
     let count = program.functions.len() + program.function_instances.len();
-    // Every original body runs. Only the physically different owner and
-    // producer/receiver transport banks can change the complete paid invoice.
+    // Independently measure the CFG frame shrinkage on the same functions.
+    // The caller invoice still binds the full #941 transport delta and now
+    // also accounts for the separately executable CFG predecessors.
+    let cfg_paid = |compact| {
+        let (result, refused, paid) = crate::bounded_output::with_limit_usage(usize::MAX, || {
+            let mut budget = ReplayBudget::new();
+            for function in program.functions.iter().chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            ) {
+                if compact {
+                    structural_control::validate_ordinary_cfg_compact(function, &mut budget)?;
+                } else {
+                    structural_control::validate_ordinary_cfg(function, &mut budget)?;
+                }
+            }
+            Ok::<(), Diagnostic>(())
+        });
+        assert!(!refused);
+        result.unwrap();
+        paid
+    };
+    let cfg_saved = cfg_paid(false).checked_sub(cfg_paid(true)).unwrap();
     assert_eq!(
         before + Backing::ACQUISITION_BYTES + count * Backing::PER_FUNCTION_BYTES,
         current
             + Before941StatusBacking::ACQUISITION_BYTES
-            + count * Before941StatusBacking::PER_FUNCTION_BYTES,
+            + count * Before941StatusBacking::PER_FUNCTION_BYTES
+            + cfg_saved,
     );
     for (old, exact) in [(true, before), (false, current)] {
         assert_eq!(run(program, old, exact, 0, true), exact);

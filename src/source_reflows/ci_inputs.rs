@@ -873,7 +873,7 @@ fn current_source_predecessor<'a>(source: &str, compiled: &'a str) -> std::borro
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/ci-unregistered-inputs-20261105/current-source-inverses.json"
     ));
-    const SHA: &str = "41032a9f9e81a5c36f0a6afb773fe18d36fbcae2fd7d87422ab963cc47372ec9";
+    const SHA: &str = "daece8c0154670c4ac2ae44362fa85ac2ba90e88960f5b57acc9bec0731b8817";
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let read = |path: &std::path::Path, len, sha| reader::read(path, len, sha, 2_097_152).unwrap();
     assert_eq!(read(&root.join(PATH), DATA.len(), SHA), DATA);

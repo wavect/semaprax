@@ -1179,7 +1179,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_status_backing<'h
                                 &statuses,
                             )?;
                             structural_maps::validate_reference_coverage(function, budget)?;
-                            structural_control::validate_ordinary_cfg(function, budget)?;
+                            structural_control::validate_ordinary_cfg_compact(function, budget)?;
                             if !cleanup_inert_path_product_can_be_summarized(function)?
                                 && !status_only_paths_can_be_summarized(function)
                                 && !cleanup_inert_large_decisions_can_be_summarized(function)
@@ -1483,7 +1483,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_status_backing<'h
         &statuses,
     )?;
     structural_maps::validate_reference_coverage(function, budget)?;
-    structural_control::validate_ordinary_cfg(function, budget)?;
+    structural_control::validate_ordinary_cfg_compact(function, budget)?;
     if !cleanup_inert_path_product_can_be_summarized(function)?
         && !status_only_paths_can_be_summarized(function)
         && !cleanup_inert_large_decisions_can_be_summarized(function)

@@ -62,14 +62,8 @@ macro_rules! with_program_status_backing {
             {
                 continue;
             }
-            let function_upper = skeleton_work_upper($program, function)?;
-            // A selected factored comparison uses the ordinary work ledger.
-            // Its enumerating fallback acquires the original bound on entry.
-            if function_upper != 0
-                && factored::defer_enumerating_reservation(function, &mut $budget)?
-            {
-                continue;
-            }
+            let function_upper =
+                skeleton_work_upper_with_selection($program, function, Some(&$budget))?;
             total = total.checked_add(function_upper).ok_or_else(|| {
                 replay_error(
                     function,

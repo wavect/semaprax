@@ -30,6 +30,28 @@ fn select_resource_representation(
     }
 }
 
+// The enumerating census already resolved every target and checked its
+// complete reachable graph for cycles. A complete census covering all blocks
+// supplies the same preflight facts as the separate reachability walk.
+pub(in crate::cleanup_plan::replay) fn select_from_enumerating_census(
+    function: &ResolvedFunction,
+    cfg: &CfgReplayBounds,
+    semantic_paths: usize,
+    budget: &ReplayBudget,
+) -> bool {
+    let wide = cfg.terminal_paths.max(semantic_paths) > paired::BUILDER_FACTORED_PATH_THRESHOLD;
+    if matches!(budget.payer, AllocationPayer::ActiveBuilder)
+        || (matches!(budget.payer, AllocationPayer::LegacyUnobserved)
+            && budget.admission == AdmissionMode::Ordinary
+            && wide)
+    {
+        return wide && cfg.all_blocks_reachable;
+    }
+    cfg.all_blocks_reachable
+        && representation_candidate(function, cfg.terminal_paths, semantic_paths)
+}
+
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn defer_enumerating_reservation(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,

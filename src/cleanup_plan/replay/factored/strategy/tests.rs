@@ -250,3 +250,50 @@ fn ordinary_resource_plan_preserves_other_functions_held_work_and_real_proof() {
     .is_err());
     assert_eq!(budget.skeleton_remaining, held);
 }
+
+#[test]
+fn complete_cfg_census_selects_only_the_same_factored_resource_plan() {
+    let decisions: String = (0..9)
+        .map(|i| format!("let choice{i} = if n == 0 {{ 1 }} else {{ 2 }};"))
+        .collect();
+    let source = format!(
+        "module resource.census; @id(\"probe\") fn probe(n:i64)->i64 {{{} n}} @id(\"main\") fn main()->i64 {{0}}",
+        decisions
+    );
+    let program =
+        crate::hir::resolve(&crate::check(&source, "resource-census.spx").unwrap()).unwrap();
+    let probe = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "probe")
+        .unwrap();
+    let keeper = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "main")
+        .unwrap();
+
+    let mut disconnected = probe.clone();
+    disconnected
+        .cleanup_plan
+        .blocks
+        .push(probe.cleanup_plan.blocks.last().unwrap().clone());
+    for function in [probe, keeper, &disconnected] {
+        let compare = || {
+            let mut budget = ReplayBudget::new();
+            let cfg = cfg_bounds::bounds(function, &mut budget).unwrap();
+            let hir = hir_terminal_path_bound(function).unwrap();
+            let expected = defer_enumerating_reservation(function, &mut budget).unwrap();
+            assert_eq!(
+                select_from_enumerating_census(function, &cfg, hir, &budget),
+                expected
+            );
+            expected
+        };
+        let expected = std::ptr::eq(function, probe);
+        assert_eq!(compare(), expected);
+        let (selected, refused, _) = crate::bounded_output::with_limit_usage(usize::MAX, compare);
+        assert!(!refused);
+        assert_eq!(selected, expected);
+    }
+}

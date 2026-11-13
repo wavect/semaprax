@@ -1543,6 +1543,18 @@ def encode_compressed_page(page,schema=V22_SCHEMA):
    if len(canonical(candidate))<=PAGE_CAP:
     result=candidate
     break
+ if len(canonical(result))>PAGE_CAP:
+  # Preserve one stream and the same limits when the full catalog needs
+  # additional Huffman block boundaries.
+  cuts = (1750, 23250, 45000, 52000, 76000, 91000, 106500, 129250, 136000, 150000, 171750, 192750, 200500, 220000, 229250, 254500, 258500, 282250, 290000, 319000, 329500, 346000, 364000, 372500, 393750, 409000)
+  compressor=zlib.compressobj(9,zlib.DEFLATED,zlib.MAX_WBITS,8)
+  chunks=[]; previous=0
+  for cut in cuts:
+   if cut>=len(raw):break
+   chunks.extend((compressor.compress(raw[previous:cut]),compressor.flush(zlib.Z_BLOCK)))
+   previous=cut
+  chunks.extend((compressor.compress(raw[previous:]),compressor.flush()))
+  result=envelope(b''.join(chunks))
  assert expand_compressed_page(result)==page, 'ENTIRE compressed v20 inverse'
  return result
 

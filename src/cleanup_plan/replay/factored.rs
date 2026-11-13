@@ -702,7 +702,9 @@ fn build_comparison<'hir>(
 
 #[path = "factored/strategy.rs"]
 pub(super) mod strategy;
-pub(super) use strategy::{defer_enumerating_reservation, validate_with_deferred_index_storage};
+#[cfg(test)]
+pub(super) use strategy::defer_enumerating_reservation;
+pub(super) use strategy::validate_with_deferred_index_storage;
 
 #[derive(Default)]
 struct Automaton {

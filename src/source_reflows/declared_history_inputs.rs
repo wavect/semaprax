@@ -21,8 +21,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-0.json"
         )),
-        1173600,
-        "2a0a7b84b1e33dc85405380bca6c86309fc35ceeffd8e8a323162eb3b70cdda8",
+        1176200,
+        "b64b2b037218d769ef63577ef40b3eff6dfe212f5dfa410ec4873c212c5c1226",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-1.json",
@@ -30,8 +30,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-1.json"
         )),
-        944750,
-        "5c6c31c90cb82da94aa9483b53c2e002ac797d1740dc7c057daee613b5bc41f1",
+        944864,
+        "da0c2603e82381dad8bf6530bacde6b8441ae3e1b6731e13901923df6d4e6188",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-2.json",
@@ -103,7 +103,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
         697807,
-        "1a7fdd5cd8693897c1f52146f5729b5d084da39f64e6005aea9bdaf3289ff075",
+        "348a11afea8b3216159b11bc1836886c4840de258899c7119a1f63c2a91ade70",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -111,8 +111,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        130826,
-        "b9a264813c1dfe3222597f430699333f91fae5f4ce1569fadc4ac034bcbcf9f1",
+        130876,
+        "ec275f6a85990c7248da3e9111919d6ed3ef582b2a4f1c9a23ffe30a526e2c0f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -165,8 +165,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-16.json"
         )),
-        1084519,
-        "23c5e9a27332f5971671abf984f1340b4d3804275d7d988eb102bfa0fdcb8235",
+        1085857,
+        "5fd69f0bfb9cdc0b0cd8a7d01212b93893184061c03f58bd20cad957cefe9d69",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-17.json",
@@ -318,8 +318,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-33.json"
         )),
-        1042233,
-        "0d96e44fc45014401b9a813dbcc6d5e21bc04f2f7bbaf92d9025f466b875f3f4",
+        1042271,
+        "48497432194173415175c5a9a52eafb67675b0d0cea769153ef96db6efbe347a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-34.json",
@@ -372,8 +372,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-39.json"
         )),
-        975629,
-        "54b298e72bcff34776b9ac542d7cefd27cbda0e31bad23e228fdea545af5955b",
+        976317,
+        "ebade19d3d934c5960d6e478e799b4ef73b839c79af6330e872c22639e591bc9",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-40.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        634828,
-        "7376dfdb616bfeb00dcdd2576623372eb7b31fc0af367a0b88714481fad34387",
+        640010,
+        "bf140f5bc37a7b307db2ee1375c02552e6ed9b042f06358df9fd1a31a557c311",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1017486,
-        "a277f5a948a1951fc3caf03d71f29fe65ad0fe371fa97f90e1fd352c506807ab",
+        1024279,
+        "17f1f8ce4bdf4d582e1b4da187b73142af395c3adaf71e277d2de0897a57fe32",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -1343,6 +1343,8 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored/strategy/activation_tests.rs", "daba60f6688ac69bb97368afa97253e1eeb065f927cbef9ab7bd45832cecc367") => Some((43,106)),
 ("src/cleanup_plan/replay/factored/strategy/tests.rs", "7884986342955b852b9488dba2548ef85af163509dfcd5c4bebac466459fca6f") => Some((43,107)),
 ("src/cleanup_plan/replay/factored/paired.rs", "b71f44bb3ca6e1feccfdbad9128d33267881a147766583397634c4d9348cf7ca") => Some((43,108)),
+("src/cleanup_plan/replay/fact_preflight.rs", "f9b68b0e205f98a460131f60e3c9b37e4c2a263ff05cdd4cca1e69be7d3672b0") => Some((45,215)),
+("src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs", "f3c52ba7d87e6bb1b3491e09a376d9a63552f60b511bd4267e6536986680f19d") => Some((45,216)),
 _ => None, }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

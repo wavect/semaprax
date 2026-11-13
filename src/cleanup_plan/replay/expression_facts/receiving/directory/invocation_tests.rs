@@ -2,12 +2,16 @@ use super::*;
 use crate::test_allocation_observer::measure;
 
 fn fixture() -> ResolvedProgram {
+    fixture_with_status_count(128)
+}
+
+fn fixture_with_status_count(status_count: usize) -> ResolvedProgram {
     let mut source = String::from("module invocation.statuses; ");
     for index in 0..12 {
         source.push_str(&format!(
             "@id(\"large{index}\") fn large{index}(x:i64)->i64 {{"
         ));
-        for local in 0..128 {
+        for local in 0..status_count {
             let input = if local == 0 {
                 "x".to_owned()
             } else {
@@ -15,11 +19,12 @@ fn fixture() -> ResolvedProgram {
             };
             source.push_str(&format!("let value{local}={input}+1;"));
         }
-        source.push_str("value127} ");
+        source.push_str(&format!("value{}}} ", status_count - 1));
         source.push_str(&format!(
             "@id(\"small{index}\") fn small{index}(x:i64)->i64 {{x+1}} "
         ));
     }
+    source.push_str("@id(\"main\") fn main()->i64 {0}");
     crate::hir::resolve(&crate::check(&source, "invocation-statuses.spx").unwrap()).unwrap()
 }
 fn call(program: &ResolvedProgram, old: bool) -> Result<(), Diagnostic> {
@@ -92,7 +97,16 @@ fn tiny_cold_owner_cost_is_reported_without_claiming_a_gain() {
 }
 #[test]
 fn every_directory_rebuild_matches_original_and_returns_no_keys_or_frozen_index() {
-    let program = fixture();
+    let program = fixture_with_status_count(256);
+    assert_eq!(program.functions[0].cleanup_plan.status_sources.len(), 256);
+    assert_eq!(program.functions[1].cleanup_plan.status_sources.len(), 1);
+    assert!(program
+        .functions
+        .last()
+        .unwrap()
+        .cleanup_plan
+        .status_sources
+        .is_empty());
     let (_, exhausted, _, refusal) =
         crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
             let mut budget = ReplayBudget::new();
@@ -122,7 +136,10 @@ fn every_directory_rebuild_matches_original_and_returns_no_keys_or_frozen_index(
                     }
                     prefix.freeze(function, &mut budget).unwrap();
                 }
-                assert!(directory.lookup.is_some());
+                assert_eq!(
+                    directory.lookup.is_some(),
+                    function.cleanup_plan.status_sources.len() >= 256
+                );
                 let mut ordinary = Directory::new(
                     function,
                     &mut budget,

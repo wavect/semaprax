@@ -177,12 +177,32 @@
     },
     {
       "source": "src/cleanup_plan/replay.rs",
-      "length": 326559,
-      "sha256": "7be7308e66dc55adcac7cf526fede20b058744d18dc4b7d8e1afe99ff2cc73e3",
+      "length": 326926,
+      "sha256": "3e89300daede8b284157cb5c24765fec66a76abd37487a89188cf64af66a1702",
       "checkpoint_length": 326264,
       "checkpoint_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
       "inverse": [
+        [
+          "    )?;\n    if let Some(selection) = selection {\n        if upper != 0\n            && factored::strategy::select_from_enumerating_census(\n                function,\n                &cfg,\n                semantic_paths,\n                selection,\n            )\n        {\n            return Ok(0);\n        }\n    }\n    Ok(upper)\n",
+          "    )\n"
+        ],
+        [
+          "    let upper = checked_skeleton_add(\n",
+          "    checked_skeleton_add(\n"
+        ],
+        [
+          "    skeleton_work_upper_with_selection(program, function, None)\n}\n\nfn skeleton_work_upper_with_selection(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n    selection: Option<&ReplayBudget>,\n) -> Result<usize, Diagnostic> {\n",
+          ""
+        ],
+        [
+          "    all_blocks_reachable: bool,\n",
+          ""
+        ],
+        [
+          "        let function_upper = skeleton_work_upper_with_selection(program, function, Some(budget))?;\n",
+          "        let function_upper = skeleton_work_upper(program, function)?;\n        // A selected factored comparison borrows ordinary work, not an unused\n        // enumerating allowance. Its bounded fallback reserves before entry.\n        if function_upper != 0 && factored::defer_enumerating_reservation(function, budget)? {\n            continue;\n        }\n"
+        ],
         [
           "    if work.budget.selected()\n        && program.retained_static_byte_iterators()\n        && selected_profile::paid_children::byte_iterator::step(&scrutinee.ty)\n    {\n        return typed_storage::iterator_match(program, expression, scrutinee, arms, work);\n    }\n",
           "    let _ = work;\n"

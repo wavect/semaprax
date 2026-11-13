@@ -542,12 +542,7 @@ fn reserve_program_skeleton_work<'a>(
         {
             continue;
         }
-        let function_upper = skeleton_work_upper(program, function)?;
-        // A selected factored comparison borrows ordinary work, not an unused
-        // enumerating allowance. Its bounded fallback reserves before entry.
-        if function_upper != 0 && factored::defer_enumerating_reservation(function, budget)? {
-            continue;
-        }
+        let function_upper = skeleton_work_upper_with_selection(program, function, Some(budget))?;
         total = total.checked_add(function_upper).ok_or_else(|| {
             replay_error(
                 function,
@@ -581,6 +576,7 @@ struct CfgReplayBounds {
     terminal_paths: usize,
     work: usize,
     skeleton_work: usize,
+    all_blocks_reachable: bool,
 }
 
 mod cfg_bounds;
@@ -1058,6 +1054,14 @@ fn skeleton_work_upper(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
 ) -> Result<usize, Diagnostic> {
+    skeleton_work_upper_with_selection(program, function, None)
+}
+
+fn skeleton_work_upper_with_selection(
+    program: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    selection: Option<&ReplayBudget>,
+) -> Result<usize, Diagnostic> {
     if lexical_cert::requires_lexical(function) {
         return lexical_census::skeleton_work_upper(program, function);
     }
@@ -1114,11 +1118,24 @@ fn skeleton_work_upper(
     let plan_expansion = cfg.skeleton_work;
     let plan_terminals = checked_skeleton_mul(function, cfg.terminal_paths.max(1), 4)?;
     let comparison = checked_skeleton_mul(function, semantic_paths.max(cfg.terminal_paths), 2)?;
-    checked_skeleton_add(
+    let upper = checked_skeleton_add(
         function,
         checked_skeleton_add(function, hir_upper, plan_expansion)?,
         checked_skeleton_add(function, plan_terminals, comparison)?,
-    )
+    )?;
+    if let Some(selection) = selection {
+        if upper != 0
+            && factored::strategy::select_from_enumerating_census(
+                function,
+                &cfg,
+                semantic_paths,
+                selection,
+            )
+        {
+            return Ok(0);
+        }
+    }
+    Ok(upper)
 }
 
 fn expression_skeleton_work_upper(

@@ -131,6 +131,7 @@ pub(super) fn bounds(function: &ResolvedFunction) -> Result<CfgReplayBounds, Dia
                 terminal_paths: MAX_REPLAY_PATHS.saturating_add(1),
                 work: ceiling,
                 skeleton_work: ceiling,
+                all_blocks_reachable: false,
             });
         }
     }
@@ -141,5 +142,6 @@ pub(super) fn bounds(function: &ResolvedFunction) -> Result<CfgReplayBounds, Dia
         terminal_paths,
         work: total,
         skeleton_work,
+        all_blocks_reachable: visited == plan.blocks.len(),
     })
 }

@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Producer branch-join normalization for one deduplicated incoming state.
 //!
 //! The builder's `merge_states` re-keys conditional variant roots at every

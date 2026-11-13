@@ -1,5 +1,9 @@
 //! Original full-field joins with funded mutation paths and scratch builders.
 use super::*;
+#[allow(
+    dead_code,
+    reason = "Retain the complete historical checkpoint receiver."
+)]
 fn moved(binding: &ValidationBinding) -> Option<usize> {
     let nodes =
         crate::cleanup_plan::replay_btree_node_upper::<Vec<PlaceProjection>, Availability>()?
@@ -99,6 +103,10 @@ pub(in crate::hir::validation) fn join_scratch(
             }),
     )
 }
+#[allow(
+    dead_code,
+    reason = "Retain the complete historical checkpoint receiver."
+)]
 pub(in crate::hir::validation) fn availability(
     target: &mut dyn Write,
     source: &dyn Read,
@@ -124,6 +132,10 @@ pub(in crate::hir::validation) fn availability(
     }
     Ok(())
 }
+#[allow(
+    dead_code,
+    reason = "Retain the complete historical checkpoint receiver."
+)]
 pub(in crate::hir::validation) fn borrows(
     target: &mut dyn Write,
     source: &dyn Read,

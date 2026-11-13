@@ -1,3 +1,7 @@
+#![allow(
+    clippy::items_after_test_module,
+    reason = "Keep the original source order for whole-file historical inverses."
+)]
 //! Compiler-owned, capability-authenticated command I/O operations.
 //!
 //! These operations are not authored imports and are deliberately distinct

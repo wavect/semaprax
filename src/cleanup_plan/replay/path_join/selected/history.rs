@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Selected renewal provenance loops; original RenewalHistory APIs stay intact.
 //! New helper frames also admit both sides of the one terminal budget
 //! Diagnostic -> Error conversion, preserving original prepaid text ownership.

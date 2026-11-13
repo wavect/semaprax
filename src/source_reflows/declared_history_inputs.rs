@@ -14,15 +14,15 @@ pub(crate) fn digest(text: &str) -> String {
         crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
     )
 }
-const PARTS: [(&str, &str, usize, &str); 44] = [
+const PARTS: [(&str, &str, usize, &str); 45] = [
     (
         "docs/evidence/declared-history-inputs-20261105/part-0.json",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-0.json"
         )),
-        1173450,
-        "3ae7de9e597ecba8434c70b922794f3c45d67508d7a1fe54d75d01dcbe1e21cb",
+        1173600,
+        "2a0a7b84b1e33dc85405380bca6c86309fc35ceeffd8e8a323162eb3b70cdda8",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-1.json",
@@ -102,8 +102,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        697342,
-        "74210d89202f6464d125a7a279a2df06037419e230fe2d7aab383d0769f5fd2e",
+        697366,
+        "0b83034958e1baea2ac1206dbe6feab465670590dbb060b93112f1c588b61489",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -111,8 +111,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        130704,
-        "0a8cb18850cc384f06a5ca032b097f5e9bb447bbc828343f53386a724efce949",
+        130820,
+        "485d60ec48cc2461c47761f4eeab14c63ea29231b5c27fbf3d6a471f3d1cccf5",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -390,8 +390,8 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-41.json"
         )),
-        99570,
-        "3869a778ac1ad61109cacb91074ed0da3ff5e66a0fff3cc1f31f8a7151e8aa06",
+        99431,
+        "a75ec3ba3aa69458c67dfa6672b7134faa7391fe3334a4dd30e9fae36e669c49",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-42.json",
@@ -408,11 +408,20 @@ const PARTS: [(&str, &str, usize, &str); 44] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        618313,
-        "83218ab78d6ba576adbbf0711e6ae6853347bdacc495bca01ec1d3b306d693ea",
+        623223,
+        "aeabb4b05872ad565201ae2b91d061d7f155620fbe53bcf5eecd76f6639ce874",
+    ),
+    (
+        "docs/evidence/declared-history-inputs-20261105/part-44.json",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/declared-history-inputs-20261105/part-44.json"
+        )),
+        178767,
+        "e486845ac4c00067020552793fff9bc56a8f276ca793b549803d87d741c47393",
     ),
 ];
-static CACHE: [OnceLock<serde_json::Value>; 44] = [const { OnceLock::new() }; 44];
+static CACHE: [OnceLock<serde_json::Value>; 45] = [const { OnceLock::new() }; 45];
 pub(crate) fn part_count() -> usize {
     PARTS.len()
 }
@@ -433,6 +442,27 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/cleanup_plan/replay/path_join/boxed_states.rs", "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5") => Some((44,20)),
+("tests/workspace/semantic_graph/source_inventory.rs", "262d16b041f1f989add490f4e3d1609742f5aff301020ba1f3c5c15466c980b5") => Some((44,19)),
+("src/bounded_output/canonical_stage_tests.rs", "50324b5375044934a412e1174ef242caf747f41052c85f9857604b0929927d8a") => Some((44,18)),
+("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "739fa639f2233beefccd006b68736467c3d877ecc5ece8e6a013a6f0ae637707") => Some((44,17)),
+("src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs", "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd") => Some((44,16)),
+("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", "5636a96a1d98a0e7ea08d0a963fbdb7a2671a638137f6dbd88c6d76d6c9c30e2") => Some((44,15)),
+("src/hir/inspection/paid_nul/tests.rs", "f85993558770b417b1399f054c65beee4d9294eab9a4873b8ff31a0b832583c6") => Some((44,14)),
+("src/cleanup_plan/replay/path_join/held_edge_tests.rs", "a8ee62b7c0200d8b4aa24020f930a13f6c5b9caaf6b8d0f84d4289fbb6202f43") => Some((44,13)),
+("src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "113b1a00f336d8c8a1769dfe6e24cd9585b6b534e1f94fa3146c6c03be2de595") => Some((44,12)),
+("src/cleanup_plan/replay/path_join/direct_one_tests.rs", "fb238ec22ca33eeb1e8d56f39eb1e9dd2260e372bac20d1ba738f1202e9eadfd") => Some((44,11)),
+("src/cleanup_plan/replay/continuation_storage/paid_receiving.rs", "6557a6254c5a47b24cb4a7a6c300e7e4df21aec5cfcbafc0ac788f38bf8d5be3") => Some((44,0)),
+("src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs", "1f1c63aee7d304e6c44d2decc2b72c285621d0977257d7a33a62fbb65023eb59") => Some((44,1)),
+("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417") => Some((44,2)),
+("src/cleanup_plan/replay/path_join/boxed_flow.rs", "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154") => Some((44,3)),
+("src/cleanup_plan/replay/path_join/branch_join.rs", "d3633b8f9fd25ed9036c7387541961e94147743613423e2f945051be3c434a54") => Some((44,4)),
+("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", "0756e450c41f067ddb20c6be1f1e2506de498a4d9073e23de087522aa33d2369") => Some((44,5)),
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", "06c05d6c8deaf72da23183134d8b1d15be11303740a62696229795f777ec1258") => Some((44,6)),
+("src/hir/inspection/paid_nul/text.rs", "b3c25a540ff9ec25804e6847016eb637ff9b56f8147d180d748e5f9dfeb47beb") => Some((44,7)),
+("src/workspace_graph/expected_projection/borrowed_imports/tests.rs", "cff55f0e3f3aa8ac3240c483bd2b90fe99a036ee184bdb472e41686e3703084f") => Some((44,8)),
+("src/workspace_graph/expected_projection/call_carriers_tests.rs", "f220d11c99ec22e0027f0dca24ff0554a0fc52443decfcdcc4fe4366d2267fd3") => Some((44,9)),
+("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs", "970c11a1df79cb10ed52ed0f0b5e41aa7d94b0f1582ebc52c0b573ef953dcf1b") => Some((44,10)),
 ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "42c45b3a526462ada8ab195a1a031ed890ded88a1022c8af17f1a63760a976b3" ) => Some((0,0)),
 ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "509e64bcddcc9fb49d850b195487b0cdc0723e4c0d535eaae3931b7f4cdcab73" ) => Some((0,1)),
 ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca" ) => Some((0,2)),

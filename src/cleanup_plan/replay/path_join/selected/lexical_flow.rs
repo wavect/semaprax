@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Exact selected lexical state obligations; ordinary owner remains intact.
 use super::*;
 use crate::hir::{ControlTarget, LoopLatchKind};

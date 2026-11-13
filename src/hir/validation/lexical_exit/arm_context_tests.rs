@@ -178,14 +178,17 @@ fn compare_expression_with_history(
     ] {
         // This compares all six diagnostic fields, expression/value identities
         // and the complete published map, including failed partial prefixes.
-        if std::ptr::eq(validator, &recursive) && historical.is_some() {
+        if let Some(historical) = historical
+            .as_ref()
+            .filter(|_| std::ptr::eq(validator, &recursive))
+        {
             // Preserve the older raw result and compare every field to its
             // independently pinned historical diagnostic. State remains a
             // direct current/recursive comparison, with no message rewriting.
             let pinned: Result<(), Diagnostic> = Err(Diagnostic {
                 code: "SPX-H006",
                 severity: crate::diagnostic::Severity::Error,
-                message: historical.as_ref().unwrap().recursive_message.into(),
+                message: historical.recursive_message.into(),
                 path: None,
                 span: None,
                 help: None,

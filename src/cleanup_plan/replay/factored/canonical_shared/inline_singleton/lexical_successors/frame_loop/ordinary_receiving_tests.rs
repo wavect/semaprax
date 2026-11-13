@@ -98,6 +98,10 @@ fn call(
     }
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Exercise both receiver modes with identical explicit control inputs."
+)]
 fn run(
     f: &ResolvedFunction,
     a: &Automaton,
@@ -276,6 +280,12 @@ fn actual_cold_constructor_to_final_drop_eliminates_ordinary_owned_successor_vec
     }
 }
 
+type FundedRun = (Result<Option<bool>, Diagnostic>, usize, usize);
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Exercise both receiver modes with identical explicit control inputs."
+)]
 fn funded(
     f: &ResolvedFunction,
     a: &Automaton,
@@ -285,11 +295,7 @@ fn funded(
     compact: bool,
     cap: usize,
     floor: usize,
-) -> (
-    (Result<Option<bool>, Diagnostic>, usize, usize),
-    bool,
-    usize,
-) {
+) -> (FundedRun, bool, usize) {
     crate::bounded_output::with_limit_usage(cap, || {
         let mut b = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
         assert!(matches!(b.payer, AllocationPayer::ActiveBuilder));

@@ -797,7 +797,6 @@ fn length_residue_whole_mode6_forecast_retains_old_constructor_fees_and_real_net
                             retained.runtime,
                         ];
                         let coverage = retained.retained_scratch;
-                        drop((full, retained));
                         (costs, coverage)
                     })
                 })
@@ -1150,7 +1149,6 @@ fn census_scratch_reset_all_four_owners_preserves_capacity_shadowing_imports_and
                         let roots = data.each_ref().map(|proof| proof.roots);
                         let fees = data.each_ref().map(|proof| proof.bytes);
                         let coverage = data.each_ref().map(|proof| proof.retained);
-                        drop(data);
                         (roots, fees, coverage)
                     })
                 })
@@ -1233,7 +1231,6 @@ fn census_scratch_whole_mode6_forecast_reports_net_and_honest_cold_loss() {
                                 retained.runtime,
                             ];
                             let coverage = retained.retained_scratch;
-                            drop((full, retained));
                             (result, coverage)
                         })
                     })

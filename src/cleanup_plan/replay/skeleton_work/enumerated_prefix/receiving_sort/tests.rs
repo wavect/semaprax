@@ -227,8 +227,10 @@ fn real_backings_are_reused_across_swaps_and_early_mismatches() {
     assert!(new.heap.allocations < old.heap.allocations);
     assert!(new.heap.allocated < old.heap.allocated);
     assert!(new.paid < old.paid, "old={old:?} new={new:?}");
-    assert!(ADVANCE_CALL < CURSOR_CALL);
-    assert!(2 * PREPARE_CALL + COMPARE_CALL < 2 * CURSOR_STORAGE + 2 * CURSOR_CALL);
+    const {
+        assert!(ADVANCE_CALL < CURSOR_CALL);
+        assert!(2 * PREPARE_CALL + COMPARE_CALL < 2 * CURSOR_STORAGE + 2 * CURSOR_CALL);
+    }
     // Both executions use the exact same real ActiveBuilder cap. The old
     // admitted cap must still admit the replacement; the replacement's exact
     // cap is also tested against the full prior algorithm, not a byte estimate.
@@ -355,7 +357,7 @@ fn paired_capacity_grows_only_when_needed_and_retains_no_path_handles_between_ca
         },
         terminal: SkeletonTerminal::Success,
     };
-    let mut paths = vec![wide(true), wide(false)];
+    let mut paths = [wide(true), wide(false)];
     let original_counts: Vec<_> = paths
         .iter()
         .map(|path| Rc::strong_count(path.observations.prefix.as_ref().unwrap()))

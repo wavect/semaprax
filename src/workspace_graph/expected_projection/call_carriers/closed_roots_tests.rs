@@ -124,7 +124,7 @@ fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
             crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
                 crate::test_allocation_observer::measure(|| {
                     let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();
-                    let result = (
+                    (
                         [
                             full.retained_hir,
                             retained.retained_hir,
@@ -134,9 +134,7 @@ fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
                             retained.runtime,
                         ],
                         retained.retained_scratch,
-                    );
-                    drop((full, retained));
-                    result
+                    )
                 })
             })
         };

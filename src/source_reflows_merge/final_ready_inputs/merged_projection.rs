@@ -1,9 +1,11 @@
 //! Exact merged current join before either independently retained historical chain.
 use super::digest;
-use crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation;
-const CURRENT_LENGTH: usize = 2329397;
+use crate::source_reflows_merge::main_e177_final_inputs::{
+    declared_history_inputs, ProjectionInvocation,
+};
+const CURRENT_LENGTH: usize = 2334280;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "27b9cb279d6342c274c498d0508631e3fae1dc5a3c46c62ae0505b6dfd648bb5";
+const CURRENT_SHA: &str = "12a92e1aa55f3e44412d9a46392708a03f38ff8088d40eec2a70f50257db0198";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
@@ -15,11 +17,11 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/selected_owner/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary.rs")), 4718, "fb794e530da2d722c135a4e2a9ac5bccd755bbd12fc0114f8ed9b6f5fd0e5eaf"),
     ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")), 6952, "4d50579a8485a1b9b7b68c58fb30a0d7c3cda24d645c4f30867865fa6ec181b1"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs")), 2845, "6b070dcc9543929b7671d9e07ecb8c18d08d71f8cf869c9fa3c1bb669108d0af"),
-    ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")), 86308, "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"),
+    ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")), 86457, "222be5d44c3a8e43c04bd19b49ae92a57e7411578e5f8eaf87eea064fe667daa"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")), 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 35376, "96eb3327ae6fb7a91bc5860872345bbc9f8912e9fc59b29d97a6d81d318b36e1"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs")), 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25183, "06c05d6c8deaf72da23183134d8b1d15be11303740a62696229795f777ec1258"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25205, "578025fde4ed873354a183eac565a81b6bbcd177abc1c248f3fe5c06be76e947"),
     ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs")), 7075, "7cc391286fb5a3b24eb5aa2b5b1bacd8bb8599f9161d3f5dbc427a048c85b57c"),
     ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs")), 10800, "3f57f0045c8efcb0f0808e7d0a10f786cae7e99f18e2f8b3fd3448ed53be0106"),
     ("src/cleanup_plan/replay/path_join/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/mod.rs")), 50333, "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"),
@@ -28,10 +30,10 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs")), 5187, "02772ccf762867b1aeffc64d4fffc4a3b0ad26adb4df030aa27f9a06ef22a110"),
     ("src/cleanup_plan/replay/path_join/before_frontier/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/tests.rs")), 5325, "d7841a842bf900a756905b56623fca40766ae1c3344bfb1dc4e1f86efe396df0"),
     ("src/cleanup_plan/replay/path_join/before_frontier/transition.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/transition.rs")), 35563, "628c1c134e179b8e8ca0db4646b6219e4c3a939968598ac2935ac500de996616"),
-    ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")), 3885, "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154"),
+    ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")), 4034, "28546e59049ad4d8707072d3d887e7569c00f98759b37230c20bd7c78fd48b91"),
     ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")), 22575, "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587"),
     ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")), 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
-    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 46640, "0756e450c41f067ddb20c6be1f1e2506de498a4d9073e23de087522aa33d2369"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 48070, "5d9a533edad5c16a32cdeae1cb3eca4762386b7ef5bcd74f5a823f8a92699ad0"),
     ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/whole.rs")), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
     ("src/call_index/validation_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_before.rs")), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
     ("src/call_index/validation_receipt_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_receipt_tests.rs")), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
@@ -72,7 +74,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/factored/oracle_order/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/oracle_order/tests.rs")), 21616, "bd69a7c25d0b254fe038507e0cdd8f238e6142571a547bad24f3c4aa50f7bbdc"),
     ("src/workspace_graph/expected_projection/shared_local_callees.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees.rs")), 11861, "4ed031ab8e8a748503b22e37f258c64ae1fbed00f1f293f8c062dcad9de219fb"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903.rs")), 4193, "8a260a6eecfb85291defaca6e3f137e9c6f51f0546f1be28397bb691ddf3211d"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs")), 12727, "970c11a1df79cb10ed52ed0f0b5e41aa7d94b0f1582ebc52c0b573ef953dcf1b"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs")), 12768, "2e4344581c7e8547397425c933e712d8a7ef6481757f0f99606926306328d39a"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs")), 22139, "cc9c89b34def67c380a69ccc4d1f5b8ddd1dc01f10abed418b24517baa390be7"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/modular.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/modular.rs")), 3537, "8a9e354004f9708bf02c02f15fee8028824c35d243fa49b34039d9a23b85271a"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/reused.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/reused.rs")), 7032, "4b65f035fc1bf5748a4c6430b7d64edf3fc93eae7b4254e94df1db3419858fe3"),
@@ -95,7 +97,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23199, "7178b17707f420519aeb7fe8bfec84ac8b16f83a254b3ed2016001a1feef1ceb"),
     ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")), 24858, "8a015ce328f793cfe6c27eb4e726ad0fd02ba3069e0afb7f04c7dd294882c272"),
     ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 36959, "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"),
-    ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 52632, "f220d11c99ec22e0027f0dca24ff0554a0fc52443decfcdcc4fe4366d2267fd3"),
+    ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 52496, "b6f5d26b7cf9d655fc515995bf265aa44ba1380f818ff5816a8068fc837216d1"),
     ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")), 13783, "8e58f15499b882c8fc5f46bc5ae76b9a472994ce9133c226295d30b078e42de0"),
     ("src/workspace_graph/expected_projection/call_carriers_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_original.rs")), 23610, "b1ce4d28f8364aed9967eba52699cd95968799b29779cb68eee71a4b7ef8fde3"),
     ("src/workspace_graph/expected_projection/call_carriers_historical_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_historical_tests.rs")), 30577, "30ee9b7d27da7985809d73823ad6b2297548873c76731723659b4464c9c49170"),
@@ -116,7 +118,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs")), 41916, "f2f3e2251e1f07a737eeeca4e0f12ffea68b1612f67c59b83c2ae5f46a68da01"),
     ("src/workspace_graph/expected_projection/borrowed_imports_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports_original.rs")), 14714, "f2c4873ebc9e093e5d837490cc5b5573a282c9b7efa9fd5bb258af81910917e2"),
     ("src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs")), 2171, "b0459d75aafc04ae2d83b59e3683874e0949b9988742bcbc34cc8abeb799c4e3"),
-    ("src/workspace_graph/expected_projection/borrowed_imports/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests.rs")), 22861, "cff55f0e3f3aa8ac3240c483bd2b90fe99a036ee184bdb472e41686e3703084f"),
+    ("src/workspace_graph/expected_projection/borrowed_imports/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests.rs")), 25226, "e886a37ffa2e1e63253fb7dac3f4d80c6084bbda5d184dd920990c7a196be8d1"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/alias_helpers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/alias_helpers.rs")), 13022, "15d9906bec6769fd96adc9c17d81fcfec5d05b2c6b4bd497fa6e9da3d7ba4067"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs")), 5964, "93bee992f5f49c009e9c40cda5c630fb823dcf109b082c91b7a57b584d798fa1"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")), 29594, "04214dc37fb912d136d52daeb5b56cd63a88035e97b5c80be4bd31e2300b3d23"),
@@ -145,14 +147,14 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs")), 19806, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")), 34068, "1c284867e62b0585a7975471511a9192b49a5cc03d595bd8d019d2dad927ab08"),
     ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/workspace_oracle.rs")), 5815, "6c63393760f3fda3393673428df55a615bac6b25068b6d3d3d21f30aae7594bc"),
-    ("src/hir/inspection/paid_nul/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/tests.rs")), 44462, "f85993558770b417b1399f054c65beee4d9294eab9a4873b8ff31a0b832583c6"),
+    ("src/hir/inspection/paid_nul/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/tests.rs")), 44961, "20fec806bb107987ad6ce9b739ff9af0039b8e31d76295ad61631f6147d7b62b"),
     ("src/hir/inspection/paid_nul/reuse_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before.rs")), 38440, "f244990419557597356086d2b3e6005f84c1d471160eb4b2e1506b1727e1ca3f"),
     ("src/hir/inspection/paid_nul/reuse_before/pending.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before/pending.rs")), 2490, "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd"),
     ("src/hir/inspection/paid_nul/type_scratch.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/type_scratch.rs")), 8271, "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"),
     ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")), 27897, "c2f468022de96008744b83f004a803b2fae2ac6d1e36ddbec85762dea5f420e1"),
     ("src/cleanup_plan/replay/continuation_storage/reached.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached.rs")), 6548, "d8c98f2a9a41aaa5a03ff2c9d6bf6b7476f7f77ecdc548958b45386fa7c4238a"),
     ("src/cleanup_plan/replay/continuation_storage/reached_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_before.rs")), 9194, "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb"),
-    ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_tests.rs")), 20538, "5636a96a1d98a0e7ea08d0a963fbdb7a2671a638137f6dbd88c6d76d6c9c30e2"),
+    ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_tests.rs")), 20902, "68bc4a43f8ce480ca91ab86eb5bbcba0591caec5d347fae7c40c4894acebee53"),
     ("src/cleanup_plan/replay_tests/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay_tests/factored.rs")), 16045, "614c3bf513e879361696bd9cf4fa8177683eb1c8eb03df003263d8557dcbfcc4"),
 ];
 #[rustfmt::skip]
@@ -579,8 +581,8 @@ pub(super) fn named_part(
         compiled.to_owned()
     } else {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        invocation
-            .file(&root.join(source), length, sha)
+        declared_history_inputs::expected_value(source, sha, compiled)
+            .or_else(|| invocation.file(&root.join(source), length, sha))
             .expect("ordinary full named predecessor and independent current source channels")
     };
     assert_eq!(
@@ -702,15 +704,18 @@ const PREVIOUS_MERGED_MEMBERS: &[(&str, usize, &str)] = &[
     ("src/cleanup_plan/replay/continuation_storage/tests.rs", 27358, "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6"),
     ("src/cleanup_plan/replay_tests/factored.rs", 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
 ];
-fn previous_merged_member<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+fn previous_merged_member<'a>(
+    source: &str,
+    supplied: &'a str,
+    normalized: Option<&'a str>,
+) -> std::borrow::Cow<'a, str> {
     if source == "src/workspace_graph/tests.rs" {
         assert_eq!(physical(source), Some(supplied));
         return std::borrow::Cow::Owned(workspace_tests_before_callable_budget(supplied));
     }
-    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
     let Some(&(_, length, sha)) = PREVIOUS_MERGED_MEMBERS.iter().find(|part| part.0 == source)
     else {
-        return std::borrow::Cow::Borrowed(supplied);
+        return std::borrow::Cow::Borrowed(normalized.unwrap_or(supplied));
     };
     assert_eq!(physical(source), Some(supplied));
     let before = declared_history_inputs::expected_value(source, sha, supplied)
@@ -850,7 +855,23 @@ pub(super) fn stages(
     let mut prior_current = String::new();
     let mut immediate = String::new();
     for &(source, compiled, _, _) in CURRENT_PARTS {
-        let previous = previous_merged_member(source, compiled);
+        let normalized = declared_history_inputs::expected_value(
+            source,
+            match source {
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs" => "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417",
+                "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs" => "06c05d6c8deaf72da23183134d8b1d15be11303740a62696229795f777ec1258",
+                "src/cleanup_plan/replay/path_join/boxed_flow.rs" => "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154",
+                "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => "0756e450c41f067ddb20c6be1f1e2506de498a4d9073e23de087522aa33d2369",
+                "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs" => "970c11a1df79cb10ed52ed0f0b5e41aa7d94b0f1582ebc52c0b573ef953dcf1b",
+                "src/workspace_graph/expected_projection/call_carriers_tests.rs" => "f220d11c99ec22e0027f0dca24ff0554a0fc52443decfcdcc4fe4366d2267fd3",
+                "src/workspace_graph/expected_projection/borrowed_imports/tests.rs" => "cff55f0e3f3aa8ac3240c483bd2b90fe99a036ee184bdb472e41686e3703084f",
+                "src/hir/inspection/paid_nul/tests.rs" => "f85993558770b417b1399f054c65beee4d9294eab9a4873b8ff31a0b832583c6",
+                "src/cleanup_plan/replay/continuation_storage/reached_tests.rs" => "5636a96a1d98a0e7ea08d0a963fbdb7a2671a638137f6dbd88c6d76d6c9c30e2",
+                _ => "",
+            },
+            compiled,
+        );
+        let previous = previous_merged_member(source, compiled, normalized.as_deref());
         previous_merged.push_str(&previous);
         let prior = prior_current_part(source, compiled, &previous);
         prior_current.push_str(&prior);

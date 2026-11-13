@@ -1,3 +1,7 @@
+#![allow(
+    clippy::items_after_test_module,
+    reason = "Keep the original source order for whole-file historical inverses."
+)]
 //! Compiler-owned operations over non-escaping borrowed byte and UTF-8 views,
 //! plus the Owned Bounded Byte Buffer v1 allocate-then-fill pair.
 //!

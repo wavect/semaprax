@@ -760,7 +760,14 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
     assert_eq!(
         format!(
             "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("text.rs")))
+            crate::digest_hex::LowerHex(Sha256::digest(
+                crate::source_reflows::original_fixture_source(
+                    "src/hir/inspection/paid_nul/text.rs",
+                    "b3c25a540ff9ec25804e6847016eb637ff9b56f8147d180d748e5f9dfeb47beb",
+                    include_str!("text.rs")
+                )
+                .as_bytes()
+            ))
         ),
         "b3c25a540ff9ec25804e6847016eb637ff9b56f8147d180d748e5f9dfeb47beb"
     );
@@ -784,9 +791,6 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
     );
     // Entire existing harness is retained, including its old #824 inverse.
     let harness = include_str!("tests.rs");
-    let (prefix, _) = harness
-        .split_once("// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS")
-        .unwrap();
     // Both raw channels cover the whole current harness before any inverse.
     assert_eq!(
         std::fs::read(
@@ -796,6 +800,14 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
         .unwrap(),
         harness.as_bytes()
     );
+    let prior = crate::source_reflows::original_fixture_source(
+        "src/hir/inspection/paid_nul/tests.rs",
+        "d7bc8c78fe1f8e1bed6730376ec571db9eb60c49f896304585e05ff34282ef08",
+        harness,
+    );
+    let (prefix, _) = prior
+        .split_once("// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS")
+        .unwrap();
     let added_start = prefix
         .find("// Complete physical sources precede the unchanged four original audit inverses.\n")
         .unwrap();

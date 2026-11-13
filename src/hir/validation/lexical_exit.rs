@@ -923,7 +923,7 @@ mod witness_tests {
             for index in 0..count {
                 body.push_str(&format!("let n{index}=match 0 {{_=>1,}};"));
             }
-            body.push_str("1");
+            body.push('1');
             cases.push((
                 "sequential",
                 count,

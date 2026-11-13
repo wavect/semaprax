@@ -346,6 +346,13 @@ fn source_before(path: &str, supplied: &str) -> String {
     // the root that dispatches to them; foreign/drift input still fails first.
     let immediate = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
         oracle_closure_custody::restore(path, compiled)
+    } else if path == "src/cleanup_plan/replay/continuation_storage/tests.rs" {
+        let row = rows.iter().find(|row| row["path"] == path).unwrap();
+        crate::source_reflows::original_fixture_source(
+            path,
+            row["current_sha256"].as_str().unwrap(),
+            compiled,
+        )
     } else {
         compiled.to_owned()
     };
@@ -474,7 +481,7 @@ fn complete_immediate_old_sources_and_unchanged_shared_frame_declarations_remain
         let prior = if path == "src/cleanup_plan/replay/continuation_storage/reached.rs" {
             oracle_closure_custody::restore(path, compiled)
         } else {
-            compiled.to_owned()
+            crate::source_reflows::original_fixture_source(path, expected, compiled)
         };
         assert_eq!(
             format!(

@@ -195,8 +195,11 @@ fn whole_pre_inline_driver_helpers_and_original_direct_tests_are_retained_exactl
                 .collect();
             assert_eq!(matches.len(), 1);
             let direct = matches[0];
-            assert_eq!(digest(&actual), direct["current_sha256"].as_str().unwrap());
-            let mut restored = String::from_utf8(actual).unwrap();
+            let mut restored = crate::source_reflows::original_fixture_source(
+                path,
+                direct["current_sha256"].as_str().unwrap(),
+                std::str::from_utf8(&actual).unwrap(),
+            );
             for edit in direct["edits"].as_array().unwrap() {
                 let from = edit["from"].as_str().unwrap();
                 assert_eq!(restored.matches(from).count(), 1);

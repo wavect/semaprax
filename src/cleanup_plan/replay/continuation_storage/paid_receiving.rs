@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Same current program and invocation owner; no work or physical allowance.
 use super::*;
 #[derive(Clone, Copy)]

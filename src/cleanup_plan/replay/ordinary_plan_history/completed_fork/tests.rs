@@ -20,7 +20,7 @@ pub(super) fn seed(work: &mut SkeletonWork<'_, '_>, len: usize, offset: usize) -
             &mut path,
             SkeletonObservation::Boolean {
                 expression: work.function.body.id.clone(),
-                value: (index + offset) % 2 == 0,
+                value: (index + offset).is_multiple_of(2),
             },
             "completed fork fixture observation",
         )
@@ -292,7 +292,7 @@ fn every_new_work_refusal_is_deterministic_in_all_six_diagnostic_fields() {
             let mut work = SkeletonWork::new(&program, function, &mut budget);
             let (prefixes, suffixes) = inputs(&mut work, 3, 3);
             work.budget.remaining = cut;
-            call(prefixes, &[&suffixes, &suffixes], &mut work).map(|outcome| drop(outcome))
+            call(prefixes, &[&suffixes, &suffixes], &mut work).map(drop)
         })
         .0
     };

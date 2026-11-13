@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 use super::super::empty_renewals::tests::{function, state};
 use super::*;
 use crate::bounded_output::{with_limit_usage_refusal, ReservationRefusal};

@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Ordinary control-key cloning for one present, structurally atomic result type.
 //! Compound types and every other payer retain the original complete receiver.
 use super::*;

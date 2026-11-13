@@ -520,5 +520,5 @@ fn complete_frozen_query_enabled_validation_and_emitter_sources_remain_exact() {
     assert_eq!(hash(body.as_bytes()), "052a4b2557c4d7627068ca16adb882b5f02a83099d86fbb9a35688a4ef5660be");
     let start = raw.find("// Actual/formal owned input, borrowed suffix, work and returned owners.").unwrap();
     let end = raw.find("// BEGIN_FROZEN_VALIDATION").unwrap();
-    assert_eq!(hash(raw[start..end].as_bytes()), "5b439b4b27c9199439d8eac853d582080c9ac63c4b847d426aa880cd97c03993");
+    assert_eq!(hash(&raw.as_bytes()[start..end]), "5b439b4b27c9199439d8eac853d582080c9ac63c4b847d426aa880cd97c03993");
 }

@@ -23,6 +23,10 @@ fn sha(bytes: &[u8]) -> String {
 
 // Invert only the authenticated formatter stage before the existing complete
 // control-repair and lowering inverses. Both whole prior byte streams stay pinned.
+#[allow(
+    dead_code,
+    reason = "Retain the exact earlier formatting inverse for independent source audits."
+)]
 fn before_current_format(source: &str, current: &str) -> Option<String> {
     type FormatEdit = (usize, &'static str, &'static str);
     type FormatStage = (

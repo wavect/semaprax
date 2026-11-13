@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Paid ordinary frontier controls and transport of the existing allocation.
 use super::*;
 use std::mem::size_of;

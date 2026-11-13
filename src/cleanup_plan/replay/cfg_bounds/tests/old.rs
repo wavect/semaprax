@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Independently saved full original owning branch-sensitive CFG census.
 use super::super::super::*;
 

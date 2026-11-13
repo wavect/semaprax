@@ -83,18 +83,20 @@ fn run(
     )
 }
 
+type Observation = (
+    ((usize, usize), crate::test_allocation_observer::Metrics),
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+);
+
 fn observed(
     program: &ResolvedProgram,
     old: bool,
     cut: usize,
     repeat: bool,
     expected: &Result<(), Diagnostic>,
-) -> (
-    ((usize, usize), crate::test_allocation_observer::Metrics),
-    bool,
-    usize,
-    Option<crate::bounded_output::ReservationRefusal>,
-) {
+) -> Observation {
     let body = || {
         with_limit_usage_refusal(usize::MAX, || {
             measure(|| {

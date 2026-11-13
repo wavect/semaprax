@@ -68,7 +68,7 @@ pub(super) const FRAME: usize = 2 * size_of::<PrefixBuffer<ExprSkeletonPath>>()
     + 2 * size_of::<Option<(&ExprSkeletonPath, &[ExprSkeletonPath])>>()
     + 2 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<Result<Vec<ExprSkeletonPath>, Diagnostic>>()
-    + 8 * size_of::<usize>() + 6 * size_of::<bool>()
+    + size_of::<[usize; 8]>() + 6 * size_of::<bool>()
     // One additional scan-work invocation, with full returning work/Oracle
     // receiving controls. This expression remains subject to peer census.
     + 4 * size_of::<Result<(), Diagnostic>>()
@@ -77,7 +77,7 @@ pub(super) const FRAME: usize = 2 * size_of::<PrefixBuffer<ExprSkeletonPath>>()
     + 2 * size_of::<(&mut SkeletonWork<'static, 'static>, usize, &str)>()
     + 4 * size_of::<Option<usize>>()
     + ORACLE_WORK_CONTROLS + 2 * ReplayBudget::WARM_PREPARE_CONTROLS
-    + 8 * size_of::<bool>() + 8 * size_of::<usize>();
+    + 8 * size_of::<bool>() + size_of::<[usize; 8]>();
 
 #[cfg(test)]
 const ORACLE_WORK_CONTROLS: usize =
@@ -483,7 +483,13 @@ macro_rules! transfer {
                 }
                 if $single {
                     if $precharged {
-                        $precharged = false;
+                        #[allow(
+                            unused_assignments,
+                            reason = "A terminal invocation has no next transfer."
+                        )]
+                        {
+                            $precharged = false;
+                        }
                     } else {
                         final_output::compact::hir_move!($work);
                         final_output::compact::hir_work!($work);

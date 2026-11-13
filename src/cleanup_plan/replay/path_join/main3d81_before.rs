@@ -954,7 +954,21 @@ fn complete_incoming_main_and_shipping_keep_source_results_work_and_full_drop() 
             "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
         ),
     ] {
-        assert_eq!(digest(raw), expected);
+        let previous = if matches!(
+            path,
+            "src/cleanup_plan/replay/path_join/boxed_states.rs"
+                | "src/cleanup_plan/replay/path_join/branch_join.rs"
+        ) {
+            crate::source_reflows::original_fixture_source(
+                path,
+                expected,
+                std::str::from_utf8(raw).unwrap(),
+            )
+            .into_bytes()
+        } else {
+            raw.to_vec()
+        };
+        assert_eq!(digest(&previous), expected);
         assert_eq!(
             std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(),
             raw

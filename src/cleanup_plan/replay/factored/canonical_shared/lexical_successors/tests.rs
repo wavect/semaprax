@@ -602,11 +602,7 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
     super::super::super::paired::tests::authenticate_prepaired_compare();
     super::super::super::paired::tests::authenticate_preprivate_compare();
     use super::super::super::lexical_plan_tests;
-    fn invoke_shipping(
-        program: &dyn crate::cleanup::ReplayContext,
-        f: &ResolvedFunction,
-        limit: usize,
-    ) -> (
+    type ObservedRun = (
         (
             (
                 Result<Option<bool>, Failure>,
@@ -618,7 +614,13 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
         bool,
         usize,
         Option<crate::bounded_output::ReservationRefusal>,
-    ) {
+    );
+
+    fn invoke_shipping(
+        program: &dyn crate::cleanup::ReplayContext,
+        f: &ResolvedFunction,
+        limit: usize,
+    ) -> ObservedRun {
         with_limit_usage_refusal(limit, || {
             measure(|| {
                 let mut b = ReplayBudget::new();
@@ -639,19 +641,7 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
         program: &dyn crate::cleanup::ReplayContext,
         f: &ResolvedFunction,
         limit: usize,
-    ) -> (
-        (
-            (
-                Result<Option<bool>, Failure>,
-                (usize, usize, usize),
-                census::Report,
-            ),
-            Metrics,
-        ),
-        bool,
-        usize,
-        Option<crate::bounded_output::ReservationRefusal>,
-    ) {
+    ) -> ObservedRun {
         with_limit_usage_refusal(limit, || {
             measure(|| {
                 let mut b = ReplayBudget::new();

@@ -358,7 +358,7 @@ fn additional_node_release_work_has_its_own_zero_short_exact_full_diagnostic_fro
             assert!(result.is_ok());
             assert_eq!(budget.remaining, 0);
         } else {
-            let actual = result.err().expect("new node/release work must refuse");
+            let actual = result.expect_err("new node/release work must refuse");
             let mut expected = ReplayBudget::unobserved();
             expected.remaining = 0;
             let expected = expected

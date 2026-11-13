@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Complete selected scalar traversal; legacy generic body stays independent.
 use crate::cleanup::ReplayContext;
 use crate::cleanup_plan::renewal_profile::{child_refusal::Refusal, scalar_refusal::ScalarRefusal};

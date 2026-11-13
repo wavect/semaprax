@@ -873,20 +873,12 @@ fn bundle(current: &str) -> String {
             } else {
                 // The physical epoch was authenticated before its exact two-field inverse.
                 assert_eq!(physical_current.len(), 5544);
-                if digest(physical_current)
-                    == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
-                {
-                    assert_eq!(physical_current.len(), 5544);
-                } else if digest(physical_current)
-                    == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
-                {
-                    assert_eq!(physical_current.len(), 5544);
-                } else {
-                    assert_eq!(
-                        digest(physical_current),
-                        "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
-                    );
-                }
+                assert!(matches!(
+                    digest(physical_current).as_str(),
+                    "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+                        | "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+                        | "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+                ));
                 assert_eq!(current.len(), 5544);
                 assert_eq!(
                     digest(current),

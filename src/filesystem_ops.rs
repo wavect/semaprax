@@ -1,3 +1,7 @@
+#![allow(
+    clippy::items_after_test_module,
+    reason = "Keep the original source order for whole-file historical inverses."
+)]
 //! Closed capability-authenticated filesystem operation identities and signatures.
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedHostCommandOperation as Op, ResolvedType};

@@ -998,6 +998,13 @@ fn acquisition_epoch<'a>(
     bytes: &'a [u8],
     row: &serde_json::Value,
 ) -> std::borrow::Cow<'a, [u8]> {
+    if let Some(epoch) = crate::source_reflows::declared_history_inputs::expected_value(
+        path,
+        row["sha256"].as_str().unwrap(),
+        std::str::from_utf8(bytes).unwrap(),
+    ) {
+        return std::borrow::Cow::Owned(epoch.into_bytes());
+    }
     if path != "src/cleanup_plan/replay/path_join.rs" {
         return std::borrow::Cow::Borrowed(bytes);
     }
@@ -1120,11 +1127,25 @@ fn all_shipping_bodies_and_complete_generation_sources_authenticate_before_every
             ),
             "src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs" => (
                 include_bytes!("boxed_flow.rs"),
-                include_bytes!("../boxed_flow.rs"),
+                include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154"
+                )),
             ),
             _ => panic!("foreign shipping source owner"),
         };
         assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
+        if path == "src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs" {
+            assert_eq!(
+                crate::source_reflows::original_fixture_source(
+                    "src/cleanup_plan/replay/path_join/boxed_flow.rs",
+                    "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154",
+                    include_str!("../boxed_flow.rs"),
+                )
+                .as_bytes(),
+                expected,
+            );
+        }
         assert_eq!(restore_source(row, compiled), expected);
         assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
     }

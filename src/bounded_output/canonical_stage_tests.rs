@@ -667,6 +667,22 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
     // b23 predecessor before entering the unchanged older census rows.
     let physical_full = physical.clone();
     let mut physical = field_local_census_before(path, &physical);
+    if path == "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" {
+        physical = crate::source_reflows::original_fixture_source(
+            path,
+            "9741a25ba95c97dddbd9b507d4b190b926cd1db44f5adb812e48d59b2940658d",
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .into_bytes();
+    }
+    if path == "src/cleanup_plan/replay/path_join/held_edge_tests.rs" {
+        physical = crate::source_reflows::original_fixture_source(
+            path,
+            "a8ee62b7c0200d8b4aa24020f930a13f6c5b9caaf6b8d0f84d4289fbb6202f43",
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .into_bytes();
+    }
     if path == "src/bounded_output.rs" {
         physical = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
             path,
@@ -691,6 +707,13 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
     }
     if let Some(front) = fronts.iter().find(|f| f["path"] == path) {
         let prior = stages.iter().find(|r| r["path"] == path).unwrap();
+        if let Some(previous) = crate::source_reflows::declared_history_inputs::expected_value(
+            path,
+            front["sha256"].as_str().unwrap(),
+            std::str::from_utf8(&physical).unwrap(),
+        ) {
+            physical = previous.into_bytes();
+        }
         assert_eq!(physical.len() as u64, front["length"]);
         assert_eq!(digest(&physical), front["sha256"].as_str().unwrap());
         assert_eq!(front["before_length"], prior["length"]);
@@ -782,10 +805,10 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
     assert_eq!(physical, compiled);
     assert_eq!(current, compiled);
     let packet = include_bytes!("../cleanup_plan/replay/path_join/field_local/inverse.json");
-    assert_eq!(packet.len(), 492721);
+    assert_eq!(packet.len(), 492196);
     assert_eq!(
         digest(packet),
-        "0bdc59ae516de9e1678b998e6b8d4fdb54c4bc5db08607acbd5fd788a3d9e98a"
+        "5af7d33a5ad21bd35d2218284b913ea16e8c990d9a2c5f0e88b20ee47fd99839"
     );
     assert_eq!(
         std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
@@ -807,7 +830,14 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
         assert_eq!(row["path"], owner);
     }
     let row = rows.iter().find(|r| r["path"] == path).unwrap();
-    let mut before = if path == "src/cleanup_plan/replay/path_join.rs" {
+    let mut before = if path == "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" {
+        crate::source_reflows::original_fixture_source(
+            path,
+            row["sha256"].as_str().unwrap(),
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .into_bytes()
+    } else if path == "src/cleanup_plan/replay/path_join.rs" {
         crate::source_reflows_merge::main_e177_final_inputs::value_direct(
             path,
             row["sha256"].as_str().unwrap(),

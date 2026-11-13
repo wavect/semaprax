@@ -8,7 +8,7 @@ use crate::ast::{
 use std::collections::BTreeMap;
 
 #[derive(Default)]
-pub(super) struct Proof {
+pub(in crate::workspace_graph::expected_projection) struct Proof {
     pub(super) roots: usize,
     pub(super) bytes: usize,
 }

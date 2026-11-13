@@ -15,8 +15,30 @@ fn complete_immediate_old_driver_and_each_helper_restore_their_whole_preimages()
     let rows: serde_json::Value =
         serde_json::from_str(include_str!("../before_frontier/custody/inverse.json")).unwrap();
     for row in rows.as_array().unwrap() {
-        let mut actual =
-            std::fs::read_to_string(root.join(row["compiled"].as_str().unwrap())).unwrap();
+        let path = row["compiled"].as_str().unwrap();
+        let physical = std::fs::read_to_string(root.join(path)).unwrap();
+        let expected = match path {
+            "src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs" => {
+                Some("59e698eea731be50e9d9ecd35a5d817ec1be5aaa482444b6df38aa2ee70f18b3")
+            }
+            "src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs" => {
+                Some("34be6ba09bb7bac7123a1039df67948f0ab5e49bdab69d7c2da55ba8cd07b90c")
+            }
+            "src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs" => {
+                Some("ab46c653becc07f401aa8aba33fe13b39992f41491f58bc43ff608056a011b10")
+            }
+            "src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs" => {
+                Some("7313a9413f4e954ccc583034119763928dcd9445d595373ccf297f065a5be8cf")
+            }
+            "src/cleanup_plan/replay/path_join/before_frontier/storage.rs" => {
+                Some("06fe50c24fcbb7db7763761387f990681acfa2c7963361bf6c8ed25260dbca79")
+            }
+            _ => None,
+        };
+        let mut actual = match expected {
+            Some(sha) => crate::source_reflows::original_fixture_source(path, sha, &physical),
+            None => physical,
+        };
         let original = std::fs::read_to_string(root.join(row["before"].as_str().unwrap())).unwrap();
         assert_eq!(digest(original.as_bytes()), row["sha256"].as_str().unwrap());
         for change in row["inverse"].as_array().unwrap().iter().rev() {
@@ -276,8 +298,9 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         } else {
             None
         };
-        let actual = if let Some(before)=continuation_before.as_ref() {before.as_slice()} else
-            if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
+        let actual = if let Some(before) = continuation_before.as_ref() {
+            before.as_slice()
+        } else if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
                 // Finite test-only transport: bind the complete current test bytes,
                 // then invert the whole replacement to the complete pinned old
                 // fixture. No production dependency receives this inverse.
@@ -384,8 +407,16 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
         assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
         return before.to_vec();
     }
-    let (compiled, length, expected, before_length, before_digest, edits):
-        (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {
+    type SourceStage<'a> = (
+        &'a [u8],
+        usize,
+        &'a str,
+        usize,
+        &'a str,
+        &'a [(usize, &'a str, &'a str)],
+    );
+    let (compiled, length, expected, before_length, before_digest, edits): SourceStage<'_> =
+        match path {
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(), 23389, "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb", 20575, "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f", &[
         ]),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(), 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f", 11246, "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68", &[
@@ -464,11 +495,12 @@ fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
         assert_eq!(physical.as_slice(), compiled);
         assert_eq!(current, compiled);
         // Complete fixture-owner funding precedes the unchanged prior lookup chain.
-        assert_eq!(current.len(), 45009);
-        assert_eq!(
-            digest(current),
-            "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd"
+        let stage = crate::source_reflows::original_fixture_source(
+            path,
+            "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd",
+            std::str::from_utf8(current).unwrap(),
         );
+        assert_eq!(stage.len(), 45009);
         let current = include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/e/29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a"

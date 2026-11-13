@@ -977,9 +977,14 @@ fn authenticate_prefitting_ordinary() {
         .0;
     assert_eq!(compiled.replacen("use super::prefitting_typed_skeleton as validate_typed_control_skeleton_with_index;\n","",1).trim(),lookup.trim());
     let receiving = include_str!("../last_use/before.rs");
+    let receiving = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs",
+        "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417",
+        receiving,
+    );
     assert_eq!(receiving.len(), 86308);
     assert_eq!(
-        digest(receiving),
+        digest(&receiving),
         "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"
     );
     let paired = include_str!("../../../../factored/paired.rs");

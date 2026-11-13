@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Exact live-source binding followed by a complete immediate-predecessor inverse.
 //! Only source tests use this adapter. No replay algorithm reads this packet.
 use sha2::{Digest, Sha256};
@@ -83,14 +87,14 @@ pub(crate) fn restore(path: &str, supplied: &str) -> String {
     let packet = include_str!("inverse.json");
     assert_eq!(
         digest(packet.as_bytes()),
-        "332bf99cb46d6087fe64c69cde21f91fc7b4cb331d763afd0dc06691c876aec9"
+        "fd05630f8378d74496c006020cbceff0b77b7ee64ab02aeee95f534863ec47c0"
     );
     let packet_path = physical.join("src/cleanup_plan/replay/oracle_closure_before/inverse.json");
     assert_eq!(
         exact(
             &packet_path,
-            188_971,
-            "332bf99cb46d6087fe64c69cde21f91fc7b4cb331d763afd0dc06691c876aec9"
+            191_934,
+            "fd05630f8378d74496c006020cbceff0b77b7ee64ab02aeee95f534863ec47c0"
         ),
         packet
     );
@@ -159,8 +163,8 @@ pub(crate) fn restore(path: &str, supplied: &str) -> String {
     assert_eq!(
         exact(
             &packet_path,
-            188_971,
-            "332bf99cb46d6087fe64c69cde21f91fc7b4cb331d763afd0dc06691c876aec9"
+            191_934,
+            "fd05630f8378d74496c006020cbceff0b77b7ee64ab02aeee95f534863ec47c0"
         ),
         packet
     );

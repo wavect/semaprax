@@ -1,6 +1,19 @@
 //! Compiled current input for each declared source owner.
 pub(crate) fn compiled(source: &str) -> &'static str {
     match source {
+"src/cleanup_plan/replay/path_join/boxed_states.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_states.rs")),
+"src/bounded_output/canonical_stage_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/canonical_stage_tests.rs")),
+"src/cleanup_plan/replay/continuation_storage/reached_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_tests.rs")),
+"src/cleanup_plan/replay/path_join/held_edge_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/held_edge_tests.rs")),
+"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/shared_insertions_tests.rs")),
+"src/cleanup_plan/replay/path_join/direct_one_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/direct_one_tests.rs")),
+"src/cleanup_plan/replay/continuation_storage/paid_receiving.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/paid_receiving.rs")),
+"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs")),
+"src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")),
+"src/cleanup_plan/replay/path_join/boxed_flow.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")),
+"src/cleanup_plan/replay/path_join/branch_join.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/branch_join.rs")),
+"src/hir/inspection/paid_nul/text.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/text.rs")),
+"src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs")),
 "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")),
 "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md")),
 "docs/evidence/compact-child-cursor-v1/sources.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compact-child-cursor-v1/sources.json")),

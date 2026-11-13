@@ -1329,8 +1329,17 @@ fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_sur
 fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
     use sha2::{Digest, Sha256};
     let hash = |raw: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)));
+    type SourceStage<'a> = (
+        &'a str,
+        usize,
+        &'a str,
+        &'a str,
+        usize,
+        &'a str,
+        &'a [(usize, &'a str, &'a str)],
+    );
     let (compiled, current_length, current_sha, before, before_length, before_sha, edits):
-        (&str, usize, &str, &str, usize, &str, &[(usize, &str, &str)]) = match path {
+        SourceStage<'_> = match path {
         "src/hir/canonical_loan_storage/caller.rs"=> (include_str!("../../caller.rs"), 28421, "f2ef60ecb5dfe623dc8db8d0b3468841b5c74e8b77cd6f5c219cd221ecfce646",
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/e6182e13a2435197176743921951ba2a88ebc15ef9af0ce4007f2e778c1f3e7b")), 23404, "e6182e13a2435197176743921951ba2a88ebc15ef9af0ce4007f2e778c1f3e7b", &[
                 (7703, "    if stream::empty_before_selected() {\n        return prepare_sealed_before_empty_terminal(seed, program, seal);\n    }\n    #[cfg(test)]\n", ""),

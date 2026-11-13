@@ -540,8 +540,11 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
                 .iter()
                 .find(|r| r["current"] == path)
                 .unwrap();
-            assert_eq!(digest(&physical), row["current_sha256"].as_str().unwrap());
-            let mut text = String::from_utf8(physical.clone()).unwrap();
+            let mut text = crate::source_reflows::original_fixture_source(
+                path,
+                row["current_sha256"].as_str().unwrap(),
+                std::str::from_utf8(&physical).unwrap(),
+            );
             for e in row["edits"].as_array().unwrap() {
                 let from = e["from"].as_str().unwrap();
                 assert_eq!(text.matches(from).count(), 1);
@@ -555,6 +558,17 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
                 "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d"
             );
             text.into_bytes()
+        } else if matches!(
+            path,
+            "src/cleanup_plan/replay/path_join/boxed_states.rs"
+                | "src/cleanup_plan/replay/path_join/branch_join.rs"
+        ) {
+            crate::source_reflows::original_fixture_source(
+                path,
+                expected,
+                std::str::from_utf8(&physical).unwrap(),
+            )
+            .into_bytes()
         } else {
             physical.clone()
         };

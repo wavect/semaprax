@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! #885 whole ordinary ABI with an actual lexical status/initial-edge owner.
 //! SOURCE WIP: typed receiving ledger and independent controls pending review.
 use super::case_certified::retained_lookup;

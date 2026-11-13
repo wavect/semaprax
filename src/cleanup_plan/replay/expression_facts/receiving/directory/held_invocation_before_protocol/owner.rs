@@ -279,6 +279,10 @@ impl<'hir> Backing<'hir> {
     }
 }
 
+#[allow(
+    unused_macros,
+    reason = "Complete independently compiled directory receiver macro."
+)]
 macro_rules! receive_directory {
     ($owner:ident, $program:ident, $function:ident, $budget:ident) => {{
         let mut received = None;

@@ -247,21 +247,30 @@ fn old_foreign_order_and_occupied_failures_keep_raw_diagnostics_without_current_
 fn byte_identical_old_owner_and_original_shared_test_archive_remain_whole() {
     use sha2::{Digest, Sha256};
     let hash = |raw: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)));
-    let owner = include_bytes!("owner.rs");
+    let owner = include_str!("owner.rs");
+    let owner = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs",
+        "1f1c63aee7d304e6c44d2decc2b72c285621d0977257d7a33a62fbb65023eb59",
+        owner,
+    );
     assert_eq!(owner.len(), 12925);
     assert_eq!(
-        hash(owner),
+        hash(owner.as_bytes()),
         "1f1c63aee7d304e6c44d2decc2b72c285621d0977257d7a33a62fbb65023eb59"
     );
-    let current_tests = include_bytes!("../held_invocation_tests.rs");
+    let current_tests = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs",
+        "623b7cc93e6b6a81ffd7933978ec91c0126c4891d68c8f43919481b978936226",
+        include_str!("../held_invocation_tests.rs"),
+    );
     let archived = include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/e/623b7cc93e6b6a81ffd7933978ec91c0126c4891d68c8f43919481b978936226"
     ));
     assert_eq!(current_tests.len(), 34683);
     assert_eq!(
-        hash(current_tests),
+        hash(current_tests.as_bytes()),
         "623b7cc93e6b6a81ffd7933978ec91c0126c4891d68c8f43919481b978936226"
     );
-    assert_eq!(current_tests.as_slice(), archived.as_slice());
+    assert_eq!(current_tests.as_bytes(), archived.as_slice());
 }

@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Original reverse-stack lookup order, now admitted before stack growth.
 //! Each fresh helper frame includes its actual intermediate Option and terminal
 //! budget conversion argument/result roles in caller and existing From callee.

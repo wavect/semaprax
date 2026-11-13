@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Fixed compiler subject messages plus a fully funded unknown-label fallback.
 use super::*;
 const REFUSED: &str = "identity audit exceeds the active validation budget";

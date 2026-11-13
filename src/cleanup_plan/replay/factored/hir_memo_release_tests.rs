@@ -233,8 +233,8 @@ fn actual_builder_partition_releases_only_private_payloads_and_retains_all_capac
         assert_eq!(&before[..3], &after[..3]);
         assert_eq!(&before[4..], &after[4..]);
         assert!(after[3] <= before[3]);
-        for key in 0..4 {
-            assert_eq!(canonical.private_release_state(key), common[key]);
+        for (key, expected) in common.into_iter().enumerate() {
+            assert_eq!(canonical.private_release_state(key), expected);
         }
         for key in built.hir_root..built.plan_root {
             assert_ne!(canonical.private_release_state(key).0, 2);
@@ -590,12 +590,16 @@ fn complete_release_work_and_physical_frontiers() {
     let mut phases = vec!["factored common terminal partition proof"; 3];
     for node in &built.automaton.nodes[built.plan_root..] {
         phases.push("factored PLAN partition node proof");
-        for _ in node.moves() {
-            phases.push("factored PLAN movement partition proof");
-        }
-        for _ in node.epsilon() {
-            phases.push("factored PLAN epsilon partition proof");
-        }
+        phases.extend(
+            node.moves()
+                .iter()
+                .map(|_| "factored PLAN movement partition proof"),
+        );
+        phases.extend(
+            node.epsilon()
+                .iter()
+                .map(|_| "factored PLAN epsilon partition proof"),
+        );
     }
     phases.extend(std::iter::repeat_n(
         "factored HIR-private memo payload release",

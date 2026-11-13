@@ -65,6 +65,10 @@ fn join_scratch(left: &ValidationBinding, right: &ValidationBinding) -> Result<(
             }),
     )
 }
+#[allow(
+    dead_code,
+    reason = "Retain the complete historical checkpoint receiver."
+)]
 pub(in crate::hir::validation) fn availability(
     target: &mut dyn Write,
     source: &dyn Read,
@@ -90,6 +94,10 @@ pub(in crate::hir::validation) fn availability(
     }
     Ok(())
 }
+#[allow(
+    dead_code,
+    reason = "Retain the complete historical checkpoint receiver."
+)]
 pub(in crate::hir::validation) fn borrows(
     target: &mut dyn Write,
     source: &dyn Read,

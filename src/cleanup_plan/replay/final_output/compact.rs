@@ -205,7 +205,10 @@ macro_rules! push {
                 .budget
                 .reserve_vec($work.function, target, capacity, phase)?;
             target.push(path);
-            $first = false;
+            #[allow(unused_assignments, reason = "A terminal invocation has no next push.")]
+            {
+                $first = false;
+            }
         } else {
             $work.push_expr_path($target, $path, $phase)?;
         }

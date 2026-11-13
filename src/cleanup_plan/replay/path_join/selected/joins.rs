@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Compile the complete implementation against independent current and historical replay owners."
+)]
 //! Exact selected path twin; complete immediate old owners remain independent.
 use super::*;
 pub(super) fn validate_control_group_with_budget(

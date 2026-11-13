@@ -339,6 +339,13 @@ fn complete_immediate_driver_receivers_and_original_controls_keep_whole_bytes() 
         let path = row["current"].as_str().unwrap();
         let mut actual =
             compact_failure_tests::before_source(path, String::from_utf8(read(path)).unwrap());
+        if path == "src/cleanup_plan/replay/path_join/boxed_flow.rs" {
+            actual = crate::source_reflows::original_fixture_source(
+                path,
+                row["current_sha256"].as_str().unwrap(),
+                &actual,
+            );
+        }
         assert_eq!(
             digest(actual.as_bytes()),
             row["current_sha256"].as_str().unwrap()

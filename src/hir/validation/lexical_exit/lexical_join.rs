@@ -208,7 +208,7 @@ mod tests {
                 + 2 * std::mem::size_of::<Result<(), Diagnostic>>(),
             WITNESS_JOIN + 2 * std::mem::size_of::<&ResolvedExpr>()
         );
-        assert!(LEXICAL_JOIN < WITNESS_JOIN);
+        const { assert!(LEXICAL_JOIN < WITNESS_JOIN) }
     }
     #[test]
     fn complete_current_and_old_join_callers_keep_every_check_and_exact_bank_delta() {

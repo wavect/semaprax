@@ -1,3 +1,7 @@
+#![allow(
+    clippy::items_after_test_module,
+    reason = "Keep the original source order for whole-file historical inverses."
+)]
 //! Compiler-owned, capability-authenticated network I/O operations.
 //!
 //! Bounded Language Network I/O v1 extends the closed host-command operation

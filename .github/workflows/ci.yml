@@ -1032,7 +1032,7 @@ jobs:
           echo "SEMAPRAX_DIRECT_CALCULATOR_ROOT=$direct" >> "$GITHUB_ENV"
           echo "SEMAPRAX_PROJECT_CALCULATOR_ROOT=$project" >> "$GITHUB_ENV"
           echo "SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT=$renamed" >> "$GITHUB_ENV"
-      - name: Capture exact Project graph records for fixture pin diagnostics
+      - name: Capture exact Project graphs and Web manifests for fixture pin diagnostics
         shell: bash
         run: |
           set -euo pipefail
@@ -1040,6 +1040,8 @@ jobs:
           mkdir "$evidence"
           cargo run --locked -p semaprax -- graph examples/calculator-project/semaprax.toml > "$evidence/calculator-baseline.json"
           cargo run --locked -p semaprax -- graph "$RUNNER_TEMP/semaprax-wasm-scalar-browser-v1/calculator-project-renamed/semaprax.toml" > "$evidence/calculator-renamed.json"
+          cp "$SEMAPRAX_PROJECT_CALCULATOR_ROOT/generated/semaprax.scalar-exports.json" "$evidence/calculator-baseline-web-manifest.json"
+          cp "$SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT/generated/semaprax.scalar-exports.json" "$evidence/calculator-renamed-web-manifest.json"
           python3 - "$evidence" <<'PY'
           import base64, hashlib, json, pathlib, subprocess, sys
           directory = pathlib.Path(sys.argv[1])
@@ -1052,7 +1054,13 @@ jobs:
           record = {"head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "rustc": subprocess.check_output(["rustc", "--version", "--verbose"], text=True), "binary_sha256": digest.hexdigest()}
           (directory / "provenance.json").write_text(json.dumps(record, sort_keys=True) + "\n")
           files = {}
-          for name in ("calculator-baseline.json", "calculator-renamed.json", "provenance.json"):
+          for name in (
+              "calculator-baseline.json",
+              "calculator-renamed.json",
+              "calculator-baseline-web-manifest.json",
+              "calculator-renamed-web-manifest.json",
+              "provenance.json",
+          ):
               payload = (directory / name).read_bytes()
               files[name] = {"bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest(), "base64": base64.b64encode(payload).decode("ascii")}
           print("SEMAPRAX_PROJECT_GRAPH_EVIDENCE_V1 " + json.dumps(files, sort_keys=True))

@@ -305,6 +305,15 @@ The [hosted run at `ed2103682`](https://github.com/wavect/semaprax/actions/runs/
 passed all 43 selected tests and scoped production Clippy, including the
 interpreter, native and paired Wasm postcondition controls.
 
+The shared private iterator fixture, `tests/fixtures/byte-partition-private-iterator.spx`,
+consumes a 4,096-child Vec, takes the first child and returns its 16-byte
+extent. The interpreter checks the owning match and the ordered child and
+iterator finalizers before execution. Its empty-input control takes the
+Done arm. The local 43-test partition selection passed, including the
+generated native C11 O0/O2 and paired Core-Wasm runs of the shared fixture.
+Both runs verify one payload backing per invocation and settlement before
+reentry.
+
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.
 

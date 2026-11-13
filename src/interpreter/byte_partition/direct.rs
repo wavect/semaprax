@@ -19,6 +19,9 @@ use crate::{
     },
 };
 use std::alloc::Layout;
+
+mod iterator;
+use iterator::FirstChild;
 #[derive(Debug, PartialEq)]
 pub(crate) enum Outcome {
     Returned(i64),
@@ -157,6 +160,7 @@ struct PartitionStep {
     exceeds_bound: bool,
     count: u64,
     width: u64,
+    first_child: Option<FirstChild>,
 }
 
 fn prove_step(
@@ -205,13 +209,18 @@ fn prove_step(
     };
     let operands = partition::operation::typed(operation, work)?.ok_or(Refusal::Identity)?;
     root(operands.owner, &whole_binding.id, work)?;
-    let [length] = call(tail, crate::string_ops::I64_FROM_USIZE_ID, work)? else {
-        return Err(Refusal::Identity);
+    let first_child = if matches!(tail.kind, K::Match { .. }) {
+        Some(iterator::prove(plan, tail, &vector_binding.id, work)?)
+    } else {
+        let [length] = call(tail, crate::string_ops::I64_FROM_USIZE_ID, work)? else {
+            return Err(Refusal::Identity);
+        };
+        let [values] = call(length, crate::vec_ops::LEN_ID, work)? else {
+            return Err(Refusal::Identity);
+        };
+        root(values, &vector_binding.id, work)?;
+        None
     };
-    let [values] = call(length, crate::vec_ops::LEN_ID, work)? else {
-        return Err(Refusal::Identity);
-    };
-    root(values, &vector_binding.id, work)?;
     let (count, width) = (literal(operands.count)?, literal(operands.width)?);
     let exit = match exit {
         Some(exit) => exit,
@@ -282,7 +291,7 @@ fn prove_step(
             _ => return Err(Refusal::Identity),
         }
     }
-    if vector_actions != 1 {
+    if vector_actions != usize::from(first_child.is_none()) {
         return Err(Refusal::Identity);
     }
     verify_partition_fault_cleanup(plan, operation, operands.owner, work)?;
@@ -291,6 +300,7 @@ fn prove_step(
         exceeds_bound,
         count,
         width,
+        first_child,
     })
 }
 
@@ -372,6 +382,7 @@ fn execute_step(
         exceeds_bound,
         count,
         width,
+        first_child,
     } = step;
     let handle = invocation.account;
     if exceeds_bound {
@@ -406,18 +417,32 @@ fn execute_step(
             return Err(error);
         }
     };
+    if let Some(first_child) = first_child {
+        return iterator::execute(first_child, value, invocation)
+            .and_then(|scalar| result_outcome(prefix, scalar, postcondition));
+    }
     let Value::PartitionVec(vector) = &value else {
         return Err(Refusal::Identity);
     };
     let scalar = i64::try_from(vector.len()).map_err(|_| Refusal::Identity)?;
-    let result = prefix.checked_add(scalar).ok_or(Refusal::Identity)?;
-    let outcome = if postcondition.is_some_and(|expected| expected != result) {
-        Outcome::PostconditionFailed
-    } else {
-        Outcome::Returned(result)
-    };
+    let outcome = result_outcome(prefix, scalar, postcondition)?;
     super::values::settle(&mut value, &mut invocation.loans).map_err(|_| Refusal::Identity)?;
     Ok(outcome)
+}
+
+fn result_outcome(
+    prefix: i64,
+    scalar: i64,
+    postcondition: Option<i64>,
+) -> Result<Outcome, Refusal> {
+    let result = prefix.checked_add(scalar).ok_or(Refusal::Identity)?;
+    Ok(
+        if postcondition.is_some_and(|expected| expected != result) {
+            Outcome::PostconditionFailed
+        } else {
+            Outcome::Returned(result)
+        },
+    )
 }
 
 /// The actual caller Account is borrowed through settlement. No numeric

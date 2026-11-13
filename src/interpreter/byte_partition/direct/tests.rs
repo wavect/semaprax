@@ -9,6 +9,8 @@ use crate::hir::byte_partition::ValidatedPartitionProgram;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const ITERATOR_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 
@@ -119,6 +121,14 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
         (EMPTY_SOURCE.to_owned(), 0, 0),
         (CAPACITY_SOURCE.to_owned(), 8192, 8192),
         (SHARED_SOURCE.to_owned(), 65_536, 4096),
+        (ITERATOR_SOURCE.to_owned(), 65_536, 16),
+        (
+            ITERATOR_SOURCE
+                .replace("65536usize", "0usize")
+                .replace("4096usize", "0usize"),
+            0,
+            0,
+        ),
     ] {
         assert!(crate::check(&text, "partition-direct.spx").is_err());
         let ast = crate::parse(&text, "partition-direct.spx").unwrap();

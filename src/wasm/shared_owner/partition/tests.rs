@@ -15,6 +15,8 @@ const SOURCE: &str = r#"module partition_wasm;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const ITERATOR_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
@@ -51,6 +53,7 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         (SOURCE, "7", "65536", "1", "65536"),
         (iterator.as_str(), "4096", "65536", "1", "65536"),
         (SHARED_SOURCE, "4096", "65536", "1", "65536"),
+        (ITERATOR_SOURCE, "16", "65536", "1", "65536"),
         (EMPTY_SOURCE, "0", "0", "1", "0"),
         (CAPACITY_SOURCE, "8192", "8192", "1", "8192"),
         (REPEATED_SOURCE, "8193", "8192", "2", "8193"),

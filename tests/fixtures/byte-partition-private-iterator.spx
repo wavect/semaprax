@@ -1,0 +1,15 @@
+module partition_iterator;
+
+@id("partition_iterator.main")
+fn main() -> i64
+{
+    let whole = bytes_zeroed(65536usize);
+    let children = bytes_partition(whole, 4096usize, 16usize);
+    match own iter_next<Bytes>(vec_into_iter<Bytes>(children)) {
+        IterStep::Done {} => 0,
+        IterStep::Yield { item, rest } => {
+            let view = bytes_as_slice(item);
+            i64_from_usize(byte_len(view))
+        },
+    }
+}

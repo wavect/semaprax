@@ -14,6 +14,8 @@ const SOURCE: &str = r#"module partition_native;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const ITERATOR_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
@@ -75,15 +77,7 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
         (source(EMPTY_SOURCE), 0, 0, 0),
         (source(CAPACITY_SOURCE), 8192, 1, 8192),
         (source(REPEATED_SOURCE), 8193, 2, 8193),
-        (
-            source(&SHARED_SOURCE.replace(
-                "i64_from_usize(vec_len<Bytes>(children))",
-                "match own iter_next<Bytes>(vec_into_iter<Bytes>(children)) { IterStep::Done{} => 0, IterStep::Yield{item,rest} => { let view = bytes_as_slice(item); i64_from_usize(byte_len(view)) }, }",
-            )),
-            16,
-            1,
-            65536,
-        ),
+        (source(ITERATOR_SOURCE), 16, 1, 65536),
     ] {
         let root = scratch("source-partition");
         compile_and_run(

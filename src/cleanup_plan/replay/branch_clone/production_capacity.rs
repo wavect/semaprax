@@ -956,8 +956,11 @@ fn unpaid_exact_plan_branch_keeps_full_original_paths_work_failures_and_material
                 let expected = before(function, &mut old);
                 let old_events = skeleton_materializations() - start;
                 let start = skeleton_materializations();
-                let actual =
-                    crate::cleanup_plan::replay::plan_skeleton_paths(function, &mut current);
+                // Compare the flat constructor's unpaid branch. The shared
+                // PLAN prefix has independent path and work comparisons.
+                let actual = crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::with_before(|| {
+                    crate::cleanup_plan::replay::plan_skeleton_paths(function, &mut current)
+                });
                 let current_events = skeleton_materializations() - start;
                 assert_eq!(actual,expected,"all ordered observation fields and terminal values, calls={count}, limit={limit}");
                 assert_eq!(current.remaining, old.remaining);

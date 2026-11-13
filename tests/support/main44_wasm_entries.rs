@@ -29,6 +29,9 @@ pub(crate) fn before_phase_probes<'a>(
     main44_entries::before_phase_probes(source, supplied)
 }
 const INCLUDE_PATHS: &[(&str, &str)] = &[
+        ("include_str!(\"../hir/validation/lexical_exit.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/hir/validation/lexical_exit.rs\"))"),
+        ("include_str!(\"main44_custody.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/source_reflows_merge/main44_custody.rs\"))"),
+        ("include_str!(\"../hir/validation/lexical_exit/arm_context_inverse.json\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/hir/validation/lexical_exit/arm_context_inverse.json\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\"))"),
         ("include_str!(\"../../e/9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay/factored.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored.rs\"))"),
@@ -39,9 +42,15 @@ const INCLUDE_PATHS: &[(&str, &str)] = &[
         ("include_str!(\"../../e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0\"))"),
         ("include_str!(\"../../e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4\"))"),
         ("include_str!(\"../../e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2\"))"),
+        ("include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs\"))"),
+        ("include_str!(\"../../e/c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d\"))"),
+        ("include_str!(\"../../src/hir/validation/frame_reuse/source_inverse.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/hir/validation/frame_reuse/source_inverse.rs\"))"),
+        ("include_str!(\"../../e/1b9b6134ab855b3396f602949c7a681efe6bf840189712f326b22917a803ec82\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/1b9b6134ab855b3396f602949c7a681efe6bf840189712f326b22917a803ec82\"))"),
         ("include_str!(\"../../src/cleanup_plan/validate.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/validate.rs\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay.rs\"))"),
         ("include_str!(\"../../src/cleanup_plan/replay/factored/continuation_receiver.rs\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver.rs\"))"),
+        ("include_str!(\"../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a\"))"),
+        ("include_str!(\"../../e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5\")", "include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5\"))"),
     ];
 fn assert_complete_main44_entries() {
     const OWNER: &str = include_str!("../../src/source_reflows_merge/main44_custody.rs");
@@ -93,11 +102,22 @@ fn assert_complete_main44_entries() {
                 .split_once("// Select an explicitly authenticated historical parent view")
                 .unwrap()
                 .0,
+        "// Authenticate the complete joint replay source".to_owned()
+            + OWNER
+                .split_once("// Authenticate the complete joint replay source")
+                .unwrap()
+                .1
+                .trim_end()
+            + "\n",
     ];
-    for (tag, mut expected) in ["HEADER", "CLOSURE", "READER", "PROBES"]
+    for (tag, mut expected) in ["HEADER", "CLOSURE", "READER", "PROBES", "JOINT"]
         .into_iter()
         .zip(originals)
     {
+        expected = expected.replace(
+            "crate::source_reflows::replay_before_943",
+            "crate::replay_before_943",
+        );
         for (old, new) in INCLUDE_PATHS {
             expected = expected.replace(old, new);
         }
@@ -153,6 +173,126 @@ pub(crate) enum Fixture {
 
 // WORKSPACE_MAIN44_CLOSURE_BEGIN
 impl Fixture {
+    pub(crate) fn prior_source(source: &str, current: &str) -> Option<String> {
+        use sha2::{Digest, Sha256};
+        let hash =
+            |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+        let binding: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/hir/validation/lexical_exit/arm_context_inverse.json"
+        )))
+        .unwrap();
+        let rows = binding["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["source"], "src/hir/validation/lexical_exit.rs");
+        assert_eq!(
+            rows[1]["source"],
+            "src/source_reflows_merge/main44_custody.rs"
+        );
+        let row = rows
+            .iter()
+            .find(|row| row["source"].as_str() == Some(source))?;
+        if current.len() as u64 != row["current_length"].as_u64().unwrap()
+            || hash(current.as_bytes()) != row["current_sha256"].as_str().unwrap()
+        {
+            return None;
+        }
+        Self::authenticate_context_source(source, current, &binding);
+        let mut previous = Vec::new();
+        let mut end = 0;
+        for edit in row["edits"].as_array().unwrap() {
+            let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+            let next = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+            assert!(end <= start && start <= next && next <= current.len());
+            assert_eq!(
+                &current.as_bytes()[start..next],
+                edit["after"].as_str().unwrap().as_bytes()
+            );
+            previous.extend_from_slice(&current.as_bytes()[end..start]);
+            previous.extend_from_slice(edit["before"].as_str().unwrap().as_bytes());
+            end = next;
+        }
+        previous.extend_from_slice(&current.as_bytes()[end..]);
+        assert_eq!(
+            previous.len() as u64,
+            row["before_length"].as_u64().unwrap()
+        );
+        assert_eq!(hash(&previous), row["before_sha256"].as_str().unwrap());
+        Self::authenticate_context_source(source, current, &binding);
+        Some(String::from_utf8(previous).unwrap())
+    }
+
+    // Closed physical/compiled channels remain current while old rows keep their
+    // complete fixed targets. A historical image never becomes current authority.
+    fn authenticate_context_source(source: &str, supplied: &str, binding: &serde_json::Value) {
+        let current = match source {
+            "src/hir/validation/lexical_exit.rs" => {
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/lexical_exit.rs"))
+            }
+            "src/source_reflows_merge/main44_custody.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main44_custody.rs")),
+            _ => panic!("unlisted arm context source"),
+        };
+        assert_eq!(
+            supplied, current,
+            "complete compiled current arm-context owner"
+        );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let current_sha = super::source_sha(current);
+        assert_eq!(
+            current_file(&root.join(source), current.len(), &current_sha).unwrap(),
+            current
+        );
+        assert_eq!(
+            current_file(
+                &root.join(format!("e/{current_sha}")),
+                current.len(),
+                &current_sha
+            )
+            .unwrap(),
+            current
+        );
+        let metadata_source = "src/hir/validation/lexical_exit/arm_context_inverse.json";
+        let metadata = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/lexical_exit/arm_context_inverse.json"));
+        let metadata_sha = super::source_sha(metadata);
+        assert_eq!(
+            current_file(&root.join(metadata_source), metadata.len(), &metadata_sha).unwrap(),
+            metadata
+        );
+        assert_eq!(
+            current_file(
+                &root.join(format!("e/{metadata_sha}")),
+                metadata.len(),
+                &metadata_sha
+            )
+            .unwrap(),
+            metadata
+        );
+        const OLD_METADATA: &str = include_str!(
+            "../../e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"
+        );
+        assert_eq!(
+            current_file(
+                &root.join("e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"),
+                OLD_METADATA.len(),
+                "97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"
+            )
+            .unwrap(),
+            OLD_METADATA
+        );
+        let retained: serde_json::Value = serde_json::from_str(OLD_METADATA).unwrap();
+        assert_eq!(binding["retained_whole_arm_context_inverse"], retained);
+        let row = binding["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["source"] == source)
+            .unwrap();
+        let length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
+        let sha = row["before_sha256"].as_str().unwrap();
+        let historical = current_file(&root.join(format!("e/{sha}")), length, sha).unwrap();
+        assert_eq!(historical.len(), length);
+    }
+
     // A finite complete source epoch before the unchanged CI/Main44 inverses.
     // Actual physical current and the entire immutable predecessor are both read.
     pub(crate) fn closure_epoch<'a>(
@@ -239,9 +379,45 @@ impl Fixture {
                 include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2")), 55786, &[
                     (2115, ";\n#[cfg(test)]\npub(super) use paired::tests::{\n    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,\n}", ""),
                 ][..]),
+            ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d") => (
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs")), 11443, "0aac14bdb3c69a167151e5861a187b1ca3d45001716c9bffb3988651ee1495b8",
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d")), 10608, &[
+                    (103, "use std::sync::{RwLock, RwLockWriteGuard};\n", "use std::sync::{Mutex, MutexGuard};\n"),
+                    (707, "// acquire this lock. A thread retains its lease so repeated finish calls keep\n", "// acquire this mutex. A thread retains its lease so repeated finish calls keep\n"),
+                    (859, "// Exclusive write leases retain mutex semantics. Unlike the native mutex on\n// macOS, this lock needs no lazy heap allocation on its first acquisition.\nstatic STORAGE: RwLock<Trace> = RwLock::new(Trace {\n", "static STORAGE: Mutex<Trace> = Mutex::new(Trace {\n"),
+                    (1201, "    static TRACE: RefCell<Option<RwLockWriteGuard<'static, Trace>>> = const { RefCell::new(None) };\n", "    static TRACE: RefCell<Option<MutexGuard<'static, Trace>>> = const { RefCell::new(None) };\n"),
+                    (2306, "                    .write()\n", "                    .lock()\n"),
+                    (10737, "#[test]\nfn preparation_preserves_an_existing_lease_and_its_complete_event() {\n    prepare();\n    let (_, refused, _, first) =\n        crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {\n            reset();\n            before(\"observer preparation regression\");\n            after();\n            prepare();\n            let events = finish();\n            assert_eq!(events.len(), 1);\n            assert_eq!(events[0].phase, \"observer preparation regression\");\n            assert_eq!(events[0].before, 0);\n            assert_eq!(events[0].after, Some(0));\n            assert_eq!(events[0].swaps, 0);\n        });\n    assert!(!refused && first.is_none());\n}\n\n", ""),
+                ][..]),
+            ("src/hir/validation/frame_reuse/source_inverse.rs", "1b9b6134ab855b3396f602949c7a681efe6bf840189712f326b22917a803ec82") => (
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/source_inverse.rs")), 10750, "399da632af0c3c1d6920b969b32f15f46ac6a3d72cab07248f0d2752f60851da",
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1b9b6134ab855b3396f602949c7a681efe6bf840189712f326b22917a803ec82")), 10055, &[
+                    (2966, "    let root_before;\n    let current = if source == \"src/hir/validation.rs\" {\n        root_before = super::super::lexical_exit::lexical_join::before_source(source, current)\n            .expect(\"exact physical current validation root\");\n        root_before.as_str()\n    } else { current };\n    let lexical_join_before = super::super::lexical_exit::lexical_join::before_source(source, current);\n    let current = lexical_join_before.as_deref().unwrap_or(current);\n", ""),
+                    (8195, "        let physical_compiled = compiled;\n        let lexical_join_before = super::super::lexical_exit::lexical_join::before_source(path, compiled);\n        let compiled = lexical_join_before.as_deref().unwrap_or(compiled);\n", ""),
+                    (8561, "            crate::source_reflows::batch_913_entry(path, physical_compiled)\n", "            crate::source_reflows::batch_913_entry(path, compiled)\n"),
+                ][..]),
             _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
         let physical_compiled = compiled;
+        // Acquire the actual complete new arm-context owner before selecting
+        // its exact predecessor. The original physical/supplied check and all
+        // prior hashes, inverse operations and targets remain below.
+        let context_source = if source == "src/hir/validation/lexical_exit.rs" {
+            let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+            assert_eq!(
+                current_file(
+                    &root.join(source),
+                    compiled.len(),
+                    &super::source_sha(compiled)
+                )
+                .unwrap(),
+                compiled
+            );
+            Self::prior_source(source, compiled)
+        } else {
+            None
+        };
+        let compiled = context_source.as_deref().unwrap_or(compiled);
         // Compose this complete new main epoch before the unchanged four
         // acquisition records; the recursively selected fifth record is finite.
         let has_paired_epoch = source == "src/cleanup_plan/replay/factored.rs"
@@ -254,7 +430,35 @@ impl Fixture {
             && expected == "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0";
         let has_export_epoch = source == "src/cleanup_plan/replay/factored.rs"
             && expected == "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4";
-        let (paired_epoch, prefix_edits) = if has_paired_epoch {
+        let has_declared_epoch = matches!(
+            (source, sha),
+            (
+                "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+                "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4"
+            ) | (
+                "src/cleanup_plan/replay/factored.rs",
+                "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269"
+            )
+        );
+        use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs as history;
+        let (paired_epoch, prefix_edits) = if has_declared_epoch {
+            let (part, index) = history::slot(source, sha).expect("closed Main44 source epoch");
+            let row = &history::records(part)[index];
+            let predecessor = history::restore(source, row);
+            let edits = row["inverse"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|edit| {
+                    (
+                        usize::try_from(edit[0].as_u64().unwrap()).unwrap(),
+                        edit[1].as_str().unwrap(),
+                        edit[2].as_str().unwrap(),
+                    )
+                })
+                .collect();
+            (std::borrow::Cow::Owned(predecessor), edits)
+        } else if has_paired_epoch {
             Self::closure_epoch(
                 source,
                 "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
@@ -267,7 +471,11 @@ impl Fixture {
                 supplied,
             )
         } else if has_export_epoch {
-            Self::closure_epoch(source, "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2", supplied)
+            Self::closure_epoch(
+                source,
+                "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2",
+                supplied,
+            )
         } else {
             (std::borrow::Cow::Borrowed(compiled), Vec::new())
         };
@@ -281,7 +489,21 @@ impl Fixture {
         assert_eq!(prior.len(), prior_length);
         assert_eq!(super::source_sha(prior), expected);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(
+        let acquired = if has_declared_epoch {
+            history::expected_value(source, sha, physical_compiled)
+                .expect("closed complete original fixture source")
+        } else if context_source.is_some() {
+            // Preserve the original late physical acquisition as well as the
+            // early one; a source change between the two remains a refusal.
+            let actual = current_file(
+                &root.join(source),
+                physical_compiled.len(),
+                &super::source_sha(physical_compiled),
+            )
+            .unwrap();
+            assert_eq!(actual, physical_compiled);
+            Self::prior_source(source, &actual).expect("exact late arm-context source")
+        } else {
             current_file(
                 &if has_paired_epoch {
                     root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
@@ -295,9 +517,9 @@ impl Fixture {
                 length,
                 sha,
             )
-            .unwrap(),
-            compiled
-        );
+            .unwrap()
+        };
+        assert_eq!(acquired, compiled);
         assert_eq!(
             current_file(&root.join("e").join(expected), prior_length, expected).unwrap(),
             prior
@@ -310,6 +532,44 @@ impl Fixture {
         assert_eq!(restored, prior, "entire fixed closure predecessor");
         let mut composed = edits.to_vec();
         composed.extend(prefix_edits);
+        if context_source.is_some() {
+            // Compose complete physical-current coordinates, after every old
+            // guard and whole predecessor producer above has executed.
+            composed = vec![
+                (5554, "pub(super) mod lexical_join;\npub(super) use lexical_join::join_validated_arm;\n\n", ""),
+                (5849, "#[cfg(test)]\n", ""),
+                (6644, "#[cfg(test)]\n", ""),
+                (8878, "    #[cfg(test)]\n", ""),
+                (15111, "    pub(super) fn sources() -> Vec<String> {\n", "    fn sources() -> Vec<String> {\n"),
+                (25134, "    pub(super) fn run_public(\n", "    fn run_public(\n"),
+                (25503, "        // Reporting storage is harness setup, outside compiler observation.\n        // Every compiler-owned diagnostic is still dropped inside the window.\n        use std::fmt::Write as _;\n        let mut diagnostic_report = String::with_capacity(1 << 16);\n", ""),
+                (25821, "        // This corpus has only authored monomorphic functions: two full HIR\n        // validation passes, each with both original comparison receivers.\n        assert!(checked\n            .functions\n            .iter()\n            .all(|f| f.type_parameters.is_empty()));\n        assert!(checked.agents.is_empty() && checked.implementations.is_empty());\n        assert!(checked\n            .types\n            .iter()\n            .all(|ty| !matches!(ty.kind, crate::ast::TypeDeclarationKind::Class { .. })));\n        let receivers = checked.functions.len().checked_mul(4).unwrap();\n        let (((success, metrics), refused, paid, receipt), _, _) =\n            crate::cleanup_plan::with_financed_validation_test_oracles(receivers, || {\n                let observed = crate::bounded_output::with_limit_usage_refusal(limit, || {\n                    assert!(crate::bounded_output::set_active_floor(floor));\n                    let measured = crate::test_allocation_observer::measure_with_capacity(\n                        1 << 16,\n                        || {\n                            phase.set(\"hir::resolve\");\n                            let resolved = match crate::hir::resolve(checked) {\n                                Ok(resolved) => resolved,\n                                Err(errors) => {\n                                    for error in &errors {\n                                        writeln!(&mut diagnostic_report, \"OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();\n                                    }\n                                    assert!(errors.iter().all(|error| error.code == \"SPX-H006\"));\n                                    drop(errors);\n                                    return false;\n", "        let ((success, metrics), refused, paid, receipt) =\n            crate::bounded_output::with_limit_usage_refusal(limit, || {\n                assert!(crate::bounded_output::set_active_floor(floor));\n                let measured =\n                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {\n                        phase.set(\"hir::resolve\");\n                        let resolved = match crate::hir::resolve(checked) {\n                            Ok(resolved) => resolved,\n                            Err(errors) => {\n                                for error in &errors {\n                                    eprintln!(\"OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n"),
+                (27718, "                            };\n                            phase.set(\"second hir::validate\");\n                            let outcome = crate::hir::validate(&resolved);\n                            if let Err(error) = &outcome {\n                                writeln!(&mut diagnostic_report, \"OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();\n                                assert_eq!(error.code, \"SPX-H006\");\n", "                                assert!(errors.iter().all(|error| error.code == \"SPX-H006\"));\n                                drop(errors);\n                                return false;\n"),
+                (28306, "                            let success = outcome.is_ok();\n                            if success {\n                                phase.set(\"both full passes completed\");\n                            }\n                            drop(outcome);\n                            drop(resolved);\n                            success\n                        },\n                    );\n                    let ledger =\n                        crate::bounded_output::classifier_string::ClassifierLedger::capture();\n                    let first = ledger.first_refusal();\n                    let remaining = crate::bounded_output::active_remaining();\n                    if first.is_some() {\n                        assert!(scope_checkpoint::charge::reserve(Some(0)).is_err());\n                        assert_eq!(ledger.first_refusal(), first);\n                        assert_eq!(crate::bounded_output::active_remaining(), remaining);\n                    }\n                    crate::bounded_output::clear_active_floor();\n                    measured\n                });\n                let success = (observed.0).0;\n                (observed, success)\n", "                        };\n                        phase.set(\"second hir::validate\");\n                        let outcome = crate::hir::validate(&resolved);\n                        if let Err(error) = &outcome {\n                            eprintln!(\"OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n                            assert_eq!(error.code, \"SPX-H006\");\n                        }\n                        let success = outcome.is_ok();\n                        if success {\n                            phase.set(\"both full passes completed\");\n                        }\n                        drop(outcome);\n                        drop(resolved);\n                        success\n                    });\n                let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();\n                let first = ledger.first_refusal();\n                let remaining = crate::bounded_output::active_remaining();\n                if first.is_some() {\n                    assert!(scope_checkpoint::charge::reserve(Some(0)).is_err());\n                    assert_eq!(ledger.first_refusal(), first);\n                    assert_eq!(crate::bounded_output::active_remaining(), remaining);\n                }\n                crate::bounded_output::clear_active_floor();\n                measured\n"),
+                (29501, "        // Darwin stderr's process-lifetime lock belongs to reporting, never\n        // to the compiler's allocation/Drop interval.\n        if !diagnostic_report.is_empty() {\n            eprint!(\"{diagnostic_report}\");\n        }\n", ""),
+                (34444, "                .checked_mul(lexical_join::LEXICAL_JOIN)\n", "                .checked_mul(WITNESS_JOIN)\n"),
+                (41924, "                .checked_mul(lexical_join::LEXICAL_JOIN)\n", "                .checked_mul(WITNESS_JOIN)\n"),
+                (42410, "                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))\n                )\n", "                format!(\"{:x}\", crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes())))\n"),
+                (45525, "            \"src/hir/validation.rs\",\n            include_str!(\"../validation.rs\"),\n        );\n", "            \"src/hir/validation.rs\", include_str!(\"../validation.rs\"));\n"),
+                (45691, "            \"src/hir/validation/lexical_exit.rs\",\n            include_str!(\"lexical_exit.rs\"),\n        );\n", "            \"src/hir/validation/lexical_exit.rs\", include_str!(\"lexical_exit.rs\"));\n"),
+                (49600, "\n#[cfg(test)]\n#[path = \"lexical_exit/arm_context_tests.rs\"]\npub(super) mod arm_context_tests;\n", ""),
+            ];
+            // Restore the source spelling in which the registered inverse was authored.
+            composed.push((
+                40883,
+                "            body.push('1');\n",
+                "            body.push_str(\"1\");\n",
+            ));
+            let mut complete = supplied.to_owned();
+            for &(at, after, before) in composed.iter().rev() {
+                assert_eq!(complete.get(at..at + after.len()), Some(after));
+                complete.replace_range(at..at + after.len(), before);
+            }
+            assert_eq!(
+                complete, restored,
+                "entire composed physical-current inverse"
+            );
+        }
         (std::borrow::Cow::Owned(restored), composed)
     }
 }
@@ -439,12 +699,27 @@ pub(crate) fn before_phase_probes<'a>(
     // Authenticate the exact early-release epoch before the unchanged incoming
     // main and diagnostic-probe inverses; no predecessor pins move.
     let physical_compiled = compiled;
+    let joint_workspace_epoch = joint_replay_workspace_epoch(source, compiled);
+    let compiled = joint_workspace_epoch.as_deref().unwrap_or(compiled);
     let (closure_epoch, _) = Fixture::closure_epoch(
         source,
         "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
         compiled,
     );
     let compiled = closure_epoch.as_ref();
+    let validate_epoch = if source == "src/cleanup_plan/validate.rs"
+        && super::source_sha(compiled) != expected
+    {
+        Some(
+            crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+                source, expected, compiled,
+            )
+            .expect("complete validation probe predecessor"),
+        )
+    } else {
+        None
+    };
+    let compiled = validate_epoch.as_deref().unwrap_or(compiled);
     let workspace_epoch = if source == "src/cleanup_plan/replay.rs" {
         assert_eq!(compiled.len(), 327551);
         assert_eq!(
@@ -466,7 +741,10 @@ pub(crate) fn before_phase_probes<'a>(
     let compiled = workspace_epoch.as_ref();
     let receiving_epoch = if source == "src/cleanup_plan/replay/factored/continuation_receiver.rs" {
         assert_eq!(compiled.len(), 3211);
-        assert_eq!(super::source_sha(compiled), "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b");
+        assert_eq!(
+            super::source_sha(compiled),
+            "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b"
+        );
         let mut prior = compiled.to_owned();
         for &(at, after, before) in &[
             (1631, "\n        }", ""),
@@ -477,11 +755,20 @@ pub(crate) fn before_phase_probes<'a>(
             assert_eq!(prior.get(at..at + after.len()), Some(after));
             prior.replace_range(at..at + after.len(), before);
         }
-        let fixture = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"));
-        assert_eq!(prior, fixture); assert_eq!(prior.len(), 2919);
-        assert_eq!(super::source_sha(&prior), "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a");
+        let fixture = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"
+        ));
+        assert_eq!(prior, fixture);
+        assert_eq!(prior.len(), 2919);
+        assert_eq!(
+            super::source_sha(&prior),
+            "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"
+        );
         std::borrow::Cow::Owned(prior)
-    } else { std::borrow::Cow::Borrowed(compiled) };
+    } else {
+        std::borrow::Cow::Borrowed(compiled)
+    };
     let compiled = receiving_epoch.as_ref();
     // Each later implementation is acquired in full before the unchanged
     // incoming-main and diagnostic-probe epochs below. Fixed endpoints remain
@@ -660,4 +947,82 @@ pub(crate) fn before_phase_probes<'a>(
 }
 
 // WORKSPACE_MAIN44_PROBES_END
+
+// WORKSPACE_MAIN44_JOINT_BEGIN
+// Authenticate the complete joint replay source before the retained workspace epoch.
+fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> {
+    if source != "src/cleanup_plan/replay.rs" {
+        return None;
+    }
+    let physical_current = supplied;
+    let (entire_pre_943, _) = crate::replay_before_943(physical_current);
+    let supplied = entire_pre_943.as_str();
+    const CURRENT: &str =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a"));
+    const BEFORE: &str =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"));
+    const CURRENT_SHA: &str = "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a";
+    assert_eq!(supplied, CURRENT);
+    assert_eq!(
+        (supplied.len(), super::source_sha(supplied)),
+        (326143, CURRENT_SHA.to_owned())
+    );
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = current_file(
+        &root.join(format!("e/{CURRENT_SHA}")),
+        CURRENT.len(),
+        CURRENT_SHA,
+    )
+    .unwrap();
+    assert_eq!(physical, CURRENT);
+    let edits: &[(usize, usize, &str, &str)] = &[
+        (849, 869, "mod fact_preflight;\n", ""),
+        (1134, 1158, "mod projection_backing;\n", ""),
+        (16893, 16967, "pub(in crate::cleanup_plan) use fact_preflight::validate_program_context;\n", "pub(in crate::cleanup_plan) fn validate_program_context(\n    program: &dyn crate::cleanup::ReplayContext,\n) -> Result<(), Diagnostic> {\n    let full = program.full_program().ok_or_else(|| {\n        Diagnostic::io(\n            \"SPX-H006\",\n            \"allocation replay requires the held complete program\",\n        )\n    })?;\n    let mut budget = ReplayBudget::new();\n    let helpers = ordinary_renewals::index(full, &mut budget)?;\n    reserve_program_skeleton_work(\n        program,\n        program.functions().iter().chain(\n            program\n                .function_instances()\n                .iter()\n                .map(|instance| &instance.function),\n        ),\n        &mut budget,\n    )?;\n    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;\n    #[cfg(test)]\n    let mut diagnostic_ordinal = 0usize;\n    for function in program.functions() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str());\n            diagnostic_ordinal = diagnostic_ordinal.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n        validate_structure_with_budget_storage(\n            program,\n            function,\n            &mut budget,\n            Some(&helpers),\n            Some(&mut continuations),\n        )?;\n    }\n    #[cfg(test)]\n    let mut diagnostic_instance = 0usize;\n    for instance in program.function_instances() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope =\n                debit_routes::function(diagnostic_instance, true, instance.function.id.as_str());\n            diagnostic_instance = diagnostic_instance.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n        validate_structure_with_budget_storage(\n            program,\n            &instance.function,\n            &mut budget,\n            Some(&helpers),\n            Some(&mut continuations),\n        )?;\n    }\n    Ok(())\n}\n"),
+        (60176, 60313, "    #[cfg(test)]\n    if projection_backing::before_selected() {\n        return projection_backing::before_body!(function, budget);\n    }\n", ""),
+        (60441, 60767, "    // This additional owner/constructor/drop bank precedes formation. Existing\n    // shape receiver, work, growth, clone and leaf invoices remain unchanged.\n    budget.reserve_bytes(\n        function,\n        projection_backing::ENTRY,\n        \"shape projection backing owner\",\n    )?;\n    let mut projections = Vec::new();\n", ""),
+        (60886, 60916, "            &mut projections,\n", "            &mut Vec::new(),\n"),
+        (61060, 61240, "    // Each completed shape proves its starting depth was restored. Drop the\n    // empty backing at the original last-use frontier, before flag validation.\n    drop(projections);\n", ""),
+        (323616, 323735, "pub(crate) use workspace_oracle::{\n    with_financed_validation_test_oracles, with_financed_workspace_test_oracles,\n};\n", "pub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\n"),
+    ];
+    let mut restored = supplied.to_owned();
+    for &(start, end, after, before) in edits.iter().rev() {
+        assert!(start <= end && end <= restored.len());
+        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+        assert_eq!(&restored[start..end], after);
+        restored.replace_range(start..end, before);
+    }
+    assert_eq!(
+        (restored.len(), super::source_sha(&restored)),
+        (
+            327551,
+            "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5".to_owned()
+        )
+    );
+    assert_eq!(restored, BEFORE);
+    assert_eq!(
+        current_file(
+            &root.join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"),
+            BEFORE.len(),
+            "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"
+        )
+        .unwrap(),
+        BEFORE
+    );
+    assert_eq!(
+        current_file(
+            &root.join(format!("e/{CURRENT_SHA}")),
+            CURRENT.len(),
+            CURRENT_SHA
+        )
+        .unwrap(),
+        physical
+    );
+    assert_eq!(
+        crate::replay_before_943(physical_current).0,
+        entire_pre_943
+    );
+    Some(restored)
+}
+// WORKSPACE_MAIN44_JOINT_END
     }

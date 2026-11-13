@@ -146,11 +146,16 @@ pub(in super::super) fn batch_913_entry(source: &str, supplied: &str) -> Option<
                 "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994",
             ),
         ] {
-            assert_eq!(child.len(), child_length);
-            assert_eq!(digest(child), child_sha);
+            let acquired = current_source_predecessor(path, child);
+            let archive = match &acquired {
+                Cow::Borrowed(_) => root.join(path),
+                Cow::Owned(_) => root.join(format!("e/{child_sha}")),
+            };
+            assert_eq!(acquired.len(), child_length);
+            assert_eq!(digest(&acquired), child_sha);
             assert_eq!(
-                reader::read(&root.join(path), child_length, child_sha, 2_097_152).unwrap(),
-                child
+                reader::read(&archive, child_length, child_sha, 2_097_152).unwrap(),
+                acquired
             );
         }
     }
@@ -293,17 +298,28 @@ pub(in super::super) fn compact_frontier_entry(source: &str, supplied: &str) -> 
         let pin = &binding["children"][path];
         let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
         let expected = pin["sha256"].as_str().unwrap();
-        assert_eq!(child.len(), length);
-        assert_eq!(digest(child), expected);
-        assert_eq!(reader::read(&root.join(path), length, expected, 2_097_152).unwrap(), child);
+        let acquired = current_source_predecessor(path, child);
+        let archive = match &acquired {
+            Cow::Borrowed(_) => root.join(path),
+            Cow::Owned(_) => root.join(format!("e/{expected}")),
+        };
+        assert_eq!(acquired.len(), length);
+        assert_eq!(digest(&acquired), expected);
+        assert_eq!(reader::read(&archive, length, expected, 2_097_152).unwrap(), acquired);
     }
     let row = &binding["rows"][source];
     let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
     let expected = row["current_sha256"].as_str().unwrap();
+    let acquired = current_source_predecessor(source, compiled);
+    let archive = match &acquired {
+        Cow::Borrowed(_) => root.join(source),
+        Cow::Owned(_) => root.join(format!("e/{expected}")),
+    };
+    let compiled = acquired.as_ref();
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     assert_eq!(
-        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+        reader::read(&archive, length, expected, 2_097_152).unwrap(),
         compiled
     );
     let mut before = compiled.as_bytes().to_vec();

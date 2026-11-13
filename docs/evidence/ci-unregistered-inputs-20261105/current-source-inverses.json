@@ -1,0 +1,516 @@
+{
+  "src/list_ops.rs": {
+    "sha256": "fda8ebd4aa78752376518a4f8b833975f6a992b6f97abcb4690cc2836c745be2",
+    "length": 12466,
+    "prior": "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2",
+    "prior_length": 12033,
+    "inverse": [
+      [
+        12033,
+        "\n// Closed ABI census for the additional cfg(test) trailing-active preparation.\n// No reservation or identity authority is introduced by this numeric constant.\nimpl ListOp {\n    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal\n        + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum\n        + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver\n}\n",
+        ""
+      ]
+    ]
+  },
+  "src/iterator_ops.rs": {
+    "sha256": "dc67527ee0802e057d0e6469871b46bf721b639b0f083588ec53f0de5cd28fdf",
+    "length": 19154,
+    "prior": "dc672b05a80a67c565e58d13e1c60ec2c3e9ad8a7b1d3828378c376f0a47c391",
+    "prior_length": 18717,
+    "inverse": [
+      [
+        18717,
+        "\n// Closed ABI census for the additional cfg(test) trailing-active preparation.\n// No reservation or identity authority is introduced by this numeric constant.\nimpl IteratorOp {\n    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal\n        + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum\n        + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver\n}\n",
+        ""
+      ]
+    ]
+  },
+  "src/stdin_stream_ops.rs": {
+    "sha256": "5047ad6d240b80faa47d8bb4195f6fdf559ec694cf453a2f68a38c395d9bfcfb",
+    "length": 17757,
+    "prior": "5c216d1345d20face39f0e07ac9554c2d659b0a171fcf0cbb33dd60684961836",
+    "prior_length": 17324,
+    "inverse": [
+      [
+        17324,
+        "\n// Closed ABI census for the additional cfg(test) trailing-active preparation.\n// No reservation or identity authority is introduced by this numeric constant.\nimpl PureOp {\n    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal\n        + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum\n        + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver\n}\n",
+        ""
+      ]
+    ]
+  },
+  "src/byte_ops.rs": {
+    "sha256": "c676672b9cb97974cc94f63be965278a90ef5a514c40582cdd84368d13f4733e",
+    "length": 34221,
+    "prior": "46c64dd5ae6dcd669301c4339c2cdf38d1a5a138cce373dc44933ca876096b21",
+    "prior_length": 33656,
+    "inverse": [
+      [
+        0,
+        "#![allow(\n    clippy::items_after_test_module,\n    reason = \"Keep the original source order for whole-file historical inverses.\"\n)]\n",
+        ""
+      ],
+      [
+        33788,
+        "\n// Closed ABI census for the additional cfg(test) trailing-active preparation.\n// No reservation or identity authority is introduced by this numeric constant.\nimpl ByteOp {\n    pub(crate) const ID_CALL_CONTROLS: usize = 2 * std::mem::size_of::<Self>() // by-value actual/formal\n        + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum\n        + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver\n}\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/allocation.rs": {
+    "sha256": "d627c1a440260ce449cf8f9c7846bcbc6e4a4188edd439e1e20faed2015da33b",
+    "length": 12675,
+    "prior": "0d9c44752ba86a56eb75d5a77cbe97f60a7152dce52530daf9b5c06066faeda5",
+    "prior_length": 12094,
+    "inverse": [
+      [
+        6972,
+        "    /// An ActiveBuilder payer was selected because an ACTIVE account existed.\n    /// Once that account has expired, `reserve_active_required` would admit\n    /// every request with no ledger debit; fail closed instead, so no later\n    /// clone or fusion probe allocates unpaid on an expired builder.\n",
+        ""
+      ],
+      [
+        7430,
+        "            AllocationPayer::ActiveBuilder => {\n                crate::bounded_output::active_refused()\n                    || crate::bounded_output::active_limit().is_none()\n            }\n",
+        ""
+      ],
+      [
+        10383,
+        "// Warm traversals shared by the trailing-active probe and paid hot threshold.\n",
+        "// Extra traversals reached by the independently funded trailing-active probe.\n"
+      ],
+      [
+        10699,
+        "",
+        "#[cfg(test)]\n"
+      ],
+      [
+        10719,
+        "    #[allow(clippy::manual_bits)] // Eight distinct usize carriers, not a bit count.\n",
+        ""
+      ],
+      [
+        12122,
+        "    #[cfg(test)]\n",
+        ""
+      ]
+    ]
+  },
+  "src/hir/validation/scope_checkpoint/marks/tests.rs": {
+    "sha256": "693e894a101843fc1ead307351864d1c7d8d1ea47ea1b643931e429b457bd02a",
+    "length": 21331,
+    "prior": "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994",
+    "prior_length": 20658,
+    "inverse": [
+      [
+        3959,
+        "    let current = super::direct_tests::before_source();\n",
+        "    let current = include_str!(\"../marks.rs\");\n"
+      ],
+      [
+        15091,
+        "#[rustfmt::skip]\n",
+        ""
+      ],
+      [
+        15195,
+        "    super::direct_tests::before(|| {\n",
+        ""
+      ],
+      [
+        16371,
+        "    });\n",
+        ""
+      ],
+      [
+        16966,
+        "    // The unmodified library remains the whole workload for both validators;\n    // executable resolution additionally requires this ordinary checked entry.\n    let decimal = format!(\n        \"{}\\n@id(\\\"move.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../../std/int-decimal/src/decimal.spx\")\n    );\n",
+        ""
+      ],
+      [
+        17504,
+        "        decimal.as_str(),\n",
+        "        include_str!(\"../../../../../std/int-decimal/src/decimal.spx\"),\n"
+      ],
+      [
+        20068,
+        "            // Inject an owned unwind payload without the process panic hook retaining backing.\n            std::panic::resume_unwind(Box::new(\"owning take unwind\"));\n",
+        "            panic!(\"owning take unwind\");\n"
+      ],
+      [
+        20988,
+        "            assert_eq!(\n                caught.as_ref().unwrap_err().downcast_ref::<&str>(),\n                Some(&\"owning take unwind\")\n            );\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs": {
+    "sha256": "392f06fe2c9518f1052572f558dd64ea4b231da80e977d88485b6976570e6024",
+    "length": 7463,
+    "prior": "06ed23f38a8b7404b5dba58f36bfaf476a34c7fd73d72c24cf71599f4226da78",
+    "prior_length": 7491,
+    "inverse": [
+      [
+        2575,
+        "",
+        "#[path = \"../execution.rs\"]\n"
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/frontier.rs": {
+    "sha256": "ca861587e6f8de81dcee273d9d1918e97e153f344342ca4c658cdcd94c82939e",
+    "length": 14596,
+    "prior": "070cce6ee64b01c273f546b82f332b266bf9e19a89d15e314a2e2c787a4e3aa2",
+    "prior_length": 11451,
+    "inverse": [
+      [
+        7051,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+        ""
+      ],
+      [
+        7340,
+        "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,\n            );\n",
+        ""
+      ],
+      [
+        8593,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+        ""
+      ],
+      [
+        8882,
+        "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,\n            );\n",
+        ""
+      ],
+      [
+        10343,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(super) fn observe_incoming(&self) {\n        use crate::bounded_output::exclusive_debits::path_census::{event, Event};\n        event(match self {\n            Self::Empty => Event::InputEmpty,\n            Self::One(_) => Event::InputOne,\n            Self::Many(_) => Event::InputMany,\n        });\n    }\n",
+        ""
+      ],
+      [
+        11244,
+        "            Self::Empty => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,\n                );\n                *self = Self::One(value);\n            }\n",
+        "            Self::Empty => *self = Self::One(value),\n"
+      ],
+      [
+        11607,
+        "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                {\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::One,\n                    );\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,\n                    );\n                }\n",
+        ""
+      ],
+      [
+        12268,
+        "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+        ""
+      ],
+      [
+        12555,
+        "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+        ""
+      ],
+      [
+        12934,
+        "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Many,\n                );\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/frontier_tests.rs": {
+    "sha256": "3a5463e01040f296252142a47869022af5ddb2877b83ee805806ef7e9e4784d7",
+    "length": 20580,
+    "prior": "0a5d4e362fa7fb3411325c93472d9f3ab90e04464d03a06a919d5e7bf40166c5",
+    "prior_length": 20257,
+    "inverse": [
+      [
+        17517,
+        "    // Initialize only the default panic reporter's process-lifetime locks.\n    // No compiler work runs here; the actual default hook and complete unwind\n    // remain inside observation, and every live/Drop assertion stays strict.\n    drop(std::io::stderr().lock());\n    drop(std::backtrace::Backtrace::force_capture());\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/cfg_bounds/tests/old.rs": {
+    "sha256": "bcec7c6be99731ee27869d6fd75a134504b3173920372f25128de2dbfeb8cac1",
+    "length": 5700,
+    "prior": "dae232ff12e15f58497c9d527ed4be1ecbce25fd5cd7e5b8a1081e3155b09fcb",
+    "prior_length": 5551,
+    "inverse": [
+      [
+        0,
+        "#![allow(\n    clippy::duplicate_mod,\n    reason = \"Compile the complete implementation against independent current and historical replay owners.\"\n)]\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/whole.rs": {
+    "sha256": "7be8da3cfc5b711340bb346680d1d73aa8ff3a35cfad6398c86849839f81f539",
+    "length": 8466,
+    "prior": "ca6baf7aa6f1d54c1db98e394a427ff44ccd0546783db46228419c760c85654f",
+    "prior_length": 6709,
+    "inverse": [
+      [
+        104,
+        "    fixture_scope::source_custody();\n    fixture_scope::original_scope(SCALAR, \"family.bytes\");\n    fixture_scope::original_scope(OWNED_LEXICAL, \"family.bytes\");\n",
+        ""
+      ],
+      [
+        336,
+        "        (SCALAR, &[\"family.one\", \"family.main\"][..]),\n        (COPY_SCALAR, &[\"family.one\", \"family.main\"][..]),\n        (OWNED_LEXICAL_LOOP, &[\"family.bytes\"][..]),\n",
+        "        (SCALAR, &[\"family.one\", \"family.main\", \"family.bytes\"][..]),\n"
+      ],
+      [
+        647,
+        "            let f = program\n                .functions\n                .iter()\n                .find(|f| f.id.as_str() == *id)\n                .unwrap();\n            if source == COPY_SCALAR {\n                assert!(!crate::hir::lexical_exit::requires(f).unwrap());\n                assert!(f.cleanup_plan.slots.is_empty());\n            } else if source == OWNED_LEXICAL_LOOP {\n                assert!(crate::hir::lexical_exit::requires(f).unwrap());\n                assert!(!f.cleanup_plan.slots.is_empty());\n            }\n",
+        ""
+      ],
+      [
+        1328,
+        "    for (source, id) in [\n        (LEXICAL, \"probe\"),\n        (SCALAR, \"family.main\"),\n        (COPY_SCALAR, \"family.main\"),\n    ] {\n",
+        "    for (source, id) in [(LEXICAL, \"probe\"), (SCALAR, \"family.main\")] {\n"
+      ],
+      [
+        5232,
+        "    for source in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {\n        for case in 0..4 {\n            let mut program = program(source);\n            let function = program\n                .functions\n                .iter_mut()\n                .find(|f| f.id.as_str() == \"family.bytes\")\n                .unwrap();\n            let exit = function\n                .cleanup_plan\n                .exits\n                .iter_mut()\n                .find(|e| !e.finalize_in_order.is_empty())\n                .unwrap();\n            match case {\n                0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),\n                1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),\n                2 => exit.finalize_in_order[0]\n                    .source\n                    .projections\n                    .push(function.id.clone()),\n                3 => exit\n                    .finalize_in_order\n                    .push(exit.finalize_in_order[0].clone()),\n                _ => unreachable!(),\n            }\n            same_owner(&program, \"family.bytes\", false);\n        }\n    }\n}\n#[test]\nfn held_duplicate_initialize_is_closed_by_selected_path_receipt() {\n    for text in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {\n        let mut program = program(text);\n",
+        "    for case in 0..4 {\n        let mut program = program(SCALAR);\n"
+      ],
+      [
+        6683,
+        "        assert_eq!(\n            crate::hir::lexical_exit::requires(function).unwrap(),\n            text == OWNED_LEXICAL_LOOP,\n            \"the real loop escape determines the selected route\"\n        );\n        let block = function\n",
+        "        let exit = function\n"
+      ],
+      [
+        6941,
+        "            .blocks\n",
+        "            .exits\n"
+      ],
+      [
+        6985,
+        "            .find(|b| {\n                b.transitions\n                    .iter()\n                    .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            })\n",
+        "            .find(|e| !e.finalize_in_order.is_empty())\n"
+      ],
+      [
+        7185,
+        "        let index = block\n            .transitions\n            .iter()\n            .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            .unwrap();\n        block\n            .transitions\n            .insert(index + 1, block.transitions[index].clone());\n        // Structural checks independently authenticate both copies. State replay\n        // must still reject the second live initialization on its existing route.\n        same_owner(&program, \"family.bytes\", false);\n        let source = primitive_fixture::Context::new(&program);\n        let function = program\n            .functions\n            .iter()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n        let error = owner(&source, function, false).unwrap_err();\n        if text != OWNED_LEXICAL_LOOP {\n            assert_eq!(\n                error,\n                replay_error(\n                    function,\n                    \"selected scalar helper body contains non-Copy storage\"\n                )\n            );\n        } else {\n            assert!(\n                error\n                    .message\n                    .contains(\"initialize transition initializes an empty or live cleanup place\"),\n                \"{error:?}\"\n            );\n",
+        "        match case {\n            0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),\n            1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),\n            2 => exit.finalize_in_order[0]\n                .source\n                .projections\n                .push(function.id.clone()),\n            3 => exit\n                .finalize_in_order\n                .push(exit.finalize_in_order[0].clone()),\n            _ => unreachable!(),\n"
+      ],
+      [
+        8458,
+        "",
+        "        same_owner(&program, \"family.bytes\", false);\n"
+      ],
+      [
+        8466,
+        "",
+        "#[test]\nfn held_duplicate_initialize_is_closed_by_selected_path_receipt() {\n    let mut program = program(SCALAR);\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let block = function\n        .cleanup_plan\n        .blocks\n        .iter_mut()\n        .find(|b| {\n            b.transitions\n                .iter()\n                .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        })\n        .unwrap();\n    let index = block\n        .transitions\n        .iter()\n        .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        .unwrap();\n    block\n        .transitions\n        .insert(index + 1, block.transitions[index].clone());\n    // Structural checks independently authenticate both copies. State replay\n    // must still reject the second live initialization on its existing route.\n    same_owner(&program, \"family.bytes\", false);\n    let source = primitive_fixture::Context::new(&program);\n    let function = program\n        .functions\n        .iter()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let error = owner(&source, function, false).unwrap_err();\n    assert!(\n        error\n            .message\n            .contains(\"initialize transition initializes an empty or live cleanup place\"),\n        \"{error:?}\"\n    );\n}\n"
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs": {
+    "sha256": "38a2b1a51abf418f9b3cb87ebdfa290506c2730b23f8f4de93caef9f8c247520",
+    "length": 5029,
+    "prior": "bea7a9dc0e5ceb55ae2f3647adcaf67a19f6a78b07d807f2e68f37b4fd022c83",
+    "prior_length": 3050,
+    "inverse": [
+      [
+        14,
+        "// Selected byte renewal is a lexical-route family; the authored `continue`\n// makes `app.main` an actual lexical function for `new_paid(.., true)`.\n",
+        ""
+      ],
+      [
+        213,
+        "@id(\"app.main\") fn main()->i64 {\n let mut buffer=bytes_zeroed(2usize);\n let untouched=bytes_zeroed(1usize);\n let mut index=0usize;\n while index<2usize {\n  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}\n  index=index+1usize;\n  if index==1usize {continue;};\n  0\n }\n return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};\n}\n\"#;\n// Exact original unreachable fixture remains an explicit parser refusal.\npub(super) const SOURCE_UNREACHABLE: &str = r#\"module test.byte_renewal;\n",
+        ""
+      ],
+      [
+        1125,
+        "const LEXICAL_SOURCE: &str = r#\"module test.byte_renewal;\n@id(\"app.main\") fn main()->i64 {\n let mut buffer=bytes_zeroed(2usize);\n let untouched=bytes_zeroed(1usize);\n let mut index=0usize;\n while index<2usize {\n  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}\n  index=index+1usize;\n  if index<2usize {continue;};\n  0\n }\n return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};\n}\n\"#;\n// Exact original unreachable fixture remains an explicit parser refusal.\npub(super) const LEXICAL_SOURCE_UNREACHABLE: &str = r#\"module test.byte_renewal;\n@id(\"app.main\") fn main()->i64 {\n let mut buffer=bytes_zeroed(2usize);\n let untouched=bytes_zeroed(1usize);\n let mut index=0usize;\n while index<2usize {\n  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}\n  index=index+1usize;\n  if index<2usize {continue;};\n  0\n }\n return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};\n 0\n}\n\"#;\n",
+        ""
+      ],
+      [
+        2222,
+        "    fixture_scope::original_scope(SOURCE, \"app.main\");\n    let program = program(LEXICAL_SOURCE);\n",
+        "    let program = program(SOURCE);\n"
+      ],
+      [
+        2578,
+        "    assert!(crate::hir::lexical_exit::requires(function).unwrap());\n",
+        ""
+      ],
+      [
+        4112,
+        "    for source in [SOURCE, LEXICAL_SOURCE] {\n        for case in 0..2 {\n            let mut program = program(source);\n            let function = program\n                .functions\n                .iter_mut()\n                .find(|f| f.id.as_str() == \"app.main\")\n                .unwrap();\n            let place = function\n                .cleanup_plan\n                .blocks\n                .iter_mut()\n                .flat_map(|b| &mut b.transitions)\n                .find_map(|t| match t {\n                    CleanupTransition::ReserveRenewal { binding, .. } => Some(binding),\n                    _ => None,\n                })\n                .unwrap();\n            if case == 0 {\n                place.storage = StorageId::ProvisionalResult;\n            } else {\n                place.projections.push(function.id.clone());\n            }\n            same_owner(&program, \"app.main\", false);\n",
+        "    for case in 0..2 {\n        let mut program = program(SOURCE);\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|f| f.id.as_str() == \"app.main\")\n            .unwrap();\n        let place = function\n            .cleanup_plan\n            .blocks\n            .iter_mut()\n            .flat_map(|b| &mut b.transitions)\n            .find_map(|t| match t {\n                CleanupTransition::ReserveRenewal { binding, .. } => Some(binding),\n                _ => None,\n            })\n            .unwrap();\n        if case == 0 {\n            place.storage = StorageId::ProvisionalResult;\n        } else {\n            place.projections.push(function.id.clone());\n"
+      ],
+      [
+        5021,
+        "",
+        "        same_owner(&program, \"app.main\", false);\n"
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/session.rs": {
+    "sha256": "c2a7426a13a310ac42c5ea718713c4bed6d573ebd8acc49c16ba2eafe4595380",
+    "length": 6270,
+    "prior": "1978ea6af6c6258fe97760e1d03e162cb6947cae5206735ca15ffb9799bfc3d2",
+    "prior_length": 3883,
+    "inverse": [
+      [
+        271,
+        "    for text in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {\n        let mut program = program(text);\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n",
+        "    let mut program = program(SCALAR);\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let block = function\n        .cleanup_plan\n        .blocks\n        .iter_mut()\n        .find(|b| {\n            b.transitions\n                .iter()\n                .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        })\n        .unwrap();\n    let index = block\n        .transitions\n        .iter()\n        .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        .unwrap();\n    block\n        .transitions\n        .insert(index + 1, block.transitions[index].clone());\n    let source = primitive_fixture::Context::new(&program);\n    let function = program\n        .functions\n        .iter()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let old = owner(&source, function, true).unwrap_err();\n    let (_, observed) = measure(|| {\n        let acquired = Acquired::try_acquire(PhysicalReservation::new(LIMIT), FORM)\n            .unwrap_or_else(|_| panic!(\"ample report carrier\"));\n        let backing = acquired.backing();\n        let prepared = acquired\n            .prepare(function)\n            .unwrap_or_else(|_| panic!(\"ample preparation\"));\n        let mut session = prepared\n            .into_paid_session(&source, function)\n            .unwrap_or_else(|_| panic!(\"held source constructor\"));\n        let error = session.validate_paid(function).unwrap_err();\n        let Error::Structural(receipt) = &error else {\n            panic!(\"path semantic must remain typed: {error:?}\")\n        };\n        let (held, structural_control::selected::reason::Reason::Path(Reason::Finite(kind))) =\n            receipt.borrowed_control_receipt().unwrap()\n        else {\n            panic!(\"nested path reason\")\n        };\n"
+      ],
+      [
+        550,
+        "            crate::hir::lexical_exit::requires(function).unwrap(),\n            text == OWNED_LEXICAL_LOOP,\n            \"the real loop escape determines the selected route\"\n",
+        "            *kind,\n            Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace\n"
+      ],
+      [
+        733,
+        "        let block = function\n            .cleanup_plan\n            .blocks\n            .iter_mut()\n            .find(|b| {\n                b.transitions\n                    .iter()\n                    .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            })\n            .unwrap();\n        let index = block\n            .transitions\n            .iter()\n            .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            .unwrap();\n        block\n            .transitions\n            .insert(index + 1, block.transitions[index].clone());\n        let source = primitive_fixture::Context::new(&program);\n        let function = program\n            .functions\n            .iter()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n        let old = owner(&source, function, true).unwrap_err();\n        if text != OWNED_LEXICAL_LOOP {\n            assert_eq!(\n                old,\n                replay_error(\n                    function,\n                    \"selected scalar helper body contains non-Copy storage\"\n                )\n            );\n            assert_eq!(owner(&source, function, false), Err(old.clone()));\n        }\n        let (_, observed) = measure(|| {\n            let acquired = Acquired::try_acquire(PhysicalReservation::new(LIMIT), FORM)\n                .unwrap_or_else(|_| panic!(\"ample report carrier\"));\n            let backing = acquired.backing();\n            let prepared = acquired\n                .prepare(function)\n                .unwrap_or_else(|_| panic!(\"ample preparation\"));\n            let mut session = prepared\n                .into_paid_session(&source, function)\n                .unwrap_or_else(|_| panic!(\"held source constructor\"));\n            let error = session.validate_paid(function).unwrap_err();\n            let Error::Structural(receipt) = &error else {\n                panic!(\"path semantic must remain typed: {error:?}\")\n            };\n            if text != OWNED_LEXICAL_LOOP {\n                assert!(\n                    receipt.borrowed_control_receipt().is_none(),\n                    \"original scalar refusal precedes owned path state\"\n                );\n            } else {\n                let (\n                    held,\n                    structural_control::selected::reason::Reason::Path(Reason::Finite(kind)),\n                ) = receipt.borrowed_control_receipt().unwrap()\n                else {\n                    panic!(\"nested path reason\")\n                };\n                assert_eq!(\n                    *kind,\n                    Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace\n                );\n                assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());\n            }\n            // A nested observer is invalid. Read the same active whole-\n            // lifetime counters around these two allocation-free operations.\n            let later_before = crate::test_allocation_observer::current_metrics();\n            let later = session.validate_paid(function);\n            let later_observed = crate::test_allocation_observer::current_metrics();\n            assert!(matches!(later, Err(Error::Failed)));\n            assert_eq!(\n                (\n                    later_observed.allocations - later_before.allocations,\n                    later_observed.reallocations - later_before.reallocations,\n                ),\n                (0, 0)\n            );\n            let publish_before = crate::test_allocation_observer::current_metrics();\n            let mut refusal = session.into_failed_preparation().refuse_engine(error);\n            let publish = crate::test_allocation_observer::current_metrics();\n            assert_eq!(\n                (\n                    publish.allocations - publish_before.allocations,\n                    publish.reallocations - publish_before.reallocations,\n                ),\n                (0, 0)\n            );\n            let report = refusal.report().unwrap();\n            assert_eq!((report.len(), report.capacity()), (1, 1));\n            assert_eq!(report.as_ptr(), backing.0);\n            assert_eq!(report[0].message.as_ptr(), backing.1);\n            assert_eq!(\n                (report[0].code, report[0].message.as_ref()),\n                (FORM.code(), FORM.message())\n            );\n            assert!(\n                refusal.receipt().is_none(),\n                \"no owned semantic Diagnostic transport\"\n            );\n            assert!(refusal.structural_receipt().is_some());\n            let ledger = refusal.ledger_mut().unwrap();\n            let charged = ledger.charged();\n            let first = ledger.reserve(0).unwrap_err();\n            assert_eq!(ledger.reserve(1).unwrap_err(), first);\n            assert_eq!(ledger.charged(), charged);\n            // Full detailed legacy observation is separately exercised by owner().\n            if text == OWNED_LEXICAL_LOOP {\n                assert!(old\n                    .message\n                    .contains(\"initialize transition initializes an empty or live cleanup place\"));\n            } else {\n                // Full six-field equality was checked before this physical\n                // observation; do not allocate an expected Diagnostic here.\n                assert!(old\n                    .message\n                    .contains(\"selected scalar helper body contains non-Copy storage\"));\n            }\n        });\n        assert!(!observed.invalid && observed.live == 0);\n        assert_eq!(observed.allocated, observed.freed);\n    }\n",
+        "        assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());\n        let (later, later_observed) = measure(|| session.validate_paid(function));\n        assert!(matches!(later, Err(Error::Failed)));\n        assert_eq!(\n            (later_observed.allocations, later_observed.reallocations),\n            (0, 0)\n        );\n        let (mut refusal, publish) =\n            measure(|| session.into_failed_preparation().refuse_engine(error));\n        assert_eq!((publish.allocations, publish.reallocations), (0, 0));\n        let report = refusal.report().unwrap();\n        assert_eq!((report.len(), report.capacity()), (1, 1));\n        assert_eq!(report.as_ptr(), backing.0);\n        assert_eq!(report[0].message.as_ptr(), backing.1);\n        assert_eq!(\n            (report[0].code, report[0].message.as_ref()),\n            (FORM.code(), FORM.message())\n        );\n        assert!(\n            refusal.receipt().is_none(),\n            \"no owned semantic Diagnostic transport\"\n        );\n        assert!(refusal.structural_receipt().is_some());\n        let ledger = refusal.ledger_mut().unwrap();\n        let charged = ledger.charged();\n        let first = ledger.reserve(0).unwrap_err();\n        assert_eq!(ledger.reserve(1).unwrap_err(), first);\n        assert_eq!(ledger.charged(), charged);\n        // Full detailed legacy observation is separately exercised by owner().\n        assert!(old\n            .message\n            .contains(\"initialize transition initializes an empty or live cleanup place\"));\n    });\n    assert!(!observed.invalid && observed.live == 0);\n    assert_eq!(observed.allocated, observed.freed);\n"
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/strings.rs": {
+    "sha256": "fb5820852a4a9010b12752bc3a92bc9bf9a16579ea47fde8a496e80cf2215459",
+    "length": 3722,
+    "prior": "bfd078eea157329819cdbff84ed62bbeafc014542c97276cd4cc2b8becdfbe44",
+    "prior_length": 2311,
+    "inverse": [
+      [
+        14,
+        "// Selected String append renewal is a lexical-route family (schema V19); the\n// authored `continue` makes `o.main` an actual lexical function, as the\n// production static-text String fixtures are.\n",
+        ""
+      ],
+      [
+        258,
+        "@id(\"o.main\") fn main()->i64 {\n let mut text=string_from_i64(1);\n let mut count=0;\n while count<2 {\n  text=string_concat(text,\"x\");\n  count=count+1;\n  if count==1 {continue;};\n  0\n }\n return string_len(text);\n}\"#;\n// Exact original unreachable fixture remains an explicit parser refusal.\npub(super) const CONCAT_UNREACHABLE: &str = r#\"module oracle.concat;\n",
+        ""
+      ],
+      [
+        805,
+        "const LEXICAL_CONCAT: &str = r#\"module oracle.concat;\n@id(\"o.main\") fn main()->i64 {\n let mut text=string_from_i64(1);\n let mut count=0;\n while count<2 {\n  text=string_concat(text,\"x\");\n  count=count+1;\n  if count<2 {continue;};\n  0\n }\n return string_len(text);\n}\"#;\n// Exact original unreachable fixture remains an explicit parser refusal.\npub(super) const LEXICAL_CONCAT_UNREACHABLE: &str = r#\"module oracle.concat;\n@id(\"o.main\") fn main()->i64 {\n let mut text=string_from_i64(1);\n let mut count=0;\n while count<2 {\n  text=string_concat(text,\"x\");\n  count=count+1;\n  if count<2 {continue;};\n  0\n }\n return string_len(text);\n 0\n}\"#;\n",
+        ""
+      ],
+      [
+        1527,
+        "    fixture_scope::original_scope(CONCAT, \"o.main\");\n    let program = program(LEXICAL_CONCAT);\n",
+        "    let program = program(CONCAT);\n"
+      ],
+      [
+        1693,
+        "    assert!(crate::hir::lexical_exit::requires(&program.functions[0]).unwrap());\n",
+        ""
+      ],
+      [
+        1910,
+        "    let mut program = program(LEXICAL_CONCAT);\n",
+        "    let mut program = program(CONCAT);\n"
+      ],
+      [
+        2182,
+        "        assert!(crate::hir::lexical_exit::requires(function).unwrap());\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected.rs": {
+    "sha256": "2c335dd3319d4737b1889ffb45eb07adfb1ad37e7fdc3f1b872b52173f798bde",
+    "length": 7945,
+    "prior": "f1b8235cce258b1af2bae32372ff423410db7afd2c9245da7af388a33881d0c5",
+    "prior_length": 7301,
+    "inverse": [
+      [
+        2619,
+        "pub(in crate::cleanup_plan::replay) use execution::matches_finalizers;\nmacro_rules! selected_exit {\n    ($program:ident, $($args:expr),+ $(,)?) => {\n        if $program.retained_static_byte_iterators() {\n            execution::exit::<true>($($args),+)\n        } else {\n            execution::exit::<false>($($args),+)\n        }\n    };\n}\nmacro_rules! selected_boundary {\n    ($program:ident, $($args:expr),+ $(,)?) => {\n        if $program.retained_static_byte_iterators() {\n            lexical_boundary::paid::check_paid::<true>($($args),+)\n        } else {\n            <Error as lexical_boundary::Policy>::check($($args),+)\n        }\n    };\n}\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/walk.rs": {
+    "sha256": "917f06f6452afd1a6e4f97393c2e8ab39c8267e3a872cde022c9b7056c4f6df1",
+    "length": 60022,
+    "prior": "d34216eb45d74d5c3c5c8152fefde141d002769e36b64cd1fba087672f67fda5",
+    "prior_length": 59490,
+    "inverse": [
+      [
+        389,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::event(\n        crate::bounded_output::exclusive_debits::path_census::Event::Body,\n    );\n",
+        ""
+      ],
+      [
+        12535,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n",
+        ""
+      ],
+      [
+        15676,
+        "                    selected_boundary!(\n                        program,\n",
+        "                    <Error as lexical_boundary::Policy>::check(\n"
+      ],
+      [
+        28515,
+        "                        selected_exit!(\n                            program,\n",
+        "                        execution::exit(\n"
+      ],
+      [
+        39534,
+        "                    selected_boundary!(\n                        program,\n",
+        "                    <Error as lexical_boundary::Policy>::check(\n"
+      ],
+      [
+        52373,
+        "                        selected_exit!(\n                            program,\n",
+        "                        execution::exit(\n"
+      ],
+      [
+        59692,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::finish(terminal_paths, successful_paths);\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/receiving.rs": {
+    "sha256": "10ad594cb6bce20b8025903a4672b03a6d873e022e8db83ecb5456547162407d",
+    "length": 18488,
+    "prior": "648748674015d3c2aeabd322ae9f438d65ccf8f0ac6d5a3cd49fb52a9bae8775",
+    "prior_length": 18233,
+    "inverse": [
+      [
+        18233,
+        "\npub(super) type IteratorTransition<'a> = (\n    &'a ResolvedFunction,\n    &'a CleanupPlace,\n    &'a DeclarationId,\n    &'a mut PathState,\n    &'a BTreeSet<StorageId>,\n    &'a Leaves,\n    &'a mut ReplayBudget,\n    &'a Permit<'a>,\n    Result<(), Error>,\n);\n",
+        ""
+      ]
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/mod.rs": {
+    "sha256": "d69f9caeaef96ef779239e3fffb07dd2939f7b2796d5ed249922a44250ebeba2",
+    "length": 9436,
+    "prior": "ea6faf59b00eecded5f37db29cef4c7e20be12add32432a6de626803bbe07440",
+    "prior_length": 5391,
+    "inverse": [
+      [
+        590,
+        "// `family.bytes` owns Bytes storage, which no production selected scalar\n// route admits (the scalar-lexical census and helper purity gates reject\n// non-Copy bindings; the borrowed helper lease is test-only). Its authored\n// loop exit makes it an actual lexical function, so `same_owner` replays it\n// on the selected lexical route that production uses for owned storage.\n",
+        ""
+      ],
+      [
+        1019,
+        "@id(\"family.one\") fn one(n:i64)->i64 {n+1}\n@id(\"family.main\") fn main()->i64 {one(3)}\n@id(\"family.fill\") fn fill(data:own Bytes)->Bytes {data}\n@id(\"family.bytes\") fn bytes()->i64 {\n let data=fill(bytes_zeroed(1usize));\n return if byte_len(bytes_as_slice(data))==1usize {7}else{0};\n}\n\"#;\n// Exact original unreachable fixture remains an explicit parser refusal.\nconst SCALAR_UNREACHABLE: &str = r#\"module selected.schema.family;\n",
+        ""
+      ],
+      [
+        1737,
+        "// These are genuinely different selected domains. SCALAR above remains the\n// complete original owning-Bytes refusal subject, not a Copy scalar witness.\nconst COPY_SCALAR: &str = r#\"module selected.schema.copy;\n@id(\"family.one\") fn one(n:i64)->i64 {n+1}\n@id(\"family.main\") fn main()->i64 {one(3)}\n\"#;\nconst OWNED_LEXICAL: &str = r#\"module selected.schema.owned_lexical;\n@id(\"family.bytes\") fn bytes()->i64 {\n let data=bytes_zeroed(1usize);\n if byte_len(bytes_as_slice(data))==1usize {return 7;};\n 0\n}\n\"#;\n// A real loop escape selects lexical replay; the original library above\n// remains the exact standalone T105 and scalar-profile refusal witness.\nconst OWNED_LEXICAL_LOOP: &str = r#\"module selected.schema.owned_lexical;\n@id(\"family.bytes\") fn bytes()->i64 {\n let data=bytes_zeroed(1usize);\n let mut next=0;\n while next<1 {next=next+1;if next==1 {continue;};0}\n if byte_len(bytes_as_slice(data))==1usize {return 7;};\n 0\n}\n\"#;\n",
+        ""
+      ],
+      [
+        2714,
+        "    let parsed = crate::parse(source, \"selected-path-family.spx\").unwrap();\n    if parsed\n        .functions\n        .iter()\n        .any(|function| function.name == \"main\")\n    {\n        return crate::hir::resolve(&crate::check(source, \"selected-path-family.spx\").unwrap())\n            .unwrap();\n    }\n    // Keep the complete original library and both exact public refusals. Its\n    // owning success is a real project import/call, never an appended entry.\n    assert!(\n        [OWNED_LEXICAL, OWNED_LEXICAL_LOOP].contains(&source),\n        \"closed selected library fixtures\"\n    );\n    let rejected = vec![Diagnostic {\n        code: \"SPX-T105\",\n        severity: crate::diagnostic::Severity::Error,\n        message: \"executable module must define `fn main() -> i64`\".into(),\n        path: Some(\"selected-path-family.spx\".to_owned()),\n        span: Some(parsed.functions[0].span),\n        help: Some(\"a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone\".into()),\n    }];\n    assert_eq!(\n        crate::check(source, \"selected-path-family.spx\").unwrap_err(),\n        rejected\n    );\n    assert_eq!(crate::hir::resolve(&parsed).unwrap_err(), rejected);\n    const CONSUMER: &str = r#\"module selected.library.consumer;\nuse function @id(\"family.bytes\") from selected.schema.owned_lexical as bytes;\n@id(\"selected.library.consumer.main\") fn main()->i64 {bytes()}\n\"#;\n    let sources = [\n        (\"selected-path-family.spx\", source),\n        (\"selected-library-consumer.spx\", CONSUMER),\n    ]\n    .into_iter()\n    .map(|(path, text)| crate::workspace_graph::WorkspaceSource {\n        path: path.to_owned(),\n        source: crate::format::canonical(&crate::parse(text, path).unwrap()),\n    })\n    .collect();\n    let project = crate::workspace_graph::build_owned(sources).unwrap();\n    let linked = project\n        .linked_scalar_program_with_roots(\n            \"selected.library.consumer\",\n            &[\"family.bytes\".to_owned()],\n            crate::project::ProjectProfile::OwnedDataApiV1,\n            false,\n        )\n        .unwrap();\n    assert_eq!(linked.functions.len(), parsed.functions.len() + 1);\n    assert!(linked\n        .functions\n        .iter()\n        .any(|f| f.id.as_str() == \"family.bytes\"));\n    crate::hir::validate(&linked).unwrap();\n    linked\n",
+        "    crate::hir::resolve(&crate::check(source, \"selected-path-family.spx\").unwrap()).unwrap()\n"
+      ],
+      [
+        9416,
+        "\nmod fixture_scope;\n",
+        ""
+      ]
+    ]
+  }
+}

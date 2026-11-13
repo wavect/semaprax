@@ -49,6 +49,7 @@ pub(crate) mod next_big_batch_inputs;
 mod source_binding_reader;
 #[path = "../src/source_reflows/ci_inputs.rs"]
 mod source_reflows;
+pub(crate) use source_reflows::current_source_epoch::next_before as replay_before_943;
 #[path = "support/main44_wasm_entries.rs"]
 mod source_reflows_merge;
 

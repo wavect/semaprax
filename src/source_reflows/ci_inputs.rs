@@ -548,10 +548,10 @@ fn rows() -> serde_json::Value {
         row["current_length"] = probe["length"].clone();
         row["current_sha256"] = probe["sha256"].clone();
     }
-    // Extend only the existing lifecycle row; its immutable input and body
-    // remain the predecessor of this exact private visibility repair.
+    // Acquire the complete lifecycle checkpoint through its owning inverse.
+    // The original row remains at that checkpoint for both input routes.
     {
-        let row = &mut rows[16];
+        let row = &rows[16];
         assert_eq!(
             row["source"],
             "src/hir/validation/function_scope/lifecycle.rs"
@@ -560,15 +560,25 @@ fn rows() -> serde_json::Value {
         let before = lifecycle_visibility_entry(row["source"].as_str().unwrap(), current).unwrap();
         assert_eq!(before.len() as u64, row["current_length"]);
         assert_eq!(digest(&before), row["current_sha256"]);
-        let extra: serde_json::Value = serde_json::from_str("[[1296,\"pub(in crate::hir::validation) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\\n\",\"pub(super) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\\n\"],[3932,\"pub(in crate::hir::validation) mod completed;\\n\",\"pub(super) mod completed;\\n\"]]").unwrap();
-        row["inverse"]
-            .as_array_mut()
-            .unwrap()
-            .extend(extra.as_array().unwrap().iter().cloned());
-        row["current_length"] = serde_json::json!(current.len());
-        row["current_sha256"] = serde_json::json!(digest(current));
     }
     rows
+}
+fn ci_checkpoint(source: &str, expected: &str, current: &str) -> String {
+    let allocation = current_source_epoch::allocation_input(source, current);
+    let constructor = constructor903_before(source, allocation.as_ref());
+    let lifecycle = if source == "src/hir/validation/function_scope/lifecycle.rs" {
+        lifecycle_visibility_entry(source, current)
+    } else {
+        None
+    };
+    let projected = lifecycle
+        .as_deref()
+        .or(constructor.as_deref())
+        .unwrap_or(allocation.as_ref());
+    if digest(projected) == expected {
+        return projected.to_owned();
+    }
+    historical_entry(source, expected, projected).into_owned()
 }
 pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     let Some((index, current)) = compiled(source) else {
@@ -590,16 +600,10 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     )
     .unwrap();
     assert_eq!(fresh, current, "complete fresh physical CI history input");
-    let allocation943 = current_source_epoch::allocation_input(source, current);
-    let source903 = constructor903_before(source, allocation943.as_ref());
-    let entered = historical_entry(
-        source,
-        row["current_sha256"].as_str().unwrap(),
-        source903.as_deref().unwrap_or(allocation943.as_ref()),
-    );
+    let entered = ci_checkpoint(source, row["current_sha256"].as_str().unwrap(), current);
     assert_eq!(entered.len() as u64, row["current_length"]);
     assert_eq!(digest(&entered), row["current_sha256"]);
-    let mut before = entered.into_owned();
+    let mut before = entered;
     for edit in row["inverse"].as_array().unwrap().iter().rev() {
         let at = edit[0].as_u64().unwrap() as usize;
         let after = edit[1].as_str().unwrap();
@@ -639,7 +643,7 @@ pub(super) fn file_expected(
         // A sealed consumer may request the intermediate checkpoint itself.
         // Validate the complete existing inverse before returning that stage.
         let _ = prior(source, current);
-        let checkpoint = historical_entry(source, expected, current).into_owned();
+        let checkpoint = ci_checkpoint(source, expected, current);
         assert_eq!(checkpoint.len(), length);
         assert_eq!(digest(&checkpoint), expected);
         return Some(checkpoint);
@@ -861,6 +865,45 @@ fn fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_st
     assert!(compact_frontier_entry("foreign.rs", "unlisted input").is_none());
     reader::controls();
 }
+// Authenticate the complete physical source before acquiring a historical
+// input. Each old receiver still validates its own pinned bytes and inverse.
+fn current_source_predecessor<'a>(source: &str, compiled: &'a str) -> std::borrow::Cow<'a, str> {
+    const PATH: &str = "docs/evidence/ci-unregistered-inputs-20261105/current-source-inverses.json";
+    const DATA: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/ci-unregistered-inputs-20261105/current-source-inverses.json"
+    ));
+    const SHA: &str = "41032a9f9e81a5c36f0a6afb773fe18d36fbcae2fd7d87422ab963cc47372ec9";
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let read = |path: &std::path::Path, len, sha| reader::read(path, len, sha, 2_097_152).unwrap();
+    assert_eq!(read(&root.join(PATH), DATA.len(), SHA), DATA);
+    let data: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    let Some(row) = data.get(source) else {
+        return std::borrow::Cow::Borrowed(compiled);
+    };
+    assert_eq!(compiled.len() as u64, row["length"]);
+    let current_sha = row["sha256"].as_str().unwrap();
+    assert_eq!(digest(compiled), current_sha);
+    assert_eq!(
+        read(&root.join(source), compiled.len(), current_sha),
+        compiled
+    );
+    let mut prior = compiled.to_owned();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let after = edit[1].as_str().unwrap();
+        assert_eq!(&prior[at..at + after.len()], after);
+        prior.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+    }
+    assert_eq!(prior.len() as u64, row["prior_length"]);
+    let prior_sha = row["prior"].as_str().unwrap();
+    assert_eq!(
+        read(&root.join(format!("e/{prior_sha}")), prior.len(), prior_sha),
+        prior
+    );
+    std::borrow::Cow::Owned(prior)
+}
+
 // This controller alone consumes the pre-profile intrinsic-dispatch source.
 // The actual compiler and every other source reader keep the current iterator.
 pub(super) fn intrinsic_profile_entry(
@@ -913,11 +956,13 @@ pub(super) fn intrinsic_profile_entry(
         supplied, compiled,
         "complete actual intrinsic source channel"
     );
+    let acquired = current_source_predecessor(source, compiled);
+    let compiled = acquired.as_ref();
     assert_eq!(compiled.len() as u64, row["current_length"]);
     assert_eq!(digest(compiled), row["current_sha256"]);
     assert_eq!(
         reader::read(
-            &root.join(source),
+            &root.join(format!("e/{}", row["current_sha256"].as_str().unwrap())),
             compiled.len(),
             row["current_sha256"].as_str().unwrap(),
             2_097_152
@@ -1010,23 +1055,25 @@ fn paid_stdin_entry(supplied: &str) -> Option<String> {
         "/src/stdin_stream_ops.rs"
     ));
     assert_eq!(supplied, CURRENT, "complete actual paid stdin source");
-    assert_eq!(CURRENT.len(), 17324);
+    let acquired = current_source_predecessor("src/stdin_stream_ops.rs", CURRENT);
+    let current = acquired.as_ref();
+    assert_eq!(current.len(), 17324);
     assert_eq!(
-        digest(CURRENT),
+        digest(current),
         "5c216d1345d20face39f0e07ac9554c2d659b0a171fcf0cbb33dd60684961836"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         reader::read(
-            &root.join("src/stdin_stream_ops.rs"),
-            CURRENT.len(),
-            &digest(CURRENT),
+            &root.join(format!("e/{}", digest(current))),
+            current.len(),
+            &digest(current),
             2_097_152
         )
         .unwrap(),
-        CURRENT
+        current
     );
-    let mut before = CURRENT.to_owned();
+    let mut before = current.to_owned();
     assert_eq!(before.matches(".function_refs()\n                .find_named_payload(operation.as_str(), ast_forward_signature)\n                .is_some()").count(), 1);
     before = before.replacen(".function_refs()\n                .find_named_payload(operation.as_str(), ast_forward_signature)\n                .is_some()", ".functions()\n                .iter()\n                .any(|function| function.name == *operation && ast_forward_signature(function))", 1);
     assert_eq!(before.matches("program\n        .functions()\n        .profile_iter()\n        .any(|function| function_uses(function.payload()))").count(), 1);
@@ -1260,6 +1307,21 @@ mod unregistered_sources {
     }
     fn restore(source: &str, compiled: &str, row: &serde_json::Value) -> String {
         assert_eq!(row["source"], source);
+        let acquired = current_source_predecessor(source, compiled);
+        if matches!(&acquired, std::borrow::Cow::Borrowed(_)) {
+            assert_eq!(
+                reader::read(
+                    &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source),
+                    compiled.len(),
+                    &digest(compiled),
+                    2_097_152
+                )
+                .unwrap(),
+                compiled,
+                "whole current physical/compiled input"
+            );
+        }
+        let compiled = acquired.as_ref();
         assert_eq!(compiled.len() as u64, row["current_bytes"]);
         assert_eq!(digest(compiled), row["current_sha256"]);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -1272,11 +1334,6 @@ mod unregistered_sources {
             )
             .unwrap()
         };
-        assert_eq!(
-            read(&root.join(source), "current"),
-            compiled,
-            "whole current physical/compiled input"
-        );
         assert_eq!(
             read(
                 &root.join(format!("e/{}", row["current_sha256"].as_str().unwrap())),
@@ -1363,10 +1420,10 @@ fn declared_intermediate_epochs_keep_current_authentication_and_the_complete_ori
         let length = row["current_length"].as_u64().unwrap() as usize;
         let expected = row["current_sha256"].as_str().unwrap();
         let (_, current) = compiled(source).unwrap();
-        let checkpoint = historical_entry(source, expected, current);
+        let checkpoint = ci_checkpoint(source, expected, current);
         assert_eq!(
             file_expected(&root.join(source), length, expected).as_deref(),
-            Some(checkpoint.as_ref())
+            Some(checkpoint.as_str())
         );
         assert!(file_expected(&root.join(source), length + 1, expected).is_none());
         assert!(file_expected(&root.join(source), length, &"0".repeat(64)).is_none());

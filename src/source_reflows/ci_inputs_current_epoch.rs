@@ -337,17 +337,25 @@ pub(super) fn allocation_input<'a>(source: &str, supplied: &'a str) -> std::borr
     const OLD: &str =
         include_str!("../../e/d3f844655708972aa9e089c39923ddced6891b6b776f483d4f0be07e43cceb59");
     const ACTUAL_SHA: &str = "0d9c44752ba86a56eb75d5a77cbe97f60a7152dce52530daf9b5c06066faeda5";
+    assert_eq!(supplied, ACTUAL);
+    let acquired = super::current_source_predecessor(source, ACTUAL);
+    let preceding = acquired.as_ref();
     assert_eq!(
-        (ACTUAL.len(), super::digest(ACTUAL)),
+        (preceding.len(), super::digest(preceding)),
         (12094, ACTUAL_SHA.to_owned())
     );
-    assert_eq!(supplied, ACTUAL);
-    assert_eq!(&ACTUAL[..OLD.len()], OLD);
+    assert_eq!(&preceding[..OLD.len()], OLD);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for _ in 0..2 {
         assert_eq!(
-            super::reader::read(&root.join(source), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(),
-            ACTUAL
+            super::reader::read(
+                &root.join(format!("e/{ACTUAL_SHA}")),
+                preceding.len(),
+                ACTUAL_SHA,
+                2_097_152
+            )
+            .unwrap(),
+            preceding
         );
         assert_eq!(
             super::reader::read(

@@ -305,7 +305,27 @@ fn mixed_work_and_physical_first_refusals_keep_full_diagnostics_and_cold_drop() 
 
 #[test]
 fn complete_immediate_old_sources_are_exact_inverses_with_common_helper_custody() {
-    let mut current = include_str!("retained.rs").to_owned();
+    use sha2::{Digest, Sha256};
+    let digest = |text: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+        )
+    };
+    let retained = include_str!("retained.rs");
+    assert_eq!(
+        digest(retained),
+        "57cd2f71a07763e1292acb47b1f58f2d543d621fe1fa8e95ad7d645351536816"
+    );
+    let canonical =
+        "\n// Independent complete derivation; only the final publication receiver differs.\n";
+    assert_eq!(retained.matches(canonical).count(), 1);
+    let (release_stage, _) = retained.split_once(canonical).unwrap();
+    assert_eq!(
+        digest(release_stage),
+        "8421b86bceb0f9befd0716e82d36b84cbefc7cdf15f19fa4bfa1fbc355c510fb"
+    );
+    let mut current = release_stage.to_owned();
     for name in ["BUILD_TRACE", "ROW_TRACE", "ROW_RELEASE"] {
         let begin = format!("    // OPT903_{name}_BEGIN\n");
         let end = format!("    // OPT903_{name}_END\n");

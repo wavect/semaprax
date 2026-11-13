@@ -64,8 +64,8 @@ const fixtureSpecs = [
 // keeps the Linux Rust 1.88 pins above; no caller-supplied digest is accepted.
 const graphProfile = process.env.SEMAPRAX_BROWSER_GRAPH_PROFILE ?? "hosted-rust-1.88";
 if (graphProfile === "native-rust-1.97") {
-  fixtureSpecs[1].project_graph_digest = "sha256:00a5a3c69fb60492a8c97ed5973ad760d4d42697a1543cf0f70581a33b00e09c";
-  fixtureSpecs[2].project_graph_digest = "sha256:da0451df9a75801dac4a50a2a47fda924e3b6a7156720829b1c7bc3819926ec3";
+  fixtureSpecs[1].project_graph_digest = "sha256:d7cb2176e40c2b4d312470b9d82dd66b45c3f8c13ed07cc2f9b1051744df1add";
+  fixtureSpecs[2].project_graph_digest = "sha256:275ce4980b009d2fb565a9488ba398db299c38d4b6742b81f96fbe12ae61ec9c";
 } else if (graphProfile !== "hosted-rust-1.88") {
   throw new Error(`unknown exact compiler graph profile: ${graphProfile}`);
 }

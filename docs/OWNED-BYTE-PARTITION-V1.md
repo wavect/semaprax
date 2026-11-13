@@ -79,6 +79,13 @@ Under the current byte contract it remains invariant fail-stop. The native
 receiver releases the unpublished Vec reservation and any allocated rows before
 fail-stop if either metadata allocation fails. Its probe injects each failure
 and checks that the original owner and payload counters remain intact.
+Native C11 stores the exact source lease, geometry and unpublished allocations
+in the reserved Vec authority record. The caller holds the issuer, slot and
+monotonic reservation ticket. Commit and abort authenticate that ticket before
+accessing the reservation. Reusing a Vec authority slot for the same source and
+geometry still invalidates every retired ticket. The reservation reuses the
+existing Vec authority record's storage and adds one 64-bit counter per registry.
+
 A recoverable physical-metadata allocation domain would require a separately accepted checked
 allocator contract, failure-before-publication implementation and physical
 fault gates. Neither fuel exhaustion nor a logical counter proves physical OOM.
@@ -245,7 +252,10 @@ The owning selectors also use an 8,192-byte fixture to check the exact
 8,192-child result and derive a matching 8,193-byte, 8,193-child refusal.
 The [33-test hosted run at `bc4692d4f`](https://github.com/wavect/semaprax/actions/runs/43512449690)
 passed the boundary cases, interpreter registry controls, repeated native and
-Wasm success case, and scoped production Clippy.
+Wasm success case, and scoped production Clippy. The
+[36-test hosted run at `8d35815fb`](https://github.com/wavect/semaprax/actions/runs/43514391464)
+also passed scoped production Clippy and the repeated interpreter source case,
+including failures in each lexical scope and bounded producer refusal.
 
 The previous native registry kept a child-table debit after the table was
 freed. The Wasm host previously admitted new partitions using individual

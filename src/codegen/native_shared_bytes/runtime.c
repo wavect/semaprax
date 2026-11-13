@@ -101,8 +101,16 @@ typedef struct {
     uint32_t state, count, live, reserved;
 } spx_shb_backing;
 typedef struct {
-    spx_shb_stored *rows; uint64_t len, capacity, generation, end;
-    uint32_t state, reserved;
+    spx_shb_stored *rows; spx_shb_lease *table;
+    uint64_t source_nonce, ticket;
+    uint32_t width; uint16_t count, backing_index;
+} spx_shb_partition_reservation;
+typedef struct {
+    union {
+        struct { spx_shb_stored *rows; uint64_t len, capacity, generation, end; };
+        spx_shb_partition_reservation partition;
+    };
+    uint32_t state;
 } spx_shb_vec_entry;
 typedef struct {
     spx_shb_stored *rows; uint64_t len, capacity, generation, issuer;
@@ -113,18 +121,20 @@ typedef struct { spx_shb_vec vec; uint64_t cursor; } spx_shb_iter;
 typedef struct { const void *module; uint64_t next; uint32_t sealed, reserved; } spx_shb_issuer;
 typedef struct spx_shb_registry {
     const void *module; uint64_t issuer, next_nonce, next_generation, cumulative;
-    uint64_t child_table_slots, child_held;
+    uint64_t child_table_slots, child_held, next_partition_ticket;
     uint32_t sealed, finished, events, loans;
     spx_shb_backing backing[SPX_SHB_EVENTS];
     spx_shb_vec_entry vec[SPX_SHB_VECS];
 } spx_shb_registry;
-/* Unpublished preparation. Copy data, not authority: commit re-authenticates
-   the live source owner and the registry-held reservation. */
+/* The plan only identifies an unpublished reservation. The registry owns
+   its allocation pointers, exact source lease and geometry. */
 typedef struct {
-    spx_shb_registry *registry; spx_shb_stored *rows; spx_shb_lease *table;
-    spx_shb_bytes source; uint64_t count, width;
+    uint64_t issuer, ticket;
     uint32_t authority, armed;
 } spx_shb_partition_plan;
+_Static_assert(SPX_SHB_EXTENT <= UINT32_MAX, "partition reservation stores the maximum child width");
+_Static_assert(SPX_SHB_VEC_CAPACITY <= UINT16_MAX, "partition reservation stores the maximum child count");
+_Static_assert(SPX_SHB_EVENTS <= UINT16_MAX, "partition reservation stores the backing index");
 #if UINTPTR_MAX == UINT64_MAX
 _Static_assert(sizeof(spx_shb_bytes) == 24, "native64 shared owner carrier");
 _Static_assert(sizeof(spx_shb_stored) == 16, "native64 stored owner keeps the Vec element budget");
@@ -133,7 +143,7 @@ _Static_assert(sizeof(spx_shb_backing) == 64, "native64 backing record");
 _Static_assert(sizeof(spx_shb_vec_entry) == 48, "native64 Vec authority record");
 _Static_assert(sizeof(spx_shb_vec) == 48, "native64 Vec header");
 _Static_assert(sizeof(spx_shb_iter) == 56, "native64 iterator header");
-_Static_assert(sizeof(spx_shb_registry) == 5192, "native64 held registry");
+_Static_assert(sizeof(spx_shb_registry) == 5200, "native64 held registry");
 #endif
 
 SPX_SHB_FN void spx_shb_issuer_init(spx_shb_issuer *issuer) {
@@ -156,6 +166,7 @@ SPX_SHB_FN void spx_shb_registry_init(spx_shb_registry *registry, spx_shb_issuer
     }
     registry->module = &spx_shb_module_identity; registry->issuer = next;
     registry->next_nonce = UINT64_C(1); registry->next_generation = UINT64_C(1);
+    registry->next_partition_ticket = UINT64_C(1);
     registry->sealed = 1u;
 }
 SPX_SHB_FN void spx_shb_require(const spx_shb_registry *registry) {
@@ -439,8 +450,8 @@ SPX_SHB_FN void spx_shb_vec_publish(
 ) {
     if (out == NULL || out == source) SPX_SHB_FAIL_STOP("invalid shared Bytes Vec result");
     source->generation = spx_shb_fresh_generation(registry);
-    e->rows = source->rows; e->len = source->len; e->capacity = source->capacity;
-    e->generation = source->generation; e->state = SPX_SHB_VEC_LIVE;
+    *e = (spx_shb_vec_entry){ .rows = source->rows, .len = source->len,
+        .capacity = source->capacity, .generation = source->generation, .state = SPX_SHB_VEC_LIVE };
     *out = *source; *source = (spx_shb_vec){0};
 }
 SPX_SHB_FN spx_shb_bytes spx_shb_row_owner(const spx_shb_vec *value, uint64_t index) {
@@ -667,6 +678,10 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
         return SPX_SHB_PARTITION_METADATA_CAPACITY;
     uint32_t authority = spx_shb_vec_reserve_authority(registry);
     if (authority == 0u) return SPX_SHB_PARTITION_METADATA_CAPACITY;
+    if (registry->next_partition_ticket == UINT64_C(0) || registry->next_partition_ticket == UINT64_MAX) {
+        registry->vec[authority - 1u] = (spx_shb_vec_entry){0};
+        SPX_SHB_FAIL_STOP("shared Bytes partition ticket exhausted");
+    }
     registry->child_held += count;
     spx_shb_stored *rows = NULL; spx_shb_lease *table = NULL;
     if (count != UINT64_C(0)) {
@@ -680,60 +695,68 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
             SPX_SHB_FAIL_STOP("shared Bytes partition metadata allocation failed");
         }
     }
-    *plan = (spx_shb_partition_plan){ .registry = registry, .rows = rows, .table = table,
-        .source = *source, .count = count, .width = width, .authority = authority, .armed = 1u };
+    uint64_t ticket = registry->next_partition_ticket++;
+    /* A nonempty child's width is bounded by the admitted backing extent.
+       An empty partition has no ranges and needs no stored width. */
+    registry->vec[authority - 1u].partition = (spx_shb_partition_reservation){
+        .rows = rows, .table = table, .source_nonce = source->nonce, .ticket = ticket,
+        .width = count == UINT64_C(0) ? 0u : (uint32_t)width,
+        .count = (uint16_t)count, .backing_index = (uint16_t)r.index };
+    *plan = (spx_shb_partition_plan){ .issuer = registry->issuer, .ticket = ticket,
+        .authority = authority, .armed = 1u };
     return SPX_SHB_OK;
 }
 SPX_SHB_FN spx_shb_vec_entry *spx_shb_plan_require(spx_shb_registry *registry, const spx_shb_partition_plan *plan) {
     spx_shb_require(registry);
-    if (plan == NULL || !plan->armed || plan->registry != registry || plan->authority == 0u
-        || plan->authority > SPX_SHB_VECS || plan->count > registry->child_held
-        || (plan->count == UINT64_C(0)) != (plan->rows == NULL) || (plan->rows == NULL) != (plan->table == NULL))
+    if (plan == NULL || !plan->armed || plan->issuer != registry->issuer || plan->authority == 0u
+        || plan->authority > SPX_SHB_VECS || plan->ticket == UINT64_C(0))
         SPX_SHB_FAIL_STOP("forged shared Bytes partition plan");
     spx_shb_vec_entry *e = &registry->vec[plan->authority - 1u];
-    if (e->state != SPX_SHB_VEC_RESERVED) SPX_SHB_FAIL_STOP("forged shared Bytes partition reservation");
+    if (e->state != SPX_SHB_VEC_RESERVED || e->partition.ticket != plan->ticket)
+        SPX_SHB_FAIL_STOP("forged shared Bytes partition reservation");
     return e;
 }
 SPX_SHB_FN void spx_shb_partition_abort(spx_shb_registry *registry, spx_shb_partition_plan *plan) {
     spx_shb_vec_entry *e = spx_shb_plan_require(registry, plan);
-    registry->child_held -= plan->count; *e = (spx_shb_vec_entry){0};
-    spx_shb_stored *rows = plan->rows; spx_shb_lease *table = plan->table;
-    *plan = (spx_shb_partition_plan){0};
-    if (table != NULL) SPX_SHB_METADATA_FREE(table);
-    if (rows != NULL) SPX_SHB_METADATA_FREE(rows);
+    spx_shb_partition_reservation reservation = e->partition;
+    registry->child_held -= reservation.count;
+    *e = (spx_shb_vec_entry){0}; *plan = (spx_shb_partition_plan){0};
+    if (reservation.table != NULL) SPX_SHB_METADATA_FREE(reservation.table);
+    if (reservation.rows != NULL) SPX_SHB_METADATA_FREE(reservation.rows);
 }
 SPX_SHB_FN void spx_shb_partition_commit(
     spx_shb_registry *registry, spx_shb_partition_plan *plan, spx_shb_bytes *source, spx_shb_vec *out
 ) {
     spx_shb_vec_entry *e = spx_shb_plan_require(registry, plan);
-    if (source == NULL || out == NULL || source->issuer != plan->source.issuer
-        || source->slot != plan->source.slot || source->nonce != plan->source.nonce)
+    spx_shb_partition_reservation reservation = e->partition;
+    uint64_t whole_slot = ((uint64_t)reservation.backing_index + 1u) << 32;
+    if (source == NULL || out == NULL || source->issuer != registry->issuer
+        || source->slot != whole_slot || source->nonce != reservation.source_nonce)
         SPX_SHB_FAIL_STOP("shared Bytes partition commit source differs from its plan");
     spx_shb_resolved r = spx_shb_resolve_unloaned(registry, source);
     if (r.backing->state != SPX_SHB_WHOLE || r.lease_index != UINT64_C(0)
-        || plan->count * plan->width != r.len)
+        || (uint64_t)reservation.count * reservation.width != r.len)
         SPX_SHB_FAIL_STOP("shared Bytes partition commit lost its preflight");
-    if (registry->next_nonce == UINT64_C(0) || plan->count > UINT64_MAX - registry->next_nonce)
+    if (registry->next_nonce == UINT64_C(0) || reservation.count > UINT64_MAX - registry->next_nonce)
         SPX_SHB_FAIL_STOP("shared Bytes lease generation exhausted");
     if (registry->next_generation == UINT64_C(0) || registry->next_generation == UINT64_MAX)
         SPX_SHB_FAIL_STOP("shared Bytes Vec generation exhausted");
     spx_shb_backing *backing = r.backing;
-    uint64_t prefix = ((uint64_t)r.index + 1u) << 32;
     *source = (spx_shb_bytes){0};
     backing->whole.live = 0u;
-    registry->child_held -= plan->count; registry->child_table_slots += plan->count;
-    if (plan->count == UINT64_C(0)) {
+    registry->child_held -= reservation.count; registry->child_table_slots += reservation.count;
+    if (reservation.count == UINT64_C(0)) {
         backing->live = 0u; spx_shb_release_backing(registry, backing);
     } else {
-        for (uint64_t i = UINT64_C(0); i < plan->count; ++i) {
-            plan->table[i] = (spx_shb_lease){ .nonce = spx_shb_fresh_nonce(registry), .live = 1u };
-            plan->rows[i] = (spx_shb_stored){ .slot = prefix | (i + 1u), .nonce = plan->table[i].nonce };
+        for (uint64_t i = UINT64_C(0); i < reservation.count; ++i) {
+            reservation.table[i] = (spx_shb_lease){ .nonce = spx_shb_fresh_nonce(registry), .live = 1u };
+            reservation.rows[i] = (spx_shb_stored){ .slot = whole_slot | (i + 1u), .nonce = reservation.table[i].nonce };
         }
-        backing->child = plan->table; backing->width = plan->width;
-        backing->count = (uint32_t)plan->count; backing->live = (uint32_t)plan->count;
+        backing->child = reservation.table; backing->width = reservation.width;
+        backing->count = reservation.count; backing->live = reservation.count;
         backing->state = SPX_SHB_PARTITIONED;
     }
-    spx_shb_vec staged = { .rows = plan->rows, .len = plan->count, .capacity = plan->count,
+    spx_shb_vec staged = { .rows = reservation.rows, .len = reservation.count, .capacity = reservation.count,
         .issuer = registry->issuer, .authority = plan->authority };
     *plan = (spx_shb_partition_plan){0};
     spx_shb_vec_publish(registry, &staged, e, out);

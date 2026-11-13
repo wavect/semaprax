@@ -442,7 +442,7 @@ PROBE_FN void plans_and_final_settlement(void) {
     spx_shb_set(&reg, &a, 0u, 9u, &b);
     EXPECT_STOP("differs from its plan", spx_shb_partition_commit(&reg, &plan, &b, &v));
     EXPECT_STOP("stale", spx_shb_partition_commit(&reg, &plan, &stale, &v));
-    forged_plan = plan; forged_plan.registry = &other;
+    forged_plan = plan; forged_plan.issuer = other.issuer;
     EXPECT_STOP("forged shared Bytes partition plan", spx_shb_partition_commit(&reg, &forged_plan, &b, &v));
     spx_shb_partition_abort(&reg, &plan);
     EXPECT_STOP("forged shared Bytes partition plan", spx_shb_partition_abort(&reg, &forged_plan));
@@ -450,6 +450,38 @@ PROBE_FN void plans_and_final_settlement(void) {
     spx_shb_drop(&reg, &b);
     spx_shb_registry_finish(&reg);
     EXPECT_STOP("not the held live registry", spx_shb_zeroed(&reg, 1u, &a));
+    assert(payload_pool.live == 0u && metadata_pool.live == 0u);
+}
+
+/* A reservation slot may be reused even for the same unchanged owner and
+   geometry. A ticket from the retired reservation must still refuse. */
+PROBE_FN void partition_reservation_reuse_rejects_retired_ticket(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_copy(&reg, slice("abcd", 4u), &a);
+    assert(spx_shb_partition_prepare(&reg, &a, 2u, 2u, &plan) == SPX_SHB_OK);
+    stale_vec = (spx_shb_vec){ .len = UINT64_C(123) };
+    forged_plan = plan;
+    spx_shb_partition_abort(&reg, &plan);
+
+    reg.next_partition_ticket = UINT64_MAX - 1u;
+    assert(spx_shb_partition_prepare(&reg, &a, 2u, 2u, &plan) == SPX_SHB_OK);
+    assert(plan.authority == forged_plan.authority && plan.ticket != forged_plan.ticket);
+    EXPECT_STOP("forged shared Bytes partition reservation",
+        spx_shb_partition_commit(&reg, &forged_plan, &a, &stale_vec));
+    EXPECT_STOP("forged shared Bytes partition reservation",
+        spx_shb_partition_abort(&reg, &forged_plan));
+    assert(stale_vec.len == 123u && view_is(&a, "abcd", 4u));
+    assert(reg.child_held == 2u && metadata_pool.live == 2u);
+
+    spx_shb_partition_commit(&reg, &plan, &a, &v);
+    assert(spx_shb_is_vacant(&a) && spx_shb_vec_len(&reg, &v) == 2u);
+    spx_shb_vec_drop(&reg, &v);
+    spx_shb_zeroed(&reg, 1u, &b);
+    EXPECT_STOP("partition ticket exhausted", (void)spx_shb_partition_prepare(&reg, &b, 1u, 1u, &plan));
+    assert(!plan.armed && reg.child_held == 0u && metadata_pool.live == 0u);
+    assert(spx_shb_len(&reg, &b) == 1u);
+    spx_shb_drop(&reg, &b);
+    spx_shb_registry_finish(&reg);
     assert(payload_pool.live == 0u && metadata_pool.live == 0u);
 }
 
@@ -554,6 +586,7 @@ int main(void) {
     loans_preflight_all_container_finalizers();
     copy_out_and_provider_drop();
     plans_and_final_settlement();
+    partition_reservation_reuse_rejects_retired_ticket();
     generation_exhaustion();
     partition_child_nonce_exact_boundary();
     partition_result_generation_exhaustion();

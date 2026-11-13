@@ -1,8 +1,15 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 6,
-  "expected_tests": 36,
+  "filters": 7,
+  "expected_tests": 42,
   "commands": [
+    {
+      "owner": "OPT746 independent partition geometry and source/HIR operand proof",
+      "binary": "lib",
+      "filter": "construction_fusion::partition::",
+      "exact": false,
+      "expected_tests": 6
+    },
     {
       "owner": "OPT746 checked source and HIR partition authority",
       "binary": "lib",

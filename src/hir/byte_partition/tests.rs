@@ -66,6 +66,50 @@ fn original_source_resolves_only_through_the_private_current_owner() {
     assert!(owner.receive_current_graph(&mut short).is_err());
     assert_eq!(short, 0);
 
+    let canonical = crate::format::canonical(&source);
+    let canonical_ast = crate::parse(&canonical, "partition_checked.spx").unwrap();
+    let ast_wire = crate::cache_codec::encode(&canonical_ast).unwrap();
+    let restored_ast: crate::ast::Program = crate::cache_codec::decode(&ast_wire).unwrap();
+    assert_eq!(crate::format::canonical(&restored_ast), canonical);
+    assert_eq!(crate::cache_codec::encode(&restored_ast).unwrap(), ast_wire);
+
+    // Source transport must go through the complete private compiler factory.
+    // The frozen graph and public target facades cannot grant that authority.
+    let canonical_owner =
+        ValidatedPartitionProgram::compile_source(&canonical_ast, &mut { usize::MAX }).unwrap();
+    let restored_owner =
+        ValidatedPartitionProgram::compile_source(&restored_ast, &mut { usize::MAX }).unwrap();
+    let hir_wire = crate::cache_codec::encode(restored_owner.program()).unwrap();
+    assert_eq!(
+        crate::cache_codec::encode(canonical_owner.program()).unwrap(),
+        hir_wire
+    );
+    let legacy_text = r#"module partition_checked;
+@id("partition_checked.main") fn main()->i64{7}
+"#;
+    let legacy_source = crate::check(legacy_text, "partition_checked.spx").unwrap();
+    let legacy_graph = crate::graph::to_json(&legacy_source).unwrap();
+    crate::graph::verify_json(&legacy_source, &legacy_graph).unwrap();
+    assert!(crate::graph::to_json(&restored_ast).is_err());
+    assert!(crate::graph::verify_json(&restored_ast, &legacy_graph).is_err());
+
+    let restored_hir: ResolvedProgram = crate::cache_codec::decode(&hir_wire).unwrap();
+    assert_eq!(crate::cache_codec::encode(&restored_hir).unwrap(), hir_wire);
+    let expected = "byte partition requires the private checked source profile";
+    let revision = crate::graph::revision(&restored_ast);
+    let exports = [restored_hir.entrypoint.as_str().to_owned()];
+    for diagnostic in [
+        super::super::validate(&restored_hir).unwrap_err(),
+        crate::graph::to_hir_json(&restored_hir, &revision).unwrap_err(),
+        crate::codegen::emit_hir_c(&restored_hir).unwrap_err(),
+        crate::codegen::emit_native_callable_admission(&restored_hir, &restored_hir.entrypoint)
+            .err()
+            .expect("frozen callable admission must refuse"),
+        crate::wasm::emit_resolved_module_with_scalar_exports(&restored_hir, &exports).unwrap_err(),
+    ] {
+        assert!(diagnostic.message.contains(expected), "{diagnostic:?}");
+    }
+
     let inherited = SOURCE.replace(
         "@id(\"partition_checked.main\")",
         r#"

@@ -7,6 +7,7 @@ import {
   PARTITION_STATUS_CODES,
   PARTITION_REFUSALS,
   carrierOf,
+  createSharedByteOwnerRegistry,
   decodeOwnedCarrier,
 } from "./registry.mjs";
 
@@ -49,6 +50,41 @@ test("status domain codes follow refusal precedence", () => {
   check(same(PARTITION_REFUSALS, ["width_zero", "extent_overflow", "extent_mismatch", "metadata_capacity"]),
     "refusal precedence");
   check(PARTITION_REFUSALS.every((symbol, index) => PARTITION_STATUS_CODES[symbol] === index + 1), "codes 1..4");
+});
+
+test("empty tickets require settlement and backing claims cannot overlap", () => {
+  let serial = 1;
+  let token = 0;
+  const registry = createSharedByteOwnerRegistry({
+    invocation: () => serial,
+    tokens: { mint: () => ++token, remaining: () => 32 - token },
+    maxBackings: 1,
+  });
+
+  const empty = new Uint8Array(0);
+  const pending = registry.prepare(empty, 0n, 1n).ticket;
+  check(!registry.settled() && registry.audit(), "an empty ticket still holds a reservation");
+  check(registry.prepare(new Uint8Array(0), 0n, 1n).refused === "metadata_capacity",
+    "empty tickets share the bounded preparation inventory");
+  registry.abandon();
+  serial += 1;
+  check(registry.settled(), "abandon retires the empty reservation");
+  throws(() => registry.commit(pending), /ticket invariant/, "abandoned empty ticket stays stale");
+
+  const bytes = Uint8Array.of(1, 2, 3, 4);
+  const alias = new Uint8Array(bytes.buffer);
+  const first = registry.prepare(bytes, 2n, 2n).ticket;
+  throws(() => registry.prepare(alias, 4n, 1n), /already claimed/, "a prepared backing rejects a second view");
+  check(registry.audit(), "nonempty reservation balances the held slots");
+  registry.abort(first);
+  const retry = registry.prepare(alias, 4n, 1n).ticket;
+  throws(() => registry.abort(first), /ticket invariant/, "retired ticket cannot abort its replacement");
+  const children = registry.commit(retry);
+  throws(() => registry.prepare(bytes, 2n, 2n), /already claimed/, "a partitioned backing cannot be reused");
+  check(registry.audit(), "committed ranges do not overlap");
+  for (const child of children) registry.release(child);
+  check(registry.settled(), "all four children settled");
+  throws(() => registry.prepare(bytes, 2n, 2n), /already claimed/, "released backing cannot be issued again");
 });
 
 test("exact order, NUL, Unicode and non-UTF-8 preserved without a charge", () => {

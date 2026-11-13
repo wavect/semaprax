@@ -86,6 +86,13 @@ accessing the reservation. Reusing a Vec authority slot for the same source and
 geometry still invalidates every retired ticket. The reservation reuses the
 existing Vec authority record's storage and adds one 64-bit counter per registry.
 
+The paired Core-Wasm registry binds each preparation to the live invocation
+and claims the exact buffer for the ticket's lifetime. A second array view of
+the same buffer cannot prepare overlapping ranges. Abort releases the claim
+and retires the ticket. Commit consumes the claim and leaves it bound to the
+buffer identity. Pending tickets are bounded by the backing inventory and
+count toward settlement even when they reserve zero child slots.
+
 A recoverable physical-metadata allocation domain would require a separately accepted checked
 allocator contract, failure-before-publication implementation and physical
 fault gates. Neither fuel exhaustion nor a logical counter proves physical OOM.
@@ -256,6 +263,9 @@ Wasm success case, and scoped production Clippy. The
 [36-test hosted run at `8d35815fb`](https://github.com/wavect/semaprax/actions/runs/43514391464)
 also passed scoped production Clippy and the repeated interpreter source case,
 including failures in each lexical scope and bounded producer refusal.
+The [run at `19a7abc88`](https://github.com/wavect/semaprax/actions/runs/43515606457)
+passed the same 36 selected tests and Clippy with the generated native and
+Wasm repeated-source failure paths and the native result-generation preflight.
 
 The previous native registry kept a child-table debit after the table was
 freed. The Wasm host previously admitted new partitions using individual

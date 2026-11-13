@@ -18,9 +18,8 @@
 // object headers, the backing reference array and transient views are host
 // context overhead outside managed guest storage.
 //
-// The registry is not a producer. Partition preparation is reachable only
-// through the enclosing host's witness facade; no Wasm import calls it until
-// the cross-backend source/HIR join admits `bytes_partition`.
+// The private checked producer and the host's witness facade both use this
+// reservation path. The enclosing host authenticates the whole-owner carrier.
 
 export const SHARED_OWNER_DOMAIN = "semaprax.private.wasm-shared-byte-owner.v1";
 // Child metadata is bounded by the existing Vec<Bytes> carrier capacity
@@ -175,9 +174,10 @@ export function createSharedByteOwnerRegistry({
     + backingExtent.byteLength + backingLive.byteLength + backingInvocation.byteLength
     + backingState.byteLength;
 
-  // Unforgeable ticket identity: only tickets minted here are pending.
-  const tickets = new WeakMap();
-  let epoch = 1;
+  // Pending tickets are bounded by the whole-backing inventory. A claimed
+  // buffer cannot be prepared again through another whole-array view.
+  const tickets = new Map();
+  const claimed = new WeakSet();
   let reservedSlots = 0;
   // Match native's backing table lifetime. A retired child frees a lookup
   // slot, while its backing's full table charge remains until the last child.
@@ -238,11 +238,12 @@ export function createSharedByteOwnerRegistry({
   // metadata. Only the final success reserves exact table entries; the caller
   // still owns the whole input until commit.
   const prepare = (whole, count, width) => {
-    current();
+    const serial = current();
     if (!(whole instanceof Uint8Array) || whole.byteLength > MAX_BYTES_EXTENT
         || whole.byteOffset !== 0 || whole.byteLength !== whole.buffer.byteLength) {
       throw new Error("SEMAPRAX shared owner whole backing invariant");
     }
+    if (claimed.has(whole.buffer)) throw new Error("SEMAPRAX shared owner backing already claimed");
     if (typeof count !== "bigint" || typeof width !== "bigint"
         || count < 0n || count > U64_MAX || width < 0n || width > U64_MAX) {
       throw new TypeError("SEMAPRAX shared owner partition operand invariant");
@@ -254,22 +255,25 @@ export function createSharedByteOwnerRegistry({
     if (count > BigInt(maxLeaseSlots)) return { refused: "metadata_capacity" };
     const children = Number(count);
     const backing = children > 0 ? freeBacking() : -1;
-    if (children > maxLeaseSlots - backingTableSlots - reservedSlots
+    if (tickets.size >= maxBackings || children > maxLeaseSlots - backingTableSlots - reservedSlots
         || (children > 0 && backing < 0)
         || tokens.remaining() - reservedTokens < children) {
       return { refused: "metadata_capacity" };
     }
+    const ticket = Object.freeze(Object.create(null));
+    const reservation = { serial, whole, children, width: Number(width), backing };
+    claimed.add(whole.buffer);
+    try { tickets.set(ticket, reservation); }
+    catch (error) { claimed.delete(whole.buffer); throw error; }
     reservedSlots += children;
     reservedTokens += children;
     if (backing >= 0) backingState[backing] = RESERVED;
-    const ticket = Object.freeze(Object.create(null));
-    tickets.set(ticket, { state: "prepared", epoch, whole, children, width: Number(width), backing });
     return { ticket };
   };
 
   const pending = ticket => {
     const prepared = tickets.get(ticket);
-    if (prepared === undefined || prepared.state !== "prepared" || prepared.epoch !== epoch) {
+    if (prepared === undefined || prepared.serial !== current()) {
       throw new Error("SEMAPRAX shared owner partition ticket invariant");
     }
     return prepared;
@@ -284,24 +288,22 @@ export function createSharedByteOwnerRegistry({
   // Releases only the unpublished reservation; the whole owner is untouched.
   const abort = ticket => {
     const prepared = pending(ticket);
-    prepared.state = "aborted";
     unreserve(prepared);
-    prepared.whole = null;
+    tickets.delete(ticket);
+    claimed.delete(prepared.whole.buffer);
   };
 
   // Every table entry and result array is reserved before commit. The caller
   // removes the whole owner only after this successful transfer completes.
   const commit = (ticket, destination = undefined) => {
     const prepared = pending(ticket);
-    const serial = current();
-    const { whole, children, width, backing } = prepared;
+    const { serial, whole, children, width, backing } = prepared;
     // Allocate all result storage while the whole owner and reservation live.
     const carriers = destination === undefined ? new Array(children) : destination;
     if (!Array.isArray(carriers) || carriers.length !== children) {
       throw new Error("SEMAPRAX shared owner result capacity invariant");
     }
-    prepared.state = "committed";
-    prepared.whole = null;
+    tickets.delete(ticket);
     unreserve(prepared);
     if (children === 0) return carriers;
     backingTableSlots += children;
@@ -419,13 +421,15 @@ export function createSharedByteOwnerRegistry({
       for (let backing = 0; backing < maxBackings; backing += 1) {
         if (backingState[backing] === RESERVED) backingState[backing] = FREE;
       }
+      for (const prepared of tickets.values()) claimed.delete(prepared.whole.buffer);
+      tickets.clear();
       reservedSlots = 0;
       reservedTokens = 0;
-      epoch += 1;
       return released;
     },
     settled() {
-      return liveLeases === 0 && liveBackings === 0 && reservedSlots === 0 && backingTableSlots === 0;
+      return liveLeases === 0 && liveBackings === 0 && tickets.size === 0
+        && reservedSlots === 0 && backingTableSlots === 0;
     },
     // Independent inventory audit: every live range lies inside its live
     // backing, live counts agree, and no two live ranges overlap.
@@ -466,8 +470,17 @@ export function createSharedByteOwnerRegistry({
           }
         }
       }
+      let pendingSlots = 0;
+      for (const reservation of tickets.values()) {
+        if (reservation.serial !== current() || !claimed.has(reservation.whole.buffer)
+            || (reservation.backing >= 0 && backingState[reservation.backing] !== RESERVED)) {
+          throw new Error("SEMAPRAX shared owner audit: reservation");
+        }
+        pendingSlots += reservation.children;
+      }
       if (leases !== liveLeases || backings !== liveBackings || freeTop + liveLeases !== maxLeaseSlots
-          || tableSlots !== backingTableSlots || backingTableSlots + reservedSlots > maxLeaseSlots) {
+          || tableSlots !== backingTableSlots || backingTableSlots + reservedSlots > maxLeaseSlots
+          || pendingSlots !== reservedSlots || pendingSlots !== reservedTokens || tickets.size > maxBackings) {
         throw new Error("SEMAPRAX shared owner audit: inventory");
       }
       return true;

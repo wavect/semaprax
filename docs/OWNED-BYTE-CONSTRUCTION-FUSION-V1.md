@@ -188,6 +188,13 @@ and O2, and paired Core Wasm. The receipt also covers the alternate source
 geometry, cumulative funding and reentry, fresh source/cache selection,
 forged HIR refusals, and the ordinary allocation-limit controls.
 
+The [39-test hosted run at `d8fadcd3c`](https://github.com/wavect/semaprax/actions/runs/43519290742)
+also passed scoped production Clippy. The expanded selection exercised the
+independent source proof, the native source and cleanup controls, and a
+variant of the 4,096-row fixture that overflows inside the borrowed traversal.
+Interpreter, native CLI and paired Core Wasm selected the same arithmetic
+failure and published no result. The original success fixture remained exact.
+
 The full #746 dependency, the remaining cross-backend ownership cases, and
 matched agent costs remain open qualification work.
 

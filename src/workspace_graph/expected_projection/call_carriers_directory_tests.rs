@@ -68,9 +68,7 @@ fn warm_calls(source: &str, balanced: bool) -> String {
 }
 
 fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census) {
-    let old = super::super::tests::before_names(|| {
-        super::super::before_directory::count(program, index, imports)
-    });
+    let old = super::super::before_directory::count(program, index, imports);
     take_census();
     let current = count(program, index, imports);
     let census = take_census();
@@ -79,6 +77,17 @@ fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census
         "complete pre-directory root census"
     );
     (current, census)
+}
+
+fn assert_linear_fallback_invoice(program: &Program, index: &Index<'_>) {
+    use super::super::{before_directory, tests};
+    let old = before_directory::count(program, index, true);
+    let fallback = tests::scratch_before(|| tests::before_names(|| count(program, index, true)));
+    assert_eq!(fallback.roots, old.roots);
+    assert_eq!(
+        fallback.bytes + size_of::<before_directory::Proof>(),
+        old.bytes + size_of::<Proof>() + EMPTY_SELECTOR
+    );
 }
 
 #[test]
@@ -143,11 +152,8 @@ fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
             assert_eq!((census.builds, census.rows), (1, n));
             assert!(census.sort_compares > 0);
         } else {
-            let old = super::super::tests::before_names(|| {
-                super::super::before_directory::count(&programs[0], &index, true)
-            });
-            assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
             assert_eq!((census.builds, census.rows, census.queries), (0, 0, 0));
+            assert_linear_fallback_invoice(&programs[0], &index);
         }
     }
 }
@@ -304,7 +310,8 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
         });
         let (current, census) = parity(&programs[0], &index, true);
         if headers == 2 {
-            assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
+            assert_eq!((census.builds, census.rows, census.queries), (0, 0, 0));
+            assert_linear_fallback_invoice(&programs[0], &index);
         } else if groups == 0 {
             assert!(
                 current.bytes > old.bytes,
@@ -369,6 +376,7 @@ fn current_exact_short_zero_and_source_drift_keep_real_forecast_order_and_drop()
 fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
     use crate::workspace_graph::expected_projection::{
         cached_exact::Retention, call_carriers_original, dependency_identity_max, held_projection,
+        shared_local_callees, HIR_IDENTITY_COPY_FACTOR,
     };
     for (headers, groups, shape) in [
         (2, 1, 0),
@@ -390,7 +398,7 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
         let programs = [parse(&source)];
         let index = crate::workspace_graph::index_authored(&programs).unwrap();
         let program = &programs[0];
-        let maximum = Some(dependency_identity_max(program, &index, &programs).unwrap());
+        let maximum = dependency_identity_max(program, &index, &programs).unwrap();
         let before_directory = super::super::tests::before_names(|| {
             super::super::before_directory::count(program, &index, true)
         });
@@ -417,14 +425,14 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
             (7, Retention::Semantic),
         ] {
             let old = call_carriers_original::synthetic_builder_bytes_scoped_with_retention_with_registry(
-                program, &index, &programs, maximum, true, (mode, retention), None,
+                program, &index, &programs, Some(maximum), true, (mode, retention), None,
             ).unwrap();
             let current =
                 held_projection::synthetic_builder_bytes_scoped_with_retention_with_registry(
                     program,
                     &index,
                     &programs,
-                    maximum,
+                    Some(maximum),
                     true,
                     (mode, retention),
                     None,
@@ -454,9 +462,25 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
                 + size_of::<crate::hir::ResolvedMatchArm>()
                 + size_of::<crate::hir::ResolvedMatchPatternField>()
                 + size_of::<crate::hir::ResolvedRecordMatchPatternField>();
+            let (local_fee, local_identity_bytes) = if mode == 6 {
+                let proof = shared_local_callees::costs(shared_local_callees::Context {
+                    program,
+                    authored: &index,
+                    programs: &programs,
+                })
+                .unwrap();
+                (
+                    proof.bytes,
+                    proof.slots * maximum * HIR_IDENTITY_COPY_FACTOR,
+                )
+            } else {
+                (0, 0)
+            };
             assert_eq!(
-                current.retained_clone_and_hir + copies * current_proof.roots * auxiliary,
-                old.retained_clone_and_hir + current_proof.bytes
+                current.retained_clone_and_hir
+                    + copies * current_proof.roots * auxiliary
+                    + local_identity_bytes,
+                old.retained_clone_and_hir + current_proof.bytes + local_fee
             );
             if shape == 2 {
                 assert!(
@@ -476,7 +500,7 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
             // immediate linear proof. Negative rows remain explicit; neither
             // test supplies application adoption authority or cap changes.
             eprintln!(
-                "AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} copies={copies} roots={} pre898={} immediate_linear={} current={} old_proof={} current_proof={} auxiliary={auxiliary}",
+                "AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} copies={copies} roots={} pre898={} immediate_linear={} current={} old_proof={} current_proof={} auxiliary={auxiliary} local_fee={local_fee} local_identity_bytes={local_identity_bytes}",
                 current_proof.roots,
                 old.retained_clone_and_hir,
                 current.retained_clone_and_hir - current_proof.bytes + before_directory.bytes,

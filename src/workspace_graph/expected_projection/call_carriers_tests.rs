@@ -987,7 +987,7 @@ thread_local! {
 pub(super) fn scratch_before_selected() -> bool {
     SCRATCH_BEFORE.with(|mode| mode.get())
 }
-fn scratch_before<T>(body: impl FnOnce() -> T) -> T {
+pub(super) fn scratch_before<T>(body: impl FnOnce() -> T) -> T {
     struct Restore(bool);
     impl Drop for Restore {
         fn drop(&mut self) {

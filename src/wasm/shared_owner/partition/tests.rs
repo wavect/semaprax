@@ -125,3 +125,41 @@ for (let run=0; run<4; run+=1) {
 }
 console.log('partition-paired-success-ok');
 "#;
+
+#[test]
+fn paired_bounded_producer_keeps_its_status_and_reserves_no_failed_payload() {
+    let text = SHARED_SOURCE.replace(
+        "bytes_zeroed(65536usize)",
+        "bytes_zeroed_bounded(65536usize, 65536usize)",
+    );
+    let failed = text
+        .replace("65536usize, 65536usize", "65537usize, 65536usize")
+        .replace("4096usize, 16usize", "4096usize, 0usize");
+    let success = emitted(&text).entry_source();
+    let failure = emitted(&failed).entry_source();
+    let script = r#"
+import assert from 'node:assert/strict';
+import {install as successful} from './success.mjs';
+import {install as failing} from './failure.mjs';
+const metadata = 16384*6 + 8192*22 + 32*11 + 32*8;
+const success = await successful(metadata + 65536);
+const failure = await failing(metadata);
+for (let i = 0; i < 4; i++) {
+    assert.deepEqual(success.invoke(), {outcome: 'returned', result: '4096'});
+    assert.deepEqual(failure.invoke(), {
+        outcome: 'language_failure', status: {domain: 'semaprax.byte-buffer.v1', code: 2}
+    });
+    assert.equal(failure.account().reserved, metadata);
+    assert.equal(failure.account().peak, metadata);
+}
+console.log('partition-bounded-entry-ok');
+"#;
+    if node_available() {
+        let directory = stage(&[
+            ("success.mjs", success.as_bytes()),
+            ("failure.mjs", failure.as_bytes()),
+            ("probe.mjs", script.as_bytes()),
+        ]);
+        assert!(run_node(&directory, "probe.mjs", &[]).contains("partition-bounded-entry-ok"));
+    }
+}

@@ -20,6 +20,7 @@ use std::alloc::Layout;
 pub(crate) enum Outcome {
     Returned(i64),
     PartitionFault(partition::Fault),
+    BufferBoundExceeded,
     AllocationFailure,
     Refused,
 }
@@ -74,6 +75,29 @@ fn pay(work: &mut usize, amount: usize) -> Result<(), Refusal> {
     }
     *work -= amount;
     Ok(())
+}
+
+fn verify_unallocated_failure(
+    plan: &CleanupPlan,
+    producer: &ResolvedExpr,
+    work: &mut usize,
+) -> Result<(), Refusal> {
+    let mut found = false;
+    for exit in &plan.exits {
+        pay(work, 1)?;
+        let ExitContinuation::ReturnFailure { source } = &exit.continuation else {
+            continue;
+        };
+        pay(work, source.expression.as_str().len().saturating_add(1))?;
+        if source.lane != StatusLane::OperationFailure || source.expression != producer.id {
+            continue;
+        }
+        if found || !exit.finalize_in_order.is_empty() {
+            return Err(Refusal::Identity);
+        }
+        found = true;
+    }
+    found.then_some(()).ok_or(Refusal::Identity)
 }
 
 fn verify_partition_fault_cleanup(
@@ -174,8 +198,28 @@ pub(crate) fn execute(
         else {
             return Err(Refusal::Identity);
         };
-        let [extent] = call(producer, crate::byte_ops::ZEROED_ID, work)? else {
+        let K::Call {
+            callee,
+            instance: None,
+            args,
+            ..
+        } = &producer.kind
+        else {
             return Err(Refusal::Identity);
+        };
+        pay(work, callee.as_str().len().saturating_add(1))?;
+        let (extent, exceeds_bound) = match (callee.as_str(), args.as_slice()) {
+            (crate::byte_ops::ZEROED_ID, [extent]) => (literal(extent)?, false),
+            (crate::byte_ops::ZEROED_BOUNDED_ID, [requested, bound]) => {
+                let requested = literal(requested)?;
+                let bound = literal(bound)?;
+                if bound > crate::byte_ops::MAX_BUFFER_CAPACITY_BYTES {
+                    return Err(Refusal::Identity);
+                }
+                verify_unallocated_failure(&entry.cleanup_plan, producer, work)?;
+                (requested, requested > bound)
+            }
+            _ => return Err(Refusal::Identity),
         };
         let operands = partition::operation::typed(operation, work)?.ok_or(Refusal::Identity)?;
         root(operands.owner, &whole_binding.id, work)?;
@@ -186,11 +230,7 @@ pub(crate) fn execute(
             return Err(Refusal::Identity);
         };
         root(values, &vector_binding.id, work)?;
-        let (extent, count, width) = (
-            literal(extent)?,
-            literal(operands.count)?,
-            literal(operands.width)?,
-        );
+        let (count, width) = (literal(operands.count)?, literal(operands.width)?);
         for exit in &entry.cleanup_plan.exits {
             pay(work, entry.body.id.as_str().len().saturating_add(1))?;
             if let ExitContinuation::CommitResult {
@@ -251,6 +291,11 @@ pub(crate) fn execute(
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;
         handle.reserve_metadata(Layout::new::<Value>())?;
         let mut invocation = Invocation::prepare(owner, entry, work, handle)?;
+        if exceeds_bound {
+            report.cleanup_complete = true;
+            report.outcome = Outcome::BufferBoundExceeded;
+            return Ok(());
+        }
         let extent = usize::try_from(extent).map_err(|_| Refusal::Metadata)?;
         let (allocation, bytes) = match handle.allocate_zeroed(extent) {
             Ok(value) => value,

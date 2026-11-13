@@ -54,6 +54,7 @@ impl<'owner, 'source> Projection<'owner, 'source> {
             // consumers. The walk below refuses every other owned operation.
             let selection = closure::closed_over([
                 closure::Consumer::Zeroed,
+                closure::Consumer::ZeroedBounded,
                 closure::Consumer::Partition,
                 closure::Consumer::Move,
                 closure::Consumer::CleanupFinalizer,
@@ -167,7 +168,9 @@ fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> 
                 if equal(callee.as_str(), op.id(), work)? {
                     return if matches!(
                         op,
-                        crate::byte_ops::ByteOp::Zeroed | crate::byte_ops::ByteOp::Partition
+                        crate::byte_ops::ByteOp::Zeroed
+                            | crate::byte_ops::ByteOp::ZeroedBounded
+                            | crate::byte_ops::ByteOp::Partition
                     ) {
                         Ok(())
                     } else {

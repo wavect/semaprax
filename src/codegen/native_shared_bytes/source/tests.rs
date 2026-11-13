@@ -116,3 +116,56 @@ int main(void) {{
         }
     }
 }
+
+#[test]
+fn native_bounded_producer_keeps_its_exact_status_before_partition() {
+    for (requested, width, expected) in [(65536, 16, 0), (65537, 0, 2)] {
+        let text = SHARED_SOURCE
+            .replace(
+                "bytes_zeroed(65536usize)",
+                &format!("bytes_zeroed_bounded({requested}usize, 65536usize)"),
+            )
+            .replace("4096usize, 16usize", &format!("4096usize, {width}usize"));
+        let unit = source(&text);
+        let root = scratch("source-bounded");
+        compile_and_run(
+            &root,
+            &format!(
+                r#"
+#include <stdlib.h>
+static size_t payload_allocations;
+static size_t payload_frees;
+static void *count_payload(size_t count, size_t size) {{
+    ++payload_allocations;
+    return calloc(count, size);
+}}
+static void release_payload(void *payload) {{
+    ++payload_frees;
+    free(payload);
+}}
+#define SPX_SHB_PAYLOAD_CALLOC count_payload
+#define SPX_SHB_PAYLOAD_FREE release_payload
+#define SPX_NO_ENTRY_WRAPPER
+{unit}
+int main(void) {{
+    for (uint32_t i = 0; i < 3u; ++i) {{
+        int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
+        uint32_t failed = spx_partition_run(&result, &domain, &code);
+        if ({expected}u == 0u) {{
+            if (failed != 0u || result != INT64_C(4096) || strcmp(domain, "unpublished") != 0 || code != 0u) return 1;
+        }} else {{
+            if (failed != 1u || result != INT64_C(-999) || code != {expected}u) return 2;
+            if (strcmp(domain, "semaprax.byte-buffer.v1") != 0) return 3;
+        }}
+        size_t allocations = {expected}u == 0u ? (size_t)i + 1u : 0u;
+        if (payload_allocations != allocations || payload_frees != allocations) return 4;
+    }}
+    return 0;
+}}
+"#
+            ),
+            &[],
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

@@ -1,5 +1,7 @@
 //! Source-entry controls for the sealed direct interpreter receiver.
-use super::{execute, verify_partition_fault_cleanup, Account, Outcome};
+use super::{
+    execute, verify_partition_fault_cleanup, verify_unallocated_failure, Account, Outcome,
+};
 use crate::cleanup_plan::{ExitContinuation, StatusLane};
 use crate::construction_fusion::{domain::Refusal, partition::Fault};
 use crate::hir::byte_partition::ValidatedPartitionProgram;
@@ -159,4 +161,95 @@ fn unsupported_helper_and_receiving_shortage_refuse_before_payload_effects() {
     let report = execute(&owner, &account, &mut { usize::MAX });
     assert_eq!(report.outcome, Outcome::Refused);
     assert_eq!((report.allocations, report.payload), (0, 0));
+}
+
+#[test]
+fn bounded_producer_checks_before_partition_and_keeps_the_account_for_reentry() {
+    let (mut allocations, mut payload) = (0, 0);
+    let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
+    for (producer, width, outcome, counters) in [
+        (
+            "bytes_zeroed_bounded(65537usize, 65536usize)",
+            "0usize",
+            Outcome::BufferBoundExceeded,
+            (0, 0),
+        ),
+        (
+            "bytes_zeroed_bounded(65536usize, 65536usize)",
+            "16usize",
+            Outcome::Returned(4096),
+            (1, 65536),
+        ),
+        (
+            "bytes_zeroed_bounded(65536usize, 65536usize)",
+            "0usize",
+            Outcome::PartitionFault(Fault::WidthZero),
+            (2, 131072),
+        ),
+    ] {
+        let source = SHARED_SOURCE
+            .replace("bytes_zeroed(65536usize)", producer)
+            .replace("4096usize, 16usize", &format!("4096usize, {width}"));
+        let ast = crate::parse(&source, "partition-bounded.spx").unwrap();
+        let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+        let report = execute(&owner, &account, &mut { usize::MAX });
+        assert_eq!(report.outcome, outcome);
+        assert!(report.cleanup_complete);
+        assert_eq!((report.allocations, report.payload), counters);
+    }
+}
+
+#[test]
+fn bounded_producer_requires_one_empty_failure_exit_at_its_own_site() {
+    use crate::hir::{ResolvedExprKind, ResolvedStatement};
+
+    let text = SHARED_SOURCE.replace(
+        "bytes_zeroed(65536usize)",
+        "bytes_zeroed_bounded(65537usize, 65536usize)",
+    );
+    let ast = crate::parse(&text, "partition-bounded-plan.spx").unwrap();
+    let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+    let entry = &owner.program().functions[0];
+    let ResolvedExprKind::Block { statements, .. } = &entry.body.kind else {
+        panic!("expected the checked entry block");
+    };
+    let [ResolvedStatement::Let {
+        value: producer, ..
+    }, ResolvedStatement::Let {
+        value: partition, ..
+    }] = statements.as_slice()
+    else {
+        panic!("expected the checked producer and partition bindings");
+    };
+    let plan = &entry.cleanup_plan;
+    let mut remaining = usize::MAX;
+    verify_unallocated_failure(plan, producer, &mut remaining).unwrap();
+    let mut exact = usize::MAX - remaining;
+    let mut short = exact - 1;
+    verify_unallocated_failure(plan, producer, &mut exact).unwrap();
+    assert_eq!(exact, 0);
+    assert_eq!(
+        verify_unallocated_failure(plan, producer, &mut short),
+        Err(Refusal::Metadata)
+    );
+    assert_eq!(short, 0);
+    assert_eq!(
+        verify_unallocated_failure(plan, partition, &mut { usize::MAX }),
+        Err(Refusal::Identity)
+    );
+
+    let mut duplicate = plan.clone();
+    let failure = plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(&exit.continuation, ExitContinuation::ReturnFailure { source }
+            if source.expression == producer.id && source.lane == StatusLane::OperationFailure)
+        })
+        .unwrap();
+    duplicate.exits.push(failure.clone());
+    assert_eq!(
+        verify_unallocated_failure(&duplicate, producer, &mut { usize::MAX }),
+        Err(Refusal::Identity)
+    );
 }

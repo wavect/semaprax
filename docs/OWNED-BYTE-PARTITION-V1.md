@@ -651,9 +651,22 @@ allocating. Preparation returns that same whole backing for finalization.
 The geometry fault remains the selected status and publishes no scalar.
 Administrative refusal keeps `cleanup_complete=false`.
 
-The direct source receiver covers this closed contour. Ordinary activation
-still requires copy and bounded-zeroing producers, views, iteration, helpers,
-contracts, general loan/frame settlement and public owned results.
+The direct interpreter receiver also accepts literal requested and bound
+operands to `bytes_zeroed_bounded`. It verifies the producer's exact
+operation-failure exit has no owners to settle. An over-bound request selects
+the existing buffer-capacity failure before any backing allocation or partition
+geometry check. A successful request enters the same caller account and
+partition path as `bytes_zeroed`. The private native projection admits bounded
+zeroing through the existing status check and the same selected backing
+allocator. The paired Wasm path already lowers that check ahead of its backing
+import.
+
+Local probes exercised the actual empty producer-failure exit and replayed
+the bounded guard on retained native C11 and Core-Wasm partition artifacts.
+The focused original-source tests for all three private receivers remain queued.
+Ordinary activation still needs copy and computed-request execution, views,
+iteration, helpers, contracts, general loan/frame settlement and public owned
+results.
 
 The private current-graph call whitelist includes exactly the checked
 `i64_from_usize` conversion used by that scalar publication contour; other

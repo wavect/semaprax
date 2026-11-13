@@ -374,7 +374,10 @@ fn selected_root_uses_the_exact_held_key_and_preserves_detached_text() {
     let spelling = "root.é".to_owned();
     let (selected, allocation) = measure(|| selected_root_identity(&available, &spelling));
     assert_eq!(selected, key);
-    assert_eq!(selected.shared_allocation_key(), key.shared_allocation_key());
+    assert_eq!(
+        selected.shared_allocation_key(),
+        key.shared_allocation_key()
+    );
     assert!(!allocation.invalid);
     assert_eq!(allocation.allocated, 0);
 

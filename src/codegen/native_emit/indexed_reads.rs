@@ -51,9 +51,9 @@ impl<O: COutput> CEmitter<'_, O> {
         width: &str,
         temporary: &str,
     ) -> Result<(), Diagnostic> {
-        let none_id = DeclarationId::new(crate::prelude::OPTION_NONE_ID);
-        let some_id = DeclarationId::new(crate::prelude::OPTION_SOME_ID);
-        let value_id = DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID);
+        let none_id = DeclarationId::compiler(CompilerDeclaration::OptionNone);
+        let some_id = DeclarationId::compiler(CompilerDeclaration::OptionSome);
+        let value_id = DeclarationId::compiler(CompilerDeclaration::OptionSomeValue);
         let layout = self.variant_layout(return_type)?;
         let none = layout
             .case(&none_id)

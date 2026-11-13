@@ -145,13 +145,19 @@ impl Emitter<'_> {
         let pointer = self.plan.expr_pointer(expr)?;
         let layout = variant_layout(self.variant_layouts, &expr.ty)?;
         let none = layout
-            .case(&DeclarationId::new(crate::prelude::OPTION_NONE_ID))
+            .case(&crate::hir::DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::OptionNone,
+            ))
             .ok_or_else(|| error("byte_read_le Option has no None case"))?;
         let some = layout
-            .case(&DeclarationId::new(crate::prelude::OPTION_SOME_ID))
+            .case(&crate::hir::DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::OptionSome,
+            ))
             .ok_or_else(|| error("byte_read_le Option has no Some case"))?;
         let field = some
-            .field(&DeclarationId::new(crate::prelude::OPTION_SOME_VALUE_ID))
+            .field(&crate::hir::DeclarationId::compiler(
+                crate::hir::CompilerDeclaration::OptionSomeValue,
+            ))
             .ok_or_else(|| error("byte_read_le Option has no Some payload"))?;
         if field.ty != ResolvedType::Usize {
             return Err(error("byte_read_le Option payload is not usize"));

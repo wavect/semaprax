@@ -148,6 +148,196 @@ fn verify_partition_fault_cleanup(
     found.then_some(()).ok_or(Refusal::Identity)
 }
 
+struct PartitionStep {
+    extent: u64,
+    exceeds_bound: bool,
+    count: u64,
+    width: u64,
+}
+
+fn prove_step(
+    plan: &CleanupPlan,
+    statements: &[S],
+    tail: &ResolvedExpr,
+    exit: Option<&crate::cleanup_plan::ExitTarget>,
+    work: &mut usize,
+) -> Result<PartitionStep, Refusal> {
+    let [S::Let {
+        binding: whole_binding,
+        mutable: false,
+        value: producer,
+        ..
+    }, S::Let {
+        binding: vector_binding,
+        mutable: false,
+        value: operation,
+        ..
+    }] = statements
+    else {
+        return Err(Refusal::Identity);
+    };
+    let K::Call {
+        callee,
+        instance: None,
+        args,
+        ..
+    } = &producer.kind
+    else {
+        return Err(Refusal::Identity);
+    };
+    pay(work, callee.as_str().len().saturating_add(1))?;
+    let (extent, exceeds_bound) = match (callee.as_str(), args.as_slice()) {
+        (crate::byte_ops::ZEROED_ID, [extent]) => (literal(extent)?, false),
+        (crate::byte_ops::ZEROED_BOUNDED_ID, [requested, bound]) => {
+            let requested = literal(requested)?;
+            let bound = literal(bound)?;
+            if bound > crate::byte_ops::MAX_BUFFER_CAPACITY_BYTES {
+                return Err(Refusal::Identity);
+            }
+            verify_unallocated_failure(plan, producer, work)?;
+            (requested, requested > bound)
+        }
+        _ => return Err(Refusal::Identity),
+    };
+    let operands = partition::operation::typed(operation, work)?.ok_or(Refusal::Identity)?;
+    root(operands.owner, &whole_binding.id, work)?;
+    let [length] = call(tail, crate::string_ops::I64_FROM_USIZE_ID, work)? else {
+        return Err(Refusal::Identity);
+    };
+    let [values] = call(length, crate::vec_ops::LEN_ID, work)? else {
+        return Err(Refusal::Identity);
+    };
+    root(values, &vector_binding.id, work)?;
+    let (count, width) = (literal(operands.count)?, literal(operands.width)?);
+    let exit = match exit {
+        Some(exit) => exit,
+        None => {
+            let mut selected = None;
+            for region in &plan.regions {
+                pay(work, 1)?;
+                for slot in &region.slots {
+                    pay(work, 1)?;
+                    let StorageId::Value(id) = slot else { continue };
+                    pay(work, id.as_str().len().saturating_add(1))?;
+                    if *id != vector_binding.id {
+                        continue;
+                    }
+                    let exit = plan
+                        .exits
+                        .get(region.normal_scope_end.0 as usize)
+                        .filter(|exit| {
+                            exit.id == region.normal_scope_end
+                                && region.parent.is_some()
+                                && exit.leaves_regions.as_slice() == [region.id]
+                                && matches!(exit.continuation, ExitContinuation::Continue(_))
+                        })
+                        .ok_or(Refusal::Identity)?;
+                    if selected.replace(exit).is_some() {
+                        return Err(Refusal::Identity);
+                    }
+                }
+            }
+            selected.ok_or(Refusal::Identity)?
+        }
+    };
+    let mut vector_actions = 0;
+    for action in &exit.finalize_in_order {
+        let bytes = match &action.source.storage {
+            StorageId::Value(id) => id.as_str().len(),
+            StorageId::Temporary(id) => id.as_str().len(),
+            StorageId::CallArgument { call, .. } => call.as_str().len(),
+            StorageId::ProvisionalResult => 0,
+        };
+        // Both profile selection and final settlement repeat comparisons;
+        // prepay all probes once on the SAME receiving ledger.
+        pay(
+            work,
+            bytes
+                .checked_add(1)
+                .and_then(|n| n.checked_mul(8))
+                .ok_or(Refusal::Metadata)?,
+        )?;
+        if action.active_case.is_some() || !action.source.projections.is_empty() {
+            return Err(Refusal::Identity);
+        }
+        match &action.source.storage {
+            StorageId::Value(id) if *id == vector_binding.id => {
+                pay(work, action.lifecycle_id.as_str().len().saturating_add(1))?;
+                if action.lifecycle_id.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID {
+                    return Err(Refusal::Identity);
+                }
+                vector_actions += 1;
+            }
+            StorageId::Value(id) if *id == whole_binding.id => {}
+            StorageId::Temporary(id) if *id == producer.id || *id == operation.id => {}
+            StorageId::CallArgument {
+                call,
+                parameter_index: 0,
+                ..
+            } if *call == operation.id => {}
+            _ => return Err(Refusal::Identity),
+        }
+    }
+    if vector_actions != 1 {
+        return Err(Refusal::Identity);
+    }
+    verify_partition_fault_cleanup(plan, operation, operands.owner, work)?;
+    Ok(PartitionStep {
+        extent,
+        exceeds_bound,
+        count,
+        width,
+    })
+}
+
+fn execute_step(step: PartitionStep, invocation: &mut Invocation<'_>) -> Result<Outcome, Refusal> {
+    let PartitionStep {
+        extent,
+        exceeds_bound,
+        count,
+        width,
+    } = step;
+    let handle = invocation.account;
+    if exceeds_bound {
+        return Ok(Outcome::BufferBoundExceeded);
+    }
+    let extent = usize::try_from(extent).map_err(|_| Refusal::Metadata)?;
+    let (allocation, bytes) = match handle.allocate_zeroed(extent) {
+        Ok(value) => value,
+        Err(AllocationError::Logical) => {
+            return Ok(Outcome::AllocationFailure);
+        }
+        Err(AllocationError::Authority(error)) => return Err(error),
+    };
+    let whole = OwnedBytesValue {
+        allocation,
+        bytes: Backing::Whole(WholeBacking {
+            account: handle.identity(),
+            bytes,
+        }),
+    };
+    let mut value = match super::values::partition_whole(&mut invocation.loans, whole, count, width)
+    {
+        Ok(value) => value,
+        Err((Preparation::Fault(fault), whole)) => {
+            // Preparation returns the exact staged owner before commit.
+            // The checked failure exit finalizes only that argument.
+            drop(whole);
+            return Ok(Outcome::PartitionFault(fault));
+        }
+        Err((Preparation::Authority(error), whole)) => {
+            drop(whole);
+            return Err(error);
+        }
+    };
+    let Value::PartitionVec(vector) = &value else {
+        return Err(Refusal::Identity);
+    };
+    let scalar = i64::try_from(vector.len()).map_err(|_| Refusal::Identity)?;
+    super::values::settle(&mut value, &mut invocation.loans).map_err(|_| Refusal::Identity)?;
+    Ok(Outcome::Returned(scalar))
+}
+
 /// The actual caller Account is borrowed through settlement. No numeric
 /// forecast grants funding, and only a scalar result can leave this receiver.
 pub(crate) fn execute(
@@ -184,53 +374,6 @@ pub(crate) fn execute(
         let K::Block { statements, tail } = &entry.body.kind else {
             return Err(Refusal::Identity);
         };
-        let [S::Let {
-            binding: whole_binding,
-            mutable: false,
-            value: producer,
-            ..
-        }, S::Let {
-            binding: vector_binding,
-            mutable: false,
-            value: operation,
-            ..
-        }] = statements.as_slice()
-        else {
-            return Err(Refusal::Identity);
-        };
-        let K::Call {
-            callee,
-            instance: None,
-            args,
-            ..
-        } = &producer.kind
-        else {
-            return Err(Refusal::Identity);
-        };
-        pay(work, callee.as_str().len().saturating_add(1))?;
-        let (extent, exceeds_bound) = match (callee.as_str(), args.as_slice()) {
-            (crate::byte_ops::ZEROED_ID, [extent]) => (literal(extent)?, false),
-            (crate::byte_ops::ZEROED_BOUNDED_ID, [requested, bound]) => {
-                let requested = literal(requested)?;
-                let bound = literal(bound)?;
-                if bound > crate::byte_ops::MAX_BUFFER_CAPACITY_BYTES {
-                    return Err(Refusal::Identity);
-                }
-                verify_unallocated_failure(&entry.cleanup_plan, producer, work)?;
-                (requested, requested > bound)
-            }
-            _ => return Err(Refusal::Identity),
-        };
-        let operands = partition::operation::typed(operation, work)?.ok_or(Refusal::Identity)?;
-        root(operands.owner, &whole_binding.id, work)?;
-        let [length] = call(tail, crate::string_ops::I64_FROM_USIZE_ID, work)? else {
-            return Err(Refusal::Identity);
-        };
-        let [values] = call(length, crate::vec_ops::LEN_ID, work)? else {
-            return Err(Refusal::Identity);
-        };
-        root(values, &vector_binding.id, work)?;
-        let (count, width) = (literal(operands.count)?, literal(operands.width)?);
         for exit in &entry.cleanup_plan.exits {
             pay(work, entry.body.id.as_str().len().saturating_add(1))?;
             if let ExitContinuation::CommitResult {
@@ -249,98 +392,68 @@ pub(crate) fn execute(
         if exits.next().is_some() {
             return Err(Refusal::Identity);
         }
-        let mut vector_actions = 0;
-        for action in &exit.finalize_in_order {
-            let bytes = match &action.source.storage {
-                StorageId::Value(id) => id.as_str().len(),
-                StorageId::Temporary(id) => id.as_str().len(),
-                StorageId::CallArgument { call, .. } => call.as_str().len(),
-                StorageId::ProvisionalResult => 0,
-            };
-            // Both profile selection and final settlement repeat comparisons;
-            // prepay all probes once on the SAME receiving ledger.
-            pay(
-                work,
-                bytes
-                    .checked_add(1)
-                    .and_then(|n| n.checked_mul(8))
-                    .ok_or(Refusal::Metadata)?,
-            )?;
-            if action.active_case.is_some() || !action.source.projections.is_empty() {
-                return Err(Refusal::Identity);
-            }
-            match &action.source.storage {
-                StorageId::Value(id) if *id == vector_binding.id => vector_actions += 1,
-                StorageId::Value(id) if *id == whole_binding.id => {}
-                StorageId::Temporary(id) if *id == producer.id || *id == operation.id => {}
-                StorageId::CallArgument {
-                    call,
-                    parameter_index: 0,
-                    ..
-                } if *call == operation.id => {}
-                _ => return Err(Refusal::Identity),
-            }
-        }
-        if vector_actions != 1 {
-            return Err(Refusal::Identity);
-        }
-        verify_partition_fault_cleanup(&entry.cleanup_plan, operation, operands.owner, work)?;
         let mut handle = account.borrowed();
         use crate::construction_fusion::domain::owner_core::Runtime;
         handle.reserve_metadata(Layout::new::<Report>())?;
+        handle.reserve_metadata(Layout::new::<(Option<PartitionStep>, PartitionStep)>())?;
+        let (first, last) = match statements.as_slice() {
+            [S::Let {
+                binding,
+                mutable: false,
+                value,
+                ..
+            }, rest @ [_, _]] => {
+                let K::Block {
+                    statements,
+                    tail: prefix_result,
+                } = &value.kind
+                else {
+                    return Err(Refusal::Identity);
+                };
+                let K::Binary {
+                    op: crate::ast::BinaryOp::Add,
+                    left,
+                    right,
+                } = &tail.kind
+                else {
+                    return Err(Refusal::Identity);
+                };
+                root(left, &binding.id, work)?;
+                (
+                    Some(prove_step(
+                        &entry.cleanup_plan,
+                        statements,
+                        prefix_result,
+                        None,
+                        work,
+                    )?),
+                    prove_step(&entry.cleanup_plan, rest, right, Some(exit), work)?,
+                )
+            }
+            _ => (
+                None,
+                prove_step(&entry.cleanup_plan, statements, tail, Some(exit), work)?,
+            ),
+        };
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;
         handle.reserve_metadata(Layout::new::<Value>())?;
         let mut invocation = Invocation::prepare(owner, entry, work, handle)?;
-        if exceeds_bound {
-            report.cleanup_complete = true;
-            report.outcome = Outcome::BufferBoundExceeded;
-            return Ok(());
-        }
-        let extent = usize::try_from(extent).map_err(|_| Refusal::Metadata)?;
-        let (allocation, bytes) = match handle.allocate_zeroed(extent) {
-            Ok(value) => value,
-            Err(AllocationError::Logical) => {
-                report.outcome = Outcome::AllocationFailure;
-                return Ok(());
-            }
-            Err(AllocationError::Authority(error)) => return Err(error),
+        report.outcome = match first {
+            None => execute_step(last, &mut invocation)?,
+            Some(step) => match execute_step(step, &mut invocation)? {
+                Outcome::Returned(first) => match execute_step(last, &mut invocation)? {
+                    Outcome::Returned(last) => {
+                        Outcome::Returned(first.checked_add(last).ok_or(Refusal::Identity)?)
+                    }
+                    fault => fault,
+                },
+                fault => fault,
+            },
         };
-        let whole = OwnedBytesValue {
-            allocation,
-            bytes: Backing::Whole(WholeBacking {
-                account: handle.identity(),
-                bytes,
-            }),
-        };
-        let mut value =
-            match super::values::partition_whole(&mut invocation.loans, whole, count, width) {
-                Ok(value) => value,
-                Err((Preparation::Fault(fault), whole)) => {
-                    // Preparation returns the exact staged owner before commit.
-                    // The checked failure exit finalizes only that argument.
-                    drop(whole);
-                    report.cleanup_complete = true;
-                    report.outcome = Outcome::PartitionFault(fault);
-                    return Ok(());
-                }
-                Err((Preparation::Authority(error), whole)) => {
-                    drop(whole);
-                    return Err(error);
-                }
-            };
-        let Value::PartitionVec(vector) = &value else {
-            return Err(Refusal::Identity);
-        };
-        let scalar = i64::try_from(vector.len()).map_err(|_| Refusal::Identity)?;
-        for action in &exit.finalize_in_order {
-            if matches!(&action.source.storage, StorageId::Value(id) if *id == vector_binding.id) {
-                super::values::settle(&mut value, &mut invocation.loans)
-                    .map_err(|_| Refusal::Identity)?;
-            }
-            // Other exact epochs were consumed by the two completed calls.
-        }
-        report.cleanup_complete = true;
-        report.outcome = Outcome::Returned(scalar);
+        report.cleanup_complete = matches!(
+            report.outcome,
+            Outcome::Returned(_) | Outcome::PartitionFault(_) | Outcome::BufferBoundExceeded
+        );
         Ok(())
     })();
     if result.is_err() {

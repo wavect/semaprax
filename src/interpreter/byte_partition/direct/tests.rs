@@ -12,6 +12,54 @@ const EMPTY_SOURCE: &str =
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 
+const REPEATED_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-repeated.spx");
+
+#[test]
+fn repeated_source_partitions_settle_on_one_account_before_publication() {
+    for (text, outcome, counters) in [
+        (
+            REPEATED_SOURCE.to_owned(),
+            Outcome::Returned(8193),
+            (2, 8193),
+        ),
+        (
+            REPEATED_SOURCE.replace("8192usize, 1usize", "8192usize, 0usize"),
+            Outcome::PartitionFault(Fault::WidthZero),
+            (1, 8192),
+        ),
+        (
+            REPEATED_SOURCE.replace("whole, 1usize, 1usize", "whole, 1usize, 0usize"),
+            Outcome::PartitionFault(Fault::WidthZero),
+            (2, 8193),
+        ),
+        (
+            REPEATED_SOURCE.replace(
+                "bytes_zeroed(1usize)",
+                "bytes_zeroed_bounded(1usize, 0usize)",
+            ),
+            Outcome::BufferBoundExceeded,
+            (1, 8192),
+        ),
+    ] {
+        assert!(crate::check(&text, "partition-repeated.spx").is_err());
+        let ast = crate::parse(&text, "partition-repeated.spx").unwrap();
+        let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+        let (mut allocations, mut payload) = (0, 0);
+        let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
+        let (report, metrics) =
+            crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                execute(&owner, &account, &mut { usize::MAX })
+            });
+        assert_eq!(report.outcome, outcome);
+        assert!(report.cleanup_complete);
+        assert_eq!((report.allocations, report.payload), counters);
+        assert!(!metrics.invalid);
+        assert_eq!(metrics.live, 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+    }
+}
+
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
         r#"module partition_direct;

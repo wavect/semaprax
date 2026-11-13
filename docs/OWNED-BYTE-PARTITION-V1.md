@@ -248,7 +248,10 @@ retired carrier still refuses. Both runtime controls observe two backing events
 and 8,193 cumulative payload bytes. The repeated source fixture exercises the
 native and paired Wasm emitters. The interpreter registry drops the settled
 table and leaves its context index vacant so later partitions cannot revive an
-old receipt. Its direct source entry still accepts one partition per invocation.
+old receipt. The direct interpreter source entry recognizes the repeated fixture's
+two sequential lexical scopes on one account. The first scope settles before
+the second allocation. Either partition can select its own failure, and a
+failed bounded producer stops before its partition.
 
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.

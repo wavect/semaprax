@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
   "filters": 4,
-  "expected_tests": 33,
+  "expected_tests": 34,
   "commands": [
     {
       "owner": "OPT746 checked source and HIR partition authority",
@@ -15,7 +15,7 @@
       "binary": "lib",
       "filter": "interpreter::byte_partition::",
       "exact": false,
-      "expected_tests": 25
+      "expected_tests": 26
     },
     {
       "owner": "OPT746 generated C11 partition at O0 and O2",

@@ -22,11 +22,15 @@ const SOURCE: &str = r#"module lexical.iterator.resume;
 
 #[test]
 fn distinct_continue_sites_settle_locals_and_advance_through_last_item_once() {
+    use crate::owned_vec_bytes_runtime::{run_native, run_wasm_expected};
+
     interpret(SOURCE, 43, false);
-    crate::owned_vec_bytes_runtime::run_wasm_expected(SOURCE, 0, 8, "none", 43);
+    run_native(SOURCE, "", 0, 43, "none");
+    run_wasm_expected(SOURCE, 0, 8, "none", 43);
     let failed = SOURCE.replace("return total+seen*10;", "return total+seen*10-1;");
     interpret(&failed, 0, true);
-    crate::owned_vec_bytes_runtime::run_wasm_expected(&failed, 10, 8, "none", 0);
+    run_native(&failed, "semaprax.contract.v1", 2, 0, "none");
+    run_wasm_expected(&failed, 10, 8, "none", 0);
     interpret(SOURCE, 43, false);
 }
 

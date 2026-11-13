@@ -73,8 +73,13 @@ consumer replays the new capacity proof from actual nodes before execution.
 
 The focused source/HIR and backend gates passed, including the original
 `lexical_exits::iterator_resume::` eight-copy/eight-drop oracle and hostile
-resume controls. Native O0 and O2 ran the original normal/continue/break
-fixture and its all-abrupt control four times per context. The observer at
+resume controls. The same unchanged two-continue-site source and its late
+postcondition-failure variant now also run through native C11 at O0 and O2.
+The native probe checks exact result or contract status, untouched result
+storage on failure, zero live allocations and zero live Vec authorities over
+four invocations per context. The interpreter and strict Core-Wasm checks
+exercise those same sources. Native O0 and O2 also ran the original
+normal/continue/break fixture and its all-abrupt control four times per context. The observer at
 the actual `bytes_zeroed` constructor recorded seven payload allocations
 and seven frees per invocation, totaling 22 requested bytes and peaking at
 five live payloads. Both variants settled every tracked allocation and
@@ -84,7 +89,11 @@ The import-free public generic provider has no owned Bytes iterator runtime.
 A probe routed the original loop through a reachable provider helper and
 reached module emission. Node v24.15.0 rejected the emitted call signature
 during validation. The provider now checks the reachable function inventory
-for owned Bytes iterators before emission.
+for owned Bytes iterators before emission. The existing provider regression
+validates the import-free module when the helper is unreachable and checks
+`SPX-W110` when it enters the endpoint closure. Executable import-free support
+still needs a provider-owned Vec and iterator runtime with cumulative backing,
+transfer and drop accounting.
 
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation

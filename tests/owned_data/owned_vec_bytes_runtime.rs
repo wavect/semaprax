@@ -8,6 +8,7 @@ static WASM_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 #[allow(clippy::duplicate_mod)]
 #[path = "owned_vec_bytes_runtime/native.rs"]
 mod native;
+pub(crate) use native::run_native;
 
 const SUCCESS: &str = r#"module vec.bytes.runtime;
 @id("app.main") fn main()->i64 {
@@ -141,10 +142,10 @@ fn owned_vec_bytes_interpreter_and_native_mutation_settlement() {
                 assert_eq!(envelope["payload"]["outcome"]["status"]["code"], *code);
             }
         }
-        native::run_native(source, domain, *code, *value, "none");
+        run_native(source, domain, *code, *value, "none");
     }
-    native::run_native(SUCCESS, "semaprax.vec.v1", 3, 0, "allocation");
-    native::run_native(SUCCESS, "semaprax.vec.v1", 3, 0, "reserve");
+    run_native(SUCCESS, "semaprax.vec.v1", 3, 0, "allocation");
+    run_native(SUCCESS, "semaprax.vec.v1", 3, 0, "reserve");
     std::fs::remove_file(path).unwrap();
 }
 

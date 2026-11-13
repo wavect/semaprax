@@ -4,7 +4,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 static NEXT_NATIVE_CASE: AtomicU64 = AtomicU64::new(0);
 
-pub(super) fn run_native(
+pub(crate) fn run_native(
     source: &str,
     expected_domain: &str,
     expected_code: u32,

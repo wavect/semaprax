@@ -30,4 +30,17 @@ Both cold and warm checked-cache builds preserved the complete authenticated Pro
 
 All 13 Catalog Normalizer tests passed. The differential ran the saved original batch source and the structured receiver. Both matched all 36 published oracle cases in the interpreter and ran the 14 declared cases in the interpreter, C11 O0/O2 and Core Wasm. Both produced the exact maximum valid responses within 160 million interpreter steps. The separate Catalog23 restock regression passed all 23 original cases.
 
-These runs establish functional and backend qualification for the exercised profiles. Fresh matched agent runs are still required to measure authored tokens, turns and accepted-task cost.
+## Authored application source
+
+The initial adoption at `5e3bfe57c` changed `src/batch.spx` from 377 to
+354 lines while keeping it at 18,563 UTF-8 bytes. The other four production
+`.spx` files are byte-identical to the parent `38ead39d2`, so the complete
+production source inventory stayed at 79,142 bytes. The manifest added a
+27-byte dependency line. The saved original batch used by the differential
+test is byte-identical to the parent's batch. These counts use the committed
+Git blobs and exclude the shared library and `src/tests.spx`.
+
+The application delegates line scans to `std.data.ndjson`. Its original
+out-of-profile error path remains inline to preserve legacy behavior.
+Fresh matched agent runs are still required to measure authored tokens,
+turns, and accepted-task cost.

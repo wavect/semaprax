@@ -1546,7 +1546,7 @@ def encode_compressed_page(page,schema=V22_SCHEMA):
  if len(canonical(result))>PAGE_CAP:
   # Preserve one stream and the same limits when the full catalog needs
   # additional Huffman block boundaries.
-  cuts = (1750, 23250, 45500, 49750, 67500, 91500, 107750, 130250, 137000, 151250, 171250, 181500, 189250, 201750, 219500, 230500, 246750, 255750, 283500, 291250, 320250, 331000, 344750, 365500, 373750, 395000, 410250)
+  cuts = (1690, 23310, 45600, 49150, 67500, 91350, 108100, 130400, 137060, 151350, 171350, 181400, 189300, 201750, 221250, 230660, 246860, 255690, 283660, 291190, 320350, 330750, 345100, 365540, 373750, 395040, 410440)
   compressor=zlib.compressobj(9,zlib.DEFLATED,zlib.MAX_WBITS,8)
   chunks=[]; previous=0
   for cut in cuts:

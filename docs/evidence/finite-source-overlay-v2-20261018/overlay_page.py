@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=211924
-POLICY_SHA256='c323a37075805b1ad25c75ebccf48f0a8f3b56d32f1137da5ee776d5323d155f'
+POLICY_SHA256='6cbee7f6f5de03c8c8ba1b885c87d99d81f4d6d49e975bb5430d81d3924945de'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -332,7 +332,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='8706f4a9ef267f45f17207b51c4e3431716f50c6d48d3f1a535be8a3a6ab8ab2', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='50ecbe6ccd91e9582cf52391f130f908edb4717a3432b0a2b4ea5cf70c3f97c0', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()

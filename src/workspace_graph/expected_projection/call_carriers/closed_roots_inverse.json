@@ -369,8 +369,8 @@
     },
     "src/workspace_graph/expected_projection/call_carriers_tests.rs": {
       "current": {
-        "length": 52496,
-        "sha256": "b6f5d26b7cf9d655fc515995bf265aa44ba1380f818ff5816a8068fc837216d1"
+        "length": 53528,
+        "sha256": "3135db749aec5e727203da8bf0f898aaec31b4de7ee71da0e653df338cb95b49"
       },
       "edits": [
         {
@@ -380,14 +380,44 @@
           "before": "                        drop((full, retained));\n"
         },
         {
-          "start": 47622,
-          "end": 47622,
+          "start": 41436,
+          "end": 42259,
+          "after": "    // Authenticate current bytes through the complete later closed-root stage\n    // before applying this earlier inverse.\n    let later: serde_json::Value =\n        serde_json::from_str(include_str!(\"call_carriers/closed_roots_inverse.json\")).unwrap();\n    let stage = &later[\"successor_sources\"][path];\n    assert_eq!(stage[\"current\"][\"length\"], current.len());\n    assert_eq!(stage[\"current\"][\"sha256\"], digest(current.as_bytes()));\n    let mut current = current.to_owned();\n    for edit in stage[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[\"start\"].as_u64().unwrap() as usize;\n        let end = edit[\"end\"].as_u64().unwrap() as usize;\n        assert_eq!(&current[start..end], edit[\"after\"].as_str().unwrap());\n        current.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n    }\n",
+          "before": ""
+        },
+        {
+          "start": 42414,
+          "end": 42414,
+          "after": "",
+          "before": ".to_owned()"
+        },
+        {
+          "start": 48434,
+          "end": 48434,
           "after": "",
           "before": "                        drop(data);\n"
         },
         {
-          "start": 51127,
-          "end": 51127,
+          "start": 50177,
+          "end": 50184,
+          "after": ".max(1)",
+          "before": ""
+        },
+        {
+          "start": 50284,
+          "end": 50532,
+          "after": "            let mut consumer = crate::parse(&source, \"reuse.spx\").unwrap();\n            if count == 0 {\n                // Empty internal census data follows the parser's required function.\n                consumer.functions.clear();\n            }\n",
+          "before": ""
+        },
+        {
+          "start": 50581,
+          "end": 50589,
+          "after": "consumer",
+          "before": "crate::parse(&source, \"reuse.spx\").unwrap()"
+        },
+        {
+          "start": 52159,
+          "end": 52159,
           "after": "",
           "before": "                            drop((full, retained));\n"
         }

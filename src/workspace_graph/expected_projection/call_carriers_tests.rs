@@ -1006,9 +1006,23 @@ fn scratch_source_before(path: &str, current: &str) -> String {
         .find(|row| row["path"] == path)
         .unwrap();
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    // Authenticate current bytes through the complete later closed-root stage
+    // before applying this earlier inverse.
+    let later: serde_json::Value =
+        serde_json::from_str(include_str!("call_carriers/closed_roots_inverse.json")).unwrap();
+    let stage = &later["successor_sources"][path];
+    assert_eq!(stage["current"]["length"], current.len());
+    assert_eq!(stage["current"]["sha256"], digest(current.as_bytes()));
+    let mut current = current.to_owned();
+    for edit in stage["edits"].as_array().unwrap().iter().rev() {
+        let start = edit["start"].as_u64().unwrap() as usize;
+        let end = edit["end"].as_u64().unwrap() as usize;
+        assert_eq!(&current[start..end], edit["after"].as_str().unwrap());
+        current.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
     assert_eq!(row["current"]["length"], current.len());
     assert_eq!(row["current"]["sha256"], digest(current.as_bytes()));
-    let mut before = current.to_owned();
+    let mut before = current;
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let start = edit["start"].as_u64().unwrap() as usize;
         let end = edit["end"].as_u64().unwrap() as usize;
@@ -1194,11 +1208,16 @@ fn census_scratch_whole_mode6_forecast_reports_net_and_honest_cold_loss() {
             if imported {
                 source.push_str("use function @id(\"remote\") from provider as remote;");
             }
-            for n in 0..count {
+            for n in 0..count.max(1) {
                 source.push_str(&format!("@id(\"f{n}\") fn f{n}()->i64{{{n}}} "));
             }
+            let mut consumer = crate::parse(&source, "reuse.spx").unwrap();
+            if count == 0 {
+                // Empty internal census data follows the parser's required function.
+                consumer.functions.clear();
+            }
             let programs = vec![
-                crate::parse(&source, "reuse.spx").unwrap(),
+                consumer,
                 crate::parse(
                     "module provider; @id(\"remote\") fn remote()->i64{1}",
                     "provider.spx",

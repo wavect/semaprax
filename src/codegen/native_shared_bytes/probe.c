@@ -234,6 +234,25 @@ PROBE_FN void geometry_refusals_preserve_source(void) {
     spx_shb_registry_finish(&reg);
 }
 
+/* Both physical metadata failures unwind preparation before fail-stop. */
+PROBE_FN void metadata_allocation_failure_releases_unpublished_preparation(void) {
+    for (size_t failed_request = 1u; failed_request <= 2u; ++failed_request) {
+        census_reset(); fresh(&reg);
+        spx_shb_copy(&reg, slice("hello!", 6u), &a);
+        metadata_pool.fail_at = failed_request;
+        EXPECT_STOP("partition metadata allocation failed", (void)spx_shb_partition_prepare(&reg, &a, 3u, 2u, &plan));
+        assert(!plan.armed && reg.child_held == 0u && reg.child_table_slots == 0u);
+        assert(metadata_pool.calls == failed_request && metadata_pool.live == 0u);
+        assert(metadata_pool.frees == failed_request - 1u);
+        assert(view_is(&a, "hello!", 6u) && payload_pool.live == 1u && payload_pool.frees == 0u);
+        assert(reg.events == 1u && reg.cumulative == 6u);
+        for (size_t i = 0u; i < SPX_SHB_VECS; ++i) assert(reg.vec[i].state == SPX_SHB_VEC_FREE);
+        spx_shb_drop(&reg, &a);
+        assert(payload_pool.frees == 1u);
+        spx_shb_registry_finish(&reg);
+    }
+}
+
 /* Empty input with any positive width, including the maximum, is a real
    zero-child success; the empty owner had a real lease. */
 PROBE_FN void empty_partition(void) {
@@ -485,6 +504,7 @@ int main(void) {
     hostile_carriers();
     child_partition_refused();
     geometry_refusals_preserve_source();
+    metadata_allocation_failure_releases_unpublished_preparation();
     empty_partition();
     metadata_exact_and_one_over();
     unchanged_quotas_and_plus_one();

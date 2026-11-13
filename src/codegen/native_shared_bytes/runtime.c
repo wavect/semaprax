@@ -673,7 +673,12 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
         rows = (spx_shb_stored *)SPX_SHB_METADATA_CALLOC((size_t)count, sizeof(spx_shb_stored));
         table = rows == NULL ? NULL
             : (spx_shb_lease *)SPX_SHB_METADATA_CALLOC((size_t)count, sizeof(spx_shb_lease));
-        if (table == NULL) SPX_SHB_FAIL_STOP("shared Bytes partition metadata allocation failed");
+        if (table == NULL) {
+            if (rows != NULL) SPX_SHB_METADATA_FREE(rows);
+            registry->child_held -= count;
+            registry->vec[authority - 1u] = (spx_shb_vec_entry){0};
+            SPX_SHB_FAIL_STOP("shared Bytes partition metadata allocation failed");
+        }
     }
     *plan = (spx_shb_partition_plan){ .registry = registry, .rows = rows, .table = table,
         .source = *source, .count = count, .width = width, .authority = authority, .armed = 1u };

@@ -75,8 +75,11 @@ mapping remains required on interpreter, native and selected Core-Wasm;
 no backend may invent a local code or reuse an unrelated arithmetic code.
 
 Physical allocator exhaustion is distinct from semantic capacity refusal.
-Under the current byte contract it remains invariant fail-stop. A recoverable
-physical-metadata allocation domain would require a separately accepted checked
+Under the current byte contract it remains invariant fail-stop. The native
+receiver releases the unpublished Vec reservation and any allocated rows before
+fail-stop if either metadata allocation fails. Its probe injects each failure
+and checks that the original owner and payload counters remain intact.
+A recoverable physical-metadata allocation domain would require a separately accepted checked
 allocator contract, failure-before-publication implementation and physical
 fault gates. Neither fuel exhaustion nor a logical counter proves physical OOM.
 Forged/stale/foreign leases are boundary rejection or invariant failure, according

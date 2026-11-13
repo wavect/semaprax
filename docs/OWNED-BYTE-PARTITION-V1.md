@@ -222,9 +222,11 @@ result publication and reentry. The operation tests exercised geometry and
 diagnostic precedence, operand mutations and sticky work refusal.
 
 These cases establish the private execution contours described below. A single
-common source exercising the full ownership and failure matrix across all
-receivers, ordinary graph/cache replay and the public copy-out bridge remain
-qualification requirements.
+fixture, `tests/fixtures/byte-partition-private.spx`, is now shared by the three
+private receiver harnesses for a 4,096-child result and all four geometry
+faults. Executable qualification of the shared cases is pending. The full
+shared ownership matrix, ordinary graph/cache replay and the public copy-out
+bridge remain qualification requirements.
 
 ## Separate construction-fusion obligation
 

@@ -12,6 +12,7 @@ const SOURCE: &str = r#"module partition_wasm;
  if vec_len<Bytes>(values)==4096usize {7}else{0}
 }
 "#;
+const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 
 fn emitted(source: &str) -> PartitionModule {
     let ast = crate::parse(source, "partition_wasm.spx").unwrap();
@@ -40,7 +41,11 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         "if vec_len<Bytes>(values)==4096usize {7}else{0}",
         "let mut seen=0; for own item in vec_into_iter<Bytes>(values) { let view=bytes_as_slice(item); if byte_len(view)==16usize {seen=seen+1;0}else{seen=0;0} } seen",
     );
-    for (source, expected) in [(SOURCE, "7"), (iterator.as_str(), "4096")] {
+    for (source, expected) in [
+        (SOURCE, "7"),
+        (iterator.as_str(), "4096"),
+        (SHARED_SOURCE, "4096"),
+    ] {
         let module = emitted(source);
         if node_available() {
             let entry = module.entry_source();
@@ -59,24 +64,27 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
 
 #[test]
 fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_reentry() {
-    for (source, code) in [
-        (SOURCE.replace("4096usize,16usize", "4096usize,0usize"), 1),
-        (
-            SOURCE.replace("4096usize,16usize", "18446744073709551615usize,2usize"),
-            2,
-        ),
-        (SOURCE.replace("4096usize,16usize", "4095usize,16usize"), 3),
-        (SOURCE.replace("4096usize,16usize", "65536usize,1usize"), 4),
+    for (fixture, operands) in [
+        (SOURCE, "4096usize,16usize"),
+        (SHARED_SOURCE, "4096usize, 16usize"),
     ] {
-        let module = emitted(&source);
-        if node_available() {
-            let entry = module.entry_source();
-            let directory = stage(&[
-                ("entry.mjs", entry.as_bytes()),
-                ("entry-test.mjs", ENTRY_TEST.as_bytes()),
-            ]);
-            assert!(run_node(&directory, "entry-test.mjs", &[&code.to_string()])
-                .contains("partition-entry-ok"));
+        for (replacement, code) in [
+            ("4096usize, 0usize", 1),
+            ("18446744073709551615usize, 2usize", 2),
+            ("4095usize, 16usize", 3),
+            ("65536usize, 1usize", 4),
+        ] {
+            let source = fixture.replace(operands, replacement);
+            let module = emitted(&source);
+            if node_available() {
+                let entry = module.entry_source();
+                let directory = stage(&[
+                    ("entry.mjs", entry.as_bytes()),
+                    ("entry-test.mjs", ENTRY_TEST.as_bytes()),
+                ]);
+                assert!(run_node(&directory, "entry-test.mjs", &[&code.to_string()])
+                    .contains("partition-entry-ok"));
+            }
         }
     }
 }

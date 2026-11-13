@@ -3,6 +3,9 @@ use super::{execute, verify_partition_fault_cleanup, Account, Outcome};
 use crate::cleanup_plan::{ExitContinuation, StatusLane};
 use crate::construction_fusion::{domain::Refusal, partition::Fault};
 use crate::hir::byte_partition::ValidatedPartitionProgram;
+
+const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
+
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
         r#"module partition_direct;
@@ -16,8 +19,12 @@ fn source(extent: u64, count: u64, width: u64) -> String {
 }
 #[test]
 fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
-    for (extent, count, width) in [(12288, 4096, 3), (3, 1, 3), (0, 0, u64::MAX)] {
-        let text = source(extent, count, width);
+    for (text, extent, count) in [
+        (source(12288, 4096, 3), 12288, 4096),
+        (source(3, 1, 3), 3, 1),
+        (source(0, 0, u64::MAX), 0, 0),
+        (SHARED_SOURCE.to_owned(), 65_536, 4096),
+    ] {
         assert!(crate::check(&text, "partition-direct.spx").is_err());
         let ast = crate::parse(&text, "partition-direct.spx").unwrap();
         let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
@@ -40,13 +47,15 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
 }
 #[test]
 fn semantic_faults_settle_the_original_staged_owner_and_preserve_status() {
-    for (extent, count, width, fault) in [
-        (3, 1, 0, Fault::WidthZero),
-        (3, u64::MAX, 2, Fault::ExtentOverflow),
-        (3, 2, 2, Fault::ExtentMismatch),
-        (65_536, 65_536, 1, Fault::MetadataCapacity),
+    for (count, width, fault) in [
+        (4096, 0, Fault::WidthZero),
+        (u64::MAX, 2, Fault::ExtentOverflow),
+        (4095, 16, Fault::ExtentMismatch),
+        (65_536, 1, Fault::MetadataCapacity),
     ] {
-        let ast = crate::parse(&source(extent, count, width), "partition-fault.spx").unwrap();
+        let shared =
+            SHARED_SOURCE.replace("4096usize, 16usize", &format!("{count}usize, {width}usize"));
+        let ast = crate::parse(&shared, "partition-fault.spx").unwrap();
         let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
         let (mut allocations, mut payload) = (0, 0);
         let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
@@ -59,10 +68,10 @@ fn semantic_faults_settle_the_original_staged_owner_and_preserve_status() {
             assert!(report.cleanup_complete);
             assert_eq!(
                 (report.allocations, report.payload),
-                (invocation, extent * u64::from(invocation))
+                (invocation, 65_536 * u64::from(invocation))
             );
             assert!(!metrics.invalid);
-            assert!(metrics.allocated >= extent as usize);
+            assert!(metrics.allocated >= 65_536);
             assert_eq!(metrics.live, 0);
             assert_eq!(metrics.allocated, metrics.freed);
         }

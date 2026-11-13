@@ -11,6 +11,7 @@ const SOURCE: &str = r#"module partition_native;
  if vec_len<Bytes>(values)==4096usize {7}else{0}
 }
 "#;
+const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 fn source(text: &str) -> String {
     let ast = crate::parse(text, "partition_native.spx").unwrap();
     assert!(crate::check(text, "partition_native.spx").is_err());
@@ -44,25 +45,28 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
     assert!(emitted.contains("spx_shb_partition_commit(spx_shb_held(spx_ctx)"));
     assert!(emitted.contains("#define spx_bytes_drop(value) spx_shb_drop"));
     assert!(emitted.contains("spx_shb_detach(&context);"));
-    let root = scratch("source-original-4096");
-    compile_and_run(
-        &root,
-        &format!(
-            "#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{}",
-            r#"
-int main(void) {
-    for (uint32_t i = 0; i < 3u; ++i) {
+    for (unit, expected) in [(emitted, 7), (source(SHARED_SOURCE), 4096)] {
+        let root = scratch("source-4096");
+        compile_and_run(
+            &root,
+            &format!(
+                r#"
+#define SPX_NO_ENTRY_WRAPPER
+{unit}
+int main(void) {{
+    for (uint32_t i = 0; i < 3u; ++i) {{
         int64_t result = INT64_C(-999); const char *domain = NULL; uint32_t code = 0u;
-        if (spx_partition_run(&result, &domain, &code) != 0u || result != INT64_C(7)) return 1;
+        if (spx_partition_run(&result, &domain, &code) != 0u || result != INT64_C({expected})) return 1;
         if (domain != NULL || code != 0u) return 2;
-    }
+    }}
     return 0;
-}
+}}
 "#
-        ),
-        &[],
-    );
-    std::fs::remove_dir_all(root).unwrap();
+            ),
+            &[],
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
     // Genuine consuming iteration stays closed until its exact IterStep ABI
     // joins; an old two-word owned payload cannot leak into this unit.
     let iterator = SOURCE.replace("if vec_len<Bytes>(values)==4096usize {7}else{0}",
@@ -84,11 +88,15 @@ fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup
         (("4095", "16"), STATUS_CODES[2]),
         (("65536", "1"), STATUS_CODES[3]),
     ] {
-        let text = SOURCE.replace("4096usize,16usize", &format!("{count}usize,{width}usize"));
-        let emitted = source(&text);
-        let root = scratch("source-operation-failure");
-        let probe = format!(
-            r#"
+        for (fixture, operands) in [
+            (SOURCE, "4096usize,16usize"),
+            (SHARED_SOURCE, "4096usize, 16usize"),
+        ] {
+            let text = fixture.replace(operands, &format!("{count}usize, {width}usize"));
+            let emitted = source(&text);
+            let root = scratch("source-operation-failure");
+            let probe = format!(
+                r#"
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
         int64_t result = INT64_C(-999); const char *domain = NULL; uint32_t code = 0u;
@@ -98,12 +106,13 @@ int main(void) {{
     return 0;
 }}
 "#
-        );
-        compile_and_run(
-            &root,
-            &format!("#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
-            &[],
-        );
-        std::fs::remove_dir_all(root).unwrap();
+            );
+            compile_and_run(
+                &root,
+                &format!("#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
+                &[],
+            );
+            std::fs::remove_dir_all(root).unwrap();
+        }
     }
 }

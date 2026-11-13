@@ -1,0 +1,13 @@
+diff --git a/src/project/reporting.rs b/src/project/reporting.rs
+index 6dd892686..d701264e0 100644
+--- a/src/project/reporting.rs
++++ b/src/project/reporting.rs
+@@ -15,7 +15,7 @@ pub fn with_authenticated_project_reporting<T>(
+     #[cfg(test)]
+     let builder_limit = TEST_PROJECT_LIMIT.with(std::cell::Cell::get);
+     #[cfg(not(test))]
+-    let builder_limit = workspace_graph::MAX_BUILDER_BYTES;
++    let builder_limit = 64 * 1024 * 1024;
+     let loaded = snapshot_building::load_snapshot_building_with_controls(
+         manifest_path,
+         ProjectHostAccess::Generic,

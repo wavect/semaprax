@@ -1,0 +1,43 @@
+use semaprax::workflow_profile::plan_comparison::{Binding, Build, Capture, Site};
+use sha2::{Digest, Sha256};
+use std::path::Path;
+
+fn main() {
+    let manifest = std::env::args().nth(1).expect("manifest path");
+    let source = std::fs::read(&manifest).expect("manifest bytes");
+    let capture = Capture::begin(Binding::caller_labelled(&manifest, Sha256::digest(&source).into()))
+        .expect("isolated production census");
+    let outcome = semaprax::project::with_authenticated_project_reporting(
+        Path::new(&manifest), |snapshot| snapshot.check(), |diagnostics| diagnostics,
+    );
+    let report = capture.finish().expect("all comparison owners dropped");
+    assert_eq!(report.build, Build::InstrumentedProductionAlgorithm);
+    assert!(report.counts_complete && !report.overflow);
+    assert_eq!(report.counts.started, report.counts.ended);
+    let sites = [
+        Site::PairPrepared, Site::Round, Site::CertifiedBaseAdmitted,
+        Site::CertifiedPopAdmitted, Site::CertifiedRhsAdmitted,
+        Site::CertifiedViewAdmitted, Site::CertifiedHeadAdmitted,
+        Site::CertifiedFirstAdmitted, Site::ScalarCaptureAdmitted,
+        Site::ScalarPublishAdmitted,
+    ];
+    println!("subject={manifest} success={} rows={} detail_complete={} started={} succeeded={}",
+        outcome.is_ok(), report.row_count, report.detail_complete,
+        report.counts.started, report.counts.succeeded);
+    for site in sites {
+        println!("{site:?} count={} admitted_bytes={}", report.counts.at(site), report.counts.admitted_bytes[site as usize]);
+    }
+    if let Err(failure) = outcome {
+        if let Some(errors) = failure.reported() {
+            for error in errors {
+                println!("{}", error.json());
+            }
+        } else {
+            println!("no materialized diagnostic: {failure:?}");
+        }
+    }
+    for attempt in &report.resolved_core.attempts[..report.resolved_core.stored_attempts] {
+        println!("core ordinal={} mode={} initial={} consumed={} refused={} outcome={:?}",
+            attempt.ordinal, attempt.mode, attempt.initial, attempt.consumed, attempt.refused, attempt.outcome);
+    }
+}

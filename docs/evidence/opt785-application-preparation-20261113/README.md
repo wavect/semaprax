@@ -15,3 +15,11 @@ The samples cover preparation and teardown through refusal. Successful applicati
 To reproduce, use separate checkouts of the two recorded revisions and apply the supplied patch only in the after checkout. Build the library in each checkout with the same arguments and profile in `observations.json`. Copy the probe to a `.rs` path and link it against each checkout's `libsemaprax.rlib` with the corresponding `target/debug/deps` and native build output search paths. Pass the same original `semaprax.toml` path to both binaries and alternate arms. The receipt records the manifest and application tree digests, probe and binary SHA-256 hashes, and each sample's stdout hash, allocation tuple, and elapsed time.
 
 [Observations](observations.json) · [Probe source](project-allocation-probe.rs.txt) · [After-arm build patch](scoped-task-compile-fix.patch)
+
+## Current compiler application checks
+
+The production Project reporting route admitted Catalog, ShiftSim, and Catalog Normalizer at the shipping 128 MiB limit on `7ba538cc2`. At the original 64 MiB limit, an isolated build of `0a68f5420` changed only the limit supplied to that same reporting route. Catalog completed with 48,615,173 bytes of cumulative core reservations. ShiftSim refused during live construction after reserving 67,104,702 bytes. Normalizer refused during static admission before entering a resolved-core attempt.
+
+The current checks use the existing compiler profiling feature and exercise Project preparation and `snapshot.check()`. The results give per-attempt reservations where construction ran. The historical allocator observations above cover a different pair of builds and cannot be compared to these reservations as allocation or peak measurements.
+
+[Builder receipts](current-builder-limits.json) · [Project probe](current-project-probe.rs.txt) · [64 MiB build patch](current-builder-limit.patch)

@@ -1,0 +1,155 @@
+{
+  "64": {
+    "source_revision": "0a68f5420260999ef7e57a1a3641e41a69a95a4a",
+    "builder_limit_bytes": 67108864,
+    "probe_binary_sha256": "5027de6bb5cb05b841f26ea05f90bf7af935b7fc5d9d01842cb0be5562e056e2",
+    "applications": {
+      "catalog-scoped-record-successor": {
+        "manifest_sha256": "c15feec1da17ac38de0ed8c5543ab351b6e12c6a4b1ce8b32e26dad0159a0622",
+        "log_sha256": "14852b5ea3e4c6395fb6b88ee028ff53494237dc761730238577a808463f3cb6",
+        "success": true,
+        "comparison_rows": 63,
+        "detail_complete": true,
+        "started": 63,
+        "succeeded": 63,
+        "resolved_core_attempts": [
+          {
+            "ordinal": 0,
+            "mode": 1,
+            "initial": 67108864,
+            "consumed": 48615173,
+            "refused": false,
+            "outcome": "Succeeded"
+          }
+        ],
+        "diagnostics": []
+      },
+      "shiftsim-typed-record-successor": {
+        "manifest_sha256": "93d427d4e525d5a70386cd80ef7dc7459b6a78f1595111bcffc7a1474eb99e30",
+        "log_sha256": "442a095ec9b950234ff4c39506a5be4e1ccc9edc26da829c04e596e6deb4356f",
+        "success": false,
+        "comparison_rows": 0,
+        "detail_complete": true,
+        "started": 0,
+        "succeeded": 0,
+        "resolved_core_attempts": [
+          {
+            "ordinal": 0,
+            "mode": 1,
+            "initial": 67108864,
+            "consumed": 67104702,
+            "refused": true,
+            "outcome": "Refused"
+          }
+        ],
+        "diagnostics": [
+          {
+            "code": "SPX-G171",
+            "severity": "error",
+            "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            "path": null,
+            "location": null,
+            "help": "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 66704189 bytes for 16 module(s) and fit within 67108864, with `src/schedule.spx` the largest at 28870634 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 8576 bytes with 4162 remaining and 0 reserved floor. Authenticated internal stage: resolved core construction. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."
+          }
+        ]
+      },
+      "catalog-normalizer-project": {
+        "manifest_sha256": "28e7c26ad40de74b2945c12b7f02ef42eb53ad2d753338b47b56453a23591619",
+        "log_sha256": "3726ab307191a8863a27a295b80e0fd731b6b735d9659f40fedf23a6fdf638e8",
+        "success": false,
+        "comparison_rows": 0,
+        "detail_complete": true,
+        "started": 0,
+        "succeeded": 0,
+        "resolved_core_attempts": [],
+        "diagnostics": [
+          {
+            "code": "SPX-G171",
+            "severity": "error",
+            "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            "path": null,
+            "location": null,
+            "help": "the static admission pre-charge refused before the graph builder ran, in its final sequential uncached forecast: 6 earlier module(s) retain 66248903 bytes of filtered output, and resolving `dependencies/std.data.ndjson/0.1.0/ndjson.spx` adds its complete 873483-byte forecast, which exceeds the 67108864-byte budget. Each complete module forecast is charged only while that module resolves; reducing the admitted source of `dependencies/std.data.ndjson/0.1.0/ndjson.spx` or the output retained by earlier modules can reduce this peak."
+          }
+        ]
+      }
+    },
+    "source_patch_sha256": "4b199659464add4226a06153fc7d9da67c74c6ded1ed815618e435c725d73d5d"
+  },
+  "128": {
+    "source_revision": "7ba538cc2bf4eca72678eaea766591c205a2d294",
+    "builder_limit_bytes": 134217728,
+    "probe_binary_sha256": "e80a852accb3e65640b6ca797b6330ad1ed8fb4aa22c0a808720a5b7ebaecfff",
+    "applications": {
+      "catalog-scoped-record-successor": {
+        "manifest_sha256": "c15feec1da17ac38de0ed8c5543ab351b6e12c6a4b1ce8b32e26dad0159a0622",
+        "log_sha256": "ff955f209f662fc284103588b94ea25721de6584b2bb9bd568b5c46a7650a11e",
+        "success": true,
+        "comparison_rows": 63,
+        "detail_complete": true,
+        "started": 63,
+        "succeeded": 63,
+        "resolved_core_attempts": [
+          {
+            "ordinal": 0,
+            "mode": 1,
+            "initial": 134217728,
+            "consumed": 48615173,
+            "refused": false,
+            "outcome": "Succeeded"
+          }
+        ],
+        "diagnostics": []
+      },
+      "shiftsim-typed-record-successor": {
+        "manifest_sha256": "93d427d4e525d5a70386cd80ef7dc7459b6a78f1595111bcffc7a1474eb99e30",
+        "log_sha256": "7d4fd93acba67eadc8d0faba415adfc458a17d649401caa7c332bfe978cb83f0",
+        "success": true,
+        "comparison_rows": 73,
+        "detail_complete": true,
+        "started": 73,
+        "succeeded": 73,
+        "resolved_core_attempts": [
+          {
+            "ordinal": 0,
+            "mode": 1,
+            "initial": 134217728,
+            "consumed": 80306854,
+            "refused": false,
+            "outcome": "Succeeded"
+          }
+        ],
+        "diagnostics": []
+      },
+      "catalog-normalizer-project": {
+        "manifest_sha256": "28e7c26ad40de74b2945c12b7f02ef42eb53ad2d753338b47b56453a23591619",
+        "log_sha256": "b6e269f1a56af6ea4558f7465a442964f21572dbbac8808c521ae117fff6a2d3",
+        "success": true,
+        "comparison_rows": 128,
+        "detail_complete": false,
+        "started": 634,
+        "succeeded": 634,
+        "resolved_core_attempts": [
+          {
+            "ordinal": 0,
+            "mode": 1,
+            "initial": 134217728,
+            "consumed": 134217677,
+            "refused": true,
+            "outcome": "Refused"
+          },
+          {
+            "ordinal": 1,
+            "mode": 2,
+            "initial": 134217728,
+            "consumed": 107370270,
+            "refused": false,
+            "outcome": "Succeeded"
+          }
+        ],
+        "diagnostics": []
+      }
+    }
+  },
+  "probe_source_sha256": "e519973c500eb3ae4784b255e56a64d9b675028e529d84301d824e83ad8f3385"
+}

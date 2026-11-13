@@ -5,6 +5,8 @@ import fs from "node:fs";
 import { createPrivateOrdinaryByteHost } from "./host.mjs";
 
 const [modulePath, expectedText, mode = "plain"] = process.argv.slice(2);
+// Partition tests may add managed peak, backing events, and cumulative payload.
+const [expectedEvents, expectedPayload] = process.argv.slice(6).map(Number);
 if (mode !== "plain" && mode !== "lease") throw new Error(`unknown mode ${mode}`);
 const expectedStatus = expectedText.startsWith("status:") ? Number(expectedText.slice(7)) : 0;
 const expected = expectedStatus === 0 ? BigInt(expectedText) : null;
@@ -41,6 +43,9 @@ for (let run = 0; run < 4; run += 1) {
   if (stats.entries !== 0 || stats.vectors !== 0 || stats.iterators !== 0 || stats.boxes !== 0
       || stats.liveLeases !== 0 || stats.liveBackings !== 0) {
     throw new Error(`ordinary settlement ${JSON.stringify(stats)}`);
+  }
+  if (expectedEvents !== undefined && (stats.events !== expectedEvents || stats.payload !== expectedPayload)) {
+    throw new Error(`ordinary backing account ${JSON.stringify(stats)}`);
   }
   host.facade.audit();
   host.facade.endInvocation(receipt);

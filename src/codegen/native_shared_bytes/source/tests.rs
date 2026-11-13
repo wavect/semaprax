@@ -18,6 +18,24 @@ const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-repeated.spx");
+const PAYLOAD_CENSUS: &str = r#"
+#include <stdlib.h>
+static size_t payload_allocations;
+static size_t payload_frees;
+static size_t payload_bytes;
+static void *count_payload(size_t count, size_t size) {
+    ++payload_allocations;
+    payload_bytes += count * size;
+    return calloc(count, size);
+}
+static void release_payload(void *payload) {
+    ++payload_frees;
+    free(payload);
+}
+#define SPX_SHB_PAYLOAD_CALLOC count_payload
+#define SPX_SHB_PAYLOAD_FREE release_payload
+"#;
+
 fn source(text: &str) -> String {
     let ast = crate::parse(text, "partition_native.spx").unwrap();
     assert!(crate::check(text, "partition_native.spx").is_err());
@@ -51,25 +69,28 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
     assert!(emitted.contains("spx_shb_partition_commit(spx_shb_held(spx_ctx)"));
     assert!(emitted.contains("#define spx_bytes_drop(value) spx_shb_drop"));
     assert!(emitted.contains("spx_shb_detach(&context);"));
-    for (unit, expected) in [
-        (emitted, 7),
-        (source(SHARED_SOURCE), 4096),
-        (source(EMPTY_SOURCE), 0),
-        (source(CAPACITY_SOURCE), 8192),
-        (source(REPEATED_SOURCE), 8193),
+    for (unit, expected, allocations, bytes) in [
+        (emitted, 7, 1, 65536),
+        (source(SHARED_SOURCE), 4096, 1, 65536),
+        (source(EMPTY_SOURCE), 0, 0, 0),
+        (source(CAPACITY_SOURCE), 8192, 1, 8192),
+        (source(REPEATED_SOURCE), 8193, 2, 8193),
     ] {
         let root = scratch("source-partition");
         compile_and_run(
             &root,
             &format!(
                 r#"
-#define SPX_NO_ENTRY_WRAPPER
+{PAYLOAD_CENSUS}#define SPX_NO_ENTRY_WRAPPER
 {unit}
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
         int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
         if (spx_partition_run(&result, &domain, &code) != 0u || result != INT64_C({expected})) return 1;
         if (strcmp(domain, "unpublished") != 0 || code != 0u) return 2;
+        size_t runs = (size_t)i + 1u;
+        if (payload_allocations != runs * {allocations}u || payload_frees != payload_allocations
+            || payload_bytes != runs * {bytes}u) return 3;
     }}
     return 0;
 }}
@@ -151,20 +172,7 @@ fn native_bounded_producer_keeps_its_exact_status_before_partition() {
             &root,
             &format!(
                 r#"
-#include <stdlib.h>
-static size_t payload_allocations;
-static size_t payload_frees;
-static void *count_payload(size_t count, size_t size) {{
-    ++payload_allocations;
-    return calloc(count, size);
-}}
-static void release_payload(void *payload) {{
-    ++payload_frees;
-    free(payload);
-}}
-#define SPX_SHB_PAYLOAD_CALLOC count_payload
-#define SPX_SHB_PAYLOAD_FREE release_payload
-#define SPX_NO_ENTRY_WRAPPER
+{PAYLOAD_CENSUS}#define SPX_NO_ENTRY_WRAPPER
 {unit}
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
@@ -177,7 +185,8 @@ int main(void) {{
             if (strcmp(domain, "semaprax.byte-buffer.v1") != 0) return 3;
         }}
         size_t allocations = {expected}u == 0u ? (size_t)i + 1u : 0u;
-        if (payload_allocations != allocations || payload_frees != allocations) return 4;
+        if (payload_allocations != allocations || payload_frees != allocations
+            || payload_bytes != allocations * 65536u) return 4;
     }}
     return 0;
 }}

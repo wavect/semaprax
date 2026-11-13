@@ -47,13 +47,13 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         "if vec_len<Bytes>(values)==4096usize {7}else{0}",
         "let mut seen=0; for own item in vec_into_iter<Bytes>(values) { let view=bytes_as_slice(item); if byte_len(view)==16usize {seen=seen+1;0}else{seen=0;0} } seen",
     );
-    for (source, expected, payload) in [
-        (SOURCE, "7", "65536"),
-        (iterator.as_str(), "4096", "65536"),
-        (SHARED_SOURCE, "4096", "65536"),
-        (EMPTY_SOURCE, "0", "0"),
-        (CAPACITY_SOURCE, "8192", "8192"),
-        (REPEATED_SOURCE, "8193", "8192"),
+    for (source, expected, peak_payload, events, cumulative_payload) in [
+        (SOURCE, "7", "65536", "1", "65536"),
+        (iterator.as_str(), "4096", "65536", "1", "65536"),
+        (SHARED_SOURCE, "4096", "65536", "1", "65536"),
+        (EMPTY_SOURCE, "0", "0", "1", "0"),
+        (CAPACITY_SOURCE, "8192", "8192", "1", "8192"),
+        (REPEATED_SOURCE, "8193", "8192", "2", "8193"),
     ] {
         let module = emitted(source);
         if node_available() {
@@ -67,7 +67,14 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
             let stdout = run_node(
                 &directory,
                 "ordinary.mjs",
-                &["app.wasm", expected, "plain", payload],
+                &[
+                    "app.wasm",
+                    expected,
+                    "plain",
+                    peak_payload,
+                    events,
+                    cumulative_payload,
+                ],
             );
             assert!(stdout.contains("shared-owner-ordinary-ok"));
             assert!(stdout.contains("partition-paired-success-ok"));

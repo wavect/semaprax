@@ -507,7 +507,9 @@ fn neutral_task_examples_pass_ordinary_project_checks_and_independent_codec_plan
             );
         }
 
-        let directory = std::env::temp_dir().join(format!(
+        // Project admission refuses symlink ancestors, including macOS /var.
+        let temporary_parent = std::env::temp_dir().canonicalize().unwrap();
+        let directory = temporary_parent.join(format!(
             "semaprax-neutral-task-{}-{}",
             std::process::id(),
             SERIAL.fetch_add(1, Ordering::Relaxed)

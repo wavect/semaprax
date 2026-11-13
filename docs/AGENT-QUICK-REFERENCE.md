@@ -570,13 +570,11 @@ See `help language author:static-utf8` and the
 Use `string_format` for literal templates: `"id={}"`. See
 `help language author:literal-format` for fields, scope and pending gates.
 
-String parameters own their input implicitly: `text: string` transfers ownership;
-`text: own string` is `SPX-O002`.
-Read-only helpers take `text: borrow str`; pass `string_as_str(text)` before consumption.
-Compute other arguments that use the owner before borrowing it: write
-`let length = string_len(text); helper(string_as_str(text), length)`.
-An owning read such as `string_len(text)` later in that same argument list
-overlaps the active view and triggers `SPX-H006`.
+`text: string` transfers ownership. `text: own string` triggers `SPX-O002`.
+Pass `string_as_str(text)` to `text: borrow str` before consuming `text`.
+Compute owning reads before borrowing. In
+`helper(string_as_str(text), string_len(text))`, the later read overlaps the
+view (`SPX-H006`). Bind `string_len(text)` to `length` before the call.
 
 ```semaprax
 module app.bytes;
@@ -610,14 +608,12 @@ fn main() -> i64
 }
 ```
 
-- `string_concat` results are owned. `string_as_str` borrows a plain `let`
-  binding; literals and calls are `SPX-T266`. Pass its view to `borrow str` or
-  `str_as_bytes`.
-- `string_take(name)` explicitly forwards a live named owned String and retires
-  that binding; ordinary owning reads still clone. End overlapping views first.
-  Computed/projected values and contracts are refused.
-  See [named String transfer](OWNED-STRING-TRANSFER-V1.md) and
-  `help language author:string-take`; owning qualification is pending.
+- `string_concat` returns an owner. `string_as_str` borrows a plain `let`
+  binding for `borrow str` or `str_as_bytes`. Literals and calls trigger `SPX-T266`.
+- `string_take(name)` transfers and retires a live named String after overlapping
+  views end. Owning reads clone. Computed/projected operands and contracts refuse.
+  Qualification is pending. See [named String transfer](OWNED-STRING-TRANSFER-V1.md)
+  and `help language author:string-take`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
 - `string_from_utf8(input: borrow Slice<u8>) -> string` (`core.string.from_utf8`)
@@ -680,10 +676,9 @@ fn main() -> i64
   `process.stdout.write` selects transcripts (above: `banana!0`). Args/file/stderr
   effects select the CLI route; `stdin_read` needs native `useful-data-command.v1`.
 - Network and filesystem calls require exact capabilities and an injected
-  provider. See `help language detail:io` for complete I/O rules.
-
-- Interpreter/native recursion caps at 256 frames: overflow reports runtime
-  capacity without language status/process signal. Raw Wasm traps at its engine stack limit.
+  provider. I/O rules are in `help language detail:io`.
+- Interpreter and native recursion stop at 256 frames with a capacity report
+  without a language status or signal. Raw Wasm traps at its engine stack limit.
 
 ## Compiler-owned functions
 

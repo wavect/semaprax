@@ -1,7 +1,7 @@
 # CLI Help v6: checked task/profile pages
 
-Status: source implementation; focused executable qualification and #722's
-matched live-agent experiment remain pending.
+Status: local task-page checks and offline discovery replay completed. #722's
+matched live-agent experiment remains pending.
 
 Audience: CLI users, coding agents, and compiler contributors.
 
@@ -79,7 +79,7 @@ malformed/profile-target refusal and inert empty-directory execution. The new
 unit owners cover complete descriptor derivation, all imported rows, stale IDs,
 whole repeated capsules, exact/one-short/one-extra byte bounds and empty subsets.
 Existing help/search/catalog/scaffold gates remain required; no new top-level
-test binary is introduced. No gate was executed during source authoring.
+test binary is introduced. See the local results below.
 
 Correctness does not close #722: latest-baseline discovery replay and at least
 five fresh trials per arm with identical prompts/model/settings and unchanged
@@ -117,8 +117,9 @@ fields with the internal retained fixture, derives the actual bundled dependency
 closure and checks neutral sources through ordinary parsing/HIR. The existing
 full historical starter admission owner remains independent. A separate owning
 control checks both neutral Projects, derives the generic plan and independently
-replays the complete ordinary codec candidate. All checks are authored and remain
-pending until executed; no application or backend qualification is implied.
+replays the complete ordinary codec candidate. Both neutral Projects and the
+independent plan replay passed locally. Runnable application qualification
+remains separate.
 
 ## Generic selected-file task
 
@@ -139,3 +140,37 @@ continuation and all-identity validation precede pagination; help stays inert.
 The v1 file-text scaffold, v33 profile and existing full/card/library routes stay
 unchanged. Actual selected-file application qualification remains a separate
 gate, as do the five fresh trials per arm required by #722.
+
+## Local discovery replay
+
+The macOS arm64 `semaprax` and `semaprax-full` builds from `c28cc4432`
+returned identical, deterministic stdout for each command below. Both CLI
+harnesses passed all three task-page checks. The neutral Project admission
+and codec replay also passed with a canonical temporary parent, which avoids
+the macOS `/var` symlink while preserving Project's symlink refusal.
+
+| Help command or route | Responses | Total UTF-8 stdout bytes |
+| --- | ---: | ---: |
+| `help language` | 1 | 1,580 |
+| `help language all` | 1 | 82,160 |
+| `help library` | 1 | 925 |
+| `help library all` | 1 | 259,193 |
+| `help language author:routes` | 1 | 2,039 |
+| `help language author:tasks` | 1 | 673 |
+| Selected-file task, all continuation pages | 3 | 5,263 |
+| Paired stdin JSON task, all continuation pages | 44 | 78,536 |
+
+The selected-file first page is 1,622 bytes and gives the invocation prefix,
+capabilities, bounds and manifest. The paired JSON first page is 1,654 bytes
+and gives the plan installation, check, native test, build and run commands.
+The full JSON sequence requires 44 requests when followed exhaustively. Every
+page was at most 2,048 bytes. Each binary was run twice per command in an
+empty directory, which remained empty. The binaries' SHA-256 digests were
+`de70b5ec8e087ec4e718e6ecd14d26a873a3721cb7c309ee70fdf97528754e08`
+for `semaprax` and
+`f12a5d60d6efe4065c9ad6885eb75d438aa8d521db18e0a8bb08b320f47e5f26`
+for `semaprax-full`.
+
+This replay compares local command output for the discovery questions.
+Actual delivered tool responses, model requests, turns, usage, billing and
+task acceptance still require the matched LogLens and ShiftSim trials.

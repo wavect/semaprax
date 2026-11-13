@@ -62,6 +62,10 @@ impl<'owner, 'source> Projection<'owner, 'source> {
                 closure::Consumer::VecCapacity,
                 closure::Consumer::VecMove,
                 closure::Consumer::VecDrop,
+                closure::Consumer::View,
+                closure::Consumer::IterFromVec,
+                closure::Consumer::IterNext,
+                closure::Consumer::IterDrop,
             ])?;
             Ok(Self { owner, selection })
         })();
@@ -83,6 +87,7 @@ impl<'owner, 'source> Projection<'owner, 'source> {
         // Deliberate C profile bindings, not a rewrite of generated cleanup.
         // Ordinary runtime definitions above retain their original public ABI.
         output.push_str(include_str!("source/bindings.c"));
+        crate::codegen::native_emit::emit_partition_iterator_bindings(output);
     }
     pub(in crate::codegen) fn emit_entry(&self, output: &mut impl COutput, symbol: &str) {
         output.push_str(&include_str!("source/entry.c").replace("$ENTRY", symbol));
@@ -117,12 +122,15 @@ fn admitted_type(ty: &ResolvedType, work: &mut usize) -> Result<(), Diagnostic> 
         | ResolvedType::Bool
         | ResolvedType::U8
         | ResolvedType::Usize
-        | ResolvedType::Bytes => Ok(()),
+        | ResolvedType::Bytes
+        | ResolvedType::SliceU8 => Ok(()),
         ResolvedType::Nominal {
             declaration,
             arguments,
-        } if equal(declaration.as_str(), "core.vec", work)?
-            && arguments == &[ResolvedType::Bytes] =>
+        } if arguments == &[ResolvedType::Bytes]
+            && (equal(declaration.as_str(), crate::prelude::VEC_ID, work)?
+                || equal(declaration.as_str(), crate::iterator_ops::ITER_ID, work)?
+                || equal(declaration.as_str(), crate::iterator_ops::STEP_ID, work)?) =>
         {
             Ok(())
         }
@@ -171,6 +179,7 @@ fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> 
                         crate::byte_ops::ByteOp::Zeroed
                             | crate::byte_ops::ByteOp::ZeroedBounded
                             | crate::byte_ops::ByteOp::Partition
+                            | crate::byte_ops::ByteOp::Len
                     ) {
                         Ok(())
                     } else {
@@ -207,7 +216,13 @@ fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> 
             }
             Ok(())
         }
-        ResolvedExprKind::Int(_)
+        ResolvedExprKind::BorrowPlace { operation, .. }
+            if equal(operation.as_str(), crate::byte_ops::BYTES_AS_SLICE_ID, work)? =>
+        {
+            Ok(())
+        }
+        ResolvedExprKind::Match { .. }
+        | ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Uint8(_)

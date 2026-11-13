@@ -85,6 +85,27 @@ pub use network_io::{emit_c_with_network_io, emit_hir_c_with_network_io};
 pub(super) use output_profile::NativeOutputProfile;
 use output_profile::StringRuntimeSelection;
 pub(super) use symbols::{c_case_symbol, c_field_symbol, c_record_symbol, c_variant_symbol};
+
+pub(in crate::codegen) fn emit_partition_iterator_bindings(output: &mut impl COutput) {
+    use crate::hir::CompilerDeclaration;
+
+    output.push_str(
+        &include_str!("../native_shared_bytes/source/iterator.c")
+            .replace(
+                "ITER_CASE",
+                &c_case_symbol(&DeclarationId::compiler(CompilerDeclaration::IterYield)),
+            )
+            .replace(
+                "ITER_ITEM",
+                &c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::IterItem)),
+            )
+            .replace(
+                "ITER_REST",
+                &c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::IterRest)),
+            ),
+    );
+}
+
 mod owned_carrier;
 use owned_carrier::is_direct_plan_owned;
 pub(in crate::codegen) use owned_carrier::is_native_owned_vec_type;
@@ -692,12 +713,31 @@ fn program_uses_usize_arithmetic(program: &ResolvedProgram) -> bool {
 
 /// Every direct resolved child of an expression.
 use function_value::resolved_expr_children;
+#[cfg(test)]
 fn emit_aggregate_declarations(
     output: &mut impl COutput,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
     record_layouts: &AggregateLayoutCache,
     variant_layouts: &VariantLayoutCache,
+) -> Result<(), Diagnostic> {
+    emit_aggregate_declarations_for_profile(
+        output,
+        program,
+        resource_abi,
+        record_layouts,
+        variant_layouts,
+        NativeOutputProfile::Legacy,
+    )
+}
+
+fn emit_aggregate_declarations_for_profile(
+    output: &mut impl COutput,
+    program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
+    record_layouts: &AggregateLayoutCache,
+    variant_layouts: &VariantLayoutCache,
+    profile: NativeOutputProfile,
 ) -> Result<(), Diagnostic> {
     let records = record_layouts.layouts().collect::<Vec<_>>();
     let variants = variant_layouts.layouts().collect::<Vec<_>>();
@@ -730,7 +770,16 @@ fn emit_aggregate_declarations(
         )?;
     }
     for variant in variants.iter().filter(|variant| variant.has_payload()) {
-        emit_variant_declaration(output, program, resource_abi, variant)?;
+        if profile == NativeOutputProfile::SelectedPartition
+            && crate::iterator_ops::is_step(&variant.instance)
+            && crate::iterator_ops::element(&variant.instance) == Some(&ResolvedType::Bytes)
+        {
+            // The checked private IterStep uses the shared carrier declared
+            // in its binding fragment. Keep validating the semantic layout.
+            variant.validate(program)?;
+        } else {
+            emit_variant_declaration(output, program, resource_abi, variant)?;
+        }
     }
     Ok(())
 }

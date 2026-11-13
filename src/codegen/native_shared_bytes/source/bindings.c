@@ -14,3 +14,4 @@ static __attribute__((unused)) spx_shb_bytes spx_partition_zeroed(struct spx_con
 #define spx_vec_len(context, value, tag) ((void)(tag), spx_shb_vec_len(spx_shb_held(context), (value)))
 #define spx_vec_capacity(context, value, tag) ((void)(tag), spx_shb_vec_capacity(spx_shb_held(context), (value)))
 #define spx_leaf_check(context, value, descriptor) ((void)(descriptor), spx_shb_vec_valid(spx_shb_held(context), (value)))
+#define spx_bytes_as_slice(value) spx_shb_view(spx_shb_held(spx_ctx), (value))

@@ -75,6 +75,15 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
         (source(EMPTY_SOURCE), 0, 0, 0),
         (source(CAPACITY_SOURCE), 8192, 1, 8192),
         (source(REPEATED_SOURCE), 8193, 2, 8193),
+        (
+            source(&SHARED_SOURCE.replace(
+                "i64_from_usize(vec_len<Bytes>(children))",
+                "match own iter_next<Bytes>(vec_into_iter<Bytes>(children)) { IterStep::Done{} => 0, IterStep::Yield{item,rest} => { let view = bytes_as_slice(item); i64_from_usize(byte_len(view)) }, }",
+            )),
+            16,
+            1,
+            65536,
+        ),
     ] {
         let root = scratch("source-partition");
         compile_and_run(
@@ -100,17 +109,6 @@ int main(void) {{
         );
         std::fs::remove_dir_all(root).unwrap();
     }
-    // Genuine consuming iteration stays closed until its exact IterStep ABI
-    // joins; an old two-word owned payload cannot leak into this unit.
-    let iterator = SOURCE.replace("if vec_len<Bytes>(values)==4096usize {7}else{0}",
-        "let mut seen=0; for own item in vec_into_iter<Bytes>(values) { let view=bytes_as_slice(item); if byte_len(view)==16usize {seen=seen+1;0}else{seen=0;0} } seen");
-    let ast = crate::parse(&iterator, "partition_native.spx").unwrap();
-    let owner =
-        hir::byte_partition::ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX })
-            .unwrap();
-    let mut work = usize::MAX;
-    assert!(Projection::receive(&owner, &mut work).is_err());
-    assert_eq!(work, 0);
 }
 #[test]
 fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup_and_reentry() {

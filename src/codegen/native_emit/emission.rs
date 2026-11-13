@@ -410,12 +410,13 @@ fn emit_hir_c_with_validated_kind(
         semantic_work::emit_runtime(&mut output, metering);
     }
     emit_fixed_byte_array_declarations(&mut output, program)?;
-    emit_aggregate_declarations(
+    emit_aggregate_declarations_for_profile(
         &mut output,
         program,
         &resource_abi,
         &record_layouts,
         &variant_layouts,
+        output_profile,
     )?;
     if hir::closure::requires_runtime_closures(program) {
         closure::emit_carrier_declarations(&mut output, program, &resource_abi)?;

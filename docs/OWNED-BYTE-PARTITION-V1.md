@@ -637,8 +637,16 @@ reservation, and caller result slot survive the refusal. One registry
 covers the entry and all helpers, and detachment requires zero loans, leases,
 Vecs and pending reservations before result publication. The additional graph
 counter does not fund compiler proof or runtime heap storage. Ordinary/default
-and public callable routes remain closed. Consuming iteration, Borrow-parameter
-receiving and the complete caller-funded native account remain pending.
+and public callable routes remain closed. Borrow-parameter receiving and the
+complete caller-funded native account remain pending.
+
+The private native projection admits consuming `Iter<Bytes>` and
+`IterStep<Bytes>` over the shared carrier. Generated C checks the 88-byte
+step size and the exact tag, item and rest offsets on native64. It uses the
+canonical match and finalizer paths to transfer the first child and settle
+the remaining iterator. The generated-source O0/O2 check reads a 16-byte
+child from a 4,096-child partition and checks one payload allocation and one
+free on each invocation.
 
 Two owning source bodies retain original 4096/count geometry at O0/O2 and actual
 four-code failure/poison-result/reentry controls. Both bodies passed in the

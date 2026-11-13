@@ -70,6 +70,38 @@ fn before_current_format(source: &str, current: &str) -> Option<String> {
 }
 
 pub(super) fn prior_source(source: &str, current: &str) -> String {
+    // The later warm as_str invoice adds one complete, independent suffix.
+    // Bind the actual compiled owner before removing that exact suffix.
+    let ids_before_warm_invoice = if source == "src/hir/ids.rs" {
+        let compiled = include_str!("../ids.rs");
+        assert_eq!(current, compiled);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            std::fs::read(root.join(source)).unwrap(),
+            compiled.as_bytes()
+        );
+        let predecessor = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e"
+        ));
+        assert_eq!(
+            sha(predecessor.as_bytes()),
+            "1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e"
+        );
+        assert_eq!(
+            sha(current.as_bytes()),
+            "d120d95fdd465df30b0a47f5b6556d6c6cd4604893dd0c2ba9030dd24b107e1d"
+        );
+        let (before, added) = current
+            .split_once("\n// ABI packet INTERNAL to the additional warm as_str call.")
+            .unwrap();
+        assert!(added.ends_with("    };\n}\n"));
+        assert_eq!(before, predecessor);
+        Some(before)
+    } else {
+        None
+    };
+    let current = ids_before_warm_invoice.unwrap_or(current);
     let identity_batch_before = if source == "src/hir/ids/compiler.rs" {
         let mut before = current.to_owned();
         for added in [

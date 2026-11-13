@@ -354,6 +354,12 @@ fn complete_old_current_projection_and_hir_callers_are_observed_through_drop() {
 
 #[test]
 fn independent_projection_source_reconstructs_the_entire_pre_certificate_owner() {
+    // Restore the one visibility adaptation needed by the later complete
+    // comparator. The original inverse must still see every predecessor byte.
+    let compiled = include_str!("before903/call_carriers.rs");
+    let widened = "pub(in crate::workspace_graph::expected_projection) struct Proof {";
+    assert_eq!(compiled.matches(widened).count(), 1);
+    let call_carriers = compiled.replacen(widened, "pub(super) struct Proof {", 1);
     for (current, original, inverse_text, target_sha) in [
         (
             include_bytes!("before903/before_local_projection.rs").as_slice(),
@@ -368,7 +374,7 @@ fn independent_projection_source_reconstructs_the_entire_pre_certificate_owner()
             "4206e2a1a96eb2d4c89634aa193999383d0deb28a22a5a67b30647f9590d67f8",
         ),
         (
-            include_bytes!("before903/call_carriers.rs").as_slice(),
+            call_carriers.as_bytes(),
             include_bytes!("before903/call_carriers.before_local.rs.txt").as_slice(),
             include_str!("before903/call_carriers.before_local.inverse.json"),
             "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033",

@@ -57,7 +57,7 @@ sigstore-verify = { version = "=0.15.1", default-features = false, features = ["
 x509-cert = { version = "=0.3.0", default-features = false }
 webpki-roots = "=1.0.11"
 wasmparser = { version = "=0.263.0", default-features = false, features = ["component-model", "features", "validate"] }
-wasm-encoder = { version = "=0.262.0", default-features = false, features = ["std", "component-model"] }
+wasm-encoder = { version = "=0.263.0", default-features = false, features = ["std", "component-model"] }
 
 [dev-dependencies]
 base64 = "=0.22.1"

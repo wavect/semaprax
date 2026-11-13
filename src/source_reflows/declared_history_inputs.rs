@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130876,
-        "7e9bafe178f4d75a354f8bc416b138bba87fc0d1fe26e476624710cba092076d",
+        "a0596c67222a6195cb9708d7f438a1bd54d41a724139f05db00e468c2fc62f29",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",

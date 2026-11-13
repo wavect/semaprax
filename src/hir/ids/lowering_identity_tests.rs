@@ -427,9 +427,9 @@ fn copy_record_traversal_get_uses_the_closed_compiler_identity() {
 @id("row") record Row { @id("row.value") value: i64, }
 @id("app.main") fn main() -> i64 {
     let rows = vec_push<Row>(vec_with_capacity<Row>(1usize), Row { value: 17 });
-    let mut result = 0;
-    for borrow row in rows { result = result + row.value; 0 }
-    result
+    let mut total = 0;
+    for borrow row in rows { total = total + row.value; 0 }
+    total
 }
 "#;
     let ast = crate::check(source, "copy-record-identity.spx").unwrap();

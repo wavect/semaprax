@@ -54,8 +54,15 @@ pub(in crate::hir) fn desugar(
     let checked = declared
         .iter()
         .filter(|(declaration, _)| {
+            let Some(held) = resolved
+                .declarations
+                .declarations
+                .get(declaration.stable_id.as_str())
+            else {
+                return false;
+            };
             let ty = ResolvedType::Nominal {
-                declaration: crate::hir::DeclarationId::new(declaration.stable_id.clone()),
+                declaration: held.id.clone(),
                 arguments: Vec::new(),
             };
             resolved

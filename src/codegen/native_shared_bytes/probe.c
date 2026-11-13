@@ -130,6 +130,37 @@ PROBE_FN void iteration_and_abandonment(void) {
     spx_shb_registry_finish(&reg);
 }
 
+/* A missing successor generation leaves the iterator and all outputs live
+   in their original state. At the exact edge, Done needs no new generation. */
+PROBE_FN void iterator_generation_precedes_child_transfer(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_copy(&reg, slice("x", 1u), &a);
+    partition(&a, 1u, 1u, &v);
+    it = spx_shb_iter_from_vec(&reg, &v);
+    stale_it = it;
+    tag = 7u;
+    c = (spx_shb_bytes){ .issuer = UINT64_C(99) };
+    rest = (spx_shb_iter){ .cursor = UINT64_C(99) };
+    reg.next_generation = UINT64_MAX;
+    EXPECT_STOP("Vec generation exhausted", spx_shb_iter_next(&reg, &it, &tag, &c, &rest));
+    assert(tag == 7u && c.issuer == 99u && rest.cursor == 99u);
+    assert(it.cursor == stale_it.cursor && it.vec.generation == stale_it.vec.generation);
+    stale = spx_shb_row_owner(&it.vec, it.cursor);
+    assert(view_is(&stale, "x", 1u) && payload_pool.frees == 0u);
+
+    reg.next_generation = UINT64_MAX - 1u;
+    spx_shb_iter_next(&reg, &it, &tag, &c, &rest);
+    assert(tag == 1u && view_is(&c, "x", 1u));
+    assert(rest.vec.generation == UINT64_MAX - 1u && reg.next_generation == UINT64_MAX);
+    it = rest;
+    spx_shb_iter_next(&reg, &it, &tag, &d, &rest);
+    assert(tag == 0u && spx_shb_is_vacant(&d) && view_is(&c, "x", 1u));
+    assert(metadata_pool.live == 1u && payload_pool.frees == 0u);
+    spx_shb_drop(&reg, &c);
+    assert(metadata_pool.live == 0u && payload_pool.frees == 1u);
+    spx_shb_registry_finish(&reg);
+}
+
 /* Clone is a fresh charged deep copy, isolated from later writes. */
 PROBE_FN void deep_clone_isolation_and_charges(void) {
     census_reset(); fresh(&reg);
@@ -600,6 +631,7 @@ int main(void) {
     mutation_isolation();
     pop_survives_parent_and_sibling_drop();
     iteration_and_abandonment();
+    iterator_generation_precedes_child_transfer();
     deep_clone_isolation_and_charges();
     hostile_carriers();
     child_partition_refused();

@@ -647,6 +647,10 @@ canonical match and finalizer paths to transfer the first child and settle
 the remaining iterator. The generated-source O0/O2 check reads a 16-byte
 child from a 4,096-child partition and checks one payload allocation and one
 free on each invocation.
+A nonempty step authenticates the child and obtains the successor iterator
+generation before transferring the child or writing the outputs. Exhaustion
+leaves the source and all outputs intact. The terminal Done step settles
+the empty suffix without issuing a generation.
 
 Two owning source bodies retain original 4096/count geometry at O0/O2 and actual
 four-code failure/poison-result/reentry controls. Both bodies passed in the

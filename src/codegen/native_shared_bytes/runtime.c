@@ -644,15 +644,21 @@ SPX_SHB_FN void spx_shb_iter_next(
     spx_shb_preflight_rows(registry, &source->vec, source->cursor);
     if (tag == NULL || item == NULL || rest == NULL || rest == source)
         SPX_SHB_FAIL_STOP("invalid shared Bytes iterator output");
-    *tag = 0u; *item = (spx_shb_bytes){0}; *rest = (spx_shb_iter){0};
-    if (source->cursor == source->vec.len) { spx_shb_iter_drop(registry, source); return; }
+    if (source->cursor == source->vec.len) {
+        spx_shb_iter_drop(registry, source);
+        *tag = 0u; *item = (spx_shb_bytes){0}; *rest = (spx_shb_iter){0};
+        return;
+    }
     spx_shb_bytes owner = spx_shb_row_owner(&source->vec, source->cursor);
-    *item = spx_shb_move(registry, &owner);
+    (void)spx_shb_resolve_unloaned(registry, &owner);
+    uint64_t generation = spx_shb_fresh_generation(registry);
+    spx_shb_iter staged = *source;
+    staged.cursor++;
+    staged.vec.generation = generation;
     source->vec.rows[source->cursor] = (spx_shb_stored){0};
-    *rest = *source; rest->cursor++;
-    rest->vec.generation = spx_shb_fresh_generation(registry);
-    e->len = rest->cursor; e->generation = rest->vec.generation;
-    *tag = 1u; *source = (spx_shb_iter){0};
+    e->len = staged.cursor; e->generation = generation;
+    *source = (spx_shb_iter){0};
+    *item = owner; *rest = staged; *tag = 1u;
 }
 
 /* Partition. Prepare validates in the specified order, then holds and

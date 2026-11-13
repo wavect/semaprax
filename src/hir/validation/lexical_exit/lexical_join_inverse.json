@@ -17,8 +17,8 @@
     {
       "source": "src/hir/validation/lexical_exit.rs",
       "current": {
-        "length": 49694,
-        "sha256": "5cee60ce805b075c2efc2a361f8243c98f388705fa9802e368ac52a96efe9f06"
+        "length": 49690,
+        "sha256": "34000196b76eac82438e2df5a5fbd04cea79a6ec79a3dde87135373eef368c02"
       },
       "before": {
         "length": 48536,
@@ -40,8 +40,8 @@
     }
   ],
   "new_child": {
-    "length": 13243,
-    "sha256": "ad1f66cb2df03e4e8534a0ea447904155c8ee53e66b1c3d6d4165916c4a7a82d"
+    "length": 13252,
+    "sha256": "ca5f7fb3f2e7f081f973d737f596c56e399959c05e39aaaf6dd10a40f40f3f9e"
   },
   "previous_exact_metadata": {
     "length": 474157,
@@ -72,5 +72,22 @@
       "sha256": "54a5540c1c57ec0b501530985fe36ddc2d60a2297bbb6b8913ff860027722015"
     },
     "public_baseline": "20b4479280 / immediate pre8fadf0c69 production"
+  },
+  "retained_pre_lexical_join_lint_refresh": {
+    "metadata": {
+      "length": 1388083,
+      "sha256": "9720c378c4f929ea316d734c853b1d50df2c1eef373ecfecdebd907e289bb118",
+      "archive": "e/9720c378c4f929ea316d734c853b1d50df2c1eef373ecfecdebd907e289bb118"
+    },
+    "lexical_exit": {
+      "length": 49694,
+      "sha256": "5cee60ce805b075c2efc2a361f8243c98f388705fa9802e368ac52a96efe9f06",
+      "archive": "e/5cee60ce805b075c2efc2a361f8243c98f388705fa9802e368ac52a96efe9f06"
+    },
+    "lexical_join": {
+      "length": 13243,
+      "sha256": "ad1f66cb2df03e4e8534a0ea447904155c8ee53e66b1c3d6d4165916c4a7a82d",
+      "archive": "e/ad1f66cb2df03e4e8534a0ea447904155c8ee53e66b1c3d6d4165916c4a7a82d"
+    }
   }
 }

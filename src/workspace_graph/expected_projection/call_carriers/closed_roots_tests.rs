@@ -20,6 +20,14 @@ fn fixture(count: usize, complex: bool) -> String {
     }
     text
 }
+fn census_program(count: usize, complex: bool) -> crate::ast::Program {
+    let mut program = parse(&fixture(count.max(1), complex));
+    if count == 0 {
+        // Exercise empty census data after the parser's required function.
+        program.functions.clear();
+    }
+    program
+}
 #[test]
 fn exact_closed_roots_keep_all_original_node_charges_and_binding_shapes_fall_back() {
     for (body, expected) in [
@@ -57,7 +65,7 @@ fn exact_closed_roots_keep_all_original_node_charges_and_binding_shapes_fall_bac
 #[test]
 fn all_four_complete_callers_keep_proofs_and_exact_actual_scratch_delta() {
     for (n, complex) in [(0, false), (1, false), (64, false), (64, true)] {
-        let programs = vec![parse(&fixture(n, complex))];
+        let programs = vec![census_program(n, complex)];
         let authored = crate::workspace_graph::index_authored(&programs).unwrap();
         let context = crate::workspace_graph::expected_projection::shared_local_callees::Context {
             program: &programs[0],
@@ -111,7 +119,7 @@ fn all_four_complete_callers_keep_proofs_and_exact_actual_scratch_delta() {
 #[test]
 fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
     for (n, complex) in [(0, false), (1, false), (64, false), (64, true)] {
-        let programs = vec![parse(&fixture(n, complex))];
+        let programs = vec![census_program(n, complex)];
         let authored = crate::workspace_graph::index_authored(&programs).unwrap();
         let maximum = crate::workspace_graph::expected_projection::dependency_identity_max(
             &programs[0],
@@ -140,19 +148,19 @@ fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
         };
         let old = run(true);
         let current = run(false);
-        assert_eq!(&old.0 .0 .0[2..], &current.0 .0 .0[2..]);
-        assert_eq!(old.0 .0 .1, current.0 .0 .1);
+        assert_eq!(&old.0.0.0[2..], &current.0.0.0[2..]);
+        assert_eq!(old.0.0.1, current.0.0.1);
         if n > 0 && !complex {
-            assert!(current.0 .0 .0[0] < old.0 .0 .0[0] && current.0 .0 .0[1] < old.0 .0 .0[1]);
+            assert!(current.0.0.0[0] < old.0.0.0[0] && current.0.0.0[1] < old.0.0.0[1]);
         }
         if complex {
-            assert!(current.0 .0 .0[0] >= old.0 .0 .0[0] && current.0 .0 .0[1] >= old.0 .0 .0[1]);
+            assert!(current.0.0.0[0] >= old.0.0.0[0] && current.0.0.0[1] >= old.0.0.0[1]);
         }
         for row in [&old, &current] {
             assert!(!row.1 && row.3.is_none());
-            assert!(!row.0 .1.invalid && row.0 .1.live == 0);
-            assert_eq!(row.0 .1.allocated, row.0 .1.freed);
-            assert!(row.0 .1.allocated <= row.2);
+            assert!(!row.0.1.invalid && row.0.1.live == 0);
+            assert_eq!(row.0.1.allocated, row.0.1.freed);
+            assert!(row.0.1.allocated <= row.2);
         }
         eprintln!(
             "CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} old={old:?}; no application fit or measured result until owning execution"
@@ -204,6 +212,41 @@ fn complete_forecast_exact_short_zero_keep_six_field_diagnostics_and_old_caps() 
         }
     }
 }
+fn restore_source(
+    root: &std::path::Path,
+    data: &serde_json::Value,
+    source: &str,
+    expected: &serde_json::Value,
+) -> String {
+    let read = |pin: &serde_json::Value| {
+        reader::read(
+            &root.join(source),
+            pin["length"].as_u64().unwrap().try_into().unwrap(),
+            pin["sha256"].as_str().unwrap(),
+            2 << 20,
+        )
+        .unwrap()
+    };
+    let Some(row) = data["successor_sources"].get(source) else {
+        return read(expected);
+    };
+    let mut restored = read(&row["current"]);
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = edit["start"].as_u64().unwrap().try_into().unwrap();
+        let end = edit["end"].as_u64().unwrap().try_into().unwrap();
+        assert_eq!(&restored[start..end], edit["after"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    assert_eq!(restored.len() as u64, expected["length"]);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))
+        ),
+        expected["sha256"]
+    );
+    restored
+}
 #[test]
 fn complete_sources_old_fields_and_new_child_remain_physically_bound() {
     let metadata = include_str!("closed_roots_inverse.json");
@@ -218,17 +261,7 @@ fn complete_sources_old_fields_and_new_child_remain_physically_bound() {
     let data: serde_json::Value = serde_json::from_str(metadata).unwrap();
     for row in data["owners"].as_array().unwrap() {
         let source = row["source"].as_str().unwrap();
-        let current = reader::read(
-            &root.join(source),
-            row["current"]["length"]
-                .as_u64()
-                .unwrap()
-                .try_into()
-                .unwrap(),
-            row["current"]["sha256"].as_str().unwrap(),
-            2 << 20,
-        )
-        .unwrap();
+        let current = restore_source(root, &data, source, &row["current"]);
         let mut restored = current.clone();
         for edit in row["edits"].as_array().unwrap().iter().rev() {
             let start: usize = edit["start"].as_u64().unwrap().try_into().unwrap();
@@ -245,28 +278,11 @@ fn complete_sources_old_fields_and_new_child_remain_physically_bound() {
             row["before"]["sha256"].as_str().unwrap()
         );
         assert_eq!(
-            reader::read(
-                &root.join(source),
-                current.len(),
-                &hash(current.as_bytes()),
-                2 << 20
-            )
-            .unwrap(),
+            restore_source(root, &data, source, &row["current"]),
             current
         );
     }
-    let current = concat!(
-        include_str!("closed_roots.rs"),
-        include_str!("closed_roots_tests.rs")
-    );
-    assert_eq!(
-        current.len() as u64,
-        data["new_child"]["length"].as_u64().unwrap()
-    );
-    assert_eq!(
-        hash(current.as_bytes()),
-        data["new_child"]["sha256"].as_str().unwrap()
-    );
+    let extraction = &data["boundary_extraction"];
     let mut acquired = String::new();
     for (source, compiled) in [
         (
@@ -286,11 +302,16 @@ fn complete_sources_old_fields_and_new_child_remain_physically_bound() {
         )
         .unwrap();
         assert_eq!(physical, compiled);
-        acquired.push_str(&physical);
+        acquired.push_str(&restore_source(
+            root,
+            &data,
+            source,
+            &extraction["current_components"][source],
+        ));
     }
-    assert_eq!(acquired, current);
-    let extraction = &data["boundary_extraction"];
-    let mut original = current.to_owned();
+    assert_eq!(acquired.len() as u64, data["new_child"]["length"]);
+    assert_eq!(hash(acquired.as_bytes()), data["new_child"]["sha256"]);
+    let mut original = acquired;
     for edit in extraction["edits"].as_array().unwrap().iter().rev() {
         let start = edit["start"].as_u64().unwrap() as usize;
         let end = edit["end"].as_u64().unwrap() as usize;

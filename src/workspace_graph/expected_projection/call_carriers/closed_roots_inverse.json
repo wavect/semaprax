@@ -171,5 +171,993 @@
         "before": "mod tests {\n    use super::super::{call_identity, count, count_joint, count_linear, count_modular};\n    use super::*;\n    use sha2::{Digest, Sha256};\n    const ROOT: &str = \"src/workspace_graph/expected_projection/call_carriers.rs\";\n    fn parse(text: &str) -> crate::ast::Program {\n        crate::parse(text, \"closed-roots.spx\").unwrap()\n    }\n    fn take() -> [usize; 2] {\n        COUNTS.with(|n| n.replace([0; 2]))\n    }\n    fn fixture(count: usize, complex: bool) -> String {\n        let mut text = String::from(\"module closed_roots;\");\n        for i in 0..count {\n            let body = if complex {\n                format!(\"let n={i}; n\")\n            } else {\n                format!(\"{i}\")\n            };\n            text.push_str(&format!(\"@id(\\\"f{i}\\\") fn f{i}()->i64{{{body}}}\"));\n        }\n        text\n    }\n    #[test]\n    fn exact_closed_roots_keep_all_original_node_charges_and_binding_shapes_fall_back() {\n        for (body, expected) in [\n            (\"1\", true),\n            (\"f()\", true),\n            (\"let n=1;n\", false),\n            (\"f(1)\", false),\n            (\"if true {1} else {2}\", false),\n            (\"match 0 {_=>1,}\", false),\n        ] {\n            let program = parse(&format!(\"module root; @id(\\\"f\\\") fn f()->i64{{{body}}}\"));\n            let root = &program.functions[0].body;\n            let mut old = Proof::default();\n            let mut visited = 0usize;\n            assert!(call_identity::walk(root, &mut |expression| {\n                visited += 1;\n                old.charge(&expression);\n                true\n            }));\n            let mut current = Proof {\n                bytes: SELECTOR,\n                ..Default::default()\n            };\n            let selected = accounted(root, &mut current);\n            assert_eq!(selected, expected);\n            if selected {\n                assert!(visited == 1 || visited == 2);\n                assert_eq!(current.bytes, SELECTOR + old.bytes);\n                assert!(SELECTOR < size_of::<[Option<(&Expr, usize)>; 129]>());\n            } else {\n                assert_eq!(current.bytes, SELECTOR);\n            }\n        }\n    }\n    #[test]\n    fn all_four_complete_callers_keep_proofs_and_exact_actual_scratch_delta() {\n        for (n, complex) in [(0, false), (1, false), (64, false), (64, true)] {\n            let programs = vec![parse(&fixture(n, complex))];\n            let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n            let context =\n                crate::workspace_graph::expected_projection::shared_local_callees::Context {\n                    program: &programs[0],\n                    authored: &authored,\n                    programs: &programs,\n                };\n            for mode in 0..4 {\n                let run = |old| {\n                    let _before = if old { Some(Before::hold()) } else { None };\n                    take();\n                    let proof = match mode {\n                        0 => count_linear(&programs[0], &authored, true),\n                        1 => count(&programs[0], &authored, true),\n                        2 => count_joint(context, true).unwrap().0,\n                        _ => count_modular(context, true).unwrap().0,\n                    };\n                    let counts = take();\n                    (proof, counts)\n                };\n                let (old, old_counts) = run(true);\n                let (current, counts) = run(false);\n                assert_eq!(old_counts, [0; 2]);\n                assert_eq!(old.roots, current.roots);\n                assert_eq!(old.retained, current.retained);\n                assert_eq!(\n                    (old.current_retained, old.retention_closed),\n                    (current.current_retained, current.retention_closed)\n                );\n                let with_new = old\n                    .bytes\n                    .checked_add(counts[0].checked_mul(SELECTOR).unwrap())\n                    .unwrap();\n                let absent = counts[1]\n                    .checked_mul(size_of::<[Option<(&Expr, usize)>; 129]>())\n                    .unwrap();\n                assert_eq!(with_new.checked_sub(absent), Some(current.bytes));\n                if n > 0 && !complex {\n                    assert!(counts[1] > 0 && current.bytes < old.bytes);\n                }\n                if complex {\n                    assert_eq!(counts[1], 0);\n                    assert!(current.bytes > old.bytes);\n                }\n                eprintln!(\"CLOSED_NAMES mode={mode} functions={n} complex={complex} selector_calls={} omitted_actual_walkers={} old_fee={} current_fee={}; source-only control until executed\",counts[0],counts[1],old.bytes,current.bytes);\n            }\n        }\n    }\n    #[test]\n    fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {\n        for (n, complex) in [(0, false), (1, false), (64, false), (64, true)] {\n            let programs = vec![parse(&fixture(n, complex))];\n            let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n            let maximum = crate::workspace_graph::expected_projection::dependency_identity_max(\n                &programs[0],\n                &authored,\n                &programs,\n            )\n            .unwrap();\n            let run = |old| {\n                let _before = if old { Some(Before::hold()) } else { None };\n                crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {\n                    crate::test_allocation_observer::measure(|| {\n                        let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();\n                        let result = (\n                            [\n                                full.retained_hir,\n                                retained.retained_hir,\n                                full.synthetic_ast,\n                                retained.synthetic_ast,\n                                full.runtime,\n                                retained.runtime,\n                            ],\n                            retained.retained_scratch,\n                        );\n                        drop((full, retained));\n                        result\n                    })\n                })\n            };\n            let old = run(true);\n            let current = run(false);\n            assert_eq!(&old.0 .0 .0[2..], &current.0 .0 .0[2..]);\n            assert_eq!(old.0 .0 .1, current.0 .0 .1);\n            if n > 0 && !complex {\n                assert!(current.0 .0 .0[0] < old.0 .0 .0[0] && current.0 .0 .0[1] < old.0 .0 .0[1]);\n            }\n            if complex {\n                assert!(\n                    current.0 .0 .0[0] >= old.0 .0 .0[0] && current.0 .0 .0[1] >= old.0 .0 .0[1]\n                );\n            }\n            for row in [&old, &current] {\n                assert!(!row.1 && row.3.is_none());\n                assert!(!row.0 .1.invalid && row.0 .1.live == 0);\n                assert_eq!(row.0 .1.allocated, row.0 .1.freed);\n                assert!(row.0 .1.allocated <= row.2);\n            }\n            eprintln!(\"CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} old={old:?}; no application fit or measured result until owning execution\");\n        }\n    }\n    #[test]\n    fn complete_forecast_exact_short_zero_keep_six_field_diagnostics_and_old_caps() {\n        struct Limit(usize);\n        impl Drop for Limit {\n            fn drop(&mut self) {\n                crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|n| n.set(self.0));\n            }\n        }\n        let programs = vec![parse(&fixture(64, false))];\n        let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n        for old in [true, false] {\n            let _stage = if old { Some(Before::hold()) } else { None };\n            for retention in [\n                crate::workspace_graph::expected_projection::cached_exact::Retention::Parsed,\n                crate::workspace_graph::expected_projection::cached_exact::Retention::Semantic,\n            ] {\n                let expected = crate::workspace_graph::expected_projection::cached_exact::summed(\n                    &programs, &authored, retention,\n                )\n                .unwrap();\n                let _limit = Limit(\n                    crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|n| n.replace(expected.1)),\n                );\n                assert_eq!(\n                    crate::workspace_graph::expected_projection::cached_exact::summed(\n                        &programs, &authored, retention\n                    )\n                    .unwrap(),\n                    expected\n                );\n                for bound in [expected.1 - 1, 0] {\n                    crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|n| n.set(bound));\n                    let first = crate::workspace_graph::expected_projection::cached_exact::summed(\n                        &programs, &authored, retention,\n                    )\n                    .unwrap_err();\n                    assert!(first.iter().all(|e| e.code == \"SPX-G171\"));\n                    let retry = crate::workspace_graph::expected_projection::cached_exact::summed(\n                        &programs, &authored, retention,\n                    )\n                    .unwrap_err();\n                    assert_eq!(first, retry);\n                }\n            }\n        }\n    }\n    #[test]\n    fn complete_sources_old_fields_and_new_child_remain_physically_bound() {\n        let metadata = include_str!(\"closed_roots_inverse.json\");\n        let hash = |b: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(b)));\n        let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n        let path = root.join(\n            \"src/workspace_graph/expected_projection/call_carriers/closed_roots_inverse.json\",\n        );\n        assert_eq!(\n            reader::read(&path, metadata.len(), &hash(metadata.as_bytes()), 2 << 20).unwrap(),\n            metadata\n        );\n        let data: serde_json::Value = serde_json::from_str(metadata).unwrap();\n        for row in data[\"owners\"].as_array().unwrap() {\n            let source = row[\"source\"].as_str().unwrap();\n            let current = reader::read(\n                &root.join(source),\n                row[\"current\"][\"length\"]\n                    .as_u64()\n                    .unwrap()\n                    .try_into()\n                    .unwrap(),\n                row[\"current\"][\"sha256\"].as_str().unwrap(),\n                2 << 20,\n            )\n            .unwrap();\n            let mut restored = current.clone();\n            for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n                let start: usize = edit[\"start\"].as_u64().unwrap().try_into().unwrap();\n                let end: usize = edit[\"end\"].as_u64().unwrap().try_into().unwrap();\n                assert_eq!(&restored[start..end], edit[\"after\"].as_str().unwrap());\n                restored.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n            }\n            assert_eq!(\n                restored.len() as u64,\n                row[\"before\"][\"length\"].as_u64().unwrap()\n            );\n            assert_eq!(\n                hash(restored.as_bytes()),\n                row[\"before\"][\"sha256\"].as_str().unwrap()\n            );\n            assert_eq!(\n                reader::read(\n                    &root.join(source),\n                    current.len(),\n                    &hash(current.as_bytes()),\n                    2 << 20\n                )\n                .unwrap(),\n                current\n            );\n        }\n        let current = include_str!(\"closed_roots.rs\");\n        assert_eq!(\n            hash(current.as_bytes()),\n            data[\"new_child\"][\"sha256\"].as_str().unwrap()\n        );\n        assert_eq!(\n            reader::read(\n                &root.join(\"src/workspace_graph/expected_projection/call_carriers/closed_roots.rs\"),\n                current.len(),\n                &hash(current.as_bytes()),\n                2 << 20\n            )\n            .unwrap(),\n            current\n        );\n        assert_eq!(data[\"owners\"][0][\"source\"], ROOT);\n    }"
       }
     ]
+  },
+  "successor_sources": {
+    "src/workspace_graph/expected_projection/call_carriers.rs": {
+      "current": {
+        "length": 24858,
+        "sha256": "8a015ce328f793cfe6c27eb4e726ad0fd02ba3069e0afb7f04c7dd294882c272"
+      },
+      "edits": [
+        {
+          "start": 3374,
+          "end": 3374,
+          "after": "",
+          "before": "return "
+        },
+        {
+          "start": 17959,
+          "end": 17960,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 17969,
+          "end": 17970,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 20151,
+          "end": 20168,
+          "after": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 20184,
+          "end": 20198,
+          "after": ",\n            ",
+          "before": ""
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs": {
+      "current": {
+        "length": 32581,
+        "sha256": "61e1f8044b41da8c6cb4a9119cba6e0f5d76e468c38eb671a34f6b5d4898ada4"
+      },
+      "edits": [
+        {
+          "start": 18702,
+          "end": 18736,
+          "after": "before_directory_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 23801,
+          "end": 23835,
+          "after": "before_directory_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 23839,
+          "end": 23840,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 23848,
+          "end": 23849,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 23858,
+          "end": 23859,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 23867,
+          "end": 23868,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 26696,
+          "end": 26713,
+          "after": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 26729,
+          "end": 26743,
+          "after": ",\n            ",
+          "before": ""
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_joint.rs": {
+      "current": {
+        "length": 36959,
+        "sha256": "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"
+      },
+      "edits": [
+        {
+          "start": 14991,
+          "end": 15021,
+          "after": "before_joint_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 22551,
+          "end": 22581,
+          "after": "before_joint_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 22591,
+          "end": 22592,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 22600,
+          "end": 22601,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 22607,
+          "end": 22608,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 26009,
+          "end": 26026,
+          "after": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 26042,
+          "end": 26056,
+          "after": ",\n            ",
+          "before": ""
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs": {
+      "current": {
+        "length": 34272,
+        "sha256": "1c2967940ddf7b70de2631feb5d1d443745651b0d47447649618c340c81b8964"
+      },
+      "edits": [
+        {
+          "start": 12054,
+          "end": 12086,
+          "after": "before_modular_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 19657,
+          "end": 19689,
+          "after": "before_modular_closed_roots_body",
+          "before": "before_closed_roots_body"
+        },
+        {
+          "start": 19699,
+          "end": 19700,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 19708,
+          "end": 19709,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 19715,
+          "end": 19716,
+          "after": " ",
+          "before": ""
+        },
+        {
+          "start": 23117,
+          "end": 23134,
+          "after": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 23150,
+          "end": 23164,
+          "after": ",\n            ",
+          "before": ""
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_tests.rs": {
+      "current": {
+        "length": 52496,
+        "sha256": "b6f5d26b7cf9d655fc515995bf265aa44ba1380f818ff5816a8068fc837216d1"
+      },
+      "edits": [
+        {
+          "start": 33396,
+          "end": 33396,
+          "after": "",
+          "before": "                        drop((full, retained));\n"
+        },
+        {
+          "start": 47622,
+          "end": 47622,
+          "after": "",
+          "before": "                        drop(data);\n"
+        },
+        {
+          "start": 51127,
+          "end": 51127,
+          "after": "",
+          "before": "                            drop((full, retained));\n"
+        }
+      ]
+    },
+    "docs/WORKSPACE-SEMANTIC-GRAPH-V1.md": {
+      "current": {
+        "length": 67492,
+        "sha256": "e0b767e86aa8f7800dc807bd5be43c2954ee151c40e7b1b7b25200a5ca41764d"
+      },
+      "edits": [
+        {
+          "start": 5511,
+          "end": 5514,
+          "after": "134",
+          "before": "67"
+        },
+        {
+          "start": 5515,
+          "end": 5518,
+          "after": "217",
+          "before": "108"
+        },
+        {
+          "start": 5519,
+          "end": 5522,
+          "after": "728",
+          "before": "864"
+        },
+        {
+          "start": 5764,
+          "end": 5767,
+          "after": "134",
+          "before": "67"
+        },
+        {
+          "start": 5768,
+          "end": 5771,
+          "after": "217",
+          "before": "108"
+        },
+        {
+          "start": 5772,
+          "end": 5775,
+          "after": "728",
+          "before": "864"
+        },
+        {
+          "start": 5824,
+          "end": 5910,
+          "after": " (see \"Builder ceiling and replay scratch\nledger\" below for the raise from 67,108,864)",
+          "before": ""
+        },
+        {
+          "start": 11977,
+          "end": 11980,
+          "after": "134",
+          "before": "67"
+        },
+        {
+          "start": 11981,
+          "end": 11984,
+          "after": "217",
+          "before": "108"
+        },
+        {
+          "start": 11985,
+          "end": 11988,
+          "after": "728",
+          "before": "864"
+        },
+        {
+          "start": 12126,
+          "end": 12135,
+          "after": "134217728",
+          "before": "67108864"
+        },
+        {
+          "start": 12330,
+          "end": 14910,
+          "after": "\n### Builder ceiling and replay scratch ledger\n\nIndependent cleanup replay is verification scratch: every carrier it reserves\nis released when the program's replay returns and none is retained by the\nresolved program, graph or artifact. Since the ordinary replay payer was\nseparated from admission, those per-allocation charges were settled\ncumulatively into the builder ledger, so one program's replay of its members\nwas charged as if every member's freed scratch were still live. Replay now\nkeeps the same `ActiveBuilder` payer and every charge, but debits a detached\nper-program ledger of `MAX_REPLAY_SCRATCH_BYTES`\n(`src/cleanup_plan/validate/scratch_ledger.rs`). That ledger is never settled\ninto or refunded to the builder ledger and is independent of the enclosing\nledger's remaining or nested limit; its exhaustion is the existing `SPX-H006`\nreplay refusal. Without an active ledger replay stays unobserved; an already\nrefused builder keeps its route.\n\nReplay charges are cumulative allocation requests, not live bytes: freed\ncarriers inside one member stay debited. Measured whole-program replay debits\nare 53.9 MB for `std/pattern` (128.5 MB in a test build), about 150 MB for\nShiftSim's `shiftsim.schedule.run`, about 322 MB for the nested String-vector\nresponse consumer, and 3,635,613,686 bytes for the unfactored ShiftSim\nschedule, all of which completed with normal process memory. A byte ceiling\non such a counter is not a memory bound; the replay remains bounded by\n`MAX_REPLAY_WORK_UNITS`. `MAX_REPLAY_SCRATCH_BYTES` is therefore 4,294,967,296\non 64-bit hosts, above the largest measured admitted program, and refuses only\na runaway counter. Releasing freed carriers would let it fall to a real\npeak-scratch bound and would also remove the allocation churn.\n\nEven without replay scratch, the cumulative builder debit of the bundled\nstandard-library and application closures exceeds 67,108,864 bytes:\n`std/pattern` 79.1 MB, `catalog-normalizer` 76.0 MB and the Catalog\nscoped-record successor 81.8 MB in their tightest fallback-mode attempts (the\nsuccessor still overflowed every mode at 83,886,080 bytes), and the ShiftSim\ntyped-record application, the `semaprax new` typed starter, refuses at\n100,663,296 bytes and completes at 134,217,728 bytes after a 133,282,152-byte\ndebit, earlier attempts' debit retained across fallback retries.\n`MAX_BUILDER_BYTES` is therefore 134,217,728; the ShiftSim margin is under\n1%, so the next growth in that closure needs its own measurement. The limit is\na cumulative reservation bound, not a retained-memory or RSS forecast.\n",
+          "before": ""
+        },
+        {
+          "start": 15461,
+          "end": 15468,
+          "after": "builder",
+          "before": "64 MiB"
+        },
+        {
+          "start": 18417,
+          "end": 18424,
+          "after": "builder",
+          "before": "64 MiB"
+        },
+        {
+          "start": 19143,
+          "end": 19150,
+          "after": "builder",
+          "before": "64 MiB"
+        },
+        {
+          "start": 29627,
+          "end": 29633,
+          "after": " saved",
+          "before": ""
+        },
+        {
+          "start": 29663,
+          "end": 29663,
+          "after": "",
+          "before": " still"
+        },
+        {
+          "start": 29750,
+          "end": 29761,
+          "after": "independent",
+          "before": "actual"
+        },
+        {
+          "start": 29762,
+          "end": 29771,
+          "after": "receiving",
+          "before": "resolved-core import"
+        },
+        {
+          "start": 29772,
+          "end": 29782,
+          "after": "comparison",
+          "before": "producer instead"
+        },
+        {
+          "start": 30453,
+          "end": 30456,
+          "after": "The",
+          "before": "Semantic"
+        },
+        {
+          "start": 30457,
+          "end": 30477,
+          "after": "receiving comparison",
+          "before": "publication"
+        },
+        {
+          "start": 31146,
+          "end": 31149,
+          "after": "The",
+          "before": "No"
+        },
+        {
+          "start": 31150,
+          "end": 31157,
+          "after": "current",
+          "before": "shared"
+        },
+        {
+          "start": 31158,
+          "end": 31165,
+          "after": "checked",
+          "before": "authored AST"
+        },
+        {
+          "start": 31172,
+          "end": 31181,
+          "after": "publishes",
+          "before": "or"
+        },
+        {
+          "start": 31182,
+          "end": 31184,
+          "after": "an",
+          "before": "forecast-based"
+        },
+        {
+          "start": 31185,
+          "end": 31194,
+          "after": "immutable",
+          "before": "allocation"
+        },
+        {
+          "start": 31195,
+          "end": 31208,
+          "after": "parsed-source",
+          "before": "credit"
+        },
+        {
+          "start": 31209,
+          "end": 31214,
+          "after": "owner",
+          "before": "is"
+        },
+        {
+          "start": 31215,
+          "end": 31701,
+          "after": "and a\nseparate generated overlay for eligible borrowed keys. The original\nresolved-core ledger pays the source ownership headers, retained ordinal\nstorage and parsed-owner directory before acquisition. The key stays pending\nthrough dependency restoration and binds to the actual current source slot\nbefore publication. The graph uses the maximum of the actual sequential\nbuilder-phase debits. See the [checked cache contract](PROJECT-SEMANTIC-CACHE-V1.md#first-checked-cold-source-view)",
+          "before": "created"
+        },
+        {
+          "start": 31704,
+          "end": 31710,
+          "after": "Owning",
+          "before": "Source-authored"
+        },
+        {
+          "start": 32064,
+          "end": 32065,
+          "after": ".",
+          "before": ","
+        },
+        {
+          "start": 32066,
+          "end": 32069,
+          "after": "The",
+          "before": "without"
+        },
+        {
+          "start": 32070,
+          "end": 32150,
+          "after": "[source-split receipts](evidence/immutable-cache-source-split/HANDOFF.md)\nrecord",
+          "before": "subtracting"
+        },
+        {
+          "start": 32155,
+          "end": 32161,
+          "after": "active",
+          "before": "ordinary/warm"
+        },
+        {
+          "start": 32162,
+          "end": 32167,
+          "after": "cache",
+          "before": "spare"
+        },
+        {
+          "start": 32168,
+          "end": 32174,
+          "after": "path's",
+          "before": "storage."
+        },
+        {
+          "start": 32175,
+          "end": 32179,
+          "after": "cold",
+          "before": "These\ncontrols"
+        },
+        {
+          "start": 32180,
+          "end": 32180,
+          "after": "",
+          "before": "require executable qualification; semantic diagnostic materialization\n"
+        },
+        {
+          "start": 32184,
+          "end": 32188,
+          "after": "warm",
+          "before": "whole"
+        },
+        {
+          "start": 32189,
+          "end": 32195,
+          "after": "parity",
+          "before": "application"
+        },
+        {
+          "start": 32196,
+          "end": 32202,
+          "after": "checks",
+          "before": "funding remain separate residuals"
+        },
+        {
+          "start": 62995,
+          "end": 63002,
+          "after": "builder",
+          "before": "64 MiB"
+        },
+        {
+          "start": 63177,
+          "end": 63177,
+          "after": "",
+          "before": ","
+        },
+        {
+          "start": 63181,
+          "end": 63181,
+          "after": "",
+          "before": " every"
+        },
+        {
+          "start": 63203,
+          "end": 63208,
+          "after": "peaks",
+          "before": "peak"
+        },
+        {
+          "start": 63209,
+          "end": 63216,
+          "after": "require",
+          "before": "derived from it, must be\nre-derived from"
+        },
+        {
+          "start": 63233,
+          "end": 63233,
+          "after": "",
+          "before": " before they are re-pinned; this source-only\ntranche asserts neither"
+        },
+        {
+          "start": 63234,
+          "end": 63234,
+          "after": "",
+          "before": " No retained HIR identity storage is removed and no"
+        },
+        {
+          "start": 63235,
+          "end": 63237,
+          "after": "On",
+          "before": "application"
+        },
+        {
+          "start": 63238,
+          "end": 63268,
+          "after": "macOS aarch64 with Rust 1.97.1",
+          "before": "recovery"
+        },
+        {
+          "start": 63270,
+          "end": 63333,
+          "after": "the compiler sources at `18142c8d0`\nreported 476 bytes per slot",
+          "before": "token"
+        },
+        {
+          "start": 63335,
+          "end": 63344,
+          "after": "including",
+          "before": "runtime,"
+        },
+        {
+          "start": 63345,
+          "end": 63348,
+          "after": "the",
+          "before": "memory"
+        },
+        {
+          "start": 63349,
+          "end": 63356,
+          "after": "20-byte",
+          "before": "or"
+        },
+        {
+          "start": 63357,
+          "end": 63362,
+          "after": "node.",
+          "before": "RSS"
+        },
+        {
+          "start": 63363,
+          "end": 63366,
+          "after": "All",
+          "before": "gain"
+        },
+        {
+          "start": 63367,
+          "end": 63369,
+          "after": "19",
+          "before": "is"
+        },
+        {
+          "start": 63370,
+          "end": 63374,
+          "after": "path",
+          "before": "claimed;"
+        },
+        {
+          "start": 63375,
+          "end": 63380,
+          "after": "arena",
+          "before": "Catalog23"
+        },
+        {
+          "start": 63385,
+          "end": 63393,
+          "after": "streamed",
+          "before": "Shift15/MAX"
+        },
+        {
+          "start": 63394,
+          "end": 63402,
+          "after": "identity",
+          "before": "evidence"
+        },
+        {
+          "start": 63403,
+          "end": 63409,
+          "after": "checks",
+          "before": "requires"
+        },
+        {
+          "start": 63410,
+          "end": 63417,
+          "after": "passed.",
+          "before": "actual"
+        },
+        {
+          "start": 63418,
+          "end": 63422,
+          "after": "They",
+          "before": "owning"
+        },
+        {
+          "start": 63423,
+          "end": 64230,
+          "after": "compare the whole saved text\nreceiver's HIR, ordered loan and cleanup plans, graph and cache bytes,\nforeign and malformed input diagnostics, and exact and short allocation\nfrontiers through Drop.\n\nThe unchanged Catalog and ShiftSim owners and compact Catalog Normalizer\nbuilder passed at the current 128 MiB ceiling. In a separate 64 MiB run of\nthe same Catalog and ShiftSim fixtures before the status replay repair at\n`7268e5fbe`, Catalog's forecast of 64,909,260 bytes fit, then live HIR\nexpression and type lowering requested 144 bytes with 74 remaining. ShiftSim\nrefused its static forecast at `src/response.spx` after 60,265,703 bytes of\nretained output and a further 13,130,193-byte module forecast. These are\ncompiler ledger observations. Qualification of application admission at\n64 MiB remains open",
+          "before": "execution"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers/closed_roots_tests.rs": {
+      "current": {
+        "length": 13949,
+        "sha256": "d144b79882ff4ce087acf9b9b1cc0a05562c8b696163be2d778ef66f7609683b"
+      },
+      "edits": [
+        {
+          "start": 718,
+          "end": 1003,
+          "after": "}\nfn census_program(count: usize, complex: bool) -> crate::ast::Program {\n    let mut program = parse(&fixture(count.max(1), complex));\n    if count == 0 {\n        // Exercise empty census data after the parser's required function.\n        program.functions.clear();\n    }\n    program\n",
+          "before": ""
+        },
+        {
+          "start": 2360,
+          "end": 2374,
+          "after": "census_program",
+          "before": "parse(&fixture"
+        },
+        {
+          "start": 2386,
+          "end": 2386,
+          "after": "",
+          "before": ")"
+        },
+        {
+          "start": 4766,
+          "end": 4780,
+          "after": "census_program",
+          "before": "parse(&fixture"
+        },
+        {
+          "start": 4792,
+          "end": 4792,
+          "after": "",
+          "before": ")"
+        },
+        {
+          "start": 5539,
+          "end": 5539,
+          "after": "",
+          "before": "let result = "
+        },
+        {
+          "start": 5952,
+          "end": 5952,
+          "after": "",
+          "before": ";\n                    drop((full, retained));\n                    result"
+        },
+        {
+          "start": 6086,
+          "end": 6086,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6088,
+          "end": 6088,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6107,
+          "end": 6107,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6109,
+          "end": 6109,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6143,
+          "end": 6143,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6145,
+          "end": 6145,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6158,
+          "end": 6158,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6160,
+          "end": 6160,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6225,
+          "end": 6225,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6227,
+          "end": 6227,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6240,
+          "end": 6240,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6242,
+          "end": 6242,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6260,
+          "end": 6260,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6262,
+          "end": 6262,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6275,
+          "end": 6275,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6277,
+          "end": 6277,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6345,
+          "end": 6345,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6347,
+          "end": 6347,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6361,
+          "end": 6361,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6363,
+          "end": 6363,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6381,
+          "end": 6381,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6383,
+          "end": 6383,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6397,
+          "end": 6397,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6399,
+          "end": 6399,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6529,
+          "end": 6529,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6548,
+          "end": 6548,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6591,
+          "end": 6591,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6610,
+          "end": 6610,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 6646,
+          "end": 6646,
+          "after": "",
+          "before": " "
+        },
+        {
+          "start": 8816,
+          "end": 9986,
+          "after": "fn restore_source(\n    root: &std::path::Path,\n    data: &serde_json::Value,\n    source: &str,\n    expected: &serde_json::Value,\n) -> String {\n    let read = |pin: &serde_json::Value| {\n        reader::read(\n            &root.join(source),\n            pin[\"length\"].as_u64().unwrap().try_into().unwrap(),\n            pin[\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap()\n    };\n    let Some(row) = data[\"successor_sources\"].get(source) else {\n        return read(expected);\n    };\n    let mut restored = read(&row[\"current\"]);\n    for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[\"start\"].as_u64().unwrap().try_into().unwrap();\n        let end = edit[\"end\"].as_u64().unwrap().try_into().unwrap();\n        assert_eq!(&restored[start..end], edit[\"after\"].as_str().unwrap());\n        restored.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n    }\n    assert_eq!(restored.len() as u64, expected[\"length\"]);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))\n        ),\n        expected[\"sha256\"]\n    );\n    restored\n}\n",
+          "before": ""
+        },
+        {
+          "start": 10737,
+          "end": 10751,
+          "after": "restore_source",
+          "before": "reader::read"
+        },
+        {
+          "start": 10752,
+          "end": 10752,
+          "after": "",
+          "before": "\n            &"
+        },
+        {
+          "start": 10756,
+          "end": 10756,
+          "after": "",
+          "before": ".join(source)"
+        },
+        {
+          "start": 10757,
+          "end": 10774,
+          "after": " &data, source, &",
+          "before": "\n            "
+        },
+        {
+          "start": 10788,
+          "end": 10788,
+          "after": "",
+          "before": "[\"length\"]\n                .as_u64()\n                .unwrap()\n                .try_into()\n                .unwrap(),\n            row[\"current\"][\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap("
+        },
+        {
+          "start": 11515,
+          "end": 11529,
+          "after": "restore_source",
+          "before": "reader::read"
+        },
+        {
+          "start": 11530,
+          "end": 11530,
+          "after": "",
+          "before": "\n                &"
+        },
+        {
+          "start": 11534,
+          "end": 11534,
+          "after": "",
+          "before": ".join(source)"
+        },
+        {
+          "start": 11535,
+          "end": 11535,
+          "after": "",
+          "before": "\n                current.len(),\n                &hash(current.as_bytes()),\n                2"
+        },
+        {
+          "start": 11536,
+          "end": 11542,
+          "after": "&data,",
+          "before": "<<"
+        },
+        {
+          "start": 11543,
+          "end": 11566,
+          "after": "source, &row[\"current\"]",
+          "before": "20\n            )\n            .unwrap("
+        },
+        {
+          "start": 11614,
+          "end": 11624,
+          "after": "extraction",
+          "before": "current"
+        },
+        {
+          "start": 11627,
+          "end": 11628,
+          "after": "&",
+          "before": "concat!(\n        include_str!(\"closed_roots.rs\"),\n        include_str!(\"closed_roots_tests.rs\")\n    );\n    assert_eq!(\n        current.len() as u64,\n        "
+        },
+        {
+          "start": 11634,
+          "end": 11653,
+          "after": "boundary_extraction",
+          "before": "new_child"
+        },
+        {
+          "start": 11655,
+          "end": 11655,
+          "after": "",
+          "before": "[\"length\"].as_u64().unwrap()\n    );\n    assert_eq!(\n        hash(current.as_bytes()),\n        data[\"new_child\"][\"sha256\"].as_str().unwrap()\n    )"
+        },
+        {
+          "start": 12303,
+          "end": 12440,
+          "after": "restore_source(\n            root,\n            &data,\n            source,\n            &extraction[\"current_components\"][source],\n        )",
+          "before": "physical"
+        },
+        {
+          "start": 12472,
+          "end": 12485,
+          "after": ".len() as u64",
+          "before": ""
+        },
+        {
+          "start": 12487,
+          "end": 12487,
+          "after": "",
+          "before": "current);\n    let extraction = &"
+        },
+        {
+          "start": 12493,
+          "end": 12502,
+          "after": "new_child",
+          "before": "boundary_extraction"
+        },
+        {
+          "start": 12504,
+          "end": 12587,
+          "after": "[\"length\"]);\n    assert_eq!(hash(acquired.as_bytes()), data[\"new_child\"][\"sha256\"])",
+          "before": ""
+        },
+        {
+          "start": 12612,
+          "end": 12620,
+          "after": "acquired",
+          "before": "current.to_owned()"
+        }
+      ]
+    }
   }
 }

@@ -228,8 +228,9 @@ class ClosedPriorSourcePrefixes(unittest.TestCase):
                 'def ' + current_name + '(', 'def ' + name + '(', 1),
                 self.ast.get_source_segment(self.prior_v2, old))
         previous = self.v2['_decode_configuration'](json.loads(self.prior_cfg))
-        path = self.repo / 'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
-        raw = self._read(path, 262144)
+        installed_v3_sha = '1c98f5212cd8a17d72383c3d449b79f3b24d9b31473a37140a1a41890da8fd4a'
+        raw = self._read(self.repo / 'e' / installed_v3_sha, 262144)
+        self.assertEqual(self.hashlib.sha256(raw).hexdigest(), installed_v3_sha)
         current = self.now['_decode_configuration'](json.loads(raw))
         self.assertEqual(self.now['_closed_source_json'](current), self.now['_closed_source_json'](previous))
         self.assertEqual(len(current['modules']), 660)

@@ -3,9 +3,9 @@ use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::{
     declared_history_inputs, ProjectionInvocation,
 };
-const CURRENT_LENGTH: usize = 2334280;
+const CURRENT_LENGTH: usize = 2336970;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "12a92e1aa55f3e44412d9a46392708a03f38ff8088d40eec2a70f50257db0198";
+const CURRENT_SHA: &str = "ad72070c326f26dbd7d3a77f6fafa3a2d3e7a7a2742da33ff9e5a34c21777013";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
@@ -33,7 +33,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")), 4034, "28546e59049ad4d8707072d3d887e7569c00f98759b37230c20bd7c78fd48b91"),
     ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")), 22575, "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587"),
     ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")), 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
-    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 48070, "5d9a533edad5c16a32cdeae1cb3eca4762386b7ef5bcd74f5a823f8a92699ad0"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 50760, "12157440786fc98e96af4288628125816e0b8c133885b59fb2df0eb232314850"),
     ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/whole.rs")), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
     ("src/call_index/validation_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_before.rs")), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
     ("src/call_index/validation_receipt_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_receipt_tests.rs")), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),

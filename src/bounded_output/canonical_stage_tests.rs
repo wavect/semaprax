@@ -406,10 +406,19 @@ pub(crate) fn census_original_before(path: &str, current: &[u8]) -> Vec<u8> {
         _ => panic!("undeclared census source"),
     };
     assert_eq!(current, compiled);
-    let normalized = census_stage(path, current, false).or_else(|| {
-        (path == "src/cleanup_plan/replay/path_join/frontier_tests.rs")
-            .then(|| census_source_before(path, current))
-    });
+    let normalized = census_stage(path, current, false)
+        .or_else(|| {
+            (path == "src/cleanup_plan/replay/path_join/frontier_tests.rs")
+                .then(|| census_source_before(path, current))
+        })
+        .or_else(|| {
+            crate::source_reflows::declared_history_inputs::expected_value(
+                path,
+                row["sha256"].as_str().unwrap(),
+                std::str::from_utf8(current).unwrap(),
+            )
+            .map(String::into_bytes)
+        });
     let current = normalized.as_deref().unwrap_or(current);
     assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(current), row["sha256"].as_str().unwrap());

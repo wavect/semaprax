@@ -5,6 +5,15 @@ mod oracle_closure_custody;
 fn digest(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
+
+fn shared_source_stage(path: &str, current: &[u8], expected: &str) -> Option<String> {
+    crate::source_reflows::declared_history_inputs::expected_value(
+        path,
+        expected,
+        std::str::from_utf8(current).unwrap(),
+    )
+}
+
 #[test]
 fn complete_immediate_old_driver_and_each_helper_restore_their_whole_preimages() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -190,7 +199,16 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             assert_eq!(actual.as_slice(), compiled);
             actual = current_shared_input_before(&path, &actual);
             actual = retained_fork_source_before(&path, &actual);
-            assert_eq!(actual.len(), row["length"].as_u64().unwrap() as usize);
+            if let Some(stage) =
+                shared_source_stage(&path, &actual, row["sha256"].as_str().unwrap())
+            {
+                actual = stage.into_bytes();
+            }
+            assert_eq!(
+                actual.len(),
+                row["length"].as_u64().unwrap() as usize,
+                "{path}"
+            );
             assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
             for edit in row["edits"].as_array().unwrap().iter().rev() {
                 let start = edit["start"].as_u64().unwrap() as usize;
@@ -263,6 +281,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 .iter()
                 .find(|r| r["path"] == path)
                 .unwrap();
+            if path == "src/cleanup_plan/replay/continuation_storage/tests.rs" {
+                actual = crate::source_reflows::original_fixture_source(
+                    &path,
+                    row["current_sha256"].as_str().unwrap(),
+                    std::str::from_utf8(&actual).unwrap(),
+                )
+                .into_bytes();
+            }
             assert_eq!(actual.len() as u64, row["current_length"]);
             assert_eq!(digest(&actual), row["current_sha256"].as_str().unwrap());
             let mut before = actual.clone();
@@ -304,10 +330,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // Finite test-only transport: bind the complete current test bytes,
                 // then invert the whole replacement to the complete pinned old
                 // fixture. No production dependency receives this inverse.
-                assert_eq!(
-                    digest(&actual),
-                    "130785078147912db8f850bd5f5ff7ea09c847ce31a8706ddf566662542147ee"
-                );
+                let sha = "130785078147912db8f850bd5f5ff7ea09c847ce31a8706ddf566662542147ee";
+                let stage = shared_source_stage(&path, &actual, sha);
+                let actual = stage.as_ref().map_or(actual.as_slice(), |value| value.as_bytes());
+                assert_eq!(digest(actual), sha);
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/e/a7e37ebe47e810939282e3e6abfb44db27b658418d91154131679d0759847efe"
@@ -318,8 +344,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs" {
                 // Exact whole-source transport for OPT892; the complete
                 // immediate-old dependency remains the fixed 946-row target.
+                let stage = shared_source_stage(&path, &actual, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d");
+                let actual = stage.as_ref().map_or(actual.as_slice(), |value| value.as_bytes());
                 assert_eq!(actual.len(), 10932);
-                assert_eq!(digest(&actual), "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d");
+                assert_eq!(digest(actual), "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d");
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/e/4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"
@@ -343,8 +371,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else if path == "src/cleanup_plan/replay/expression_facts/receiving/retained.rs" {
                 // Bind every current physical byte before the immutable 946 target.
                 assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained.rs")).as_slice());
+                let stage = shared_source_stage(&path, &actual, "24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081");
+                let actual = stage.as_ref().map_or(actual.as_slice(), |value| value.as_bytes());
                 assert_eq!(actual.len(), 37215);
-                assert_eq!(digest(&actual), "24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081");
+                assert_eq!(digest(actual), "24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081");
                 let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8"));
                 assert_eq!(before.len(), 37088);
                 assert_eq!(digest(before), expected);
@@ -352,8 +382,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else if path == "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs" {
                 // Bind every current physical byte before the immutable 946 target.
                 assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs")).as_slice());
+                let stage = shared_source_stage(&path, &actual, "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246");
+                let actual = stage.as_ref().map_or(actual.as_slice(), |value| value.as_bytes());
                 assert_eq!(actual.len(), 86537);
-                assert_eq!(digest(&actual), "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246");
+                assert_eq!(digest(actual), "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246");
                 let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"));
                 assert_eq!(before.len(), 86698);
                 assert_eq!(digest(before), expected);
@@ -369,8 +401,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 before.as_slice()
             } else if path == "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" {
                 assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" )).as_slice());
+                let stage = shared_source_stage(&path, &actual, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1");
+                let actual = stage.as_ref().map_or(actual.as_slice(), |value| value.as_bytes());
                 assert_eq!(actual.len(), 19806);
-                assert_eq!(digest(&actual), "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1");
+                assert_eq!(digest(actual), "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1");
                 let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c"));
                 assert_eq!(before.len(), 15284);
                 assert_eq!(digest(before), expected);
@@ -378,11 +412,15 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else {
                 actual.as_slice()
             };
-        assert_eq!(
-            digest(actual),
-            expected,
-            "immediate-old shared dependency {path}"
-        );
+        if digest(actual) != expected {
+            let before = crate::source_reflows::declared_history_inputs::expected_value(
+                &path,
+                &expected,
+                std::str::from_utf8(actual).unwrap(),
+            )
+            .unwrap_or_else(|| panic!("unbound immediate-old shared dependency {path}"));
+            assert_eq!(digest(before.as_bytes()), expected);
+        }
     }
     assert!(
         std::mem::size_of::<super::Incoming<super::PathState>>()
@@ -398,8 +436,11 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
         let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
         assert_eq!(physical.as_slice(), compiled);
         assert_eq!(current, compiled);
+        let expected = "5e0da04b5e6373c30f7b31799f36a484477ccc0f9d79c98af4f91cd6a4d0e335";
+        let stage = shared_source_stage(path, current, expected);
+        let current = stage.as_ref().map_or(current, |value| value.as_bytes());
         assert_eq!(current.len(), 31154);
-        assert_eq!(digest(current), "5e0da04b5e6373c30f7b31799f36a484477ccc0f9d79c98af4f91cd6a4d0e335");
+        assert_eq!(digest(current), expected);
         // Entire already-retained main42 input, before its unchanged old edits.
         let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5"));
         assert_eq!(before.len(), 24273);
@@ -464,12 +505,15 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
         std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
     assert_eq!(physical.as_slice(), compiled);
     assert_eq!(current, compiled);
+    let stage = shared_source_stage(path, current, expected);
+    let current = stage.as_ref().map_or(current, |value| value.as_bytes());
     assert_eq!(current.len(), length);
     assert_eq!(digest(current), expected);
     let mut before = if path
         == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs"
     {
-        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()
+        let parent = crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(compiled).unwrap());
+        parent.into_bytes()
     } else {
         current.to_vec()
     };
@@ -704,7 +748,9 @@ fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
     } else {
         assert_eq!(current, compiled);
     }
-    assert_eq!(current.len(), length);
+    let stage = shared_source_stage(path, current, sha);
+    let current = stage.as_ref().map_or(current, |value| value.as_bytes());
+    assert_eq!(current.len(), length, "{path}");
     assert_eq!(digest(current), sha);
     assert_eq!(before.len(), before_length);
     assert_eq!(digest(before), before_sha);

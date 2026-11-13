@@ -287,6 +287,14 @@ two sequential lexical scopes on one account. The first scope settles before
 the second allocation. Either partition can select its own failure, and a
 failed bounded producer stops before its partition.
 
+The single and repeated fixtures also exercise a scalar postcondition over
+the staged result. The direct interpreter checks that the postcondition
+failure exit uses the same ordered finalizers as success. Native O0/O2 and
+paired Core Wasm return `semaprax.contract.v1` code 2 after settlement.
+The native test keeps the caller result sentinel intact and checks each
+backing free. The Wasm test checks that failure has no result and that the
+managed account returns to its metadata baseline before reentry.
+
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.
 

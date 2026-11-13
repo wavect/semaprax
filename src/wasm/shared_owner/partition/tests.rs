@@ -87,6 +87,18 @@ fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_re
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
     let mut cases = vec![
         (
+            SHARED_SOURCE.replace("-> i64", "-> i64 ensures result == 4095"),
+            crate::conformance::CONTRACT_STATUS_DOMAIN_V1,
+            crate::conformance::CONTRACT_ENSURES_FALSE_CODE,
+            "65536",
+        ),
+        (
+            REPEATED_SOURCE.replace("-> i64", "-> i64 ensures result == 8192"),
+            crate::conformance::CONTRACT_STATUS_DOMAIN_V1,
+            crate::conformance::CONTRACT_ENSURES_FALSE_CODE,
+            "8192",
+        ),
+        (
             CAPACITY_SOURCE.replace("8192usize", "8193usize"),
             STATUS_DOMAIN,
             STATUS_CODES[3],

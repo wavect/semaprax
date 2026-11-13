@@ -4,7 +4,10 @@ use super::{
     invocation::Invocation,
 };
 use crate::{
-    cleanup_plan::{CleanupPlan, CleanupResultSource, ExitContinuation, StatusLane, StorageId},
+    cleanup_plan::{
+        CleanupPlan, CleanupResultSource, ContractPhase, ExitContinuation, ExitTarget, StatusLane,
+        StatusProducer, StorageId,
+    },
     construction_fusion::{
         domain::Refusal,
         partition::{self, Preparation},
@@ -21,6 +24,7 @@ pub(crate) enum Outcome {
     Returned(i64),
     PartitionFault(partition::Fault),
     BufferBoundExceeded,
+    PostconditionFailed,
     AllocationFailure,
     Refused,
 }
@@ -290,7 +294,79 @@ fn prove_step(
     })
 }
 
-fn execute_step(step: PartitionStep, invocation: &mut Invocation<'_>) -> Result<Outcome, Refusal> {
+/// The direct scalar receiver admits one pure comparison against the staged
+/// result. Both exits must settle the same live owners in canonical order.
+fn prove_postcondition(
+    entry: &hir::ResolvedFunction,
+    success: &ExitTarget,
+    work: &mut usize,
+) -> Result<Option<i64>, Refusal> {
+    let contract = match entry.ensures.as_slice() {
+        [] => return Ok(None),
+        [contract] => contract,
+        _ => return Err(Refusal::Identity),
+    };
+    let K::Binary {
+        op: crate::ast::BinaryOp::Eq,
+        left,
+        right,
+    } = &contract.kind
+    else {
+        return Err(Refusal::Identity);
+    };
+    root(left, &entry.result_id, work)?;
+    let K::Int(expected) = right.kind else {
+        return Err(Refusal::Identity);
+    };
+
+    let plan = &entry.cleanup_plan;
+    let mut checked = false;
+    for status in &plan.status_sources {
+        pay(work, status.id.expression.as_str().len().saturating_add(1))?;
+        if status.id.lane != StatusLane::ContractFalse || status.id.expression != contract.id {
+            continue;
+        }
+        if checked
+            || !matches!(
+                status.producer,
+                StatusProducer::ContractFalse {
+                    phase: ContractPhase::Ensures,
+                    ordinal: 0,
+                }
+            )
+        {
+            return Err(Refusal::Identity);
+        }
+        checked = true;
+    }
+    let mut matched = false;
+    for exit in &plan.exits {
+        pay(work, 1)?;
+        let ExitContinuation::ReturnFailure { source } = &exit.continuation else {
+            continue;
+        };
+        pay(work, source.expression.as_str().len().saturating_add(1))?;
+        if source.lane == StatusLane::ContractFalse && source.expression == contract.id {
+            // prove_step already authenticated the success inventory and paid
+            // for the matching identity comparisons on this receiving ledger.
+            if matched || exit.finalize_in_order != success.finalize_in_order {
+                return Err(Refusal::Identity);
+            }
+            matched = true;
+        }
+    }
+    if !checked || !matched {
+        return Err(Refusal::Identity);
+    }
+    Ok(Some(expected))
+}
+
+fn execute_step(
+    step: PartitionStep,
+    postcondition: Option<i64>,
+    prefix: i64,
+    invocation: &mut Invocation<'_>,
+) -> Result<Outcome, Refusal> {
     let PartitionStep {
         extent,
         exceeds_bound,
@@ -334,8 +410,14 @@ fn execute_step(step: PartitionStep, invocation: &mut Invocation<'_>) -> Result<
         return Err(Refusal::Identity);
     };
     let scalar = i64::try_from(vector.len()).map_err(|_| Refusal::Identity)?;
+    let result = prefix.checked_add(scalar).ok_or(Refusal::Identity)?;
+    let outcome = if postcondition.is_some_and(|expected| expected != result) {
+        Outcome::PostconditionFailed
+    } else {
+        Outcome::Returned(result)
+    };
     super::values::settle(&mut value, &mut invocation.loans).map_err(|_| Refusal::Identity)?;
-    Ok(Outcome::Returned(scalar))
+    Ok(outcome)
 }
 
 /// The actual caller Account is borrowed through settlement. No numeric
@@ -365,7 +447,6 @@ pub(crate) fn execute(
         if entries.next().is_some()
             || !entry.params.is_empty()
             || !entry.requires.is_empty()
-            || !entry.ensures.is_empty()
             || !entry.effects.is_empty()
             || entry.return_type != hir::ResolvedType::I64
         {
@@ -395,7 +476,11 @@ pub(crate) fn execute(
         let mut handle = account.borrowed();
         use crate::construction_fusion::domain::owner_core::Runtime;
         handle.reserve_metadata(Layout::new::<Report>())?;
-        handle.reserve_metadata(Layout::new::<(Option<PartitionStep>, PartitionStep)>())?;
+        handle.reserve_metadata(Layout::new::<(
+            Option<PartitionStep>,
+            PartitionStep,
+            Option<i64>,
+        )>())?;
         let (first, last) = match statements.as_slice() {
             [S::Let {
                 binding,
@@ -437,24 +522,25 @@ pub(crate) fn execute(
                 prove_step(&entry.cleanup_plan, statements, tail, Some(exit), work)?,
             ),
         };
+        let postcondition = prove_postcondition(entry, exit, work)?;
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;
         handle.reserve_metadata(Layout::new::<Value>())?;
         let mut invocation = Invocation::prepare(owner, entry, work, handle)?;
         report.outcome = match first {
-            None => execute_step(last, &mut invocation)?,
-            Some(step) => match execute_step(step, &mut invocation)? {
-                Outcome::Returned(first) => match execute_step(last, &mut invocation)? {
-                    Outcome::Returned(last) => {
-                        Outcome::Returned(first.checked_add(last).ok_or(Refusal::Identity)?)
-                    }
-                    fault => fault,
-                },
+            None => execute_step(last, postcondition, 0, &mut invocation)?,
+            Some(step) => match execute_step(step, None, 0, &mut invocation)? {
+                Outcome::Returned(first) => {
+                    execute_step(last, postcondition, first, &mut invocation)?
+                }
                 fault => fault,
             },
         };
         report.cleanup_complete = matches!(
             report.outcome,
-            Outcome::Returned(_) | Outcome::PartitionFault(_) | Outcome::BufferBoundExceeded
+            Outcome::Returned(_)
+                | Outcome::PartitionFault(_)
+                | Outcome::BufferBoundExceeded
+                | Outcome::PostconditionFailed
         );
         Ok(())
     })();

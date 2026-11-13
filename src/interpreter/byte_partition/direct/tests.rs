@@ -60,6 +60,46 @@ fn repeated_source_partitions_settle_on_one_account_before_publication() {
     }
 }
 
+#[test]
+fn postcondition_selects_failure_before_partition_result_publication() {
+    for (fixture, expected, counters) in [
+        (SHARED_SOURCE, 4096, (1, 65536)),
+        (REPEATED_SOURCE, 8193, (2, 8193)),
+    ] {
+        for bound in [expected, expected - 1] {
+            let text = fixture.replace("-> i64", &format!("-> i64 ensures result == {bound}"));
+            assert_ne!(text, fixture);
+            let ast = crate::parse(&text, "partition-ensures.spx").unwrap();
+            let owner =
+                ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+            let (mut allocations, mut payload) = (0, 0);
+            let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
+            for invocation in 1..=2 {
+                let (report, metrics) =
+                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                        execute(&owner, &account, &mut { usize::MAX })
+                    });
+                assert_eq!(
+                    report.outcome,
+                    if bound == expected {
+                        Outcome::Returned(expected)
+                    } else {
+                        Outcome::PostconditionFailed
+                    }
+                );
+                assert!(report.cleanup_complete);
+                assert_eq!(
+                    (report.allocations, report.payload),
+                    (invocation * counters.0, u64::from(invocation) * counters.1)
+                );
+                assert!(!metrics.invalid);
+                assert_eq!(metrics.live, 0);
+                assert_eq!(metrics.allocated, metrics.freed);
+            }
+        }
+    }
+}
+
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
         r#"module partition_direct;

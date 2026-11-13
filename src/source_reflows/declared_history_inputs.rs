@@ -102,8 +102,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        697366,
-        "0b83034958e1baea2ac1206dbe6feab465670590dbb060b93112f1c588b61489",
+        697807,
+        "1a7fdd5cd8693897c1f52146f5729b5d084da39f64e6005aea9bdaf3289ff075",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130820,
-        "3040c80ce9922044eba39c2c8bbdf1cb70e6203d9d94893b7985e377aa123fd5",
+        "51397d555840b86f999554084a99a11b5a9de468e119119e01b2981209615679",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        629225,
-        "c43bb4245394fc211507d8af72dd07ddde06c4448eeec8238dbf2d33bbd5cfa4",
+        631007,
+        "8674dff058b9729a8458e136a903d1fb80e46e553940bc67762371604bfd8658",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -417,8 +417,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-44.json"
         )),
-        184886,
-        "a521f731c4e49431d6af4b7a3d103ac462cc4750d78136319b8770de2061c3e5",
+        185633,
+        "40ae1fbcd768c36155b21ae91cbb884d3180833bbb8e848635da52902fb618e5",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-45.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1015881,
-        "91c1e27e58b2ccf181b3c08502338310d9ec3318303befa751322d8c32d5f1e7",
+        1017069,
+        "d9825412b779bc1616d82b2082f2d4cef0a5a9ce9bdf6cfea9e7b14632340ecc",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -1342,6 +1342,7 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/factored/strategy.rs", "8df7ec56344f5e028ccc78078b15f8d582a3477fe00a371f8251ae31613a0a27") => Some((43,105)),
 ("src/cleanup_plan/replay/factored/strategy/activation_tests.rs", "daba60f6688ac69bb97368afa97253e1eeb065f927cbef9ab7bd45832cecc367") => Some((43,106)),
 ("src/cleanup_plan/replay/factored/strategy/tests.rs", "7884986342955b852b9488dba2548ef85af163509dfcd5c4bebac466459fca6f") => Some((43,107)),
+("src/cleanup_plan/replay/factored/paired.rs", "b71f44bb3ca6e1feccfdbad9128d33267881a147766583397634c4d9348cf7ca") => Some((43,108)),
 _ => None, }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

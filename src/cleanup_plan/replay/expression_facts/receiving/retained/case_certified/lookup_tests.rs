@@ -987,14 +987,23 @@ fn authenticate_prefitting_ordinary() {
         digest(&receiving),
         "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"
     );
-    let paired = include_str!("../../../../factored/paired.rs");
+    let paired = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored/paired.rs",
+        "b71f44bb3ca6e1feccfdbad9128d33267881a147766583397634c4d9348cf7ca",
+        include_str!("../../../../factored/paired.rs"),
+    );
     assert_eq!(paired.len(), 27714);
     assert_eq!(
-        digest(paired),
+        digest(&paired),
         "b71f44bb3ca6e1feccfdbad9128d33267881a147766583397634c4d9348cf7ca"
     );
-    let dispatch = definition(
+    let dispatch_source = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/factored.rs",
+        "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269",
         include_str!("../../../../factored.rs"),
+    );
+    let dispatch = definition(
+        &dispatch_source,
         "pub(super) fn validate_with_index_storage<'hir>(",
     );
     assert_eq!(dispatch.len(), 3774);

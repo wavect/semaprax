@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import codex_campaign as adapter
 import test_campaign_adapter as fixtures
+from test_campaign_resources import healthy_host
 
 
 class CodexShiftSimTests(unittest.TestCase):
@@ -25,6 +26,7 @@ class CodexShiftSimTests(unittest.TestCase):
                                      side_effect=lambda texts, metadata: [len(row["content"]) for row in texts]))
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
+        self.enterContext(patch("campaign_resources.host_snapshot", side_effect=healthy_host))
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
@@ -418,7 +420,7 @@ class CodexShiftSimTests(unittest.TestCase):
 
     def test_v32_codex_plan_keeps_matched_model_denominator_and_fresh_source_binding(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             binary = root / "semaprax"
             binary.write_bytes(b"v32 fixture compiler")
             digest = adapter.shiftsim.common.digest(binary)
@@ -469,7 +471,7 @@ class CodexShiftSimTests(unittest.TestCase):
 
     def test_v31_codex_plan_requires_fresh_v31_evidence_and_pinned_typescript(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             binary = root / "semaprax"
             binary.write_bytes(b"v31 fixture compiler")
             digest = adapter.shiftsim.common.digest(binary)

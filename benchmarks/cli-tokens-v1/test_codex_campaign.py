@@ -6,12 +6,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import codex_campaign
+from test_campaign_resources import healthy_host
 
 
 class CodexCampaignTests(unittest.TestCase):
     def setUp(self):
         # These fixtures fake model/acceptance execution; resource admission is
         # independently exercised with low-space and ENOSPC controls.
+        self.enterContext(patch("campaign_resources.host_snapshot", side_effect=healthy_host))
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
@@ -71,7 +73,7 @@ class CodexCampaignTests(unittest.TestCase):
 
     def test_compiler_build_receipt_binds_command_log_source_and_binary_before_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             binary = root / "semaprax"
             binary.write_bytes(b"planned compiler")
             settings = self.compiler_build_settings(root, binary)
@@ -82,7 +84,7 @@ class CodexCampaignTests(unittest.TestCase):
 
     def test_compiler_build_receipt_rejects_oversize_and_symlinked_inputs_before_reading(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             binary = root / "semaprax"
             binary.write_bytes(b"planned compiler")
             settings = self.compiler_build_settings(root, binary)
@@ -113,7 +115,7 @@ class CodexCampaignTests(unittest.TestCase):
 
     def test_calibration_rechecks_compiler_after_workspace_preparation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             binary = root / "semaprax"
             binary.write_bytes(b"planned compiler")
             settings = self.compiler_build_settings(root, binary)

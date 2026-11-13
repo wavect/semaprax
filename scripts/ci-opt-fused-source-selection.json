@@ -1,0 +1,56 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 7,
+  "expected_tests": 26,
+  "commands": [
+    {
+      "owner": "OPT747 checked fused source and interpreter funding",
+      "binary": "lib",
+      "filter": "fused_source::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT747 ordinary and selected allocation bounds",
+      "binary": "lib",
+      "filter": "byte_data_capacity::fused_tests::",
+      "exact": false,
+      "expected_tests": 9
+    },
+    {
+      "owner": "OPT747 source, graph and cache replay",
+      "binary": "lib",
+      "filter": "hir::cache_codec::record_traversal_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT747 original native maximum at O0 and O2",
+      "binary": "lib",
+      "filter": "codegen::selected_fused_row::tests::original_4096_rows_publish_8386560_with_one_12288_byte_backing_at_o0_o2",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT747 strict paired Core-Wasm package",
+      "binary": "lib",
+      "filter": "wasm::fused_source_package::tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT747 original maximum traversal across three engines",
+      "binary": "owned_data",
+      "filter": "owned_leaf_vec::record_traversal::maximum_admitted_owned_rows_preserve_views_order_and_nonallocating_reentry",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT747 fused standalone CLI and independent source",
+      "binary": "quickstart_v1",
+      "filter": "fused_source::",
+      "exact": false,
+      "expected_tests": 4
+    }
+  ]
+}

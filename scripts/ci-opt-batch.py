@@ -23,6 +23,7 @@ SELECTIONS = {
     'composed-closure': ('ci-opt-composed-closure-selection.json', 25, 130, ('lib',)),
     'observed-census': ('ci-opt-observed-census-selection.json', 3, 5, ('lib',)),
     'private-partition': ('ci-opt-private-partition-selection.json', 6, 36, ('lib',)),
+    'fused-source': ('ci-opt-fused-source-selection.json', 7, 26, ('lib', 'owned_data', 'quickstart_v1')),
     'query-closure': ('ci-opt-query-closure-selection.json', 47, 193, ('lib', 'project', 'hir_module_boundaries', 'public_generic_wasm_adapter_v1')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
@@ -357,10 +358,10 @@ def main() -> int:
         receipt['features'] = list(features)
         receipt['rustc'] = text(['rustc', '-vV'])
         receipt['cargo'] = text(['cargo', '--version'])
-        if options.selection == 'private-partition':
+        if options.selection in ('private-partition', 'fused-source'):
             receipt['node'] = text(['node', '--version'])
             if receipt['node'] != 'v24.15.0':
-                raise RuntimeError('the partition Wasm checks require Node v24.15.0')
+                raise RuntimeError('the selected Wasm checks require Node v24.15.0')
         receipt['native_tools'] = {name: env[name] for name in ('CLANG', 'SEMAPRAX_ARCHIVER')}
         receipt['history_inputs'] = 'Selected historical-body owners read committed fixtures, not historical Git objects; shallow checkout retained.'
         if not receipt['rustc'].startswith('rustc 1.97.1 '):

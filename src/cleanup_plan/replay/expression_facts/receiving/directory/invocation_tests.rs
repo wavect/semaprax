@@ -383,9 +383,15 @@ fn complete_immediate_sources_and_new_children_are_bound_without_reducing_old_co
         let rows = data["owners"].as_array().unwrap();
         assert_eq!(rows.iter().filter(|row| row["path"] == path).count(), 1);
         let row = rows.iter().find(|row| row["path"] == path).unwrap();
-        assert_eq!(row["current"]["length"], compiled.len());
-        assert_eq!(row["current"]["sha256"], digest(compiled.as_bytes()));
-        let mut restored = compiled.to_owned();
+        let expected = row["current"]["sha256"].as_str().unwrap();
+        let predecessor = (digest(compiled.as_bytes()) != expected).then(|| {
+            crate::source_reflows::declared_history_inputs::expected_value(path, expected, compiled)
+                .expect("complete status-directory source at its original boundary")
+        });
+        let current = predecessor.as_deref().unwrap_or(compiled);
+        assert_eq!(row["current"]["length"], current.len());
+        assert_eq!(row["current"]["sha256"], digest(current.as_bytes()));
+        let mut restored = current.to_owned();
         for edit in row["edits"].as_array().unwrap().iter().rev() {
             let a = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
             let b = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();

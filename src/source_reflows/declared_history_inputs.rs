@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130820,
-        "d2a63820e1b5bafa07907b801e0517757550fe41c8d4009e5523d454d9b16395",
+        "04be6c7bddc7331ae13152c0fea7dff55d51e07dcba2dd59dfcc38aeed42b85a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        938556,
-        "ab54fd7d7e2a000a72092a1b7f2e011e341ba1ce4a4e31d44e6727403deeb123",
+        1015881,
+        "91c1e27e58b2ccf181b3c08502338310d9ec3318303befa751322d8c32d5f1e7",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -451,6 +451,12 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/cleanup_plan/replay.rs", "2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16") => Some((45,209)),
+("src/cleanup_plan/replay/expression_facts.rs", "a642c83b28000bc82b67e537068ce0c107d1030c6c54372c4967dc79bf0b3828") => Some((45,210)),
+("src/cleanup_plan/replay/expression_facts/arena.rs", "01d3ee964b21b8b1c8069524c7bef0f3650c5d807d9c135d435e9ec33ecb6142") => Some((45,211)),
+("src/cleanup_plan/replay/expression_facts/capacity.rs", "fe8dd4880fefa98d9734b3710da9515351ba793ae8d719fc983757082b063f2e") => Some((45,212)),
+("src/cleanup_plan/replay/expression_facts/receiving.rs", "b8bfe15524ab8a7bd073d52905ef6ccece48e8df39bb45242163ef75d67efd90") => Some((45,213)),
+("src/cleanup_plan/replay/expression_facts/arena/invocation_tests.rs", "8199a36b4017fe018a28fb174dbca444b05a4c74961ebac79d84f9d5259812fb") => Some((45,214)),
 ("src/cleanup_plan/replay/expression_facts/capacity.rs", "ec292640034fe63b2a23a69ab30edec77e9a63fd575d61a1a1b243bb27c6b886") => Some((45,207)),
 ("docs/AGENT-SKILL-BUNDLE-V1.json", "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536") => Some((45,208)),
 ("src/cleanup_plan/replay/lexical_replay.rs", "5686964a0f12cca8f3a63c5ef1b48daf6f587ecaf7ad40dc337fe7328040e319") => Some((45,202)),

@@ -17,6 +17,8 @@ const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
+const REPEATED_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-repeated.spx");
 
 fn emitted(source: &str) -> PartitionModule {
     let ast = crate::parse(source, "partition_wasm.spx").unwrap();
@@ -51,6 +53,7 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         (SHARED_SOURCE, "4096", "65536"),
         (EMPTY_SOURCE, "0", "0"),
         (CAPACITY_SOURCE, "8192", "8192"),
+        (REPEATED_SOURCE, "8193", "8192"),
     ] {
         let module = emitted(source);
         if node_available() {

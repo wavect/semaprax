@@ -127,8 +127,13 @@ capacity, generation records, backing administration and Vec backing. A selected
 invocation must precharge its complete inventory before allocation. A bounded
 count alone does not prove total metadata size or repeated whole-backing partition
 capacity; child repartitioning remains closed.
-The executable contract must authenticate a finite slot/peak-live bound, reject
-slot-generation exhaustion without ABA reuse, and test exact/one-short refusal.
+Native and private Core-Wasm reserve up to 8,192 child slots across held
+preparations and committed backing tables. The full table charge lasts through
+the backing's last child, even when earlier children settle. After the last
+child settles, a new partition may use that capacity. This release leaves the
+32-event and 2 MiB cumulative backing counters intact. The executable contract
+must authenticate that bound, reject slot-generation exhaustion without ABA
+reuse, and test exact/one-short refusal.
 No unbounded registry, global cache or per-child hidden heap allocation is allowed.
 
 ## Proposed native representation and public boundary
@@ -233,15 +238,16 @@ Core-Wasm also share the zero-child fixture
 The owning selectors also use an 8,192-byte fixture to check the exact
 8,192-child result and derive a matching 8,193-byte, 8,193-child refusal.
 
-A runtime comparison exercised two partitions in one invocation. The first
-issued 8,192 children and settled all of them before the second whole owner
-was constructed. Native C11 at O0/O2 selected `metadata_capacity` for the
-second, one-child partition because the native registry retains its child
-debit until invocation end. The Wasm host's producer import accepted it
-because settlement returned all 8,192 slots. Both observed two backing
-events and 8,193 cumulative payload bytes. This comparison used the C
-runtime and Wasm host import directly. Source-level acceptance for repeated
-partitions needs a shared metadata lifetime rule and a same-source gate.
+The previous native registry kept a child-table debit after the table was
+freed. The Wasm host previously admitted new partitions using individual
+settled slots even when another child from the same table stayed live. Native
+C11 at O0/O2 and the Wasm host producer now pass runtime controls for the
+shared rule. With 8,192 children issued, a single retained child keeps the
+whole table charged. After it settles, the next partition succeeds and the
+retired carrier still refuses. Both runtime controls observe two backing events
+and 8,193 cumulative payload bytes. The repeated source fixture exercises the
+native and paired Wasm emitters. The direct interpreter source entry still
+accepts one partition per invocation.
 
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.

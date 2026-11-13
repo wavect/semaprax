@@ -179,6 +179,9 @@ export function createSharedByteOwnerRegistry({
   const tickets = new WeakMap();
   let epoch = 1;
   let reservedSlots = 0;
+  // Match native's backing table lifetime. A retired child frees a lookup
+  // slot, while its backing's full table charge remains until the last child.
+  let backingTableSlots = 0;
   let reservedTokens = 0;
   let liveLeases = 0;
   let peakLiveLeases = 0;
@@ -251,7 +254,7 @@ export function createSharedByteOwnerRegistry({
     if (count > BigInt(maxLeaseSlots)) return { refused: "metadata_capacity" };
     const children = Number(count);
     const backing = children > 0 ? freeBacking() : -1;
-    if (children > freeTop - reservedSlots
+    if (children > maxLeaseSlots - backingTableSlots - reservedSlots
         || (children > 0 && backing < 0)
         || tokens.remaining() - reservedTokens < children) {
       return { refused: "metadata_capacity" };
@@ -301,6 +304,7 @@ export function createSharedByteOwnerRegistry({
     prepared.whole = null;
     unreserve(prepared);
     if (children === 0) return carriers;
+    backingTableSlots += children;
     backingState[backing] = LIVE;
     backingBytes[backing] = whole;
     backingExtent[backing] = whole.byteLength;
@@ -341,6 +345,11 @@ export function createSharedByteOwnerRegistry({
     backingLive[backing] -= 1;
     if (backingLive[backing] > 0) return false;
     if (backingState[backing] !== LIVE) throw new Error("SEMAPRAX shared owner backing release invariant");
+    const tableSlots = backingExtent[backing] / leaseExtent[slot];
+    if (!Number.isInteger(tableSlots) || tableSlots < 1 || tableSlots > backingTableSlots) {
+      throw new Error("SEMAPRAX shared owner backing table accounting invariant");
+    }
+    backingTableSlots -= tableSlots;
     backingState[backing] = FREE;
     releasePayload(backingExtent[backing]);
     backingBytes[backing] = null;
@@ -416,7 +425,7 @@ export function createSharedByteOwnerRegistry({
       return released;
     },
     settled() {
-      return liveLeases === 0 && liveBackings === 0 && reservedSlots === 0;
+      return liveLeases === 0 && liveBackings === 0 && reservedSlots === 0 && backingTableSlots === 0;
     },
     // Independent inventory audit: every live range lies inside its live
     // backing, live counts agree, and no two live ranges overlap.
@@ -436,6 +445,7 @@ export function createSharedByteOwnerRegistry({
         ranges.get(backing).push([leaseOffset[slot], leaseExtent[slot]]);
       }
       let backings = 0;
+      let tableSlots = 0;
       for (let backing = 0; backing < maxBackings; backing += 1) {
         if (backingState[backing] !== LIVE) continue;
         backings += 1;
@@ -443,6 +453,12 @@ export function createSharedByteOwnerRegistry({
         if (list.length !== backingLive[backing] || backingBytes[backing]?.byteLength !== backingExtent[backing]) {
           throw new Error("SEMAPRAX shared owner audit: live count");
         }
+        const width = list[0]?.[1];
+        const slots = backingExtent[backing] / width;
+        if (!Number.isInteger(slots) || slots < list.length || slots > maxLeaseSlots) {
+          throw new Error("SEMAPRAX shared owner audit: backing table extent");
+        }
+        tableSlots += slots;
         list.sort((a, b) => a[0] - b[0]);
         for (let at = 1; at < list.length; at += 1) {
           if (list[at - 1][0] + list[at - 1][1] > list[at][0]) {
@@ -450,7 +466,8 @@ export function createSharedByteOwnerRegistry({
           }
         }
       }
-      if (leases !== liveLeases || backings !== liveBackings || freeTop + liveLeases !== maxLeaseSlots) {
+      if (leases !== liveLeases || backings !== liveBackings || freeTop + liveLeases !== maxLeaseSlots
+          || tableSlots !== backingTableSlots || backingTableSlots + reservedSlots > maxLeaseSlots) {
         throw new Error("SEMAPRAX shared owner audit: inventory");
       }
       return true;

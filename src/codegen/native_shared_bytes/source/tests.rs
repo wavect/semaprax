@@ -16,6 +16,8 @@ const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
+const REPEATED_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-repeated.spx");
 fn source(text: &str) -> String {
     let ast = crate::parse(text, "partition_native.spx").unwrap();
     assert!(crate::check(text, "partition_native.spx").is_err());
@@ -54,6 +56,7 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
         (source(SHARED_SOURCE), 4096),
         (source(EMPTY_SOURCE), 0),
         (source(CAPACITY_SOURCE), 8192),
+        (source(REPEATED_SOURCE), 8193),
     ] {
         let root = scratch("source-partition");
         compile_and_run(

@@ -106,6 +106,30 @@ test("Vec carrier capacity bounds child metadata exactly", () => {
   facade.endInvocation(receipt);
 });
 
+test("partition table charge retires with the last child", () => {
+  const { env, facade, memory, receipt } = fresh();
+  const [first, firstStatus] = env.spx_bytes_partition(env.spx_bytes_zeroed(8192n), 8192n, 1n);
+  check(firstStatus === 0, "exact table fits");
+  const view = new DataView(memory.buffer);
+  check(env.spx_iter_bytes_into_v2(first, 0) === 0, "iterator takes the Vec");
+  const iterator = view.getBigUint64(0, true);
+  check(env.spx_iter_bytes_next_v2(iterator, 0n, 16) === 0, "iterator transfers one child");
+  const last = view.getBigUint64(24, true);
+  env.spx_iter_bytes_drop_v2(view.getBigUint64(32, true), 1n);
+  const next = env.spx_bytes_zeroed(1n);
+  const [refused, refusedStatus] = env.spx_bytes_partition(next, 1n, 1n);
+  check(refused === 0n && refusedStatus === PARTITION_STATUS_CODES.metadata_capacity, "live child pins the backing table");
+  facade.audit();
+  env.spx_bytes_drop(last);
+  const [second, secondStatus] = env.spx_bytes_partition(next, 1n, 1n);
+  check(secondStatus === 0, "settled table can fund another partition");
+  throws(() => env.spx_bytes_get(last, 0n), /stale|unleased/, "retired child stays stale after reuse");
+  env.spx_vec_drop_v2(second);
+  check(facade.stats().events === 2 && facade.stats().payload === 8193, "backing charges remain cumulative");
+  facade.audit();
+  facade.endInvocation(receipt);
+});
+
 test("simultaneous partitioned owners share one fixed slot table", () => {
   const { env, facade, receipt } = fresh();
   const left = partition(facade, env.spx_bytes_zeroed(4096n), 4096, 1);

@@ -24,9 +24,9 @@
    proof is the authority; reaching either here is a compiler defect and fails
    stop before any write. Partition issues leases and charges no payload.
    Partition child metadata is a separate finite inventory (CHILD_SLOTS per
-   registry) that is held before allocation, debited only at commit and never
-   refunded. Physical allocator exhaustion stays invariant fail-stop except
-   where the existing Vec contract already selects `semaprax.vec.v1` code 3.
+   registry) that is held before allocation and charged until the complete
+   backing lease table is freed. Physical allocator exhaustion stays invariant
+   fail-stop except where the existing Vec contract selects `semaprax.vec.v1` code 3.
 
    Payload and metadata allocations go through distinct hooks so a physical
    census can tell them apart. Public copy-out uses the provider hooks and
@@ -113,7 +113,7 @@ typedef struct { spx_shb_vec vec; uint64_t cursor; } spx_shb_iter;
 typedef struct { const void *module; uint64_t next; uint32_t sealed, reserved; } spx_shb_issuer;
 typedef struct spx_shb_registry {
     const void *module; uint64_t issuer, next_nonce, next_generation, cumulative;
-    uint64_t child_debited, child_held;
+    uint64_t child_table_slots, child_held;
     uint32_t sealed, finished, events, loans;
     spx_shb_backing backing[SPX_SHB_EVENTS];
     spx_shb_vec_entry vec[SPX_SHB_VECS];
@@ -210,15 +210,22 @@ SPX_SHB_FN spx_shb_resolved spx_shb_resolve_unloaned(spx_shb_registry *registry,
     if (r.lease->loans != 0u) SPX_SHB_FAIL_STOP("shared Bytes owner has an outstanding borrow");
     return r;
 }
-SPX_SHB_FN void spx_shb_release_backing(spx_shb_backing *backing) {
+SPX_SHB_FN void spx_shb_release_backing(spx_shb_registry *registry, spx_shb_backing *backing) {
     if (backing->state != SPX_SHB_WHOLE && backing->state != SPX_SHB_PARTITIONED)
         SPX_SHB_FAIL_STOP("shared Bytes backing released twice");
     if (backing->live != 0u) SPX_SHB_FAIL_STOP("shared Bytes backing released with live leases");
+    bool partitioned = backing->state == SPX_SHB_PARTITIONED;
+    if (partitioned && (backing->child == NULL || backing->count == 0u
+        || backing->count > registry->child_table_slots))
+        SPX_SHB_FAIL_STOP("shared Bytes backing table accounting invariant");
     backing->state = SPX_SHB_RELEASED;
     unsigned char *payload = backing->payload; spx_shb_lease *child = backing->child;
     backing->payload = NULL; backing->child = NULL;
     if (payload != NULL) SPX_SHB_PAYLOAD_FREE(payload);
-    if (child != NULL) SPX_SHB_METADATA_FREE(child);
+    if (partitioned) {
+        SPX_SHB_METADATA_FREE(child);
+        registry->child_table_slots -= backing->count;
+    }
 }
 
 /* Producers. The event and payload charge precedes the allocation it covers. */
@@ -309,7 +316,7 @@ SPX_SHB_FN void spx_shb_drop(spx_shb_registry *registry, spx_shb_bytes *value) {
     *value = (spx_shb_bytes){0};
     r.lease->live = 0u;
     if (r.backing->live == 0u) SPX_SHB_FAIL_STOP("shared Bytes backing live count underflow");
-    if (--r.backing->live == 0u) spx_shb_release_backing(r.backing);
+    if (--r.backing->live == 0u) spx_shb_release_backing(registry, r.backing);
 }
 /* Deep copy into fresh ordinary backing with the ordinary charges. */
 SPX_SHB_FN void spx_shb_clone(spx_shb_registry *registry, const spx_shb_bytes *source, spx_shb_bytes *out) {
@@ -654,9 +661,9 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
     if (width == UINT64_C(0)) return SPX_SHB_PARTITION_WIDTH_ZERO;
     if (count != UINT64_C(0) && width > UINT64_MAX / count) return SPX_SHB_PARTITION_EXTENT_OVERFLOW;
     if (count * width != r.len) return SPX_SHB_PARTITION_EXTENT_MISMATCH;
-    if (count > SPX_SHB_VEC_CAPACITY || registry->child_debited > SPX_SHB_CHILD_SLOTS
-        || registry->child_held > SPX_SHB_CHILD_SLOTS - registry->child_debited
-        || count > SPX_SHB_CHILD_SLOTS - registry->child_debited - registry->child_held)
+    if (count > SPX_SHB_VEC_CAPACITY || registry->child_table_slots > SPX_SHB_CHILD_SLOTS
+        || registry->child_held > SPX_SHB_CHILD_SLOTS - registry->child_table_slots
+        || count > SPX_SHB_CHILD_SLOTS - registry->child_table_slots - registry->child_held)
         return SPX_SHB_PARTITION_METADATA_CAPACITY;
     uint32_t authority = spx_shb_vec_reserve_authority(registry);
     if (authority == 0u) return SPX_SHB_PARTITION_METADATA_CAPACITY;
@@ -707,9 +714,9 @@ SPX_SHB_FN void spx_shb_partition_commit(
     uint64_t prefix = ((uint64_t)r.index + 1u) << 32;
     *source = (spx_shb_bytes){0};
     backing->whole.live = 0u;
-    registry->child_held -= plan->count; registry->child_debited += plan->count;
+    registry->child_held -= plan->count; registry->child_table_slots += plan->count;
     if (plan->count == UINT64_C(0)) {
-        backing->live = 0u; spx_shb_release_backing(backing);
+        backing->live = 0u; spx_shb_release_backing(registry, backing);
     } else {
         for (uint64_t i = UINT64_C(0); i < plan->count; ++i) {
             plan->table[i] = (spx_shb_lease){ .nonce = spx_shb_fresh_nonce(registry), .live = 1u };
@@ -757,6 +764,8 @@ SPX_SHB_FN void spx_shb_registry_finish(spx_shb_registry *registry) {
     for (uint32_t i = 0u; i < registry->events; ++i)
         if (registry->backing[i].state != SPX_SHB_RELEASED || registry->backing[i].live != 0u)
             SPX_SHB_FAIL_STOP("shared Bytes registry finished with a live lease");
+    if (registry->child_table_slots != UINT64_C(0))
+        SPX_SHB_FAIL_STOP("shared Bytes child table outlived its backing");
     for (uint32_t i = 0u; i < SPX_SHB_VECS; ++i)
         if (registry->vec[i].state != SPX_SHB_VEC_FREE)
             SPX_SHB_FAIL_STOP("shared Bytes registry finished with a live Vec");

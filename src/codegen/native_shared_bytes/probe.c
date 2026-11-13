@@ -36,7 +36,7 @@ PROBE_FN void exact_bytes_and_no_payload_charge(void) {
     size_t metadata = metadata_pool.calls;
     partition(&a, 4u, 3u, &v);
     assert(payload_pool.calls == 1u && reg.events == 1u && reg.cumulative == 12u);
-    assert(metadata_pool.calls == metadata + 2u && reg.child_debited == 4u);
+    assert(metadata_pool.calls == metadata + 2u && reg.child_table_slots == 4u);
     uint8_t joined[12]; uint64_t sum = 0u, expected = 0u;
     const uint8_t *previous_end = NULL;
     for (uint64_t i = 0u; i < 4u; ++i) {
@@ -228,7 +228,7 @@ PROBE_FN void geometry_refusals_preserve_source(void) {
     assert(spx_shb_len(&reg, &a) == 6u);
     assert(spx_shb_partition_prepare(&reg, &a, 3u, 2u, &plan) == SPX_SHB_OK && reg.child_held == 3u);
     spx_shb_partition_abort(&reg, &plan);
-    assert(reg.child_held == 0u && reg.child_debited == 0u && metadata_pool.live == 0u && spx_shb_len(&reg, &a) == 6u);
+    assert(reg.child_held == 0u && reg.child_table_slots == 0u && metadata_pool.live == 0u && spx_shb_len(&reg, &a) == 6u);
     partition(&a, 6u, 1u, &v);
     spx_shb_vec_drop(&reg, &v);
     spx_shb_registry_finish(&reg);
@@ -256,7 +256,19 @@ PROBE_FN void metadata_exact_and_one_over(void) {
     partition(&a, 8192u, 1u, &v);
     spx_shb_zeroed(&reg, 1u, &b);
     assert(spx_shb_partition_prepare(&reg, &b, 1u, 1u, &plan) == SPX_SHB_PARTITION_METADATA_CAPACITY);
-    spx_shb_drop(&reg, &b); spx_shb_vec_drop(&reg, &v);
+    spx_shb_vec_pop(&reg, &v, &tag, &c, &w);
+    assert(tag != 0u);
+    spx_shb_vec_drop(&reg, &w);
+    assert(reg.child_table_slots == 8192u && metadata_pool.live == 1u);
+    assert(spx_shb_partition_prepare(&reg, &b, 1u, 1u, &plan) == SPX_SHB_PARTITION_METADATA_CAPACITY);
+    stale = c;
+    spx_shb_drop(&reg, &c);
+    assert(reg.child_table_slots == 0u && metadata_pool.live == 0u);
+    partition(&b, 1u, 1u, &v);
+    EXPECT_STOP("released, forged or overlapping", (void)spx_shb_len(&reg, &stale));
+    assert(reg.events == 2u && reg.cumulative == 8193u);
+    spx_shb_vec_drop(&reg, &v);
+    assert(payload_pool.live == 0u && metadata_pool.live == 0u);
     spx_shb_registry_finish(&reg);
 
     fresh(&reg);

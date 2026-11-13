@@ -381,11 +381,11 @@ fn exact_one_short_zero_and_whole_allocation_drop_controls() {
 fn charged<T>() -> usize {
     size_of::<T>() + size_of::<&mut Proof>() + size_of::<&T>()
 }
-fn dense_invoice(n: usize) -> usize {
+fn dense_invoice<P>(n: usize) -> usize {
     type Index<'a> = BTreeMap<&'a str, AuthoredDeclaration<'a>>;
     let expressions = 2 * n + 2;
     let functions = 2;
-    let entry = charged::<(&Program, &Index<'_>, bool)>() + size_of::<Proof>();
+    let entry = charged::<(&Program, &Index<'_>, bool)>() + size_of::<P>();
     let owners = functions
         * (charged::<Names<'_>>()
             + charged::<&crate::ast::Function>()
@@ -435,10 +435,13 @@ fn independent_cold_invoice_prices_zero_and_every_closed_dense_proof_role() {
                 let before = super::before_directory::count(&programs[0], &authored, true);
                 assert_eq!(
                     before.bytes,
-                    dense_invoice(n),
+                    dense_invoice::<super::before_directory::Proof>(n),
                     "complete pre-directory tariff"
                 );
-                assert_eq!(p.bytes, dense_invoice(n) + super::directory::EMPTY_SELECTOR);
+                assert_eq!(
+                    p.bytes,
+                    dense_invoice::<Proof>(n) + super::directory::EMPTY_SELECTOR
+                );
                 assert_eq!(p.roots, before.roots);
                 assert!(!allocation.invalid);
                 assert_eq!(allocation.allocations, 0);

@@ -369,55 +369,97 @@
     },
     "src/workspace_graph/expected_projection/call_carriers_tests.rs": {
       "current": {
-        "length": 53528,
-        "sha256": "3135db749aec5e727203da8bf0f898aaec31b4de7ee71da0e653df338cb95b49"
+        "length": 53628,
+        "sha256": "3937f4a8af009cf883cdf8833f9789ac49b712c2f2240253c7c8a26468bf35f3"
       },
       "edits": [
         {
-          "start": 33396,
-          "end": 33396,
+          "start": 16278,
+          "end": 16281,
+          "after": "<P>",
+          "before": ""
+        },
+        {
+          "start": 16494,
+          "end": 16495,
+          "after": "P",
+          "before": "Proof"
+        },
+        {
+          "start": 18585,
+          "end": 18619,
+          "after": "::<super::before_directory::Proof>",
+          "before": ""
+        },
+        {
+          "start": 18722,
+          "end": 18743,
+          "after": "\n                    ",
+          "before": ""
+        },
+        {
+          "start": 18751,
+          "end": 18772,
+          "after": "\n                    ",
+          "before": " "
+        },
+        {
+          "start": 18785,
+          "end": 18794,
+          "after": "::<Proof>",
+          "before": ""
+        },
+        {
+          "start": 18832,
+          "end": 18849,
+          "after": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 33496,
+          "end": 33496,
           "after": "",
           "before": "                        drop((full, retained));\n"
         },
         {
-          "start": 41436,
-          "end": 42259,
+          "start": 41536,
+          "end": 42359,
           "after": "    // Authenticate current bytes through the complete later closed-root stage\n    // before applying this earlier inverse.\n    let later: serde_json::Value =\n        serde_json::from_str(include_str!(\"call_carriers/closed_roots_inverse.json\")).unwrap();\n    let stage = &later[\"successor_sources\"][path];\n    assert_eq!(stage[\"current\"][\"length\"], current.len());\n    assert_eq!(stage[\"current\"][\"sha256\"], digest(current.as_bytes()));\n    let mut current = current.to_owned();\n    for edit in stage[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[\"start\"].as_u64().unwrap() as usize;\n        let end = edit[\"end\"].as_u64().unwrap() as usize;\n        assert_eq!(&current[start..end], edit[\"after\"].as_str().unwrap());\n        current.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n    }\n",
           "before": ""
         },
         {
-          "start": 42414,
-          "end": 42414,
+          "start": 42514,
+          "end": 42514,
           "after": "",
           "before": ".to_owned()"
         },
         {
-          "start": 48434,
-          "end": 48434,
+          "start": 48534,
+          "end": 48534,
           "after": "",
           "before": "                        drop(data);\n"
         },
         {
-          "start": 50177,
-          "end": 50184,
+          "start": 50277,
+          "end": 50284,
           "after": ".max(1)",
           "before": ""
         },
         {
-          "start": 50284,
-          "end": 50532,
+          "start": 50384,
+          "end": 50632,
           "after": "            let mut consumer = crate::parse(&source, \"reuse.spx\").unwrap();\n            if count == 0 {\n                // Empty internal census data follows the parser's required function.\n                consumer.functions.clear();\n            }\n",
           "before": ""
         },
         {
-          "start": 50581,
-          "end": 50589,
+          "start": 50681,
+          "end": 50689,
           "after": "consumer",
           "before": "crate::parse(&source, \"reuse.spx\").unwrap()"
         },
         {
-          "start": 52159,
-          "end": 52159,
+          "start": 52259,
+          "end": 52259,
           "after": "",
           "before": "                            drop((full, retained));\n"
         }

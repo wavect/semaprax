@@ -154,7 +154,11 @@ pub(in crate::bounded_output) fn request(budget: Option<&Budget>, bytes: usize, 
             return;
         }
         let Some((ledger, index, nested)) = locate(s, owner) else {
-            foreign(s);
+            // A live ancestor with no owning attempt has no census row.
+            // The exclusive debit observer accounts for it separately.
+            if !s.ledgers[..s.ledger_depth].iter().any(|l| l.owner == owner) {
+                foreign(s);
+            }
             return;
         };
         let family = s.ledgers[ledger].path_family.unwrap_or(Family::Residual);

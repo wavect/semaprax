@@ -1024,6 +1024,8 @@ mod tests {
         assert!(r.complete, "{r:?}");
         assert_eq!(r.attempts[0].consumed, 3);
         assert_eq!(r.attempts[0].foreign_ledger_debits, 3);
+        let residual = r.attempts[0].path_census[0];
+        assert_eq!((residual.foreign_events, residual.requested_bytes), (0, 3));
         assert_eq!(r.attempts[0].nested_ledger_debits, 2);
         assert_eq!(r.attempts[0].parent_settlement_debits, 2);
         assert_eq!(r.attempts[1].parent_ordinal, Some(0));

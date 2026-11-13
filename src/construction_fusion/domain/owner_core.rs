@@ -445,6 +445,9 @@ impl<'a, R: Runtime> Core<'a, R> {
     }
     pub(crate) fn check_move(&self, child: &Child<'_>) -> Result<(), Refusal> {
         self.active()?;
+        self.check_settlement(child)
+    }
+    pub(crate) fn check_settlement(&self, child: &Child<'_>) -> Result<(), Refusal> {
         if self.slot(child)?.borrows != 0 {
             return Err(Refusal::Borrowed);
         }
@@ -665,9 +668,7 @@ impl<'a, R: Runtime> Core<'a, R> {
     }
     pub(crate) fn drop_owner(&mut self, child: &mut Child<'_>) -> Result<(), Refusal> {
         let result = (|| {
-            if self.slot(child)?.borrows != 0 {
-                return Err(Refusal::Borrowed);
-            }
+            self.check_settlement(child)?;
             self.slots[child.slot].live = false;
             self.live -= 1;
             child.nonce = 0;

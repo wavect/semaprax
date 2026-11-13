@@ -269,6 +269,9 @@ impl<R: InvocationRuntime> Registry<R> {
     pub(super) fn preflight_owner(&mut self, owner: &Owner) -> Result<(), Refusal> {
         self.apply(owner, false, |core, child| core.check_move(child))
     }
+    fn preflight_settlement(&mut self, owner: &Owner) -> Result<(), Refusal> {
+        self.apply(owner, true, |core, child| core.check_settlement(child))
+    }
     pub(crate) fn moved(&mut self, owner: &mut Owner) -> Result<(), Refusal> {
         owner.receipt = self.apply(owner, false, |core, child| {
             core.move_owner(child)?;

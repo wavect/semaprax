@@ -414,9 +414,11 @@ The private affine container retains the original paid Vec<Owner> output; it
 creates no second value array or Arc control block. Its actual header is charged
 before partition publication. Consuming iteration moves that same array into
 IntoIter<Owner> after preflight and an exact paid iterator header. Extracted
-children survive container settlement in the held invocation registry. Clear
-preflights every child before its first finalizer; leaf settlement uses ascending
-row order and stays available after sticky refusal once live loans end.
+children survive container settlement in the held invocation registry. Clear,
+Vec settlement and iterator abandonment preflight the remaining children before
+the first finalizer. A loan on a later child preserves the earlier children.
+Settlement uses ascending row order and stays available after sticky refusal
+once live loans end.
 
 These private receiving operations are not an ordinary vec_pop declaration or
 a language IterStep constructor. Actual Value dispatch, current source/root

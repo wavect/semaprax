@@ -216,6 +216,9 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
     ) -> Result<(), Refusal> {
         self.registry.store(owner, index, bytes)
     }
+    pub(super) fn preflight_settlement(&mut self, owner: &Owner) -> Result<(), Refusal> {
+        self.registry.preflight_settlement(owner)
+    }
     pub(crate) fn settle(&mut self, owner: &mut Owner) -> Result<(), Refusal> {
         self.registry.settle(owner)
     }

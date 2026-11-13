@@ -59,10 +59,6 @@ impl PartitionVec {
         receiver: &mut Loans<'_, R>,
     ) -> Result<(), Refusal> {
         receiver.active()?;
-        // A live loan on any child refuses before the first physical finalizer.
-        for owner in &self.owners {
-            receiver.preflight_owner(owner)?;
-        }
         self.settle(receiver)
     }
     /// Exact Vec<Bytes> container lifecycle: ascending rows, one owned leaf per
@@ -72,6 +68,9 @@ impl PartitionVec {
         &mut self,
         receiver: &mut Loans<'_, R>,
     ) -> Result<(), Refusal> {
+        for owner in &self.owners {
+            receiver.preflight_settlement(owner)?;
+        }
         for owner in &mut self.owners {
             receiver.settle(owner)?;
         }
@@ -117,6 +116,9 @@ impl PartitionIterator {
         &mut self,
         receiver: &mut Loans<'_, R>,
     ) -> Result<(), Refusal> {
+        for owner in self.owners.as_slice() {
+            receiver.preflight_settlement(owner)?;
+        }
         for owner in self.owners.as_mut_slice() {
             receiver.settle(owner)?;
         }

@@ -92,7 +92,14 @@ fn live_child_loan_refuses_clear_before_any_leaf_and_cleanup_remains_available()
     }
     let view = receiver.borrow(vector.owner(1).unwrap(), loan.id).unwrap();
     assert_eq!(receiver.read(view, |bytes| bytes[0]).unwrap(), 2);
-    assert!(vector.clear(&mut receiver).is_err());
+    assert_eq!(
+        vector.clear(&mut receiver),
+        Err(crate::construction_fusion::domain::Refusal::Borrowed)
+    );
+    assert_eq!(
+        vector.settle(&mut receiver),
+        Err(crate::construction_fusion::domain::Refusal::Borrowed)
+    );
     assert_eq!(vector.len(), 3);
     assert!(receiver.extent(vector.owner(0).unwrap()).is_err());
     receiver.abandon_views().unwrap();

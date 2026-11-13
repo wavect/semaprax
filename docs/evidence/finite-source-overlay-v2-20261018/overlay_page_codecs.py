@@ -1523,8 +1523,15 @@ def encode_compressed_page(page,schema=V22_SCHEMA):
  assert len(raw)<=V21_OUTPUT_CAP, 'v21 output bound'
  assert schema in COMPRESSED_SCHEMAS, 'closed compression schema'
  encode=base64.b64encode if schema==V21_SCHEMA else base64.b85encode
- result=dict(schema=schema,length=len(raw),sha256=H(raw),
-             payload=encode(zlib.compress(raw,9)).decode())
+ def envelope(compressed):
+  return dict(schema=schema,length=len(raw),sha256=H(raw),
+              payload=encode(compressed).decode())
+ result=envelope(zlib.compress(raw,9))
+ if len(canonical(result))>PAGE_CAP:
+  # Keep the original encoding for pages that already fit. Tune the
+  # compressor's bounded working memory for larger inputs.
+  compressor=zlib.compressobj(9,zlib.DEFLATED,zlib.MAX_WBITS,7)
+  result=envelope(compressor.compress(raw)+compressor.flush())
  assert expand_compressed_page(result)==page, 'ENTIRE compressed v20 inverse'
  return result
 

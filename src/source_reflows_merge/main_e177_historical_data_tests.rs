@@ -138,7 +138,12 @@ fn historical_data_keeps_complete_old_loaders_and_all_sixteen_parse_frontiers() 
     ] {
         restored = restored.replace(from, to);
     }
-    let old = before.split_once("#[rustfmt::skip]").unwrap().1;
+    // The appended invocation probe owns its own tests. This hash binds
+    // the complete loader that precedes it.
+    let (loader, _) = before
+        .split_once("\n// Test-only bounded-reader capture/routing.")
+        .unwrap();
+    let old = loader.split_once("#[rustfmt::skip]").unwrap().1;
     let old = format!("#[rustfmt::skip]{old}").replacen(
         "pub(super) fn packet_before_overlay()",
         "fn packet_before_overlay()",

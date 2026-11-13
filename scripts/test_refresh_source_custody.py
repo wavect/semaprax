@@ -35,6 +35,16 @@ class AuthorityCheckTests(unittest.TestCase):
         self.put(self.source, source)
         self.put(CUSTODY.GUARD, b'unchanged overlay guard\n')
         self.put(CUSTODY.OVERLAY_PY, b'unchanged overlay decoder\n')
+        self.incoming_source = 'src/incoming.rs'
+        incoming = b'pub fn incoming() {}\n'
+        self.put(self.incoming_source, incoming)
+        self.put('e/' + digest(incoming), incoming)
+        self.put(CUSTODY.INCOMING_064, canonical([{
+            'path': self.incoming_source,
+            'current_length': len(incoming),
+            'current_sha256': digest(incoming),
+            'live': {'length': len(incoming), 'sha256': digest(incoming), 'edits': []},
+        }]))
         self.base = {}
         domains = {}
         for name in ('hir', 'projection'):
@@ -97,6 +107,15 @@ class AuthorityCheckTests(unittest.TestCase):
         for name in ('hir', 'projection'):
             self.assertIn(f'{CUSTODY.AUTHORITY_DIR}/{name}.json', output)
         self.assertIn(CUSTODY.DOMAINS, output)
+
+    def test_incoming_source_drift_is_reported_without_writes(self):
+        incoming = b'pub fn incoming() { let changed = 1; }\n'
+        self.put(self.incoming_source, incoming)
+        result, output = self.check()
+        self.assertEqual(result, 1)
+        self.assertIn(CUSTODY.INCOMING_064, output)
+        self.assertIn('e/' + digest(incoming), output)
+        self.assertNotIn(CUSTODY.DOMAINS, output)
 
     def test_domains_use_the_refreshed_manifest_preview_without_writes(self):
         for name in ('hir', 'projection'):

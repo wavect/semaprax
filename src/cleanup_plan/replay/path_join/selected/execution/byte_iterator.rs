@@ -1,4 +1,4 @@
-//! Replay the closed IterStep<Bytes> epochs admitted by retained static preflight.
+//! Replay the closed `IterStep<Bytes>` epochs admitted by retained static preflight.
 use super::*;
 use crate::cleanup_plan::FinalizeAction;
 use crate::hir::CompilerDeclaration as C;

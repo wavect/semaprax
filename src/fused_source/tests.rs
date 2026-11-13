@@ -128,37 +128,42 @@ fn interpreter_source_account_exact_short_fuel_and_selected_failure_never_publis
     assert!(value.get("status").is_none());
     assert_eq!(value["cleanup_complete"], true);
     assert!(value.get("result").is_none());
-    let changed = SOURCE.replace(
-        "{ total } else { 0 }",
-        "{ total + 9223372036854775807 } else { 0 }",
-    );
-    assert_ne!(changed, SOURCE);
-    let (report, value) = run(
-        &changed,
-        CALLER_ACCOUNT,
-        crate::interpreter::DEFAULT_MAX_STEPS,
-    );
-    assert!(!report.returned());
-    assert_eq!(value["outcome"], "language_failure");
-    assert_eq!(
-        value["status"],
-        serde_json::json!({
-            "domain": crate::conformance::ARITHMETIC_STATUS_DOMAIN_V1,
-            "code": crate::cleanup_plan::StatusCase::AddOverflow.code(),
-        })
-    );
-    assert_eq!(value["cleanup_complete"], true);
-    assert!(value.get("result").is_none());
-    assert_eq!(
-        value["normalized_status"],
-        serde_json::from_str::<serde_json::Value>(
-            &crate::runtime_status::normalize_arithmetic(
-                crate::cleanup_plan::StatusCase::AddOverflow
+    for (before, after) in [
+        (
+            "{ total } else { 0 }",
+            "{ total + 9223372036854775807 } else { 0 }",
+        ),
+        ("let mut total = 0;", "let mut total = 9223372036854775807;"),
+    ] {
+        let changed = SOURCE.replace(before, after);
+        assert_ne!(changed, SOURCE);
+        let (report, value) = run(
+            &changed,
+            CALLER_ACCOUNT,
+            crate::interpreter::DEFAULT_MAX_STEPS,
+        );
+        assert!(!report.returned());
+        assert_eq!(value["outcome"], "language_failure");
+        assert_eq!(
+            value["status"],
+            serde_json::json!({
+                "domain": crate::conformance::ARITHMETIC_STATUS_DOMAIN_V1,
+                "code": crate::cleanup_plan::StatusCase::AddOverflow.code(),
+            })
+        );
+        assert_eq!(value["cleanup_complete"], true);
+        assert!(value.get("result").is_none());
+        assert_eq!(
+            value["normalized_status"],
+            serde_json::from_str::<serde_json::Value>(
+                &crate::runtime_status::normalize_arithmetic(
+                    crate::cleanup_plan::StatusCase::AddOverflow
+                )
+                .to_json()
             )
-            .to_json()
-        )
-        .unwrap()
-    );
+            .unwrap()
+        );
+    }
 }
 #[test]
 fn scoped_source_receiving_requested_layout_account_covers_actual_allocations_and_drop() {

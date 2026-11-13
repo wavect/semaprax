@@ -123,22 +123,27 @@ fn explicit_fused_source_run_build_original_4096_and_account_refusal_keep_defaul
     assert_eq!(short["source_sha256"], exact["source_sha256"]);
     assert!(short.get("result").is_none() && short.get("status").is_none());
 
-    let overflow = SOURCE.replace(
-        "{ total } else { 0 }",
-        "{ total + 9223372036854775807 } else { 0 }",
-    );
-    assert_ne!(overflow, SOURCE);
-    std::fs::write(fixture.root.join("input.spx"), &overflow).unwrap();
-    let failure = native(ACCOUNT.parse().unwrap());
-    assert_eq!(failure.status.code(), Some(1));
-    let failure = packet(&failure);
-    assert_eq!(failure["outcome"], "language_failure");
-    assert_eq!(
-        failure["status"],
-        serde_json::json!({"domain": "semaprax.arithmetic.v1", "code": 1})
-    );
-    assert!(failure.get("result").is_none());
-    assert_ne!(failure["source_sha256"], exact["source_sha256"]);
+    for (before, after) in [
+        (
+            "{ total } else { 0 }",
+            "{ total + 9223372036854775807 } else { 0 }",
+        ),
+        ("let mut total = 0;", "let mut total = 9223372036854775807;"),
+    ] {
+        let overflow = SOURCE.replace(before, after);
+        assert_ne!(overflow, SOURCE);
+        std::fs::write(fixture.root.join("input.spx"), &overflow).unwrap();
+        let failure = native(ACCOUNT.parse().unwrap());
+        assert_eq!(failure.status.code(), Some(1));
+        let failure = packet(&failure);
+        assert_eq!(failure["outcome"], "language_failure");
+        assert_eq!(
+            failure["status"],
+            serde_json::json!({"domain": "semaprax.arithmetic.v1", "code": 1})
+        );
+        assert!(failure.get("result").is_none());
+        assert_ne!(failure["source_sha256"], exact["source_sha256"]);
+    }
     std::fs::write(fixture.root.join("input.spx"), SOURCE).unwrap();
 
     let output = cli(
@@ -516,21 +521,30 @@ console.log('public-source-outcome-ok');
 "#,
     )
     .unwrap();
-    for (name, tail, outcome, expected) in [
+    for (name, before, after, outcome, expected) in [
         (
             "maximum",
+            "{ total } else { 0 }",
             "{ 9223372036854775807 } else { 0 }",
             "returned",
             "9223372036854775807",
         ),
         (
             "overflow",
+            "{ total } else { 0 }",
             "{ total + 9223372036854775807 } else { 0 }",
             "language_failure",
             "",
         ),
+        (
+            "traversal-overflow",
+            "let mut total = 0;",
+            "let mut total = 9223372036854775807;",
+            "language_failure",
+            "",
+        ),
     ] {
-        let changed = SOURCE.replace("{ total } else { 0 }", tail);
+        let changed = SOURCE.replace(before, after);
         assert_ne!(changed, SOURCE);
         std::fs::write(fixture.root.join("input.spx"), &changed).unwrap();
         // Discover this exact source's compiler-derived unit before selecting

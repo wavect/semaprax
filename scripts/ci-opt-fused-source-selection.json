@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 7,
-  "expected_tests": 26,
+  "filters": 8,
+  "expected_tests": 39,
   "commands": [
     {
       "owner": "OPT747 checked fused source and interpreter funding",
@@ -25,11 +25,18 @@
       "expected_tests": 3
     },
     {
-      "owner": "OPT747 original native maximum at O0 and O2",
+      "owner": "OPT747 source proof, independent shapes and rejected mutations",
       "binary": "lib",
-      "filter": "codegen::selected_fused_row::tests::original_4096_rows_publish_8386560_with_one_12288_byte_backing_at_o0_o2",
-      "exact": true,
-      "expected_tests": 1
+      "filter": "source_verify::declaration::fusion::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT747 native source and cleanup proof, layout and maximum at O0 and O2",
+      "binary": "lib",
+      "filter": "codegen::selected_fused_row::tests::",
+      "exact": false,
+      "expected_tests": 10
     },
     {
       "owner": "OPT747 strict paired Core-Wasm package",

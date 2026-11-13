@@ -23,7 +23,7 @@ SELECTIONS = {
     'composed-closure': ('ci-opt-composed-closure-selection.json', 25, 130, ('lib',)),
     'observed-census': ('ci-opt-observed-census-selection.json', 3, 5, ('lib',)),
     'private-partition': ('ci-opt-private-partition-selection.json', 6, 36, ('lib',)),
-    'fused-source': ('ci-opt-fused-source-selection.json', 7, 26, ('lib', 'owned_data', 'quickstart_v1')),
+    'fused-source': ('ci-opt-fused-source-selection.json', 8, 39, ('lib', 'owned_data', 'quickstart_v1')),
     'query-closure': ('ci-opt-query-closure-selection.json', 47, 193, ('lib', 'project', 'hir_module_boundaries', 'public_generic_wasm_adapter_v1')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'

@@ -22,3 +22,19 @@ The forecast assertion stops the owning test before its allocator checks. A stan
 | Warm process | 728,124 | 728,124 | 824,395 | 27,307,732 | 0 |
 
 In each run, validation allocated and released additional backing with all four outputs held. The overall high-water mark had already occurred during resolution. The cold residual is reported as observed. Its size matches the original fixture's prelude expectation, while this standalone probe does not classify individual retained pointers. These are public HIR measurements. The mode-six workspace constructor and its separate forecast comparison still require their owning checks.
+
+## Mode-six forecast reconciliation
+
+An instrumented library test at `59f58e375` printed the per-module results before evaluating the original strict reduction assertion. The forecast implementation and saved producers are identical in the current checkout. All four modules produced the same row.
+
+| Forecast term | Saved producer | Current producer |
+| --- | ---: | ---: |
+| Full estimate before new receiving allowance | 1,603,611 | 1,657,122 |
+| Retained estimate before scratch adjustment and new receiving allowance | 1,604,626 | 1,658,409 |
+| Reachability scratch removed from each retained module | 0 | 21,534 |
+| Receiving allowance added per module | 0 | 928 |
+| Final retained term per module | 1,604,626 | 1,637,803 |
+
+The current census covered one function and 291 expressions per module, at 74 bytes of scratch per expression. The resulting construction bound is 6,571,459 bytes, using three retained modules and one full estimate with its receiving allowance. The later validation bound is 6,573,050 bytes, using all four retained modules, one 21,534-byte scratch allowance, and a 304-byte directory term. Later validation determines the peak. The saved peak is 6,418,504 bytes and is determined by four retained modules.
+
+The observed 154,546-byte increase reconciles to four 53,783-byte increases in the retained estimate, four 928-byte receiving allowances, four 21,534-byte scratch removals, and 21,838 bytes for later validation. This comparison keeps every current estimate and reservation intact. The initial estimate increase needs a separate breakdown before assigning it to a particular census or invoice. The original strict reduction assertion still fails.

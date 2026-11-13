@@ -637,14 +637,15 @@ empty partition with maximal semantic width. Unsupported helper provenance,
 additional statements, and work or physical shortage refuse before payload
 effects.
 
-This is a private partial executable contour, not complete ordinary partition
-support. Copy, bounded zeroing, views, iteration, helpers, contracts and public
-owned results are still refused by this receiver. Operation-fault and
-administrative paths publish no scalar, and report cleanup_complete=false:
-physical abandonment is not canonical failure settlement. The actual
-language-failure contour and broader loan/frame/finalizer installation remain
-required before activation. The three direct receiver tests passed in the
-focused run above.
+For a geometry fault, the receiver matches the checked operation-failure exit
+to the exact staged Bytes argument and its sole canonical drop action before
+allocating. Preparation returns that same whole backing for finalization.
+The geometry fault remains the selected status and publishes no scalar.
+Administrative refusal keeps `cleanup_complete=false`.
+
+The direct source receiver covers this closed contour. Ordinary activation
+still requires copy and bounded-zeroing producers, views, iteration, helpers,
+contracts, general loan/frame settlement and public owned results.
 
 The private current-graph call whitelist includes exactly the checked
 `i64_from_usize` conversion used by that scalar publication contour; other

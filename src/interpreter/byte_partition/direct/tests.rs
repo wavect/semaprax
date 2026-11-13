@@ -1,5 +1,7 @@
-//! Source-entry controls. Authored but not executed in this implementation lane.
-use super::{execute, Account, Outcome};
+//! Source-entry controls for the sealed direct interpreter receiver.
+use super::{execute, verify_partition_fault_cleanup, Account, Outcome};
+use crate::cleanup_plan::{ExitContinuation, StatusLane};
+use crate::construction_fusion::{domain::Refusal, partition::Fault};
 use crate::hir::byte_partition::ValidatedPartitionProgram;
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
@@ -37,19 +39,84 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
     }
 }
 #[test]
-fn semantic_fault_is_not_published_or_misreported_as_canonical_cleanup() {
-    let text = source(3, 1, 0);
-    let ast = crate::parse(&text, "partition-fault.spx").unwrap();
+fn semantic_faults_settle_the_original_staged_owner_and_preserve_status() {
+    for (extent, count, width, fault) in [
+        (3, 1, 0, Fault::WidthZero),
+        (3, u64::MAX, 2, Fault::ExtentOverflow),
+        (3, 2, 2, Fault::ExtentMismatch),
+        (65_536, 65_536, 1, Fault::MetadataCapacity),
+    ] {
+        let ast = crate::parse(&source(extent, count, width), "partition-fault.spx").unwrap();
+        let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+        let (mut allocations, mut payload) = (0, 0);
+        let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
+        for invocation in 1..=3 {
+            let (report, metrics) =
+                crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                    execute(&owner, &account, &mut { usize::MAX })
+                });
+            assert_eq!(report.outcome, Outcome::PartitionFault(fault));
+            assert!(report.cleanup_complete);
+            assert_eq!(
+                (report.allocations, report.payload),
+                (invocation, extent * u64::from(invocation))
+            );
+            assert!(!metrics.invalid);
+            assert!(metrics.allocated >= extent as usize);
+            assert_eq!(metrics.live, 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+        }
+    }
+}
+
+#[test]
+fn partition_fault_cleanup_rejects_wrong_or_missing_staged_argument() {
+    use crate::hir::{ResolvedExprKind, ResolvedStatement};
+    let ast = crate::parse(&source(3, 1, 0), "partition-fault.spx").unwrap();
     let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
-    let (mut allocations, mut payload) = (0, 0);
-    let account = Account::funded(&mut allocations, &mut payload, 8_388_608).unwrap();
-    let report = execute(&owner, &account, &mut { usize::MAX });
+    let entry = &owner.program().functions[0];
+    let ResolvedExprKind::Block { statements, .. } = &entry.body.kind else {
+        panic!("expected the checked entry block");
+    };
+    let ResolvedStatement::Let {
+        value: operation, ..
+    } = &statements[1]
+    else {
+        panic!("expected the checked partition binding");
+    };
+    let ResolvedExprKind::Call { args, .. } = &operation.kind else {
+        panic!("expected the checked partition call");
+    };
+    let mut plan = entry.cleanup_plan.clone();
+    let mut remaining = usize::MAX;
+    verify_partition_fault_cleanup(&plan, operation, &args[0], &mut remaining).unwrap();
+    let mut exact = usize::MAX - remaining;
+    let mut short = exact - 1;
+    verify_partition_fault_cleanup(&plan, operation, &args[0], &mut exact).unwrap();
+    assert_eq!(exact, 0);
     assert_eq!(
-        report.outcome,
-        Outcome::PartitionFault(crate::construction_fusion::partition::Fault::WidthZero)
+        verify_partition_fault_cleanup(&plan, operation, &args[0], &mut short),
+        Err(Refusal::Metadata)
     );
-    assert!(!report.cleanup_complete);
-    assert_eq!((report.allocations, report.payload), (1, 3));
+    assert_eq!(short, 0);
+    assert_eq!(
+        verify_partition_fault_cleanup(&plan, operation, &args[1], &mut { usize::MAX }),
+        Err(Refusal::Identity)
+    );
+    let exit = plan
+        .exits
+        .iter_mut()
+        .find(|exit| {
+            matches!(&exit.continuation,
+            ExitContinuation::ReturnFailure { source }
+                if source.expression == operation.id && source.lane == StatusLane::OperationFailure)
+        })
+        .unwrap();
+    exit.finalize_in_order.clear();
+    assert_eq!(
+        verify_partition_fault_cleanup(&plan, operation, &args[0], &mut { usize::MAX }),
+        Err(Refusal::Identity)
+    );
 }
 #[test]
 fn unsupported_helper_and_receiving_shortage_refuse_before_payload_effects() {

@@ -4,7 +4,7 @@ use super::{
     invocation::Invocation,
 };
 use crate::{
-    cleanup_plan::{CleanupResultSource, ExitContinuation, StorageId},
+    cleanup_plan::{CleanupPlan, CleanupResultSource, ExitContinuation, StatusLane, StorageId},
     construction_fusion::{
         domain::Refusal,
         partition::{self, Preparation},
@@ -75,6 +75,55 @@ fn pay(work: &mut usize, amount: usize) -> Result<(), Refusal> {
     *work -= amount;
     Ok(())
 }
+
+fn verify_partition_fault_cleanup(
+    plan: &CleanupPlan,
+    operation: &ResolvedExpr,
+    owner: &ResolvedExpr,
+    work: &mut usize,
+) -> Result<(), Refusal> {
+    let mut found = false;
+    for exit in &plan.exits {
+        pay(work, 1)?;
+        let ExitContinuation::ReturnFailure { source } = &exit.continuation else {
+            continue;
+        };
+        pay(work, source.expression.as_str().len().saturating_add(1))?;
+        if source.lane != StatusLane::OperationFailure || source.expression != operation.id {
+            continue;
+        }
+        let [action] = exit.finalize_in_order.as_slice() else {
+            return Err(Refusal::Identity);
+        };
+        let StorageId::CallArgument {
+            call,
+            parameter_index: 0,
+            value_expression,
+        } = &action.source.storage
+        else {
+            return Err(Refusal::Identity);
+        };
+        for identity in [
+            call.as_str(),
+            value_expression.as_str(),
+            action.lifecycle_id.as_str(),
+        ] {
+            pay(work, identity.len().saturating_add(1))?;
+        }
+        if found
+            || *call != operation.id
+            || *value_expression != owner.id
+            || action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+            || action.active_case.is_some()
+            || !action.source.projections.is_empty()
+        {
+            return Err(Refusal::Identity);
+        }
+        found = true;
+    }
+    found.then_some(()).ok_or(Refusal::Identity)
+}
+
 /// The actual caller Account is borrowed through settlement. No numeric
 /// forecast grants funding, and only a scalar result can leave this receiver.
 pub(crate) fn execute(
@@ -195,6 +244,7 @@ pub(crate) fn execute(
         if vector_actions != 1 {
             return Err(Refusal::Identity);
         }
+        verify_partition_fault_cleanup(&entry.cleanup_plan, operation, operands.owner, work)?;
         let mut handle = account.borrowed();
         use crate::construction_fusion::domain::owner_core::Runtime;
         handle.reserve_metadata(Layout::new::<Report>())?;
@@ -221,9 +271,10 @@ pub(crate) fn execute(
             match super::values::partition_whole(&mut invocation.loans, whole, count, width) {
                 Ok(value) => value,
                 Err((Preparation::Fault(fault), whole)) => {
-                    // This contour does not yet replay its language-failure exit.
-                    // Physical abandonment cannot be called canonical settlement.
+                    // Preparation returns the exact staged owner before commit.
+                    // The checked failure exit finalizes only that argument.
                     drop(whole);
+                    report.cleanup_complete = true;
                     report.outcome = Outcome::PartitionFault(fault);
                     return Ok(());
                 }

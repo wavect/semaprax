@@ -1392,14 +1392,13 @@ pub(super) fn scalar_web_entrypoint(
     if profile != crate::project::ProjectProfile::ScalarV1 {
         return ordinary_entrypoint.clone();
     }
-    let selected = hir::DeclarationId::new(selected_root.to_owned());
     available
-        .get(&selected)
-        .filter(|linked| {
+        .get_key_value(selected_root)
+        .filter(|(_, linked)| {
             linked.function.params.is_empty()
                 && linked.function.return_type == hir::ResolvedType::I64
         })
-        .map(|_| selected)
+        .map(|(id, _)| id.clone())
         .unwrap_or_else(|| ordinary_entrypoint.clone())
 }
 

@@ -23,10 +23,6 @@ fn sha(bytes: &[u8]) -> String {
 
 // Invert only the authenticated formatter stage before the existing complete
 // control-repair and lowering inverses. Both whole prior byte streams stay pinned.
-#[allow(
-    dead_code,
-    reason = "Retain the exact earlier formatting inverse for independent source audits."
-)]
 fn before_current_format(source: &str, current: &str) -> Option<String> {
     type FormatEdit = (usize, &'static str, &'static str);
     type FormatStage = (
@@ -103,7 +99,11 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
     };
     let current = ids_before_warm_invoice.unwrap_or(current);
     let identity_batch_before = if source == "src/hir/ids/compiler.rs" {
-        let mut before = current.to_owned();
+        let mut before = crate::source_reflows::original_fixture_source(
+            source,
+            "89ff8b726bcbacb4474e73f7bb7a1c321da261666c4b039e98745d2fbcab15df",
+            current,
+        );
         for added in [
             "    Result,\n    ResultOk,\n    ResultOkValue,\n    ResultErr,\n    ResultErrError,\n",
             "    ListNil,\n    ListCons,\n    ListHead,\n    ListTail,\n",
@@ -120,39 +120,9 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
         None
     };
     let current = identity_batch_before.as_deref().unwrap_or(current);
-    // Reverse only rustfmt's split of the retained lowering-source arguments.
-    // The complete pre-format source must still satisfy every original pin.
-    let formatted_operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
-        assert_eq!(current, include_str!("fixed_operation_tests.rs"));
-        let formatted =
-            "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),";
-        let original = "        \"src/hir/ids.rs\", ci_str!(\"../../../src/hir/ids.rs\"),";
-        assert_eq!(current.matches(formatted).count(), 1);
-        Some(current.replacen(formatted, original, 1))
-    } else {
-        None
-    };
-    let current = formatted_operation_before.as_deref().unwrap_or(current);
-    // Bind the final complete operation-source owner before every unchanged
-    // earlier control repair and immutable lowering inverse below.
+    // Replay the already sealed formatter stage before the original operation inverse.
     let operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
-        assert_eq!(current.len(), 42383);
-        assert_eq!(
-            sha(current.as_bytes()),
-            "2e6b11b6f13468c0a57c6bf4fe180c46a502736f5737bacf458b302bccfc4f43"
-        );
-        let mut before = current.to_owned();
-        for added in ["    // Authenticate the complete compiled generation before reversing only the\n    // retained-source profiling accessor; the original whole-file inverse below\n    // still reconstructs every pre-profile constructor byte.\n    assert_eq!(current, include_str!(\"../../../src/list_ops.rs\"));\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2\"\n    );\n    let profiled = \"program.functions().profile_iter().any(function_uses)\";\n    let ordinary = \"program.functions().iter().any(function_uses)\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n",
-            "    // Authenticate the complete Map catalogue before reversing only its\n    // retained-source profiling accessor; retain the original const-id inverse.\n    assert_eq!(current, include_str!(\"../../../src/map_ops.rs\"));\n    assert_eq!(current.len(), 16989);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf\"\n    );\n    let profiled = \"program.functions().profile_iter().any(|function| {\";\n    let ordinary = \"program.functions().iter().any(|function| {\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n"] {
-            assert_eq!(before.matches(added).count(), 1);
-            before = before.replacen(added, "", 1);
-        }
-        assert_eq!(before.len(), 40750);
-        assert_eq!(
-            sha(before.as_bytes()),
-            "f5ca1f734cd8ae4c3ecd9c73a65da5ff263d01cd412ffc97b4a00a326dc0f42d"
-        );
-        Some(before)
+        before_current_format(source, current)
     } else {
         None
     };

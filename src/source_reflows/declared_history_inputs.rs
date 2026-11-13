@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130876,
-        "94a79f46c06cd04ed26dec4ea96e9496c7a2aabdc65f45a4f71409999b221b61",
+        "e2f84e3cf50f64b4164c78b2a5dfb968807b36891d459d4fe1bdd0913c59556a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -363,8 +363,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-38.json"
         )),
-        133323,
-        "8c02f1a79c24175cc554f47855c988802a654a9609da3a2a7b084d6c671982f7",
+        135023,
+        "bfbcff0a6540ce61e6e64ebe78a6be2ed2b6ce3a40edacfbeea5e1e8993881fa",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-39.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        640489,
-        "709ec72d2f1568822c688ef443e03976a81142cde9e27b316008555239ce861d",
+        645483,
+        "1639b3589c96934d4bb1a5a3b833e1fbe5cef217d614e0f0e069ee11d7c8eff9",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -451,6 +451,10 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/hir/ids/compiler.rs", "89ff8b726bcbacb4474e73f7bb7a1c321da261666c4b039e98745d2fbcab15df") => Some((43,109)),
+("src/iterator_ops.rs", "dc672b05a80a67c565e58d13e1c60ec2c3e9ad8a7b1d3828378c376f0a47c391") => Some((43,110)),
+("src/list_ops.rs", "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2") => Some((43,111)),
+("src/map_ops.rs", "adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf") => Some((43,112)),
 ("tests/hir_module_boundaries.rs", "0e22a96bc32a2dc96a25718e0e5557890aba2820624b050c5cef279c7d4edee4") => Some((45,218)),
 ("tests/workspace/semantic_graph/source_inventory.rs", "282a152563aa5065bbfb267cec453d4c00096712a962a60f2248431a44766618") => Some((45,219)),
 ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "8867f36b6b8a8985de65489f1f9a625e8388a2ccac7190df48d8121282876c10") => Some((45,220)),

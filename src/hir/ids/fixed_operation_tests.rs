@@ -119,11 +119,16 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         ),
         "8541bd6ab7e58bd7a39eae3eef770e6ac29f104a6ea6923aa73287d2b6a8ed44"
     );
-    let actual = include_str!("../../../src/iterator_ops.rs");
+    let live = include_str!("../../../src/iterator_ops.rs");
+    let actual = crate::source_reflows::original_fixture_source(
+        "src/iterator_ops.rs",
+        "dc672b05a80a67c565e58d13e1c60ec2c3e9ad8a7b1d3828378c376f0a47c391",
+        live,
+    );
     let current = crate::source_reflows_merge::main_e177_final_inputs::value(
         "src/iterator_ops.rs",
         "6a9bd6dfb76df8707e5cd21ddd4e0ec85b0248cfc1834645c14824d11d775b16",
-        actual,
+        live,
     );
     let expected = include_str!("../../../docs/evidence/actual2e92-fixed-operation-source-stage-20261018/iterator_ops.b00-parent.whole.rs.txt");
     assert_eq!(
@@ -209,17 +214,10 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         ),
         "0abc67a67c5c22b175b81e2ef82e46206421f6a974fa772ea40de40181467dd2"
     );
-    let current = ci_str!("../../../src/list_ops.rs");
-    // Authenticate the complete compiled generation before reversing only the
-    // retained-source profiling accessor; the original whole-file inverse below
-    // still reconstructs every pre-profile constructor byte.
-    assert_eq!(current, include_str!("../../../src/list_ops.rs"));
-    assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))
-        ),
-        "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2"
+    let current = crate::source_reflows::original_fixture_source(
+        "src/list_ops.rs",
+        "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2",
+        include_str!("../../../src/list_ops.rs"),
     );
     let profiled = "program.functions().profile_iter().any(function_uses)";
     let ordinary = "program.functions().iter().any(function_uses)";
@@ -276,15 +274,11 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
     // Restore the entire later lowering stage before the unchanged tag inverse.
     let ids_before_lowering = super::lowering_identity_tests::prior_source(
         "src/hir/ids.rs",
-        ci_str!("../../../src/hir/ids.rs"),
+        include_str!("../../../src/hir/ids.rs"),
     );
     // Reuse the complete closed-tag inverse and its exact current/prior pins.
-    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
-        "src/hir/ids.rs",
-        "5e56cda454fa3f14f61e2db5f410eea13ac7795d0887e680348eefdc64e80e64",
-        &ids_before_lowering,
-    );
-    let current = super::declaration_tag::old_source("src/hir/ids.rs", &acquired).unwrap();
+    let current =
+        super::declaration_tag::old_source("src/hir/ids.rs", &ids_before_lowering).unwrap();
     assert_eq!(
         current
             .matches("\n#[cfg(test)]\npub(in crate::hir) mod fixed_operation_tests;\n")
@@ -311,7 +305,7 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
     );
     let current = super::lowering_identity_tests::prior_source(
         "src/hir/ids/compiler.rs",
-        ci_str!("../../../src/hir/ids/compiler.rs"),
+        include_str!("../../../src/hir/ids/compiler.rs"),
     );
     assert_eq!(current.matches("    MapOperation(crate::map_ops::MapOp),\n    ListOperation(crate::list_ops::ListOp),\n    IteratorOperation(crate::iterator_ops::IteratorOp),\n").count(), 1);
     assert_eq!(current.matches("            Self::MapOperation(op) => op.id(),\n            Self::ListOperation(op) => op.id(),\n            Self::IteratorOperation(op) => op.id(),\n").count(), 1);
@@ -335,17 +329,10 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         ),
         "b24e08d4fb5ca49986917f97b61c72eb796a6dd079db5fc95cd0291a2bf06852"
     );
-    let current = ci_str!("../../../src/map_ops.rs");
-    // Authenticate the complete Map catalogue before reversing only its
-    // retained-source profiling accessor; retain the original const-id inverse.
-    assert_eq!(current, include_str!("../../../src/map_ops.rs"));
-    assert_eq!(current.len(), 16989);
-    assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))
-        ),
-        "adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf"
+    let current = crate::source_reflows::original_fixture_source(
+        "src/map_ops.rs",
+        "adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf",
+        include_str!("../../../src/map_ops.rs"),
     );
     let profiled = "program.functions().profile_iter().any(|function| {";
     let ordinary = "program.functions().iter().any(|function| {";

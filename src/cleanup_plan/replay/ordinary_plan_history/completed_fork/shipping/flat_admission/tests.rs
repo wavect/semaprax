@@ -370,6 +370,13 @@ fn complete_old_root_bypass_and_source_inverse_survive_actual_whole_callers() {
         "                if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::try_compare(\n",
         "                    $function, $budget, &mut $expected)? { return Ok(()); }\n");
     assert_eq!(current.matches(hook).count(), 1);
+    // Rustfmt moved the existing crate import ahead of the local import.
+    let formatted_imports =
+        "use crate::cleanup_plan::CleanupBlock;\nuse skeleton_work::enumerated_prefix;\n";
+    let original_imports =
+        "use skeleton_work::enumerated_prefix;\nuse crate::cleanup_plan::CleanupBlock;\n";
+    assert_eq!(current.matches(formatted_imports).count(), 1);
+    let current = current.replacen(formatted_imports, original_imports, 1);
     assert_eq!(current.replacen(hook, "", 1), before);
     let retained_epoch = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(
         include_str!("../../emission.rs"),

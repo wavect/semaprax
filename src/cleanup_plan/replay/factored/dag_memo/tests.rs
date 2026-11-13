@@ -160,14 +160,42 @@ fn one_function_work_dominates_helper_arguments_guards_and_both_contract_phases(
     crate::hir::validate(&program).unwrap();
     let mut functions_with_prefix = 0;
     for function in &program.functions {
-        // Independent saved enumerating route: its observations stay flat and
-        // are compared to the independently walked current cleanup CFG.
+        // Use the saved flat HIR and PLAN producers as the independent oracle.
         let mut old_budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-        let mut expected = hir_skeleton_paths(&program, function, &mut old_budget).unwrap();
-        let mut actual = plan_skeleton_paths(function, &mut old_budget).unwrap();
+        let (mut expected, mut old_plan) =
+            ordinary_plan_history::completed_fork::emission::with_before(|| {
+                (
+                    hir_skeleton_paths(&program, function, &mut old_budget).unwrap(),
+                    plan_skeleton_paths(function, &mut old_budget).unwrap(),
+                )
+            });
+        assert!(expected
+            .iter()
+            .chain(&old_plan)
+            .all(|path| path.observations.prefix.is_none()));
         expected.sort();
-        actual.sort();
-        assert_eq!(expected, actual);
+        old_plan.sort();
+        assert_eq!(expected, old_plan);
+
+        // The live producers can store equivalent content in distinct shared
+        // prefixes. Compare the complete paths with the validation comparator.
+        let mut enumeration = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut current_hir = hir_skeleton_paths(&program, function, &mut enumeration).unwrap();
+        let mut current_plan = plan_skeleton_paths(function, &mut enumeration).unwrap();
+        assert!(plan_prefix::equal_paths(
+            function,
+            &mut enumeration,
+            &mut expected,
+            &mut current_hir
+        )
+        .unwrap());
+        assert!(plan_prefix::equal_paths(
+            function,
+            &mut enumeration,
+            &mut old_plan,
+            &mut current_plan
+        )
+        .unwrap());
         validate_structure(&program, function).unwrap();
         let mut receiving = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
         assert_eq!(

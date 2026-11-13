@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130876,
-        "b58018895bb3c312a1bb5fab222ec883b296868a8a5ce5046ddb643847633e11",
+        "a8768092e6ab49853fb432f10909fe7772d140c912d806e225d908504ceccb1d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        640010,
-        "bf140f5bc37a7b307db2ee1375c02552e6ed9b042f06358df9fd1a31a557c311",
+        640489,
+        "709ec72d2f1568822c688ef443e03976a81142cde9e27b316008555239ce861d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1026040,
-        "c768ed26d7220b034c538b410cb9ccb48e25a4b8fb1ec8df43d1d1c63fd9f111",
+        1029184,
+        "dfe29a7233076560c3cc5dc515c9d484584bb483862840421d190e39d875095e",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -451,6 +451,7 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/cleanup_plan/replay/factored/dag_memo/tests.rs", "59e02eff3f2c90c8db58d48f91562400200a88ce8d741aa811ff671c42456e25") => Some((45,217)),
 ("src/cleanup_plan/replay.rs", "2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16") => Some((45,209)),
 ("src/cleanup_plan/replay/expression_facts.rs", "a642c83b28000bc82b67e537068ce0c107d1030c6c54372c4967dc79bf0b3828") => Some((45,210)),
 ("src/cleanup_plan/replay/expression_facts/arena.rs", "01d3ee964b21b8b1c8069524c7bef0f3650c5d807d9c135d435e9ec33ecb6142") => Some((45,211)),

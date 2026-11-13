@@ -130,9 +130,13 @@ fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() 
                 assert_eq!(swaps(&main), swaps(&current));
                 assert!(old.row.complete && main.row.complete && current.row.complete);
                 assert_eq!(old.row.pairs, current.row.pairs);
+                // A complete independent segment turn replaces two legacy
+                // value steps and one match. It never enters either tail.
+                let immediate = loaded::complete_immediate438_invoice_counts(&current.row);
                 assert_eq!(
                     old.row.value_steps,
-                    current.row.value_steps + 2 * current.row.fused_turns
+                    immediate.value_steps + 2 * current.row.fused_turns,
+                    "length={length} shape={shape} shared_hir={shared_hir}"
                 );
                 assert_eq!(
                     old.row.value_tails,
@@ -140,7 +144,8 @@ fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() 
                 );
                 assert_eq!(
                     old.row.pair_matches_admitted,
-                    current.row.pair_matches_admitted + current.row.fused_turns
+                    immediate.pair_matches_admitted + current.row.fused_turns,
+                    "length={length} shape={shape} shared_hir={shared_hir}"
                 );
                 let (added, removed) = delta(&old.row, &current.row);
                 assert_eq!(current.observed.2 + removed, old.observed.2 + added);

@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         130876,
-        "7dd437269cd9174c09a79c769cbb619d45d1c4b9803d4adce1bf588d3561c6ee",
+        "94a79f46c06cd04ed26dec4ea96e9496c7a2aabdc65f45a4f71409999b221b61",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1029184,
-        "dfe29a7233076560c3cc5dc515c9d484584bb483862840421d190e39d875095e",
+        1756163,
+        "1f32fd26feafd0668057b9a87e37eab48ccbad56bc86a84e7a2e74f448a9b62d",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -451,6 +451,10 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("tests/hir_module_boundaries.rs", "0e22a96bc32a2dc96a25718e0e5557890aba2820624b050c5cef279c7d4edee4") => Some((45,218)),
+("tests/workspace/semantic_graph/source_inventory.rs", "282a152563aa5065bbfb267cec453d4c00096712a962a60f2248431a44766618") => Some((45,219)),
+("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "8867f36b6b8a8985de65489f1f9a625e8388a2ccac7190df48d8121282876c10") => Some((45,220)),
+("docs/DECLARATION-IDENTITY-BACKING-V1.md", "3bd6bc60ee4633016f426463f7c4c2dce8734b0018864ec9b51562d0614bf232") => Some((45,221)),
 ("src/cleanup_plan/replay/factored/dag_memo/tests.rs", "59e02eff3f2c90c8db58d48f91562400200a88ce8d741aa811ff671c42456e25") => Some((45,217)),
 ("src/cleanup_plan/replay.rs", "2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16") => Some((45,209)),
 ("src/cleanup_plan/replay/expression_facts.rs", "a642c83b28000bc82b67e537068ce0c107d1030c6c54372c4967dc79bf0b3828") => Some((45,210)),

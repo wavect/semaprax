@@ -701,13 +701,14 @@ fn complete_source_inverses_keep_all_raw_children_and_refuse_foreign_stages() {
             .iter()
             .find(|row| row["source"] == source)
             .unwrap();
-        let acquired = crate::source_reflows_merge::next_big_batch_inputs::value(
+        let expected = row["after"]["sha256"].as_str().unwrap();
+        let acquired = crate::source_reflows::declared_history_inputs::expected_value(
             source,
-            row["after"]["sha256"].as_str().unwrap(),
+            expected,
             actual_current,
         );
-        let current = acquired.as_str();
-        let old = old_source(source, current).unwrap();
+        let current = acquired.as_deref().unwrap_or(actual_current);
+        let old = old_source(source, current).unwrap_or_else(|error| panic!("{source}: {error}"));
         assert_ne!(current, old);
         for foreign in [
             String::new(),

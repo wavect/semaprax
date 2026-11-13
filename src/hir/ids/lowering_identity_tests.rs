@@ -161,6 +161,11 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
     // rustfmt rewrites before every unchanged historical pin and edit below.
     let declaration_before_formatting = if source == "src/hir/ids/declaration_tag.rs" {
         assert_eq!(current, include_str!("declaration_tag.rs"));
+        let declared_history_lookup = "        let expected = row[\"after\"][\"sha256\"].as_str().unwrap();\n        let acquired = crate::source_reflows::declared_history_inputs::expected_value(\n            source,\n            expected,\n            actual_current,\n        );\n        let current = acquired.as_deref().unwrap_or(actual_current);\n        let old = old_source(source, current).unwrap_or_else(|error| panic!(\"{source}: {error}\"));\n";
+        let previous_lookup = "        let acquired = crate::source_reflows_merge::next_big_batch_inputs::value(\n            source,\n            row[\"after\"][\"sha256\"].as_str().unwrap(),\n            actual_current,\n        );\n        let current = acquired.as_str();\n        let old = old_source(source, current).unwrap();\n";
+        assert_eq!(current.matches(declared_history_lookup).count(), 1);
+        let previous = current.replacen(declared_history_lookup, previous_lookup, 1);
+        let current = previous.as_str();
         assert_eq!(current.len(), 29925);
         assert_eq!(
             sha(current.as_bytes()),

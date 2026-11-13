@@ -44,6 +44,14 @@ pub(crate) fn encode<T: Codec>(value: &T) -> Result<Vec<u8>> {
 /// Enforce a caller's smaller encoded-work bound before every allocation.
 /// This does not measure or authorize the decoded/source/HIR retained heap.
 pub(crate) fn encode_bounded<T: Codec>(value: &T, byte_limit: usize) -> Result<Vec<u8>> {
+    encode_prefixed(value, byte_limit, &[])
+}
+
+pub(crate) fn encode_prefixed<T: Codec>(
+    value: &T,
+    byte_limit: usize,
+    prefix: &[&[u8]],
+) -> Result<Vec<u8>> {
     if byte_limit > MAX_BYTES {
         return Err(capacity(
             "cache codec supplied byte limit exceeds its maximum",
@@ -55,6 +63,9 @@ pub(crate) fn encode_bounded<T: Codec>(value: &T, byte_limit: usize) -> Result<V
         depth: 0,
         byte_limit,
     };
+    for bytes in prefix {
+        encoder.raw(bytes)?;
+    }
     value.encode(&mut encoder)?;
     Ok(encoder.bytes)
 }

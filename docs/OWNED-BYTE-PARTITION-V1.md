@@ -214,8 +214,16 @@ attached plans, schema numbers, names or cached booleans grant no authority.
 
 Graph/cache extensions require selective versioned tags through their owning
 registries, exact source replay, missing/duplicate/foreign/overlap/stale range
-controls and unchanged legacy bytes when unused. No tag/schema is reserved here.
+controls and unchanged legacy bytes when unused.
 Builder accounting includes full retained carriers and metadata spare capacity.
+
+The private partition cache projection uses a dedicated v1 header, the current
+canonical source revision and the complete bounded HIR encoding. Replay takes
+held source, reruns the partition compiler and compares the cache bytes with
+the fresh HIR encoding. Backends receive the freshly resolved program. A
+transported HIR, including one with a current revision and stale operands,
+cannot supply partition authority. Ordinary graph and public target entry
+points continue to refuse partition source.
 
 Implementation scopes can be disjoint: frontend owns registry/source/HIR/loan/
 cleanup and graph/cache replay; interpreter owns backing-versus-range identity;
@@ -320,6 +328,8 @@ Done arm. The local 43-test partition selection passed, including the
 generated native C11 O0/O2 and paired Core-Wasm runs of the shared fixture.
 Both runs verify one payload backing per invocation and settlement before
 reentry.
+The [hosted run at `ab2dec272`](https://github.com/wavect/semaprax/actions/runs/43526593692)
+passed all 43 selected tests and scoped production Clippy.
 
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.

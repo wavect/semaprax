@@ -29,7 +29,13 @@ fn emitted(source: &str) -> PartitionModule {
     })
     .unwrap();
     assert!(crate::check(source, "partition_wasm.spx").is_err());
-    let module = PartitionModule::emit(&owner, &mut { usize::MAX }).unwrap();
+    let wire = owner.cache_projection().unwrap();
+    let replayed =
+        crate::hir::byte_partition::ValidatedPartitionProgram::replay_cache(&ast, &wire, &mut {
+            usize::MAX
+        })
+        .unwrap();
+    let module = PartitionModule::emit(&replayed, &mut { usize::MAX }).unwrap();
     assert!(consumer_closure(module.bytes(), Host::PrivateOrdinary).is_err());
     assert!(module
         .closure

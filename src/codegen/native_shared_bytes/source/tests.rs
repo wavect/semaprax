@@ -45,7 +45,13 @@ fn source(text: &str) -> String {
         hir::byte_partition::ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX })
             .unwrap();
     assert!(crate::codegen::emit_hir_c(owner.program()).is_err());
-    Projection::receive(&owner, &mut { usize::MAX })
+    let wire = owner.cache_projection().unwrap();
+    let replayed =
+        hir::byte_partition::ValidatedPartitionProgram::replay_cache(&ast, &wire, &mut {
+            usize::MAX
+        })
+        .unwrap();
+    Projection::receive(&replayed, &mut { usize::MAX })
         .unwrap()
         .emit()
         .unwrap()

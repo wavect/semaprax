@@ -79,11 +79,59 @@ fn original_source_resolves_only_through_the_private_current_owner() {
         ValidatedPartitionProgram::compile_source(&canonical_ast, &mut { usize::MAX }).unwrap();
     let restored_owner =
         ValidatedPartitionProgram::compile_source(&restored_ast, &mut { usize::MAX }).unwrap();
+    let selected_cache = canonical_owner.cache_projection().unwrap();
+    assert_eq!(restored_owner.cache_projection().unwrap(), selected_cache);
+    let mut remaining = usize::MAX;
+    let replayed =
+        ValidatedPartitionProgram::replay_cache(&restored_ast, &selected_cache, &mut remaining)
+            .unwrap();
+    assert!(std::ptr::eq(replayed.source(), &restored_ast));
+    assert_eq!(replayed.program(), restored_owner.program());
+    let spent = usize::MAX - remaining;
+    let mut exact = spent;
+    ValidatedPartitionProgram::replay_cache(&restored_ast, &selected_cache, &mut exact).unwrap();
+    assert_eq!(exact, 0);
+    let mut short = spent - 1;
+    assert!(
+        ValidatedPartitionProgram::replay_cache(&restored_ast, &selected_cache, &mut short)
+            .is_err()
+    );
+    assert_eq!(short, 0);
+
     let hir_wire = crate::cache_codec::encode(restored_owner.program()).unwrap();
     assert_eq!(
         crate::cache_codec::encode(canonical_owner.program()).unwrap(),
         hir_wire
     );
+    let edited = SOURCE.replace("buffer,3usize,2usize", "buffer,2usize,3usize");
+    assert_ne!(SOURCE, edited);
+    let edited_ast = crate::parse(&edited, "partition_checked.spx").unwrap();
+    let edited_owner =
+        ValidatedPartitionProgram::compile_source(&edited_ast, &mut { usize::MAX }).unwrap();
+    let edited_cache = edited_owner.cache_projection().unwrap();
+    let mut stale_hir = edited_cache[..super::cache::HEADER_BYTES].to_vec();
+    stale_hir.extend_from_slice(&hir_wire);
+    let mut forged_hir = restored_owner.program().clone();
+    forged_hir.functions[0].cleanup_plan.status_sources.clear();
+    let mut forged_cache = selected_cache[..super::cache::HEADER_BYTES].to_vec();
+    forged_cache.extend_from_slice(&crate::cache_codec::encode(&forged_hir).unwrap());
+    let mut trailing = selected_cache.clone();
+    trailing.push(0);
+    let mut wrong_version = selected_cache.clone();
+    wrong_version[0] ^= 1;
+    for (source, cache) in [
+        (&edited_ast, selected_cache.as_slice()),
+        (&edited_ast, stale_hir.as_slice()),
+        (&restored_ast, forged_cache.as_slice()),
+        (&restored_ast, hir_wire.as_slice()),
+        (&restored_ast, wrong_version.as_slice()),
+        (&restored_ast, trailing.as_slice()),
+        (&restored_ast, &selected_cache[..selected_cache.len() - 1]),
+    ] {
+        let mut work = usize::MAX;
+        assert!(ValidatedPartitionProgram::replay_cache(source, cache, &mut work).is_err());
+        assert_eq!(work, 0);
+    }
     let legacy_text = r#"module partition_checked;
 @id("partition_checked.main") fn main()->i64{7}
 "#;

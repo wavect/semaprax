@@ -133,6 +133,9 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
         assert!(crate::check(&text, "partition-direct.spx").is_err());
         let ast = crate::parse(&text, "partition-direct.spx").unwrap();
         let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+        let wire = owner.cache_projection().unwrap();
+        let owner =
+            ValidatedPartitionProgram::replay_cache(&ast, &wire, &mut { usize::MAX }).unwrap();
         let (mut allocations, mut payload) = (0, 0);
         {
             // Explicit test funding; no forecast-derived production grant.

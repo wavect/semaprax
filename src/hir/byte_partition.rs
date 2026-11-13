@@ -5,6 +5,8 @@
 //! No caller can mint this owner from HIR, a descriptor, or module bytes.
 use super::*;
 
+mod cache;
+
 /// Closed installer limit for simultaneous physical partition views.
 pub(crate) const MAX_SIMULTANEOUS_PARTITION_VIEWS: usize = 256;
 

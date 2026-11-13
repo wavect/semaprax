@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.receiving-full-merge-parents.v1",
-  "current_length": 34753,
-  "current_sha256": "37ddc1407b6ddae60ead62ffd7ed981025011d2fa3e6f7fdeed3c59746008438",
+  "current_length": 34848,
+  "current_sha256": "0a516b5440b4cc2d09f93bff8747bc60a4cba287a700845a57c3639a21d3fcc3",
   "parents": [
     {
       "head": "8caff6ada4d0b65bb0875ab49a874797e9f653d4",
@@ -605,7 +605,25 @@
         "end": 34751,
         "current": "    // The historical grammar above never grants current-source authority.\n    let compiled_current = include_bytes!(\"receiving.rs\").as_slice();\n    assert_eq!(\n        history_reader::read(\n            &root.join(path),\n            compiled_current.len(),\n            &hash(compiled_current),\n            2 * 1024 * 1024\n        )\n        .unwrap()\n        .as_bytes(),\n        compiled_current,\n    );\n",
         "before": ""
+      },
+      {
+        "start": 9849,
+        "end": 10023,
+        "current": ">() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()\n                - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;",
+        "before": ">() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();"
       }
-    ]
+    ],
+    "retained_before_narrowed_tariff": {
+      "source": {
+        "path": "e/37ddc1407b6ddae60ead62ffd7ed981025011d2fa3e6f7fdeed3c59746008438",
+        "length": 34753,
+        "sha256": "37ddc1407b6ddae60ead62ffd7ed981025011d2fa3e6f7fdeed3c59746008438"
+      },
+      "packet": {
+        "path": "e/ccb545948cf40ecafbfa1c4b0acdb46acb50b20d8d8e367b2182b87fad867563",
+        "length": 419874,
+        "sha256": "ccb545948cf40ecafbfa1c4b0acdb46acb50b20d8d8e367b2182b87fad867563"
+      }
+    }
   }
 }

@@ -9,6 +9,8 @@ use crate::hir::byte_partition::ValidatedPartitionProgram;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const CAPACITY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
@@ -27,6 +29,7 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
         (source(12288, 4096, 3), 12288, 4096),
         (source(3, 1, 3), 3, 1),
         (EMPTY_SOURCE.to_owned(), 0, 0),
+        (CAPACITY_SOURCE.to_owned(), 8192, 8192),
         (SHARED_SOURCE.to_owned(), 65_536, 4096),
     ] {
         assert!(crate::check(&text, "partition-direct.spx").is_err());
@@ -51,14 +54,23 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
 }
 #[test]
 fn semantic_faults_settle_the_original_staged_owner_and_preserve_status() {
-    for (count, width, fault) in [
+    let ordinary_faults = [
         (4096, 0, Fault::WidthZero),
         (u64::MAX, 2, Fault::ExtentOverflow),
         (4095, 16, Fault::ExtentMismatch),
         (65_536, 1, Fault::MetadataCapacity),
-    ] {
-        let shared =
+    ]
+    .map(|(count, width, fault)| {
+        let source =
             SHARED_SOURCE.replace("4096usize, 16usize", &format!("{count}usize, {width}usize"));
+        (source, 65_536, fault)
+    });
+    let one_over = (
+        CAPACITY_SOURCE.replace("8192usize", "8193usize"),
+        8193,
+        Fault::MetadataCapacity,
+    );
+    for (shared, extent, fault) in ordinary_faults.into_iter().chain([one_over]) {
         let ast = crate::parse(&shared, "partition-fault.spx").unwrap();
         let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
         let (mut allocations, mut payload) = (0, 0);
@@ -72,10 +84,10 @@ fn semantic_faults_settle_the_original_staged_owner_and_preserve_status() {
             assert!(report.cleanup_complete);
             assert_eq!(
                 (report.allocations, report.payload),
-                (invocation, 65_536 * u64::from(invocation))
+                (invocation, extent * u64::from(invocation))
             );
             assert!(!metrics.invalid);
-            assert!(metrics.allocated >= 65_536);
+            assert!(metrics.allocated >= extent as usize);
             assert_eq!(metrics.live, 0);
             assert_eq!(metrics.allocated, metrics.freed);
         }

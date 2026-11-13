@@ -14,6 +14,8 @@ const SOURCE: &str = r#"module partition_native;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const CAPACITY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 fn source(text: &str) -> String {
     let ast = crate::parse(text, "partition_native.spx").unwrap();
     assert!(crate::check(text, "partition_native.spx").is_err());
@@ -51,6 +53,7 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
         (emitted, 7),
         (source(SHARED_SOURCE), 4096),
         (source(EMPTY_SOURCE), 0),
+        (source(CAPACITY_SOURCE), 8192),
     ] {
         let root = scratch("source-partition");
         compile_and_run(
@@ -88,6 +91,10 @@ int main(void) {{
 #[test]
 fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup_and_reentry() {
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
+    let mut cases = vec![(
+        CAPACITY_SOURCE.replace("8192usize", "8193usize"),
+        STATUS_CODES[3],
+    )];
     for ((count, width), code) in [
         (("4096", "0"), STATUS_CODES[0]),
         (("18446744073709551615", "2"), STATUS_CODES[1]),
@@ -99,10 +106,14 @@ fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup
             (SHARED_SOURCE, "4096usize, 16usize"),
         ] {
             let text = fixture.replace(operands, &format!("{count}usize, {width}usize"));
-            let emitted = source(&text);
-            let root = scratch("source-operation-failure");
-            let probe = format!(
-                r#"
+            cases.push((text, code));
+        }
+    }
+    for (text, code) in cases {
+        let emitted = source(&text);
+        let root = scratch("source-operation-failure");
+        let probe = format!(
+            r#"
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
         int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
@@ -112,14 +123,13 @@ int main(void) {{
     return 0;
 }}
 "#
-            );
-            compile_and_run(
-                &root,
-                &format!("#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
-                &[],
-            );
-            std::fs::remove_dir_all(root).unwrap();
-        }
+        );
+        compile_and_run(
+            &root,
+            &format!("#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
+            &[],
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
 

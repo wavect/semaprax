@@ -230,6 +230,19 @@ shared 4,096-child result, all four geometry faults, and bounded producer
 failure before partition. The interpreter, native C11 at O0/O2, and paired
 Core-Wasm also share the zero-child fixture
 `tests/fixtures/byte-partition-private-empty.spx` in the owning selectors.
+The owning selectors also use an 8,192-byte fixture to check the exact
+8,192-child result and derive a matching 8,193-byte, 8,193-child refusal.
+
+A runtime comparison exercised two partitions in one invocation. The first
+issued 8,192 children and settled all of them before the second whole owner
+was constructed. Native C11 at O0/O2 selected `metadata_capacity` for the
+second, one-child partition because the native registry retains its child
+debit until invocation end. The Wasm host's producer import accepted it
+because settlement returned all 8,192 slots. Both observed two backing
+events and 8,193 cumulative payload bytes. This comparison used the C
+runtime and Wasm host import directly. Source-level acceptance for repeated
+partitions needs a shared metadata lifetime rule and a same-source gate.
+
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.
 

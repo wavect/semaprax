@@ -15,6 +15,8 @@ const SOURCE: &str = r#"module partition_wasm;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
 const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
+const CAPACITY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 
 fn emitted(source: &str) -> PartitionModule {
     let ast = crate::parse(source, "partition_wasm.spx").unwrap();
@@ -48,6 +50,7 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         (iterator.as_str(), "4096", "65536"),
         (SHARED_SOURCE, "4096", "65536"),
         (EMPTY_SOURCE, "0", "0"),
+        (CAPACITY_SOURCE, "8192", "8192"),
     ] {
         let module = emitted(source);
         if node_available() {
@@ -71,6 +74,7 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
 
 #[test]
 fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_reentry() {
+    let mut cases = vec![(CAPACITY_SOURCE.replace("8192usize", "8193usize"), 4, "8193")];
     for (fixture, operands) in [
         (SOURCE, "4096usize,16usize"),
         (SHARED_SOURCE, "4096usize, 16usize"),
@@ -81,17 +85,21 @@ fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_re
             ("4095usize, 16usize", 3),
             ("65536usize, 1usize", 4),
         ] {
-            let source = fixture.replace(operands, replacement);
-            let module = emitted(&source);
-            if node_available() {
-                let entry = module.entry_source();
-                let directory = stage(&[
-                    ("entry.mjs", entry.as_bytes()),
-                    ("entry-test.mjs", ENTRY_TEST.as_bytes()),
-                ]);
-                assert!(run_node(&directory, "entry-test.mjs", &[&code.to_string()])
-                    .contains("partition-entry-ok"));
-            }
+            cases.push((fixture.replace(operands, replacement), code, "65536"));
+        }
+    }
+    for (source, code, payload) in cases {
+        let module = emitted(&source);
+        if node_available() {
+            let entry = module.entry_source();
+            let directory = stage(&[
+                ("entry.mjs", entry.as_bytes()),
+                ("entry-test.mjs", ENTRY_TEST.as_bytes()),
+            ]);
+            assert!(
+                run_node(&directory, "entry-test.mjs", &[&code.to_string(), payload])
+                    .contains("partition-entry-ok")
+            );
         }
     }
 }
@@ -100,18 +108,19 @@ fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_re
 const ENTRY_TEST: &str = r#"import { install } from './entry.mjs';
 const code = Number(process.argv[2]);
 const metadata = 16384*6 + 8192*22 + 32*11 + 32*8;
-const entry = await install(metadata + 65536);
+const payload = Number(process.argv[3]);
+const entry = await install(metadata + payload);
 for (let run=0; run<4; run+=1) {
  const outcome = entry.invoke();
  if (JSON.stringify(outcome) !== JSON.stringify({outcome:'language_failure',status:{domain:'semaprax.byte-partition.v1',code}})) throw new Error(JSON.stringify(outcome));
  if ('result' in outcome || 'reason' in outcome) throw new Error('failure published extra result');
  const account = entry.account();
- if (account.reserved !== metadata || account.peak !== metadata+65536) throw new Error(JSON.stringify(account));
+ if (account.reserved !== metadata || account.peak !== metadata+payload) throw new Error(JSON.stringify(account));
 }
 let rejected=false;
-try { await install({module:new Uint8Array(),managedBytes:metadata+65536}); } catch { rejected=true; }
+try { await install({module:new Uint8Array(),managedBytes:metadata+payload}); } catch { rejected=true; }
 if (!rejected) throw new Error('caller module accepted');
-const short = await install(metadata+65535);
+const short = await install(metadata+payload-1);
 const refused = short.invoke();
 if (refused.outcome !== 'administrative_refusal' || 'status' in refused || 'result' in refused) throw new Error(JSON.stringify(refused));
 if (short.account().reserved !== metadata || short.invoke().reason !== 'private entry is poisoned') throw new Error('short account reused');

@@ -1,6 +1,10 @@
 # Owned Bytes finite construction fusion v1
 
-Status: PROPOSED runtime contract for OPT [#747](https://github.com/wavect/semaprax/issues/747); source-only candidate inventory authored, owning executable qualification pending. Ordinary routes remain closed. The explicit source CLI has local interpreter, native and Core-Wasm acceptance for the unchanged maximum-row fixture. [Source profile v1](FUSED-SOURCE-PROFILE-V1.md)
+Status: local executable qualification of the explicit source profile for
+OPT [#747](https://github.com/wavect/semaprax/issues/747). The private
+partition dependency and its broader lifetime, failure and publication
+checks remain open under [#746](https://github.com/wavect/semaprax/issues/746).
+[Source profile v1](FUSED-SOURCE-PROFILE-V1.md)
 
 Audience: source, ownership, cleanup and runtime contributors and reviewers.
 
@@ -147,13 +151,20 @@ other counts/widths and renamed bindings, and reject forged counts/increments,
 constructor/field drift, escape, clones, unknown calls, shadowing and reads after
 transfer. No definition has been executed in this tranche.
 
-The original `maximum_admitted_owned_rows_preserve_views_order_and_nonallocating_reentry`
-and both `hir::cache_codec::record_traversal_tests::` definitions remain unchanged.
-Their complete same-source interpreter/native O0/O2/strict Core-Wasm and exact
-source/graph/cache, byte/order/NUL/Unicode, first-read/no-allocation and complete
-settlement/reentry observations remain required. Owning physical fault and
-metadata exact/one-short gates must separately qualify the selected executor.
-Source candidate recognition supplies no success evidence for those gates.
+On macOS arm64, the original `maximum_admitted_owned_rows_preserve_views_order_and_nonallocating_reentry`
+passed with the unchanged 4,096-row fixture in the interpreter, C11 O0/O2 and
+strict Core Wasm. All three `hir::cache_codec::record_traversal_tests` passed,
+including fresh selection after source/cache transport, the separate ordinary
+graph control, and rejection of a forged mutable carrier and missing freeze.
+All nine fused capacity checks passed, including the ordinary 32-event and
+cumulative-payload frontiers.
+
+The CLI harness also executes an independent 57-row source with five-byte
+payloads and different nominal, field, binding and function IDs. The same
+source returns `1596` on the interpreter, native CLI and paired Core-Wasm
+loader. The ordinary route reports `SPX-T267`. Changing the destination
+capacity or unit induction causes `SPX-F130` before Wasm publication.
+The local runs used the `c28cc4432` compiler build and Node v24.15.0.
 
 ## Separate ordinary finite capacity prerequisite
 

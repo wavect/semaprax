@@ -592,3 +592,141 @@ console.log('public-source-outcome-ok');
         SOURCE
     );
 }
+
+#[test]
+fn fused_source_admits_distinct_row_counts_widths_and_names_across_backends() {
+    let fixture = Fixture::new("fused-source-alternate");
+    let alternate = r#"module alternate.inventory;
+
+@id("alternate.entry")
+record Entry {
+    @id("alternate.entry.rank") rank: i64,
+    @id("alternate.entry.caption") caption: string,
+    @id("alternate.entry.storage") storage: Bytes,
+}
+
+@id("alternate.entrypoint")
+fn main() -> i64 {
+    let mut pending = vec_with_capacity<Entry>(57usize);
+    let mut sequence = 0;
+    while sequence < 57 {
+        let entry = Entry { rank: sequence, caption: "é\u{0}", storage: bytes_zeroed(5usize) };
+        pending = vec_push<Entry>(pending, entry);
+        sequence = sequence + 1;
+        0
+    }
+    let entries = pending;
+    let mut sum = 0;
+    let mut intact = true;
+    for borrow current at position in entries {
+        let text = current.caption;
+        let data = current.storage;
+        let utf8 = str_as_bytes(text);
+        intact = intact && current.rank == i64_from_usize(position)
+            && str_len_bytes(text) == 3 && byte_len(data) == 5usize
+            && match byte_get(utf8, 2usize) { Option::Some { value } => value == 0u8, Option::None {} => false, }
+            && match byte_get(data, 4usize) { Option::Some { value } => value == 0u8, Option::None {} => false, };
+        sum = sum + current.rank;
+        0
+    }
+    if intact { sum } else { 0 }
+}
+"#;
+    let input = fixture.root.join("inventory.spx");
+    std::fs::write(&input, alternate).unwrap();
+    let ordinary = cli(&fixture.root, &["run", "inventory.spx", "--json"]);
+    assert!(!ordinary.status.success());
+    assert!(String::from_utf8_lossy(&ordinary.stdout).contains("SPX-T267"));
+
+    let options = [
+        "--profile",
+        "fused-construction-v1",
+        "--managed-bytes",
+        ACCOUNT,
+    ];
+    let mut args = vec!["run", "inventory.spx", "--json"];
+    args.extend(options);
+    let interpreter = packet(&success(&fixture.root, &args));
+    args.push("--native");
+    let native = packet(&success(&fixture.root, &args));
+    let source_sha256 = "e55485602028059df63307ba83b4ba224db0980e3a2d6f6dd4c4044b745528ee";
+    for (result, target) in [(interpreter, "interpreter"), (native, "native")] {
+        assert_eq!(result["outcome"], "returned");
+        assert_eq!(result["result"], "1596");
+        assert_eq!(result["source_sha256"], source_sha256);
+        assert_eq!(result["target"], target);
+    }
+
+    let mut build = vec![
+        "build",
+        "inventory.spx",
+        "--target",
+        "wasm",
+        "--output",
+        "package",
+    ];
+    build.extend(options);
+    success(&fixture.root, &build);
+    let output = Command::new("node")
+        .current_dir(&fixture.root)
+        .args(["--input-type=module", "-e"])
+        .arg(
+            r#"
+import assert from 'node:assert/strict';
+import {install} from './package/fused-construction-v1.mjs';
+const runner = await install(Number(process.argv[1]));
+for (let i = 0; i < 4; i++) {
+    const result = runner.invoke();
+    assert.equal(result.outcome, 'returned');
+    assert.equal(result.result, '1596');
+    assert.equal(result.target, 'wasm');
+    assert.equal(result.source_sha256, process.argv[2]);
+}
+"#,
+        )
+        .args([ACCOUNT, source_sha256])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(std::fs::read_to_string(&input).unwrap(), alternate);
+
+    for (changed, rule) in [
+        (
+            alternate.replace(
+                "vec_with_capacity<Entry>(57usize)",
+                "vec_with_capacity<Entry>(56usize)",
+            ),
+            "Rows",
+        ),
+        (
+            alternate.replace("sequence = sequence + 1", "sequence = sequence + 2"),
+            "LoopBody",
+        ),
+    ] {
+        assert_ne!(changed, alternate);
+        std::fs::write(&input, changed).unwrap();
+        let mut invalid = vec![
+            "build",
+            "inventory.spx",
+            "--target",
+            "wasm",
+            "--output",
+            "refused",
+            "--json",
+        ];
+        invalid.extend(options);
+        let refused = cli(&fixture.root, &invalid);
+        assert!(!refused.status.success());
+        let diagnostic = packet(&refused);
+        assert_eq!(diagnostic["code"], "SPX-F130");
+        assert_eq!(
+            diagnostic["message"],
+            format!("selected source refused: {rule}")
+        );
+        assert!(!fixture.root.join("refused").exists());
+    }
+}

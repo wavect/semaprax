@@ -115,10 +115,39 @@ int main(void) {{
 #[test]
 fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup_and_reentry() {
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
-    let mut cases = vec![(
-        CAPACITY_SOURCE.replace("8192usize", "8193usize"),
-        STATUS_CODES[3],
-    )];
+    let mut cases = vec![
+        (
+            CAPACITY_SOURCE.replace("8192usize", "8193usize"),
+            STATUS_DOMAIN,
+            STATUS_CODES[3],
+            1,
+            8193,
+        ),
+        (
+            REPEATED_SOURCE.replace("8192usize, 1usize", "8192usize, 0usize"),
+            STATUS_DOMAIN,
+            STATUS_CODES[0],
+            1,
+            8192,
+        ),
+        (
+            REPEATED_SOURCE.replace("whole, 1usize, 1usize", "whole, 1usize, 0usize"),
+            STATUS_DOMAIN,
+            STATUS_CODES[0],
+            2,
+            8193,
+        ),
+        (
+            REPEATED_SOURCE.replace(
+                "bytes_zeroed(1usize)",
+                "bytes_zeroed_bounded(1usize, 0usize)",
+            ),
+            crate::byte_ops::SET_STATUS_DOMAIN,
+            crate::byte_ops::CAPACITY_EXCEEDED_CODE,
+            1,
+            8192,
+        ),
+    ];
     for ((count, width), code) in [
         (("4096", "0"), STATUS_CODES[0]),
         (("18446744073709551615", "2"), STATUS_CODES[1]),
@@ -130,10 +159,10 @@ fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup
             (SHARED_SOURCE, "4096usize, 16usize"),
         ] {
             let text = fixture.replace(operands, &format!("{count}usize, {width}usize"));
-            cases.push((text, code));
+            cases.push((text, STATUS_DOMAIN, code, 1, 65536));
         }
     }
-    for (text, code) in cases {
+    for (text, domain, code, allocations, bytes) in cases {
         let emitted = source(&text);
         let root = scratch("source-operation-failure");
         let probe = format!(
@@ -142,7 +171,10 @@ int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
         int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
         if (spx_partition_run(&result, &domain, &code) != 1u) return 1;
-        if (result != INT64_C(-999) || strcmp(domain, "{STATUS_DOMAIN}") != 0 || code != {code}u) return 2;
+        if (result != INT64_C(-999) || strcmp(domain, "{domain}") != 0 || code != {code}u) return 2;
+        size_t runs = (size_t)i + 1u;
+        if (payload_allocations != runs * {allocations}u || payload_frees != payload_allocations
+            || payload_bytes != runs * {bytes}u) return 3;
     }}
     return 0;
 }}
@@ -150,7 +182,7 @@ int main(void) {{
         );
         compile_and_run(
             &root,
-            &format!("#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
+            &format!("{PAYLOAD_CENSUS}#define SPX_NO_ENTRY_WRAPPER\n{emitted}\n{probe}"),
             &[],
         );
         std::fs::remove_dir_all(root).unwrap();

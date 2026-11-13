@@ -240,6 +240,9 @@ Core-Wasm also share the zero-child fixture
 `tests/fixtures/byte-partition-private-empty.spx` in the owning selectors.
 The owning selectors also use an 8,192-byte fixture to check the exact
 8,192-child result and derive a matching 8,193-byte, 8,193-child refusal.
+The [33-test hosted run at `bc4692d4f`](https://github.com/wavect/semaprax/actions/runs/43512449690)
+passed the boundary cases, interpreter registry controls, repeated native and
+Wasm success case, and scoped production Clippy.
 
 The previous native registry kept a child-table debit after the table was
 freed. The Wasm host previously admitted new partitions using individual

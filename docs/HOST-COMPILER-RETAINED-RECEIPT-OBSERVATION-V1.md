@@ -2,7 +2,9 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: bounded host implementation with synthetic offline controls. Actual compiler receipt/host integration qualification, independent execution and OPT606 completion remain pending. No model/provider or compiler was executed for the offline evidence.
+Status: bounded host implementation with offline controls and local validation
+of a real compiler artifact. Runner-owned sandbox qualification, independent
+execution and OPT606 completion remain pending.
 
 This additive host route consumes [compiler retained receipt v1](JSON-CODEC-RETAINED-RECEIPT-V1.md) only when an agent explicitly invokes single-codec `json-codec ... --retained-receipt`. It does not change ordinary source output or rewrite argv to request a receipt automatically. Fresh CLI/LogLens and webapp-v2 harness source inventories pin `benchmarks/compiler_retained_receipt.py`; ShiftSim inherits the CLI inventory. Legacy immutable tool inventories lacking that optional helper retain their old capture behavior. If any supplied immutable tool inventory names the helper, all supplied inventories must bind its exact source hash. The pinned helper is copied beside the retained proxy, never imported from candidate code.
 
@@ -16,4 +18,19 @@ The observation schema is `semaprax.compiler-retained-receipt-observation.v1`. I
 
 Three complete inventories stay separate: compiler-reported original held files (including exact original manifest and dependency envelopes), resolved original source closure, and full mixed candidate sources. Each file's exact retained UTF-8 bytes is tokenized only through the existing pinned legacy-Claude BPE proxy. Missing tokenizer keeps counts null for offline/calibration use; the existing scored-launch readiness gate remains authoritative. Broken runtime or invalid counts refuses measurement. The report never subtracts independently tokenized strings, labels proxy counts as GPT/NET tokens, infers pure generated authorship or accumulates repeated generations as authored totals. Existing final-file, failed-cost, billing/null and v1 provenance policies are unchanged.
 
-Closing606 still requires executable compiler/host qualification and a lawful trusted in-sandbox invocation/output-origin binding (plus any independent-execution obligation), full original/mixed policy replay and matched live evidence where required. Those requirements cannot be earned by accepting agent-authored mailbox fields or by running a second compiler outside the existing sandbox.
+Closing OPT606 still requires qualification of the runner-owned in-sandbox
+invocation and output-origin binding, full original and mixed policy replay,
+and matched live evidence where required.
+
+## Local artifact validation
+
+The macOS arm64 standalone compiler at `c28cc4432` produced a 132,964-byte
+receipt from the retained-receipt Project fixture. The host seal and structural
+validators accepted the original artifact and its stdout seal. The receipt
+carried four held input files, 12 resolved original sources and 12 mixed
+candidate sources. A different nonce, missing terminal LF, duplicate seal
+and changed receipt bytes each failed seal validation. The local subprocess
+was used for artifact compatibility and supplied no runner execution evidence.
+
+The 90 host unit tests and 10 completion-channel tests passed separately with
+offline inputs. Actual authority admission remains fail-closed.

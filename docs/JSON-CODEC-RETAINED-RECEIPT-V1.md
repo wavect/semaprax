@@ -51,4 +51,4 @@ Focused source-authored owners cover full original byte retention, held content/
 
 ## Optional stdout publication correlation
 
-The additive `--receipt-stdout-seal <nonce>` form, usable only with exactly one `--retained-receipt`, is specified in [JSON Codec Publication Seal v1](JSON-CODEC-PUBLICATION-SEAL-V1.md). It emits a bounded stdout record after successful exclusive publication of the identical JSON-plus-LF artifact. It creates no second artifact and grants no execution authentication. Existing forms without that flag retain their original output and diagnostic behavior. Qualification of the additive form remains pending.
+The additive `--receipt-stdout-seal <nonce>` form, usable only with exactly one `--retained-receipt`, emits a bounded stdout record after successful exclusive publication of the identical JSON-plus-LF artifact. The local CLI checks cover exact receipt bytes and publication failures. Runner execution authority remains pending. [JSON Codec Publication Seal v1](JSON-CODEC-PUBLICATION-SEAL-V1.md)

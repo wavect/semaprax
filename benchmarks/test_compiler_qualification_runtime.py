@@ -125,8 +125,8 @@ class QualificationChecks(unittest.TestCase):
         self.assertRaises(AuthorityRefusal,acl.empty,7)
 
     def test_private_creation_refuses_symlink_parent_and_existing_leaf(self):
-        with tempfile.TemporaryDirectory(dir='/Volumes/Semaprax/runtime-tmp') as name:
-            root = Path(name)
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name).resolve(strict=True)
             q._make_private_directory(root/'fresh')
             self.assertEqual(stat.S_IMODE((root/'fresh').stat().st_mode),0o700)
             self.assertRaises(FileExistsError,q._make_private_directory,root/'fresh')

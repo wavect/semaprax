@@ -84,8 +84,8 @@ class StaticAuthorityTests(unittest.TestCase):
                 authority._parse(raw, expected or hashlib.sha256(raw).hexdigest())
 
     def test_descriptor_acquisition_refuses_links_size_and_mutable_protection(self):
-        with tempfile.TemporaryDirectory(dir="/Volumes/Semaprax/runtime-tmp") as directory:
-            root = Path(directory)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve(strict=True)
             file = root / "data"
             file.write_bytes(b"abc")
             self.assertEqual(authority._read(file, 3)[0], b"abc")

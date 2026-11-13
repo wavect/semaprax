@@ -2,7 +2,9 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: NEXT source candidate; executable qualification pending. This is one compiler-side step for [OPT869](https://github.com/wavect/semaprax/issues/869), linked to OPT606. Neither issue is completed by a stdout record. No host authentication flag changes here.
+Status: local compiler-side qualification on macOS arm64 for
+[OPT869](https://github.com/wavect/semaprax/issues/869). Runner execution
+authority and the OPT606 campaign remain pending.
 
 ## Explicit selection
 
@@ -34,4 +36,11 @@ Project authority, retained originals, two actual same-process derivations, null
 
 ## Owning checks
 
-The source candidate authors six binary-unit owners for closed grammar, complete exact-byte hashing/LF binding, publication-before-write, no-overwrite/no-output refusal, partial stdout failure, and flush failure. Two project-harness owners exercise full CLI legacy/sealed byte parity, nonce-independent receipt bytes, no-overwrite silence, invalid grammar before authority, identical ordinary derivation diagnostics, and unchanged source/binary/null fields. Complete original owners and assertions remain unchanged. Literal selectors, base/source hashes, full preimages and finite restoration recipes are in `docs/evidence/codec-stdout-publication-seal-20261017/`. No Cargo or runtime check has been executed for this source candidate.
+On macOS arm64, six binary-unit tests and two Project integration tests passed
+using the local compiler at `c28cc4432`. The binary tests exercised closed
+grammar, exact-byte hashing including LF, publication order, exclusive
+publication refusal, and partial write and flush failures. The Project tests
+ran the real CLI and confirmed legacy/sealed artifact parity, nonce-independent
+receipt bytes, silence on publication conflict, and unchanged derivation
+diagnostics. The complete preimages and restoration recipes are in
+`docs/evidence/codec-stdout-publication-seal-20261017/`.

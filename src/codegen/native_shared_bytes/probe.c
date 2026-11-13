@@ -470,6 +470,31 @@ PROBE_FN void generation_exhaustion(void) {
     assert(payload_pool.live == 0u && metadata_pool.live == 0u);
 }
 
+/* The final usable child nonce can be issued once. An empty partition
+   consumes its whole owner without minting any further child nonce. */
+PROBE_FN void partition_child_nonce_exact_boundary(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_zeroed(&reg, 0u, &a);
+    spx_shb_zeroed(&reg, 1u, &b);
+    spx_shb_zeroed(&reg, 2u, &c);
+    reg.next_nonce = UINT64_MAX - 2u;
+    partition(&c, 2u, 1u, &v);
+    assert(spx_shb_is_vacant(&c) && reg.next_nonce == UINT64_MAX);
+    assert(v.rows[0].nonce == UINT64_MAX - 2u && v.rows[1].nonce == UINT64_MAX - 1u);
+    spx_shb_vec_drop(&reg, &v);
+    partition(&a, 0u, UINT64_MAX, &v);
+    assert(spx_shb_is_vacant(&a) && spx_shb_vec_len(&reg, &v) == 0u);
+    assert(reg.next_nonce == UINT64_MAX);
+    spx_shb_vec_drop(&reg, &v);
+    assert(spx_shb_partition_prepare(&reg, &b, 1u, 1u, &plan) == SPX_SHB_OK);
+    EXPECT_STOP("lease generation exhausted", spx_shb_partition_commit(&reg, &plan, &b, &v));
+    assert(view_is(&b, "\0", 1u) && reg.next_nonce == UINT64_MAX);
+    spx_shb_partition_abort(&reg, &plan);
+    spx_shb_drop(&reg, &b);
+    assert(metadata_pool.live == 0u && payload_pool.live == 0u);
+    spx_shb_registry_finish(&reg);
+}
+
 /* Vec result generation is checked before committing the source lease. */
 PROBE_FN void partition_result_generation_exhaustion(void) {
     census_reset(); fresh(&reg);
@@ -530,6 +555,7 @@ int main(void) {
     copy_out_and_provider_drop();
     plans_and_final_settlement();
     generation_exhaustion();
+    partition_child_nonce_exact_boundary();
     partition_result_generation_exhaustion();
     vec_operations();
     puts("shared-owner Bytes probe: ok");

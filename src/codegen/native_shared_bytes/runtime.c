@@ -713,7 +713,7 @@ SPX_SHB_FN void spx_shb_partition_commit(
     if (r.backing->state != SPX_SHB_WHOLE || r.lease_index != UINT64_C(0)
         || plan->count * plan->width != r.len)
         SPX_SHB_FAIL_STOP("shared Bytes partition commit lost its preflight");
-    if (registry->next_nonce == UINT64_C(0) || plan->count >= UINT64_MAX - registry->next_nonce)
+    if (registry->next_nonce == UINT64_C(0) || plan->count > UINT64_MAX - registry->next_nonce)
         SPX_SHB_FAIL_STOP("shared Bytes lease generation exhausted");
     if (registry->next_generation == UINT64_C(0) || registry->next_generation == UINT64_MAX)
         SPX_SHB_FAIL_STOP("shared Bytes Vec generation exhausted");

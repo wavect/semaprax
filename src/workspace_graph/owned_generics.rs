@@ -424,6 +424,18 @@ pub(super) fn select_scalar_generic_closure(
     close_owned_data_closure(available, &generics, roots)
 }
 
+/// Retain a matched key's backing. An absent root still enters the original
+/// ordered closure walk so its diagnostic keeps the same priority.
+fn selected_root_identity<F>(
+    available: &BTreeMap<hir::DeclarationId, F>,
+    root: &str,
+) -> hir::DeclarationId {
+    available.get_key_value(root).map_or_else(
+        || hir::DeclarationId::new(root),
+        |(id, _)| id.clone(),
+    )
+}
+
 pub(super) fn select_scalar_generic_roots(
     modules: &[WorkspaceResolvedModule],
     declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
@@ -433,7 +445,7 @@ pub(super) fn select_scalar_generic_roots(
 ) -> Result<OwnedGenericClosure, Vec<Diagnostic>> {
     let mut roots = additional_roots
         .iter()
-        .map(|root| hir::DeclarationId::new(root.clone()))
+        .map(|root| selected_root_identity(available, root))
         .collect::<BTreeSet<_>>();
     roots.insert(entrypoint);
     select_scalar_generic_closure(modules, declarations, available, roots)
@@ -1030,7 +1042,7 @@ impl super::WorkspaceGraphBuild {
         roots.extend(
             additional_roots
                 .iter()
-                .map(|root| hir::DeclarationId::new(root.clone())),
+                .map(|root| owned_generics::selected_root_identity(&available, root)),
         );
         let generics = owned_generics::OwnedGenericInventory::collect(
             &self.hir.modules,

@@ -366,3 +366,19 @@ fn borrowed_inventory_removes_transient_clone_backing_and_frees_everything() {
     assert!(new_kept.live > 0);
     drop((published, old_published));
 }
+
+#[test]
+fn selected_root_uses_the_exact_held_key_and_preserves_detached_text() {
+    let key = hir::DeclarationId::new("root.é");
+    let available = BTreeMap::from([(key.clone(), ())]);
+    let spelling = "root.é".to_owned();
+    let (selected, allocation) = measure(|| selected_root_identity(&available, &spelling));
+    assert_eq!(selected, key);
+    assert_eq!(selected.shared_allocation_key(), key.shared_allocation_key());
+    assert!(!allocation.invalid);
+    assert_eq!(allocation.allocated, 0);
+
+    let missing = selected_root_identity(&available, "root.é.missing");
+    assert_eq!(missing.as_str(), "root.é.missing");
+    assert!(!available.contains_key(&missing));
+}

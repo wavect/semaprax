@@ -32,7 +32,11 @@ pub(super) fn validate_typed_control_skeleton_with_index<'hir>(
     }
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
-    let mut actual = plan_skeleton_paths(function, budget)?;
+    // This saved receiver uses the original flat Vec ordering. Keep the
+    // historical producer selected only for PLAN construction.
+    let mut actual = ordinary_plan_history::completed_fork::emission::with_before(|| {
+        plan_skeleton_paths(function, budget)
+    })?;
     expected.sort();
     actual.sort();
     if actual != expected {
@@ -86,5 +90,21 @@ fn tree_control_helper_keeps_the_complete_original_body() {
         .find("pub(super) fn validate_typed_control_skeleton_with_index")
         .unwrap();
     let end = current[start..].find("\n}\n").unwrap() + start + 3;
-    assert_eq!(&current[start..end], format!("pub(super) {complete}"));
+    let current = &current[start..end];
+    let transport = concat!(
+        "    // This saved receiver uses the original flat Vec ordering. Keep the\n",
+        "    // historical producer selected only for PLAN construction.\n",
+        "    let mut actual = ordinary_plan_history::completed_fork::emission::with_before(|| {\n",
+        "        plan_skeleton_paths(function, budget)\n",
+        "    })?;",
+    );
+    assert_eq!(current.matches(transport).count(), 1);
+    assert_eq!(
+        current.replacen(
+            transport,
+            "    let mut actual = plan_skeleton_paths(function, budget)?;",
+            1
+        ),
+        format!("pub(super) {complete}")
+    );
 }

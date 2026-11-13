@@ -916,7 +916,29 @@ mod v12_tests {
     #[test]
     fn v12_preserves_the_entire_original_v10_and_v11_rust_source() {
         let source = include_str!("main_e177_overlay_pins_v10.rs");
-        let (before, _) = source.split_once("\n// V12_PIN_DIGESTS_BEGIN:").unwrap();
+        let (merged, _) = source.split_once("\n// V12_PIN_DIGESTS_BEGIN:").unwrap();
+        assert_eq!(
+            merged,
+            include_str!(
+                "../../e/f2553a15d94b09d7af9c55b4950da139cfa7ffd7f4dd8bc21cbbced698408a7f"
+            )
+        );
+        let inverse = include_str!(
+            "../../docs/evidence/ci-unregistered-inputs-20261105/v10-merge-inverse.json"
+        );
+        assert_eq!(
+            super::super::super::digest(inverse.as_bytes()),
+            "82237f93d288125c767868d0ee7302fdf9eb3c7b4c44792499b90194f757f305"
+        );
+        let mut before = merged.to_owned();
+        for (at, after, previous) in serde_json::from_str::<Vec<(usize, String, String)>>(inverse)
+            .unwrap()
+            .into_iter()
+            .rev()
+        {
+            assert_eq!(before.get(at..at + after.len()), Some(after.as_str()));
+            before.replace_range(at..at + after.len(), &previous);
+        }
         assert_eq!(
             before,
             include_str!(

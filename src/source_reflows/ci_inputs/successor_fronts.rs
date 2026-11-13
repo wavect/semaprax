@@ -480,6 +480,24 @@ pub(in super::super) fn next_custody_before(owner: &str, source: &str, supplied:
                 && (supplied == compiled || interface_predecessor || registry_archive))
                 .then(|| interface754_scratch_before_format(compiled))
         })
+        .or_else(|| {
+            if !matches!(owner, "main295-prefix-v10" | "main295-old519-v10")
+                || source != "src/source_reflows_merge/main_e177_overlay_pins_v10.rs"
+                || supplied != compiled
+            {
+                return None;
+            }
+            let (stage, _) = compiled.split_once("\n// V12_PIN_DIGESTS_BEGIN:").unwrap();
+            let archive = reader::read(
+                &root.join(format!("e/{}", row["current_sha256"].as_str().unwrap())),
+                row["current_length"].as_u64().unwrap().try_into().unwrap(),
+                row["current_sha256"].as_str().unwrap(),
+                2_097_152,
+            )
+            .unwrap();
+            assert_eq!(stage, archive, "complete merged V10 source before V12");
+            Some(archive)
+        })
         .or_else(|| next_emission_before(owner, source, supplied, compiled))
         .or_else(|| next_custody_front(owner, source, supplied, compiled, row));
     if acquired.is_none() && !interface_predecessor && !registry_archive {

@@ -1532,6 +1532,17 @@ def encode_compressed_page(page,schema=V22_SCHEMA):
   # compressor's bounded working memory for larger inputs.
   compressor=zlib.compressobj(9,zlib.DEFLATED,zlib.MAX_WBITS,7)
   result=envelope(compressor.compress(raw)+compressor.flush())
+ if len(canonical(result))>PAGE_CAP:
+  # A block boundary can improve the Huffman tables while retaining the
+  # same single stream, sliding window, and decoded byte limit.
+  for boundary in range(45_000,len(raw),10_000):
+   compressor=zlib.compressobj(9,zlib.DEFLATED,zlib.MAX_WBITS,7)
+   compressed=(compressor.compress(raw[:boundary])+compressor.flush(zlib.Z_BLOCK)
+               +compressor.compress(raw[boundary:])+compressor.flush())
+   candidate=envelope(compressed)
+   if len(canonical(candidate))<=PAGE_CAP:
+    result=candidate
+    break
  assert expand_compressed_page(result)==page, 'ENTIRE compressed v20 inverse'
  return result
 

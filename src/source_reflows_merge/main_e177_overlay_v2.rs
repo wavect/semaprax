@@ -14,7 +14,7 @@ pub(super) const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","s
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 211876;
-const POLICY_SHA256: &str = "3eeaf3c29f13081d071885dba0c24f9b2c0813fefa17964f1f11a2dfdc6e779f";
+const POLICY_SHA256: &str = "937aa661633a9d756161a9be9f67ba0f09251b6b2b2d7ad740f3ca8101865061";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -1328,7 +1328,10 @@ mod tests {
         let old = reference_source
             .split_once("fn load_before_page_data()")
             .unwrap()
-            .1;
+            .1
+            .split_once("\n#[cfg(test)]\npub(super) mod source_sections")
+            .unwrap()
+            .0;
         let restored = format!("fn load(){old}");
         assert_eq!(
             digest(restored.as_bytes()),

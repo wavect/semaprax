@@ -111,8 +111,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        130820,
-        "87415b5e29ca8f5c8be40bee197286864c20aa8f700b24b51fa22f9b6087f6e4",
+        130826,
+        "25a8ad65b0c14e5b538c6c33b83f563045730dd2cbdea61155d7243d4e9ab0b0",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",

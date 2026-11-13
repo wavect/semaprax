@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=211876
-POLICY_SHA256='3eeaf3c29f13081d071885dba0c24f9b2c0813fefa17964f1f11a2dfdc6e779f'
+POLICY_SHA256='937aa661633a9d756161a9be9f67ba0f09251b6b2b2d7ad740f3ca8101865061'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -322,7 +322,7 @@ def _load_fixed_codecs():
  import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=78591
+ length=79140
  fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
  try:
   info=os.fstat(fd)
@@ -332,7 +332,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='0bacdf1a33ca4c0b8b6c207034346e464b1af212e28a9936d6777528bb8b9d8d', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='9265e193b50ffcd864dd61e354e4b5adb13f7d53b666e7fab6292985cfa1105d', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()

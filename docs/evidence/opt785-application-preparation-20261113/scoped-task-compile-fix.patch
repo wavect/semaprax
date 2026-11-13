@@ -1,0 +1,22 @@
+diff --git a/src/scoped_tasks.rs b/src/scoped_tasks.rs
+index e92595350..f646829d6 100644
+--- a/src/scoped_tasks.rs
++++ b/src/scoped_tasks.rs
+@@ -1181,7 +1181,7 @@ impl<'a> ScopedTaskRun<'a> {
+                 self.states
+                     .iter()
+                     .filter(|(task, _)| {
+-                        self.model.tasks.get(task).map(|entry| &entry.scope) == Some(id)
++                        self.model.tasks.get(*task).map(|entry| &entry.scope) == Some(id)
+                     })
+                     .all(|(_, runtime)| {
+                         matches!(
+@@ -1193,7 +1193,7 @@ impl<'a> ScopedTaskRun<'a> {
+             .filter(|(id, _)| {
+                 self.model
+                     .children
+-                    .get(id)
++                    .get(*id)
+                     .map(|children| {
+                         children
+                             .iter()

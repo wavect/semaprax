@@ -1,0 +1,112 @@
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::time::Instant;
+
+#[derive(Default, Debug)]
+struct Metrics {
+    allocated: usize,
+    freed: usize,
+    allocations: usize,
+    reallocations: usize,
+    live: usize,
+    peak: usize,
+}
+
+#[derive(Default)]
+struct Observation {
+    live: HashMap<usize, usize>,
+    metrics: Metrics,
+}
+
+thread_local! {
+    static ACTIVE: Cell<bool> = const { Cell::new(false) };
+    static RECORD: RefCell<Observation> = RefCell::new(Observation::default());
+}
+
+fn observe(record: impl FnOnce(&mut Observation)) {
+    if ACTIVE.try_with(|active| active.replace(false)).unwrap_or(false) {
+        RECORD.with(|state| record(&mut state.borrow_mut()));
+        ACTIVE.with(|active| active.set(true));
+    }
+}
+
+impl Observation {
+    fn allocated(&mut self, pointer: *mut u8, size: usize) {
+        if !pointer.is_null() {
+            assert_eq!(self.live.insert(pointer as usize, size), None);
+            self.metrics.allocated += size;
+            self.metrics.live += size;
+            self.metrics.peak = self.metrics.peak.max(self.metrics.live);
+        }
+    }
+
+    fn freed(&mut self, pointer: *mut u8, size: usize) {
+        if let Some(recorded) = self.live.remove(&(pointer as usize)) {
+            assert_eq!(recorded, size);
+            self.metrics.freed += size;
+            self.metrics.live -= size;
+        }
+    }
+}
+
+struct Allocator;
+
+#[global_allocator]
+static ALLOCATOR: Allocator = Allocator;
+
+unsafe impl GlobalAlloc for Allocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        let pointer = unsafe { System.alloc(layout) };
+        observe(|state| {
+            state.allocated(pointer, layout.size());
+            state.metrics.allocations += usize::from(!pointer.is_null());
+        });
+        pointer
+    }
+
+    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        observe(|state| state.freed(pointer, layout.size()));
+        unsafe { System.dealloc(pointer, layout) };
+    }
+
+    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        let replacement = unsafe { System.realloc(pointer, layout, size) };
+        if !replacement.is_null() {
+            observe(|state| {
+                state.freed(pointer, layout.size());
+                state.allocated(replacement, size);
+                state.metrics.reallocations += 1;
+            });
+        }
+        replacement
+    }
+}
+
+fn main() {
+    let manifest = PathBuf::from(std::env::args_os().nth(1).expect("manifest path"));
+    let start = Instant::now();
+    ACTIVE.with(|active| active.set(true));
+    let result = semaprax::project::with_authenticated_project(&manifest, |snapshot| {
+        ACTIVE.with(|active| active.set(false));
+        let graph = snapshot.semantic_graph().to_owned();
+        ACTIVE.with(|active| active.set(true));
+        Ok(graph)
+    });
+    ACTIVE.with(|active| active.set(false));
+    let elapsed = start.elapsed();
+    let observed = RECORD.with(|state| {
+        let mut state = state.borrow_mut();
+        assert_eq!(state.metrics.allocated - state.metrics.freed, state.metrics.live);
+        assert_eq!(state.metrics.live, state.live.values().sum::<usize>());
+        std::mem::take(&mut state.metrics)
+    });
+    println!("elapsed_ns={} metrics={observed:?}", elapsed.as_nanos());
+    match result {
+        Ok(graph) => println!("{graph}"),
+        Err(diagnostics) => for diagnostic in diagnostics {
+            println!("{diagnostic:?}");
+        },
+    }
+}

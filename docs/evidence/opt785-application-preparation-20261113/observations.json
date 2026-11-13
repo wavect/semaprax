@@ -1,0 +1,368 @@
+{
+  "before": "bd0d131cbcb3e0528804a16b1d3e5c952a16051e",
+  "after": "a3d51efe842285213f69b90f186721c0a031ad35",
+  "after_compile_fix": {
+    "commit": "8c7c67968",
+    "patch_sha256": "cfc965ee11d4d526e1dc82803c3af6d69b1d4081e73367cffba72740c7f54bbf"
+  },
+  "limit": 67108864,
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "target": "arm64-darwin",
+  "probe_sha256": "b6bc0c590129f29e0e18bea9429a76a5577dcbe1f79ffa460ad89de9c2b0655f",
+  "binary_sha256": {
+    "before": "f90dcfbaacc79632fbb064a6aeb4c7d6ab9f0ff4fbaebac28f629400be89e943",
+    "after": "4e958beb178355c3303fb44398fa9bb981a65598e7c3153616a3c395be9eea08"
+  },
+  "scope": "synchronous authenticated Project preparation with the original manifests and limits",
+  "allocation_observer": "thread-local requested Rust Layout bytes around the Project load and teardown",
+  "applications": {
+    "catalog-scoped-record-successor": {
+      "manifest_sha256": "c15feec1da17ac38de0ed8c5543ab351b6e12c6a4b1ce8b32e26dad0159a0622",
+      "before": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 24614706 bytes for 18 module(s) and fit within 67108864, with `src/restock.spx` the largest at 9428456 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 296 bytes with 214 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 296,
+            "remaining": 214,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 2806855375,
+            "allocated": 304872056,
+            "freed": 304864729,
+            "allocations": 940274,
+            "reallocations": 207224,
+            "live": 7327,
+            "peak": 5262275,
+            "stdout_sha256": "f1025b3c08a0f9cbcbd3d3fbbfe4eac0270e21909bd306fcc33ea7c2525372c5"
+          },
+          {
+            "elapsed_ns": 2349254875,
+            "allocated": 304871216,
+            "freed": 304863889,
+            "allocations": 940271,
+            "reallocations": 207224,
+            "live": 7327,
+            "peak": 5262275,
+            "stdout_sha256": "5da7fe96e2db3a8098bac175118edee23f73ecc891dd75b61c6d801eefc204ea"
+          },
+          {
+            "elapsed_ns": 1898400125,
+            "allocated": 304871408,
+            "freed": 304864081,
+            "allocations": 940271,
+            "reallocations": 207224,
+            "live": 7327,
+            "peak": 5262275,
+            "stdout_sha256": "ee280395944b67fd76f8ad8e817e7e3a710ad2f5f817ba8383f7af4d3afbd787"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 2349254875,
+          "allocated": 304871408,
+          "freed": 304864081,
+          "allocations": 940271,
+          "reallocations": 207224,
+          "live": 7327,
+          "peak": 5262275
+        }
+      },
+      "after": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 24614706 bytes for 18 module(s) and fit within 67108864, with `src/restock.spx` the largest at 9428456 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 296 bytes with 214 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 296,
+            "remaining": 214,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 1984354167,
+            "allocated": 304448515,
+            "freed": 304441222,
+            "allocations": 910319,
+            "reallocations": 207111,
+            "live": 7293,
+            "peak": 5238653,
+            "stdout_sha256": "1bc6c4ff605ce517ee7ef3b45180388b2df552452c5374c97e1f30b0688097b4"
+          },
+          {
+            "elapsed_ns": 1819349917,
+            "allocated": 304448979,
+            "freed": 304441686,
+            "allocations": 910321,
+            "reallocations": 207111,
+            "live": 7293,
+            "peak": 5238653,
+            "stdout_sha256": "837e41678d2643b358f658bc357876570d3ab78229c0d9928885ef195bc19ebe"
+          },
+          {
+            "elapsed_ns": 1885216667,
+            "allocated": 304450011,
+            "freed": 304442718,
+            "allocations": 910324,
+            "reallocations": 207111,
+            "live": 7293,
+            "peak": 5238653,
+            "stdout_sha256": "5740e45e3b17e113f71641a3e22fa1782f8ad2a63c1a19db3269de7dee072ffb"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 1885216667,
+          "allocated": 304448979,
+          "freed": 304441686,
+          "allocations": 910321,
+          "reallocations": 207111,
+          "live": 7293,
+          "peak": 5238653
+        }
+      },
+      "application_git_tree": "be9432f43326ec8e3da2a1e25521491c516c58ae",
+      "cumulative_reserved_at_refusal": 67108650
+    },
+    "shiftsim-typed-record-successor": {
+      "manifest_sha256": "93d427d4e525d5a70386cd80ef7dc7459b6a78f1595111bcffc7a1474eb99e30",
+      "before": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 36210062 bytes for 16 module(s) and fit within 67108864, with `src/schedule.spx` the largest at 13310912 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 4520 bytes with 3897 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 4520,
+            "remaining": 3897,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 2004059417,
+            "allocated": 204505940,
+            "freed": 204498579,
+            "allocations": 711059,
+            "reallocations": 162376,
+            "live": 7361,
+            "peak": 5292916,
+            "stdout_sha256": "05491bb314a2bf6c0c74894f9ec7d2bdf21a703c41fcb32fcbb430b825f9e606"
+          },
+          {
+            "elapsed_ns": 1676944792,
+            "allocated": 204483812,
+            "freed": 204476451,
+            "allocations": 711057,
+            "reallocations": 162376,
+            "live": 7361,
+            "peak": 5292916,
+            "stdout_sha256": "aa4ebc546d1d022b5483b6e832b136e852d4706f60b01218b3a872100b55ec89"
+          },
+          {
+            "elapsed_ns": 1688485541,
+            "allocated": 204482972,
+            "freed": 204475611,
+            "allocations": 711054,
+            "reallocations": 162376,
+            "live": 7361,
+            "peak": 5292916,
+            "stdout_sha256": "21b450a5a136c3ed7eb0eaeb8eacb0b26a2f4bba1d0fe47f69506ff58923217f"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 1688485541,
+          "allocated": 204483812,
+          "freed": 204476451,
+          "allocations": 711057,
+          "reallocations": 162376,
+          "live": 7361,
+          "peak": 5292916
+        }
+      },
+      "after": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 36210062 bytes for 16 module(s) and fit within 67108864, with `src/schedule.spx` the largest at 13310912 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 4520 bytes with 3897 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 4520,
+            "remaining": 3897,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 1579955125,
+            "allocated": 204019143,
+            "freed": 204011845,
+            "allocations": 678599,
+            "reallocations": 162224,
+            "live": 7298,
+            "peak": 5288590,
+            "stdout_sha256": "511ec6ff48520264416b8104348eba4f243192ec944ac81206ea6587b6b9855d"
+          },
+          {
+            "elapsed_ns": 1636065125,
+            "allocated": 204040431,
+            "freed": 204033133,
+            "allocations": 678598,
+            "reallocations": 162224,
+            "live": 7298,
+            "peak": 5288590,
+            "stdout_sha256": "1092507db9d11d006109565d735a9de0eb7a09d10d7fd2cb59060e451de7f897"
+          },
+          {
+            "elapsed_ns": 1697735459,
+            "allocated": 204019799,
+            "freed": 204012501,
+            "allocations": 678601,
+            "reallocations": 162224,
+            "live": 7298,
+            "peak": 5288590,
+            "stdout_sha256": "4416759c82db7805717ce273929ce654a0bea5ca8be3014f55c573b8e29902e5"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 1636065125,
+          "allocated": 204019799,
+          "freed": 204012501,
+          "allocations": 678599,
+          "reallocations": 162224,
+          "live": 7298,
+          "peak": 5288590
+        }
+      },
+      "application_git_tree": "055f1d5f8d65cb94ef8547e6f65415c77d813109",
+      "cumulative_reserved_at_refusal": 67104967
+    },
+    "catalog-normalizer-project": {
+      "manifest_sha256": "28e7c26ad40de74b2945c12b7f02ef42eb53ad2d753338b47b56453a23591619",
+      "before": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 51697600 bytes for 12 module(s) and fit within 67108864, with `src/app.spx` the largest at 15498748 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 248 bytes with 116 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 248,
+            "remaining": 116,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 636626458,
+            "allocated": 48368389,
+            "freed": 48361086,
+            "allocations": 261480,
+            "reallocations": 33496,
+            "live": 7303,
+            "peak": 6190230,
+            "stdout_sha256": "20f750f49bda03052e9b05cf7e037e8e09c9110a9e6495185f5432dc317fffca"
+          },
+          {
+            "elapsed_ns": 593798542,
+            "allocated": 48367269,
+            "freed": 48359966,
+            "allocations": 261476,
+            "reallocations": 33496,
+            "live": 7303,
+            "peak": 6190230,
+            "stdout_sha256": "a7fa576796b885ecdb3f3314818c72e1402eeeecbad28673cbe1e2b9bba59891"
+          },
+          {
+            "elapsed_ns": 623563125,
+            "allocated": 48367549,
+            "freed": 48360246,
+            "allocations": 261477,
+            "reallocations": 33496,
+            "live": 7303,
+            "peak": 6190230,
+            "stdout_sha256": "56ba705a8942e74149ce0c236ae028d0ef642f4d7338191d2c5210dad9296fa4"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 623563125,
+          "allocated": 48367549,
+          "freed": 48360246,
+          "allocations": 261477,
+          "reallocations": 33496,
+          "live": 7303,
+          "peak": 6190230
+        }
+      },
+      "after": {
+        "outcome": {
+          "success": false,
+          "diagnostics": "Diagnostic { code: \"SPX-G171\", severity: Error, message: \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\", path: None, span: None, help: Some(\"live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 51697600 bytes for 12 module(s) and fit within 67108864, with `src/app.spx` the largest at 15498748 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 248 bytes with 116 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown.\") }",
+          "first_refusal": {
+            "requested": 248,
+            "remaining": 116,
+            "floor": 0
+          }
+        },
+        "samples": [
+          {
+            "elapsed_ns": 589114542,
+            "allocated": 48330268,
+            "freed": 48322985,
+            "allocations": 258618,
+            "reallocations": 33496,
+            "live": 7283,
+            "peak": 6166614,
+            "stdout_sha256": "341975f49da8404b778870bd73fa7cb0996922e4a02989b55e71835f5056e845"
+          },
+          {
+            "elapsed_ns": 619737125,
+            "allocated": 48329708,
+            "freed": 48322425,
+            "allocations": 258616,
+            "reallocations": 33496,
+            "live": 7283,
+            "peak": 6166614,
+            "stdout_sha256": "6797bfe54774af5b06053b9738d86440bbcc09a9f33901f2c19a7c8af63770ce"
+          },
+          {
+            "elapsed_ns": 596252125,
+            "allocated": 48329988,
+            "freed": 48322705,
+            "allocations": 258617,
+            "reallocations": 33496,
+            "live": 7283,
+            "peak": 6166614,
+            "stdout_sha256": "ef4f2a745aa530fefe32a00d78131c7ae8c460e6c15659c3d15cb6f4655deae0"
+          }
+        ],
+        "median": {
+          "elapsed_ns": 596252125,
+          "allocated": 48329988,
+          "freed": 48322705,
+          "allocations": 258617,
+          "reallocations": 33496,
+          "live": 7283,
+          "peak": 6166614
+        }
+      },
+      "application_git_tree": "8f7fc2317325348f45d50dabdfc2785bba82982c",
+      "cumulative_reserved_at_refusal": 67108748
+    }
+  },
+  "build": {
+    "cargo_arguments": [
+      "build",
+      "--locked",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--no-default-features",
+      "--features",
+      "unstable-workflow-profiling"
+    ],
+    "profile": "dev, opt-level 0, debug 0, incremental false, codegen-units 256",
+    "sample_order": [
+      "before",
+      "after",
+      "before",
+      "after",
+      "before",
+      "after"
+    ]
+  }
+}

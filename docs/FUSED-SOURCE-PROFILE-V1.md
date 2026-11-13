@@ -145,3 +145,10 @@ native executables and byte-identical four-file Wasm packages at the same
 explicit 16,777,216-byte account limit. Both used
 `tests/fixtures/record-traversal-maximum.spx` with SHA-256
 `5dfddfe4c864f5a50680238abd4256e8b956f5c1df37fbc3151d065a45ee4fb3`.
+
+The expanded `quickstart_v1` checks also passed against a local macOS arm64
+standalone compiler from `c28cc4432`. The native CLI returned `8386560` at
+the exact reservation reported for the unchanged fixture. One byte less
+returned administrative refusal with zero reserved bytes and no result or
+language status. A separate source with an overflowing final addition
+returned `semaprax.arithmetic.v1/1` with its own source digest and no result.

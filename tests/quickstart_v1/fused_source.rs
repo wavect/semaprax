@@ -89,6 +89,58 @@ fn explicit_fused_source_run_build_original_4096_and_account_refusal_keep_defaul
     assert_eq!(native_packet["result"], "8386560");
     assert_eq!(native_packet["target"], "native");
     assert_eq!(native_packet["schema"], "semaprax.fused-source.v1");
+    let required = native_packet["managed_reserved"].as_u64().unwrap();
+    let native = |bytes: u64| {
+        cli(
+            &fixture.root,
+            &[
+                "run",
+                "input.spx",
+                "--profile",
+                "fused-construction-v1",
+                "--managed-bytes",
+                &bytes.to_string(),
+                "--native",
+                "--json",
+            ],
+        )
+    };
+    let exact = native(required);
+    assert!(exact.status.success());
+    let exact = packet(&exact);
+    assert_eq!(exact["outcome"], "returned");
+    assert_eq!(exact["result"], "8386560");
+    assert_eq!(exact["account_limit"], required);
+    assert_eq!(exact["managed_reserved"], required);
+    assert_eq!(exact["source_sha256"], native_packet["source_sha256"]);
+
+    let short = native(required - 1);
+    assert_eq!(short.status.code(), Some(2));
+    let short = packet(&short);
+    assert_eq!(short["outcome"], "administrative_refusal");
+    assert_eq!(short["account_limit"], required - 1);
+    assert_eq!(short["managed_reserved"], 0);
+    assert_eq!(short["source_sha256"], exact["source_sha256"]);
+    assert!(short.get("result").is_none() && short.get("status").is_none());
+
+    let overflow = SOURCE.replace(
+        "{ total } else { 0 }",
+        "{ total + 9223372036854775807 } else { 0 }",
+    );
+    assert_ne!(overflow, SOURCE);
+    std::fs::write(fixture.root.join("input.spx"), &overflow).unwrap();
+    let failure = native(ACCOUNT.parse().unwrap());
+    assert_eq!(failure.status.code(), Some(1));
+    let failure = packet(&failure);
+    assert_eq!(failure["outcome"], "language_failure");
+    assert_eq!(
+        failure["status"],
+        serde_json::json!({"domain": "semaprax.arithmetic.v1", "code": 1})
+    );
+    assert!(failure.get("result").is_none());
+    assert_ne!(failure["source_sha256"], exact["source_sha256"]);
+    std::fs::write(fixture.root.join("input.spx"), SOURCE).unwrap();
+
     let output = cli(
         &fixture.root,
         &[

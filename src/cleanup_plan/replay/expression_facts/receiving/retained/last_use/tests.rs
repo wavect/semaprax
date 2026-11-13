@@ -57,10 +57,21 @@ fn full_immediate_receiver_and_exact_release_only_inverse_remain_independent() {
         hash(before.as_bytes()),
         "fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"
     );
-    let compiled = include_str!("before.rs");
+    let compiled = include_str!("before.rs")
+        .strip_prefix(concat!(
+            "#![allow(\n",
+            "    clippy::duplicate_mod,\n",
+            "    reason = \"Compile the complete implementation against independent current and historical replay owners.\"\n",
+            ")]\n",
+        ))
+        .expect("exact independent oracle lint attribute");
     assert_eq!(compiled, &before[..compiled.len()]);
     assert!(before[compiled.len()..].starts_with("#[cfg(test)]"));
-    let mut current = include_str!("../ordinary_cross_phase.rs").to_owned();
+    let mut current = crate::source_reflows::original_fixture_source(
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
+        "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246",
+        include_str!("../ordinary_cross_phase.rs"),
+    );
     for (indent, attempt) in [
         ("                                ", ", attempt"),
         ("        ", ""),

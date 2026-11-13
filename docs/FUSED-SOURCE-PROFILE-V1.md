@@ -3,7 +3,7 @@
 Audience: compiler contributors and reviewers.
 
 Status: local executable acceptance for the OPT #768 source CLI on macOS
-arm64. Issue completion still depends on the broader #747 qualification.
+arm64. The broader #747 construction contract retains its own qualification.
 
 ## Explicit source boundary
 
@@ -152,3 +152,13 @@ the exact reservation reported for the unchanged fixture. One byte less
 returned administrative refusal with zero reserved bytes and no result or
 language status. A separate source with an overflowing final addition
 returned `semaprax.arithmetic.v1/1` with its own source digest and no result.
+The CLI tests rebuild into fresh destinations and compare the complete
+four-file Wasm package byte for byte. On macOS they also compare the
+complete native executable byte for byte.
+
+The backend qualification for this source profile ran 63 focused source,
+HIR, interpreter and partition tests, 36 selected native and Core-Wasm
+owner tests, and the original maximum-row integration test. The selected
+owner tests exercised the real 12,288-byte backing, native O0/O2 settlement,
+partial row faults in the Wasm host, stale and foreign tokens, and canonical
+cleanup. The 11 source-account and package-owner tests also passed.

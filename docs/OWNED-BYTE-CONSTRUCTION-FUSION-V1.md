@@ -338,9 +338,10 @@ native and interpreter executors and owning acceptance checks.
 
 ### Source-only `fused-construction-v1` Core-Wasm package (OPT #768)
 
-Status: authored adapter; owning definitions unexecuted. No CLI route, public
-provider, Project, cache, graph or evidence route reaches it, and the default
-route still reports `SPX-T267`.
+Status: local executable qualification through the explicit source CLI and
+the five package-owner tests. The default route still reports `SPX-T267`.
+See [Fused source profile v1](FUSED-SOURCE-PROFILE-V1.md) for the supported
+CLI and its Project, cache, graph, evidence and public-provider boundaries.
 
 The crate-private `wasm::emit_fused_source_package(owner, account_bytes,
 source_sha256)` receives the sealed `ValidatedFusedSelection` that the source

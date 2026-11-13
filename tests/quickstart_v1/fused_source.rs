@@ -168,6 +168,28 @@ fn explicit_fused_source_run_build_original_4096_and_account_refusal_keep_defaul
         assert_eq!(packet(&output)["result"], "8386560");
     }
     let before = std::fs::read(fixture.root.join("native")).unwrap();
+    #[cfg(target_os = "macos")]
+    {
+        success(
+            &fixture.root,
+            &[
+                "build",
+                "input.spx",
+                "--profile",
+                "fused-construction-v1",
+                "--managed-bytes",
+                ACCOUNT,
+                "--target",
+                "native",
+                "--output",
+                "native-repeat",
+            ],
+        );
+        assert_eq!(
+            std::fs::read(fixture.root.join("native-repeat")).unwrap(),
+            before
+        );
+    }
     let repeat = cli(
         &fixture.root,
         &[
@@ -378,6 +400,31 @@ fn explicit_fused_source_wasm_package_uses_paired_loader_one_account_and_lossles
         fixture.root.join(name)
     };
     let probe = build("probe", ACCOUNT.parse().unwrap());
+    let identical = build("probe-repeat", ACCOUNT.parse().unwrap());
+    let package = |directory: &Path| {
+        std::fs::read_dir(directory)
+            .unwrap()
+            .map(|entry| {
+                let entry = entry.unwrap();
+                assert!(entry.file_type().unwrap().is_file());
+                (entry.file_name(), std::fs::read(entry.path()).unwrap())
+            })
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let first_package = package(&probe);
+    assert_eq!(
+        first_package
+            .keys()
+            .map(|name| name.to_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "fused-construction-v1.json",
+            "fused-construction-v1.mjs",
+            "fused-construction-v1.wasm",
+            "selected-host.mjs",
+        ]
+    );
+    assert_eq!(package(&identical), first_package);
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(probe.join("fused-construction-v1.json")).unwrap())
             .unwrap();

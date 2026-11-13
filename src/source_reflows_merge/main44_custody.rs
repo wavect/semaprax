@@ -392,6 +392,12 @@ impl Fixture {
                 (45691, "            \"src/hir/validation/lexical_exit.rs\",\n            include_str!(\"lexical_exit.rs\"),\n        );\n", "            \"src/hir/validation/lexical_exit.rs\", include_str!(\"lexical_exit.rs\"));\n"),
                 (49600, "\n#[cfg(test)]\n#[path = \"lexical_exit/arm_context_tests.rs\"]\npub(super) mod arm_context_tests;\n", ""),
             ];
+            // Restore the source spelling in which the registered inverse was authored.
+            composed.push((
+                40883,
+                "            body.push('1');\n",
+                "            body.push_str(\"1\");\n",
+            ));
             let mut complete = supplied.to_owned();
             for &(at, after, before) in composed.iter().rev() {
                 assert_eq!(complete.get(at..at + after.len()), Some(after));

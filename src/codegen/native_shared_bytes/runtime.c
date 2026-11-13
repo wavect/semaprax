@@ -733,10 +733,10 @@ SPX_SHB_FN void spx_shb_partition_commit(
 }
 
 /* Public boundary: copy out into a fresh provider allocation, then settle the
-   private lease. A provider allocation failure leaves the owner intact. */
+   private lease and publish. A provider allocation failure leaves both the
+   owner and the caller's result slot intact. */
 SPX_SHB_FN uint32_t spx_shb_copy_out(spx_shb_registry *registry, spx_shb_bytes *value, spx_bytes_v1 *out) {
     if (out == NULL) SPX_SHB_FAIL_STOP("shared Bytes copy-out has no public carrier");
-    *out = (spx_bytes_v1){ .ptr = NULL, .len = UINT64_C(0) };
     spx_shb_resolved r = spx_shb_resolve_unloaned(registry, value);
     uint8_t *copy = NULL;
     if (r.len != UINT64_C(0)) {

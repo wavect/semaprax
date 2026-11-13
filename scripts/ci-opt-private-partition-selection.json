@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 4,
-  "expected_tests": 34,
+  "filters": 6,
+  "expected_tests": 36,
   "commands": [
     {
       "owner": "OPT746 checked source and HIR partition authority",
@@ -30,6 +30,20 @@
       "filter": "wasm::shared_owner::partition::tests::",
       "exact": false,
       "expected_tests": 3
+    },
+    {
+      "owner": "OPT746 native shared-owner lifecycle and provider copy-out",
+      "binary": "lib",
+      "filter": "codegen::native_byte_data::native_shared_bytes::tests::shared_owner_leases_hostiles_quotas_and_settlement_at_o0_o2",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT746 Core-Wasm shared-owner host lifecycle",
+      "binary": "lib",
+      "filter": "wasm::shared_owner::tests::shared_owner_hostile_lifecycle_regressions",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

@@ -167,8 +167,11 @@ The frozen public two-word pointer/length ABI is unchanged. A supported public
 bridge must authenticate input, snapshot into selected backing, copy results out
 through the existing host ownership contract and provider drop, and settle
 private leases. It cannot export an interior pointer as a host-owned allocation.
-Until that bridge has an owning contract and gates, public adapters explicitly
-refuse selection. No general ABI or provider support is implied by internal C.
+The native runtime copy-out helper stages a fresh provider buffer and
+publishes it after the private lease settles. Provider allocation failure
+preserves both the private owner and the caller's output slot. The C11
+O0/O2 probe checks failure, retry, provider drop and the backing's exact-once
+release. Public adapter selection still requires its own contract and gates.
 
 ## Independent frontend and target proof obligations
 

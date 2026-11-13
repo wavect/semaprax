@@ -398,11 +398,18 @@ PROBE_FN void copy_out_and_provider_drop(void) {
     spx_shb_provider_drop(&published);
     assert(provider_pool.live == 0u && published.ptr == NULL);
     spx_shb_vec_pop(&reg, &w, &tag, &d, &v);
+    uint8_t marker = 0x5au;
+    published = (spx_bytes_v1){ .ptr = &marker, .len = UINT64_C(1) };
     provider_pool.fail_at = provider_pool.calls + 1u;
     assert(spx_shb_copy_out(&reg, &d, &published) == SPX_SHB_PROVIDER_ALLOCATION);
-    assert(published.ptr == NULL && published.len == 0u && view_is(&d, "hel", 3u));
-    spx_shb_drop(&reg, &d); spx_shb_vec_drop(&reg, &v);
-    assert(payload_pool.frees == 1u);
+    assert(published.ptr == &marker && published.len == 1u && marker == 0x5au);
+    assert(view_is(&d, "hel", 3u) && provider_pool.live == 0u && payload_pool.frees == 0u);
+    assert(spx_shb_copy_out(&reg, &d, &published) == SPX_SHB_OK && spx_shb_is_vacant(&d));
+    assert(published.len == 3u && memcmp(published.ptr, "hel", 3u) == 0);
+    assert(provider_pool.live == 1u && payload_pool.frees == 1u);
+    spx_shb_provider_drop(&published);
+    spx_shb_vec_drop(&reg, &v);
+    assert(provider_pool.live == 0u && payload_pool.frees == 1u);
     spx_shb_registry_finish(&reg);
 }
 

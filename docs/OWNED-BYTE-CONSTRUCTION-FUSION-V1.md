@@ -194,6 +194,9 @@ independent source proof, the native source and cleanup controls, and a
 variant of the 4,096-row fixture that overflows inside the borrowed traversal.
 Interpreter, native CLI and paired Core Wasm selected the same arithmetic
 failure and published no result. The original success fixture remained exact.
+The [same 39-test selection at `ab2dec272`](https://github.com/wavect/semaprax/actions/runs/43526792410)
+also passed with scoped production Clippy after the shared partition iterator
+change.
 
 The full #746 dependency, the remaining cross-backend ownership cases, and
 matched agent costs remain open qualification work.

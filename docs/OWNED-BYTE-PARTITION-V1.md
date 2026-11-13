@@ -1,6 +1,7 @@
 # Owned Bytes consume-and-partition v1
 
-Status: PROPOSED, unimplemented contract for OPT #746. No route is admitted.
+Status: Private source receivers have passed focused execution for OPT #746.
+Ordinary source, graph/cache and public target activation remain pending.
 
 Audience: language, ownership, runtime and backend contributors and reviewers.
 
@@ -9,8 +10,9 @@ Audience: language, ownership, runtime and backend contributors and reviewers.
 Consume one existing Bytes value and publish a bounded Vec of disjoint owned
 ranges over its backing. Administrative sharing never makes a source value
 Copy, creates overlapping mutable owners, or grants public pointer authority.
-This is a proposed allocation strategy, not an implementation or measurement.
-The unchanged 4,096-row constructor loop remains a separate open obligation.
+The private receivers implement the single-backing strategy. The unchanged
+4,096-row constructor loop is covered by the separate construction-fusion
+contract.
 
 ## Proposed source operation
 
@@ -186,9 +188,8 @@ read/write fences; adapter owners decide public/profile support independently.
 All scopes must join coherently before source admission. Existing public tokens,
 private/public envelopes, import permissions and frozen target refusals remain.
 
-## Required owning definitions, all pending
+## Executable qualification requirements
 
-Use the existing owning harnesses; no definition or execution is supplied here.
 Required same-source interpreter/native O0/O2/strict private Core-Wasm cases:
 positive-width empty and nonempty partitions; exact/+1 extents and arithmetic;
 byte sum/order/NUL/Unicode and non-UTF-8 preservation; mutation isolation;
@@ -203,7 +204,27 @@ cache/source drift. Preserve 32 and +1 backing-event and 2 MiB adjacent controls
 physical native allocation interception must distinguish payload from metadata.
 No allocation after first-read may be claimed until the actual owning trace
 proves that particular fixture's read phase. Unsupported public routes must
-refuse before producing artifacts. Owning executable qualification remains pending.
+refuse before producing artifacts.
+
+### Focused private execution
+
+At [`03ac7a14b`](https://github.com/wavect/semaprax/commit/03ac7a14b), 33
+focused tests passed across the private source/HIR owner, operation, interpreter,
+native and paired Core-Wasm receivers. The direct interpreter source case
+partitions one 12,288-byte backing into 4,096 children and settles the Vec before
+publishing the scalar. Its owner tests also cover exact/one-short funding,
+loan expiry, stale and foreign handles, popped-child survival, and Drop.
+
+The private native source case passed at O0 and O2 with 4,096 children. The
+paired Core-Wasm source case ran a 4,096-child consuming iterator with settlement.
+Both backends exercised all four normalized operation failures, untouched
+result publication and reentry. The operation tests exercised geometry and
+diagnostic precedence, operand mutations and sticky work refusal.
+
+These cases establish the private execution contours described below. A single
+common source exercising the full ownership and failure matrix across all
+receivers, ordinary graph/cache replay and the public copy-out bridge remain
+qualification requirements.
 
 ## Separate construction-fusion obligation
 
@@ -284,7 +305,7 @@ of minimal heap bytes. Deep clone uses that same runtime's ordinary event/payloa
 account. Per-leaf settlement must be called at the actual canonical finalizer;
 registry Drop is administrative abandonment, never canonical success.
 
-Authored unexecuted owners: `construction_fusion::partition::operation::tests::`
+The focused run includes `construction_fusion::partition::operation::tests::`
 (two bodies) and `interpreter::byte_partition::tests::` (three bodies). They cover
 dynamic preflight precedence, empty/maximal width, operand mutations, popped
 children, disjoint stores, clone charges, real requested allocator layouts,
@@ -381,7 +402,7 @@ iterator transition per partition, as well as one consuming partition per whole
 backing event. Additional container construction cannot reuse that header debit.
 The bound still grants no host funding or source authority.
 
-### Private current-source owner (unqualified receiver integration)
+### Private current-source owner
 
 The private compiler factory `hir::byte_partition::ValidatedPartitionProgram`
 resolves the original immutable AST and retains its resulting HIR without
@@ -392,8 +413,7 @@ ordinary bounded compiler policy. `revalidate_compiler` repeats the compiler
 validation boundary; the private
 availability selector only admits the exact compiler operation during those
 checks. Ordinary source verification, HIR validation and backend entry remain
-closed. This is source-only implementation awaiting backend qualification,
-not public partition support.
+closed. The focused execution above uses this owner for the private receivers.
 
 The initial emitted callgraph is monomorphic and acyclic, at most 512 functions,
 with scalar, byte-array, Bytes, Slice and the demanded canonical Vec/Iter/IterStep
@@ -538,8 +558,8 @@ and public callable routes remain closed. Consuming iteration, Borrow-parameter
 receiving and the complete caller-funded native account remain pending.
 
 Two owning source bodies retain original 4096/count geometry at O0/O2 and actual
-four-code failure/poison-result/reentry controls. These are authored controls,
-not an executed qualification or completed cross-backend admission claim.
+four-code failure/poison-result/reentry controls. Both bodies passed in the
+focused run above.
 ### Closed interpreter invocation account and whole backing receiver
 
 The private interpreter receiver now lends one stack-held account into the
@@ -594,7 +614,7 @@ settlement or success.
 Two additional receiving bodies cover genuine current Own-root loans, exact
 CFG expiration, original-pointer preservation, independent metadata request
 sums, one-short refusal before allocation, empty whole views and child-to-whole
-refusal. These are unexecuted private receiver controls. Evaluator root binding,
+refusal. The focused run includes both private controls. Evaluator root binding,
 call/return transitions and all canonical finalizers still must be joined
 before ordinary source installation.
 
@@ -623,7 +643,8 @@ owned results are still refused by this receiver. Operation-fault and
 administrative paths publish no scalar, and report cleanup_complete=false:
 physical abandonment is not canonical failure settlement. The actual
 language-failure contour and broader loan/frame/finalizer installation remain
-required before activation. Authored controls are unexecuted.
+required before activation. The three direct receiver tests passed in the
+focused run above.
 
 The private current-graph call whitelist includes exactly the checked
 `i64_from_usize` conversion used by that scalar publication contour; other
@@ -632,4 +653,4 @@ authenticates the conversion signature and operands. Its owning controls
 mutate the actual callee, argument type and ownership. The conservative
 256/257 view-bound control counts actual `SliceView` and `BorrowedCall` sites;
 `vec_len` borrows the container and contributes no Byte-root loan site. These
-source repairs remain pending executable qualification.
+controls passed in the focused run above.

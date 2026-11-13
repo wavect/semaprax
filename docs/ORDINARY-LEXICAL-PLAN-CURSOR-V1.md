@@ -262,9 +262,25 @@ reached packet counts and both old/new Q counts. They do not add hypothetical
 #900 and #902 headline savings or infer an intermediate generation. Foreign
 empty Q, cold headers, whole owner widths, both HIR representations and full
 Drop are included. Refused prefixes use only reached successful admissions;
-no complete-input count or future empty probe is credited. Native and whole
-application gains require later matched execution and are not claimed here.
+no complete-input count or future empty probe is credited.
 
+### Application qualification at 64 MiB
+
+A profiling build of [`1997379a8`](https://github.com/wavect/semaprax/commit/1997379a8)
+ran the unchanged application manifests through authenticated project reporting.
+The probe set the project reporting allowance to the historical 67,108,864
+bytes with a local one-line override. The shipping default was 128 MiB.
+
+| Application | Outcome at 67,108,864 bytes |
+| --- | --- |
+| Catalog scoped record successor | Succeeded with 48,615,173 cumulative builder bytes and 9,953 certified RHS admissions across 63 completed owner records. |
+| ShiftSim typed record successor | Its 66,704,189-byte forecast fit. Live resolved-core construction then refused an 8,576-byte request with 4,162 bytes remaining. |
+| Catalog normalizer | The static sequential forecast refused the NDJSON module. Earlier output retained 66,248,903 bytes and the complete next-module forecast added 873,483 bytes. |
+
+The refusing runs produced no certified RHS admissions. These observations
+measure application reach and refusal stages for one implementation. Matched
+predecessor runs are required to attribute savings to the certified branch.
+The historical-cap application criterion for #902 remains open.
 
 ## Shared immutable segment boundary continuation
 

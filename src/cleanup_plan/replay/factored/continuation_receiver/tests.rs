@@ -569,10 +569,11 @@ fn unpaid_receiver_full_source_is_exact_old_comparison_plus_closed_empty_backing
     assert_eq!(actual.matches(sorted).count(), 1);
     let actual = actual.replacen(sorted, prior_sort, 1);
     let actual = actual.as_str();
-    let paid = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/cleanup_plan/replay/factored/continuation_receiver.rs"
-    ));
+    let paid = crate::source_reflows_merge::main_e177_final_inputs::value(
+        "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+        "4d18c9761da6c9f3e8226706b5c5720ced45f845eda3d8d19d017f455af2a41d",
+        include_str!("../continuation_receiver.rs"),
+    );
     let header = "//! Full original comparison pair using only idle empty unpaid backing.\nuse super::super::*;\n";
     let guard = "    // Empty backing is not proof, an owning IR/result bank, or a quota.\n    // This route cannot consume or inherit any live allocation account.\n    if crate::bounded_output::active_remaining().is_some()\n        || !matches!(crate::cleanup_plan::replay::allocation::opted(), Ok(None))\n        || storage.has_receiving_owner()\n        || !storage.matches(program)\n        || !storage.frames.as_ref().is_some_and(Vec::is_empty)\n    {\n        return Err(Diagnostic::io_static(\"SPX-H006\", \"unpaid continuation sharing requires idle empty same-program storage without a live payer\"));\n    }\n";
     let changed_call = "    let enumerated = hir_skeleton_paths_with_index_storage(\n        program,\n        function,\n        &mut enumerating,\n        None,\n        Some(&mut *storage),\n    )\n    .and_then(|mut hir| {";

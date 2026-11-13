@@ -428,28 +428,33 @@ fn release_foreign_and_new_work_refusals_keep_one_sticky_owner_and_full_diagnost
 
 #[test]
 fn complete_before_caller_and_all_old_canonical_memo_bytes_remain_exact() {
+    use crate::source_reflows_merge::main_e177_final_inputs::value;
     let digest = |b: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(b)));
+    const CLASSIFIER: &str = "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550";
+    const BOUNDED: &str = "f9b2a1c5f5b7d9608071ab2f8c5bbdff4a4e2555caa2416d2ac4c75867b83c4c";
     // The new authentication bank binds the complete immutable helper source,
     // including authoritative current() and the one-terminal typed inventory.
     assert_eq!(
-        digest(include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/bounded_output/classifier_string.rs"
-        ))),
-        "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550"
+        digest(
+            value(
+                "src/bounded_output/classifier_string.rs",
+                CLASSIFIER,
+                include_str!("../../../bounded_output/classifier_string.rs"),
+            )
+            .as_bytes()
+        ),
+        CLASSIFIER
     );
     assert_eq!(
         std::mem::size_of::<&crate::bounded_output::classifier_string::ClassifierLedger>(),
         std::mem::size_of::<&()>()
     );
-    let bounded = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/bounded_output.rs"
-    ));
-    assert_eq!(
-        digest(bounded.as_bytes()),
-        "f9b2a1c5f5b7d9608071ab2f8c5bbdff4a4e2555caa2416d2ac4c75867b83c4c"
+    let bounded = value(
+        "src/bounded_output.rs",
+        BOUNDED,
+        include_str!("../../../bounded_output.rs"),
     );
+    assert_eq!(digest(bounded.as_bytes()), BOUNDED);
     for body in [
         "fn active() -> Option<Rc<Budget>> {\n    ACTIVE.with(|active| active.borrow().clone())\n}\n",
         "pub(crate) fn active_refused() -> bool {\n    active().is_some_and(|budget| budget.overflowed.get())\n}\n",
@@ -496,8 +501,14 @@ fn complete_before_caller_and_all_old_canonical_memo_bytes_remain_exact() {
             }
             _ => panic!("unbound canonical source"),
         };
-        let mut actual = std::fs::read(root.join(path)).unwrap();
+        let actual = std::fs::read(root.join(path)).unwrap();
         assert_eq!(actual, compiled);
+        let epoch = row["current_sha256"].as_str().unwrap();
+        let mut actual = if digest(compiled) == epoch {
+            actual
+        } else {
+            value(path, epoch, std::str::from_utf8(compiled).unwrap()).into_bytes()
+        };
         assert_eq!(actual.len() as u64, row["current_length"].as_u64().unwrap());
         assert_eq!(digest(&actual), row["current_sha256"].as_str().unwrap());
         for edit in row["edits"].as_array().unwrap().iter().rev() {

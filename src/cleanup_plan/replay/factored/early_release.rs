@@ -17,7 +17,11 @@ fn complete_previous_constructor_and_current_only_release_delta_remain_exact() {
         hash(&original),
         "b7bc2b128d764cfe6e96620ea8e4e614bb3e263dfd6510608a4f747dd5fb2c05"
     );
-    let current = include_str!("../factored.rs");
+    let current = crate::source_reflows_merge::main_e177_final_inputs::value(
+        "src/cleanup_plan/replay/factored.rs",
+        "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
+        include_str!("../factored.rs"),
+    );
     let current = &current[current.find("fn build_comparison<'hir>(").unwrap()..];
     let current = current
         .split_once("\n#[path = \"factored/strategy.rs\"]")

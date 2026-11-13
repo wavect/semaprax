@@ -1,6 +1,7 @@
 //! Compiled current input for each declared source owner.
 pub(crate) fn compiled(source: &str) -> &'static str {
     match source {
+"docs/AGENT-SKILL-BUNDLE-V1.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/AGENT-SKILL-BUNDLE-V1.json")),
 "src/source_reflows_merge/constructor_stage.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/constructor_stage.rs")),
 "src/workflow_profile/plan_comparison.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workflow_profile/plan_comparison.rs")),
 "src/workspace_graph/shape_identity/source_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/shape_identity/source_controls.rs")),

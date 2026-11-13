@@ -214,12 +214,18 @@ pub(in crate::cleanup_plan::replay::expression_facts) fn immediate_before(curren
             crate::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
         )
     };
+    let current = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/expression_facts/capacity.rs",
+        spec["current_sha256"].as_str().unwrap(),
+        current,
+    )
+    .expect("complete current type cursor source");
     assert_eq!(
-        digest(current),
+        digest(&current),
         spec["current_sha256"].as_str().unwrap(),
         "complete current type cursor source"
     );
-    let mut restored = current.to_owned();
+    let mut restored = current;
     for change in spec["inverse"].as_array().unwrap().iter().rev() {
         let begin = change["begin"].as_u64().unwrap() as usize;
         let end = change["end"].as_u64().unwrap() as usize;

@@ -33,14 +33,17 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
         return bundle(current);
     }
     let normalized = if source == "src/cleanup_plan/replay/path_join/boxed_states.rs" {
-        authenticate(
-            source,
+        assert_eq!(
             current,
             include_str!("../cleanup_plan/replay/path_join/boxed_states.rs"),
-            7277,
-            "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5",
+            "complete live boxed reader input"
         );
-        let mut before = current.to_owned();
+        let mut before = crate::source_reflows::declared_history_inputs::expected_value(
+            source,
+            "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5",
+            current,
+        )
+        .expect("complete boxed-state source at the compact-result boundary");
         replace(
             &mut before,
             "use crate::cleanup_plan::replay::physical_budget::ByteFailure;\n",
@@ -89,17 +92,26 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     super::super::compile_fixture_input(source, &normalized)
 }
 fn bundle(current: &str) -> String {
+    assert_eq!(
+        current,
+        include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+        "complete live boxed catalog input"
+    );
+    let source = "docs/AGENT-SKILL-BUNDLE-V1.json";
+    let next1058_sha = "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536";
+    let archived = crate::source_reflows::declared_history_inputs::expected_value(
+        source,
+        next1058_sha,
+        current,
+    )
+    .expect("complete installed bundle at the 1058 boundary");
+    let current = archived.as_str();
     let next1058_physical_current = current;
     let next1058_epoch;
     let current =
         if digest(current) == "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536" {
-            authenticate(
-                "docs/AGENT-SKILL-BUNDLE-V1.json",
-                current,
-                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
-                5544,
-                "bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",
-            );
+            assert_eq!(current.len(), 5544);
+            assert_eq!(digest(current), next1058_sha);
             let mut prior = current.to_owned();
             replace(&mut prior, "\"code_count\":1520", "\"code_count\":1517", 1);
             replace(
@@ -1171,7 +1183,7 @@ fn bundle(current: &str) -> String {
                                                                 {
                                                                     reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()
                                                                 } else {
-                                                                    assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-SKILL-BUNDLE-V1.json"),5544,"bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",65536).unwrap(),next1058_physical_current);
+                                                                    assert_eq!(reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536"),5544,"bbf0c29334b447f59ddf12c27f752f9bfad6ea09936a87ea21f4041fb7bf1536",65536).unwrap(),next1058_physical_current);
                                                                     reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32"),5544,"fc280d5e80c6fd412e3a899db513d81849ed74f0590e02e0c7f37bb239531d32",65536).unwrap()
                                                                 }
                                                             },

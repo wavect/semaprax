@@ -1,5 +1,9 @@
 # Calculator Project graph and Web build subjects
 
+Status: local qualification passed. Hosted Linux rename confirmation is pending.
+
+Audience: compiler maintainers and browser CI reviewers.
+
 The Linux ordinary graph captures are from [run 43425577221, job 131886189325](https://github.com/wavect/semaprax/actions/runs/43425577221/job/131886189325) on `3c8b0f35a` with Rust 1.88.0. The same job printed the actual baseline Web manifest subject when its old pin failed. The native ordinary graphs and complete Web manifests were captured from `a5d61b0b` on macOS arm64 with Rust 1.97.1. The intervening production changes are confined to Rustdoc and source custody.
 
 The ordinary Project graph debits 2,025,148 builder bytes on Linux and 2,025,204 on macOS. The reporting entry used by the Web build adds 21,494 bytes on each profile. Recomputing the domain-separated self-digest of the complete baseline graph with that debit reproduces both observed baseline Web manifest subjects. Applying the same debit to the complete renamed graph reproduces the observed macOS subject and derives the Linux rename pin. The Linux rename pin awaits a successful hosted Chromium run.

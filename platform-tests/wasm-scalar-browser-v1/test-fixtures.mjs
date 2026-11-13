@@ -33,7 +33,8 @@ const expectedFunctions = [
   result,
 }));
 // Original hosted records remain in docs/evidence/ci-corrections-1c87-20261018.
-// Current hosted and native captures: docs/evidence/browser-capture-a281-20261025.
+// Web build subjects and their ordinary graph predecessors:
+// docs/evidence/browser-capture-6b66-20261113.
 // Linux 1.88 run 40178348803, job 121124361356, source a2814be651.
 // Complete prior captures: docs/evidence/browser-capture-3d81-20261024.
 // Linux 1.88 run 40099757952, job 120889825524, source 3d81c8544b.
@@ -50,14 +51,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:ad3d806def2aad132ef3bb6f3eab66fdfeeea1441a5fd276852e1ebc94b6cefe",
+    project_graph_digest: "sha256:ba6b662c8f800cd550d8e7f21ece64ffb7537d30d030503d61dfa803aab9845a",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:4f241337550992b94e925bd14cedccbd0f486854e5f4ce3424cbf733fb11877a",
+    project_graph_digest: "sha256:8eca6dcc9d78f11be6fa774af00a56dca46233c0ae65ec66e20cb8d968a13381",
   },
 ];
 // Explicit exact profile for local Rust 1.97 builds. The hosted CI default

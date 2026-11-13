@@ -1196,6 +1196,8 @@ const NATIVE909: [&str; 2] = [
         "../../../docs/evidence/browser-capture-909-20261023/native-calculator-renamed.json"
     ),
 ];
+pub(super) const ORDINARY_HOSTED_GRAPHS: [&str; 2] = current_profiles3d81::HOSTED_CURRENT;
+
 pub(super) fn profile_graph_digest(graph: &str) -> String {
     graph_digest(graph)
 }

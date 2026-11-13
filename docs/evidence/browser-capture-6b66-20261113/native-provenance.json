@@ -1,0 +1,1 @@
+{"binary_sha256": "11ce91f17869c873d92552e3efdc4a2a928fc44ac4bf5642b928f5960d3704ff", "head": "a5d61b0b02a14a5816f45693d3d2a7762aea6d29", "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"}

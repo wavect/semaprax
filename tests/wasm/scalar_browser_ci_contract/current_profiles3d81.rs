@@ -17,7 +17,48 @@ const NATIVE_E127: [&str; 2] = [
     ),
 ];
 
+// These are the ordinary authenticated Project graphs. The CLI Web build
+// takes the reporting route and publishes its own distinct manifest subject.
+pub(super) const HOSTED_CURRENT: [&str; 2] = [
+    include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-renamed.json"),
+];
+const NATIVE_CURRENT: [&str; 2] = [
+    include_str!(
+        "../../../docs/evidence/browser-capture-6b66-20261113/native-calculator-baseline.json"
+    ),
+    include_str!(
+        "../../../docs/evidence/browser-capture-6b66-20261113/native-calculator-renamed.json"
+    ),
+];
+
+fn current_role(graph: &str, role: &str) -> Option<usize> {
+    if !HOSTED_CURRENT
+        .into_iter()
+        .chain(NATIVE_CURRENT)
+        .any(|raw| graph == wire(raw))
+    {
+        return None;
+    }
+    let index = match role {
+        "baseline" => 0,
+        "renamed" => 1,
+        _ => panic!("unknown exact current fixture role"),
+    };
+    assert!(
+        graph == wire(HOSTED_CURRENT[index]) || graph == wire(NATIVE_CURRENT[index]),
+        "complete exact current role/profile wire required"
+    );
+    Some(index)
+}
+
 pub(super) fn latest_previous(graph: &str, role: &str) -> Option<&'static str> {
+    if let Some(index) = current_role(graph, role) {
+        let previous = wire(HOSTED_E127[index]);
+        assert_eq!(restore_bill(graph, previous), previous);
+        assert_eq!(pinned(previous, role), previous);
+        return Some(previous);
+    }
     if !HOSTED_E127
         .into_iter()
         .chain(NATIVE_E127)
@@ -98,6 +139,8 @@ pub(super) fn recognizes(graph: &str) -> bool {
         .chain(NATIVE_A281)
         .chain(HOSTED_E127)
         .chain(NATIVE_E127)
+        .chain(HOSTED_CURRENT)
+        .chain(NATIVE_CURRENT)
         .any(|text| graph == wire(text))
 }
 
@@ -133,6 +176,10 @@ fn restore_bill(graph: &str, previous: &str) -> String {
 }
 
 pub(super) fn pinned(graph: &str, role: &str) -> &'static str {
+    if let Some(index) = current_role(graph, role) {
+        assert!(latest_previous(graph, role).is_some());
+        return wire(HOSTED_CURRENT[index]);
+    }
     if latest_previous(graph, role).is_some() {
         return wire(HOSTED_E127[if role == "baseline" { 0 } else { 1 }]);
     }
@@ -226,6 +273,33 @@ fn before(source: &str) -> &'static str {
     }
 }
 
+// Apply this capture's inverse before entering the sealed older source bridge.
+fn before_current_capture(source: &str, current: &str) -> Option<String> {
+    let records: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        records["schema"],
+        "semaprax.browser-complete-source-bridge.v1"
+    );
+    let row = records["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    assert_eq!(sha(current), row["current_sha256"]);
+    let mut previous = current.to_owned();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let new = edit["current"].as_str().unwrap();
+        assert!(!new.is_empty());
+        assert_eq!(previous.matches(new).count(), 1);
+        previous = previous.replacen(new, edit["previous"].as_str().unwrap(), 1);
+    }
+    assert_eq!(sha(&previous), row["previous_sha256"]);
+    Some(previous)
+}
+
 fn prior_source<'a>(source: &str, current: &'a str) -> Cow<'a, str> {
     let data =
         include_str!("../../../docs/evidence/browser-capture-3d81-20261024/source-inverses.json");
@@ -287,10 +361,11 @@ fn prior_source<'a>(source: &str, current: &'a str) -> Cow<'a, str> {
     if current == previous {
         return Cow::Borrowed(current);
     }
-    assert_eq!(sha(current), row["current_sha256"]);
     assert_eq!(current, compiled(source));
     assert_eq!(current, std::fs::read_to_string(root.join(source)).unwrap());
-    let mut restored = current.to_owned();
+    let mut restored =
+        before_current_capture(source, current).unwrap_or_else(|| current.to_owned());
+    assert_eq!(sha(&restored), row["current_sha256"]);
     for edit in row["inverse"].as_array().unwrap().iter().rev() {
         let new = edit["current"].as_str().unwrap();
         assert!(!new.is_empty());
@@ -333,6 +408,25 @@ pub(super) fn runner_for_graph(graph: &str, runner: &str) -> Option<String> {
             include_str!("../../../docs/evidence/browser-capture-e127-20261102/runner.before.mjs")
                 .to_owned(),
         );
+    }
+
+    // Preserve the immediate old raw pins for the preceding graph profile.
+    if runner == compiled("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs")
+        && HOSTED_E127
+            .into_iter()
+            .chain(NATIVE_E127)
+            .any(|raw| graph == wire(raw))
+    {
+        let previous = before_current_capture(
+            "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+            runner,
+        )
+        .unwrap();
+        assert_eq!(
+            previous,
+            include_str!("../../../docs/evidence/browser-capture-6b66-20261113/runner.before.mjs")
+        );
+        return Some(previous);
     }
 
     // Preserve the exact old raw pins for every complete old profile. The

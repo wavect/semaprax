@@ -60,11 +60,7 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
         root,
         "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
     );
-    let fields = [
-        "project_revision",
-        "workspace_revision",
-        "project_graph_digest",
-    ];
+    let fields = ["project_revision", "workspace_revision"];
     let expected = fields.map(|field| {
         let prefix = format!("{field}: \"");
         let values: Vec<_> = runner
@@ -137,11 +133,11 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                 ));
                 historical_builder::current_browser_drift_controls(fixture_graph, name);
                 let fixture_digest = historical_builder::profile_graph_digest(fixture_graph);
-                let actual = [
-                    revision.project_revision(),
-                    revision.workspace_revision(),
-                    fixture_digest.as_str(),
-                ];
+                let ordinary_graph: serde_json::Value =
+                    serde_json::from_str(historical_builder::ORDINARY_HOSTED_GRAPHS[index])
+                        .unwrap();
+                assert_eq!(fixture_digest, ordinary_graph["graph_digest"]);
+                let actual = [revision.project_revision(), revision.workspace_revision()];
                 for (field, value) in actual.into_iter().enumerate() {
                     assert_eq!(
                         value, expected[field][index],

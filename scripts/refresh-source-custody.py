@@ -26,7 +26,7 @@ records that authenticate *current* bytes, in this order:
    while other existing class metadata is retained;
 5. declared-history current pins and exact current-to-predecessor inverses,
    after the overlay reader pins settle; sealed predecessor archives stay fixed;
-6. V20 ingress current pins and exact inverses after the overlay sources settle;
+6. V20 and incoming 064 ingress pins and inverses after the overlay sources settle;
 7. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
    (members and the three full-manifest/raw/production digests).
 
@@ -68,6 +68,7 @@ PRE_OVERLAY = 'whole-pre-overlay-v2-current'
 INGRESS = 'docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json'
 INGRESS_RS = 'src/source_reflows_merge/ordinary_plan_inputs.rs'
 V20_INGRESS = 'src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.json'
+INCOMING_064 = 'src/source_reflows_merge/main_e177_overlay_incoming064.json'
 V20_SOURCES = (
     OVERLAY_PY, OVERLAY_RS, OVERLAY_DIR + '/overlay_page_codecs.py',
     'src/source_reflows_merge/main_e177_overlay_fragments_v3.rs',
@@ -155,6 +156,18 @@ def v20_inverse(live, previous):
     return edits
 
 
+def replay_byte_inverse(data, edits):
+    limit = len(data)
+    for start, end, prior in reversed(edits):
+        assert type(start) is int and type(end) is int and 0 <= start <= end <= limit
+        assert isinstance(prior, str)
+        data[:start].decode()
+        data[:end].decode()
+        data = data[:start] + prior.encode() + data[end:]
+        limit = start
+    return data
+
+
 def refresh_v20_ingress(repo):
     """Rebind the V20 live sources while preserving the sealed predecessor set."""
     def encode(value):
@@ -168,17 +181,6 @@ def refresh_v20_ingress(repo):
         assert pin(data) == record, 'invalid V20 source archive'
         return data
 
-    def replay(data, edits):
-        limit = len(data)
-        for start, end, prior in reversed(edits):
-            assert type(start) is int and type(end) is int and 0 <= start <= end <= limit
-            assert isinstance(prior, str)
-            data[:start].decode()
-            data[:end].decode()
-            data = data[:start] + prior.encode() + data[end:]
-            limit = start
-        return data
-
     raw = repo.raw(V20_INGRESS)
     packet = json.loads(raw)
     assert encode(packet) == raw
@@ -190,12 +192,12 @@ def refresh_v20_ingress(repo):
     changed = []
     for row in ingress['records']:
         current, previous = acquire(row['current']), acquire(row['previous'])
-        assert replay(current, row['edits']) == previous, 'invalid retained V20 inverse'
+        assert replay_byte_inverse(current, row['edits']) == previous, 'invalid retained V20 inverse'
         live = repo.raw(row['source'])
         if live == current:
             continue
         inverse = v20_inverse(live, previous)
-        assert replay(live, inverse) == previous
+        assert replay_byte_inverse(live, inverse) == previous
         descriptor = pin(live)
         archive = f"e/{descriptor['sha256']}"
         if (repo.root / archive).exists():
@@ -207,6 +209,38 @@ def refresh_v20_ingress(repo):
         for archive, data in archives.items():
             repo.write(archive, data)
         repo.write(V20_INGRESS, encode(packet))
+    return changed
+
+
+def refresh_incoming_064(repo):
+    """Keep the live reader bound to its original, complete inverse inputs."""
+    def encode(rows):
+        return (json.dumps(rows, separators=(',', ':'), ensure_ascii=False) + '\n').encode()
+
+    raw = repo.raw(INCOMING_064)
+    rows = json.loads(raw)
+    assert encode(rows) == raw
+    changed = []
+    for row in rows:
+        current = repo.raw(row['path'])
+        live = row['live']
+        if live['length'] == len(current) and live['sha256'] == sha(current):
+            continue
+        epoch = repo.raw(f"e/{row['current_sha256']}")
+        assert len(epoch) == row['current_length'] and sha(epoch) == row['current_sha256']
+        prior = repo.raw(f"e/{live['sha256']}")
+        assert len(prior) == live['length'] and sha(prior) == live['sha256']
+        assert replay_byte_inverse(prior, live['edits']) == epoch
+        edits = v20_inverse(current, epoch)
+        assert replay_byte_inverse(current, edits) == epoch
+        digest = sha(current)
+        repo.write(f'e/{digest}', current)
+        live.update(length=len(current), sha256=digest, edits=edits)
+        changed.append(row['path'])
+    if changed:
+        payload = encode(rows)
+        assert len(payload) <= 2 * 1024 * 1024
+        repo.write(INCOMING_064, payload)
     return changed
 
 
@@ -968,6 +1002,9 @@ def main():
     v20 = refresh_v20_ingress(repo)
     if v20:
         print('V20 ingress rows refreshed:', *v20, sep='\n  ')
+    incoming_064 = refresh_incoming_064(repo)
+    if incoming_064:
+        print('incoming 064 rows refreshed:', *incoming_064, sep='\n  ')
     if args.check:
         # Check the physical source pins too: an unchanged overlay does not
         # imply that the authority manifests still bind the current sources.

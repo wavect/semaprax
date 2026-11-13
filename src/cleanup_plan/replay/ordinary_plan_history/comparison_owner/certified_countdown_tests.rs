@@ -337,16 +337,23 @@ fn countdown_full_immediate_module_inverse_and_five_work_sites_are_complete() {
         ),
         "7f273a44e338d7606d1fe55f51468d3e34181df656f0ea2e67678b82d2aee2ba"
     );
-    // Both routes execute this complete identical production caller; the mode
-    // selects only the independently compiled suffix at the original frontier.
-    let caller = include_str!("../comparison_owner.rs");
+    // Both routes share the complete caller. Authenticate its archived form
+    // at the countdown change before checking the original source pin.
+    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+    const CALLER_SHA: &str = "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4";
+    let caller = declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        CALLER_SHA,
+        include_str!("../comparison_owner.rs"),
+    )
+    .expect("complete caller at the countdown change");
     assert_eq!(caller.len(), 29922);
     assert_eq!(
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(caller.as_bytes()))
         ),
-        "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4"
+        CALLER_SHA
     );
     let current = include_str!("certified_heads.rs");
     let suffix = |s: &str| {
@@ -373,6 +380,7 @@ fn countdown_full_immediate_module_inverse_and_five_work_sites_are_complete() {
     assert!(!new.contains("shared_work_driver") && !new.contains("checked_sub"));
     assert_eq!(new.matches("paid!(").count(), old.matches("paid!(").count());
     let paired = include_str!("paired_value.rs");
-    assert!(paired.contains("certified_heads::RUN_CAPTURE +"));
-    assert!(paired.contains("let paired_work_driver: certified_heads::SharedUnitDriver"));
+    let paired = paired.split_whitespace().collect::<String>();
+    assert!(paired.contains("constINDEPENDENT_RUN_SETUP:usize=certified_heads::RUN_CAPTURE+"));
+    assert!(paired.contains("letpaired_work_driver:certified_heads::SharedUnitDriver"));
 }

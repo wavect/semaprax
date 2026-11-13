@@ -132,7 +132,13 @@ fn whole_immediate_source_inverse_changes_only_the_two_ordinary_dispatch_arms() 
         ),
         "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"
     );
-    let current = include_str!("../inline_singleton.rs");
+    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+    let current = declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+        "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514",
+        include_str!("../inline_singleton.rs"),
+    )
+    .expect("complete source after the ordinary dispatch change");
     let mut restored = current
         .strip_suffix("\n#[cfg(test)]\nmod ordinary_labels;\n")
         .unwrap()

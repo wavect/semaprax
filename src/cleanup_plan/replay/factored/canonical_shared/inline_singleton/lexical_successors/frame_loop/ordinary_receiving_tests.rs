@@ -443,18 +443,29 @@ fn replace_once(source: &str, after: &str, before: &str) -> String {
 }
 #[test]
 fn both_complete_immediate_old_loops_and_wrapper_restore_exact_frozen_bytes() {
-    let general = include_str!("../frame_loop.rs");
-    let compact = include_str!("compact.rs");
+    use crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs;
+    let general = declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs",
+        "db228c19e3e1c50cb196b01c0eb1f9f372fe61f4a0cd191057abd53c50cdabd8",
+        include_str!("../frame_loop.rs"),
+    )
+    .expect("complete general source after the ordinary receiving change");
+    let compact = declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs",
+        "48ad1d1a51b75a6a214ca07cb5cfea33bcfc5a0ba46e94f2238ca9c3bc309de9",
+        include_str!("compact.rs"),
+    )
+    .expect("complete compact source after the ordinary receiving change");
     let general_registration = "\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Compile the complete immediate-old frame owner independently.\"\n)]\nmod ordinary_receiving_before;\n#[cfg(test)]\nmod ordinary_receiving_tests;\n";
     let compact_registration = "\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Compile the complete immediate-old compact owner independently.\"\n)]\nmod ordinary_receiving_before;\n";
     for (source, registration, before) in [
         (
-            general,
+            general.as_str(),
             general_registration,
             include_str!("ordinary_receiving.general.before.txt"),
         ),
         (
-            compact,
+            compact.as_str(),
             compact_registration,
             include_str!("compact/ordinary_receiving.before.txt"),
         ),

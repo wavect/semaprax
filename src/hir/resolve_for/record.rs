@@ -177,7 +177,9 @@ pub(in crate::hir) fn project<'p>(
         ty: row.element.clone(),
         ownership: OwnershipMode::Value,
         kind: ResolvedExprKind::Call {
-            callee: DeclarationId::new(crate::vec_ops::GET_ID),
+            callee: DeclarationId::compiler(super::super::CompilerDeclaration::VecOperation(
+                crate::vec_ops::VecOp::Get,
+            )),
             type_arguments: vec![row.element.clone()],
             instance: None,
             args: vec![source, index],

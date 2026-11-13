@@ -422,6 +422,39 @@ fn migrated_list_iterator_option_and_result_sites_use_only_closed_compiler_tags(
 }
 
 #[test]
+fn copy_record_traversal_get_uses_the_closed_compiler_identity() {
+    let source = r#"module app.copy_traversal;
+@id("row") record Row { @id("row.value") value: i64, }
+@id("app.main") fn main() -> i64 {
+    let rows = vec_push<Row>(vec_with_capacity<Row>(1usize), Row { value: 17 });
+    let mut result = 0;
+    for borrow row in rows { result = result + row.value; 0 }
+    result
+}
+"#;
+    let ast = crate::check(source, "copy-record-identity.spx").unwrap();
+    let resolved = hir::resolve(&ast).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    let old = DeclarationId::new(crate::vec_ops::GET_ID);
+    let old_wire = crate::cache_codec::encode(&old).unwrap();
+    let mut calls = 0;
+    for function in &resolved.functions {
+        hir::function_value::walk(function, |expr| {
+            if let ResolvedExprKind::Call { callee, .. } = &expr.kind {
+                if callee == &old {
+                    calls += 1;
+                    assert!(callee.is_compiler_static());
+                    assert_eq!(callee.owned_allocation_bytes(), 0);
+                    assert_eq!(crate::cache_codec::encode(callee).unwrap(), old_wire);
+                }
+            }
+        });
+    }
+    assert_eq!(calls, 1);
+}
+
+#[test]
 fn both_complete_traversal_lowerings_match_owning_predecessors_and_drop_every_receiver() {
     let owner = FunctionExecutionId::Monomorphic(DeclarationId::new("lowering.λ\0owner"));
     let span = crate::ast::Span::default();

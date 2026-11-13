@@ -208,6 +208,83 @@ fn capture_keeps_every_current_source_origin_signature_and_body_comparison() {
     );
 }
 #[test]
+fn capture_reuses_matched_function_backing_at_the_original_reservation() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+
+    let source = source(4);
+    let programs = [crate::check(&source, "matching.spx").unwrap()];
+    let resolved = crate::hir::resolve(&programs[0]).unwrap();
+    let authored = index_authored(&programs).unwrap();
+    let sources = [WorkspaceSource {
+        path: "matching.spx".into(),
+        source,
+    }];
+    let observe = |owned, limit| {
+        with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let inventory = if owned {
+                    super::super::capture_with_identity::<false, true>(
+                        &programs[0],
+                        &resolved,
+                        &authored,
+                        Some(&sources),
+                    )
+                } else {
+                    capture_with_matching::<false>(
+                        &programs[0],
+                        &resolved,
+                        &authored,
+                        Some(&sources),
+                    )
+                }?;
+                let inventory = inventory.unwrap();
+                for fact in &inventory.functions {
+                    let current = resolved.functions.iter().find(|f| f.id == fact.id).unwrap();
+                    let matched = current.id.shared_allocation_key().unwrap();
+                    let captured = fact.id.shared_allocation_key().unwrap();
+                    assert_eq!(matched != captured, owned);
+                }
+                drop(inventory);
+                Ok::<_, Vec<crate::diagnostic::Diagnostic>>(())
+            })
+        })
+    };
+    let ((old, old_alloc), refused, exact, _) = observe(true, usize::MAX);
+    old.unwrap();
+    assert!(!refused && exact > 0);
+    let ((selected, new_alloc), refused, charged, _) = observe(false, exact);
+    selected.unwrap();
+    assert!(!refused);
+    assert_eq!(charged, exact);
+    for alloc in [old_alloc, new_alloc] {
+        assert!(!alloc.invalid);
+        assert_eq!(alloc.live, 0);
+        assert_eq!(alloc.allocated, alloc.freed);
+    }
+    let removed = resolved
+        .functions
+        .iter()
+        .map(|f| f.id.as_str().len() + f.id.owned_allocation_bytes())
+        .sum::<usize>();
+    assert_eq!(old_alloc.allocated - new_alloc.allocated, removed);
+    assert_eq!(
+        old_alloc.allocations - new_alloc.allocations,
+        2 * resolved.functions.len()
+    );
+    assert_eq!(old_alloc.reallocations, new_alloc.reallocations);
+    for limit in [exact - 1, 0] {
+        let ((before, _), old_refused, old_paid, old_first) = observe(true, limit);
+        let ((current, _), refused, paid, first) = observe(false, limit);
+        let before = before.unwrap_err();
+        assert_eq!(before[0].code, "SPX-G171");
+        assert_eq!(current.unwrap_err(), before);
+        assert!(old_refused && refused && old_first.is_some());
+        assert_eq!((paid, first), (old_paid, old_first));
+    }
+}
+
+#[test]
 fn duplicate_missing_unicode_and_reordered_members_keep_exact_pointer_lookup() {
     let mut program = checked(8);
     let mut extra_work = usize::MAX;

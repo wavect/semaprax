@@ -93,9 +93,18 @@ pub(super) fn capture(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     authenticated_sources: Option<&[WorkspaceSource]>,
 ) -> Result<Option<Box<Inventory>>, Vec<Diagnostic>> {
-    capture_with_matching::<false>(program, resolved, authored, authenticated_sources)
+    capture_with_identity::<false, false>(program, resolved, authored, authenticated_sources)
 }
+#[cfg(test)]
 fn capture_with_matching<const LEGACY: bool>(
+    program: &Program,
+    resolved: &hir::ResolvedProgram,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    authenticated_sources: Option<&[WorkspaceSource]>,
+) -> Result<Option<Box<Inventory>>, Vec<Diagnostic>> {
+    capture_with_identity::<LEGACY, LEGACY>(program, resolved, authored, authenticated_sources)
+}
+fn capture_with_identity<const LEGACY: bool, const OWN_ID: bool>(
     program: &Program,
     resolved: &hir::ResolvedProgram,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
@@ -284,8 +293,17 @@ fn capture_with_matching<const LEGACY: bool>(
             });
         }
         reserve_builder_structure(function.stable_id.len())?;
+        #[cfg(not(test))]
+        let id = current.id.clone();
+        #[cfg(test)]
+        let id = if OWN_ID {
+            // The allocation oracle uses the same matching and payer.
+            hir::DeclarationId::new(function.stable_id.as_str())
+        } else {
+            current.id.clone()
+        };
         functions.push(FunctionFact {
-            id: hir::DeclarationId::new(function.stable_id.as_str()),
+            id,
             explicit: function.explicit_id,
             name: crate::bounded_output::budgeted_clone(&function.name),
             params,

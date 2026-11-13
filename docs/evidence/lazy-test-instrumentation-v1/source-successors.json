@@ -1,0 +1,166 @@
+{
+  "src/test_allocation_observer.rs": {
+    "current_sha256": "5d899ed9b2f2e6d7825407d0bda4af0c23a6d641bd1b4ab536c19bbbcde210bc",
+    "previous_sha256": "fcfef5e2d88c4dc9f93ba66ac4fe003910fbeca7117e4150b55579cc5f473f05",
+    "inverse": [
+      [
+        734,
+        "    // Actual maximum simultaneous live bytes during THIS interval, including\n    // its entry baseline and every nested allocator callback. Not a delta.\n    local_peak: usize,\n",
+        ""
+      ],
+      [
+        1343,
+        "    local_intervals: [Option<PhaseObservation>; 64],\n",
+        ""
+      ],
+      [
+        1427,
+        "}\nimpl PhaseTrace {\n    /// Largest real interval peak for this owner, with that occurrence's\n    /// entry/exit snapshots. Existing cumulative intervals remain independent.\n    pub(crate) fn function_peak(&self, label: &'static str) -> Option<(Metrics, usize, Metrics)> {\n        self.local_intervals\n            .iter()\n            .flatten()\n            .find(|interval| interval.stage == PhaseLabel::Function(label))\n            .map(|interval| (interval.entry, interval.local_peak, interval.exit))\n    }\n",
+        ""
+      ],
+      [
+        2041,
+        "pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics, usize)>);\n",
+        "pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics)>);\n"
+      ],
+      [
+        2639,
+        "        let entry = current_metrics();\n        if let Some(slot) = phase_peaks::begin(entry.live) {\n            Some((stage, entry, slot))\n        } else {\n            PHASE_TRACE.with(|trace| trace.borrow_mut().as_mut().unwrap().overflow = true);\n            None\n        }\n",
+        "        Some((stage, current_metrics()))\n"
+      ],
+      [
+        3001,
+        "        let Some((stage, entry, active_slot)) = self.0 else {\n",
+        "        let Some((stage, entry)) = self.0 else {\n"
+      ],
+      [
+        3132,
+        "        let local_peak = phase_peaks::finish(active_slot);\n",
+        ""
+      ],
+      [
+        3925,
+        "                    trace.intervals[slot] = Some(PhaseObservation {\n                        stage,\n                        entry,\n                        exit,\n                        local_peak,\n                    });\n                }\n                if trace.local_intervals[slot].is_none_or(|old| local_peak > old.local_peak) {\n                    trace.local_intervals[slot] = Some(PhaseObservation {\n                        stage,\n                        entry,\n                        exit,\n                        local_peak,\n                    });\n",
+        "                    trace.intervals[slot] = Some(PhaseObservation { stage, entry, exit });\n"
+      ],
+      [
+        4988,
+        "            local_intervals: [None; 64],\n",
+        ""
+      ],
+      [
+        5486,
+        "    #[test]\n    fn interval_peak_is_not_masked_by_an_earlier_cumulative_peak() {\n        let operation = || {\n            let early = vec![1_u8; 4096];\n            std::hint::black_box(&early);\n            drop(early);\n            let retained = vec![2_u8; 37];\n            {\n                let _guard = function_phase_guard(\"test::later_overlap\");\n                let scratch = vec![3_u8; 113];\n                std::hint::black_box((&retained, &scratch));\n            }\n            drop(retained);\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert_eq!(observed.highwater, 4096);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        let (entry, peak, exit) = trace.function_peak(\"test::later_overlap\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (37, 150, 37));\n        assert_eq!((entry.highwater, exit.highwater), (4096, 4096));\n    }\n\n    #[test]\n    fn interval_peak_tracks_nested_replacement_overlap_and_each_occurrence() {\n        let operation = || {\n            let _outer = function_phase_guard(\"test::outer_peak\");\n            let retained = vec![0_u8; 31];\n            for size in [127, 43] {\n                let _inner = function_phase_guard(\"test::repeated_peak\");\n                let mut scratch = Vec::<u8>::with_capacity(size);\n                scratch.resize(size, 9);\n                scratch.reserve_exact(size);\n                std::hint::black_box((&retained, &scratch));\n            }\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        let (entry, peak, exit) = trace.function_peak(\"test::repeated_peak\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (31, 31 + 127 + 254, 31));\n        assert_eq!(trace.function_peak(\"test::outer_peak\").unwrap().1, peak);\n        assert_eq!(observed.highwater, peak);\n    }\n",
+        ""
+      ],
+      [
+        20123,
+        "            drop(std::hint::black_box(Box::new(7u8)));\n",
+        "            drop(Box::new(7u8));\n"
+      ]
+    ]
+  },
+  "src/test_allocation_observer/backing.rs": {
+    "current_sha256": "b94bca9d5f9b9432012f1e4cdbe943e93d1a962f6a7e0a917d756ffae952f519",
+    "previous_sha256": "ac3208cd57a802c55194bedc9fdb6caf95cc20b9a9ea0c8ccdf0125a39fa4ec8",
+    "inverse": [
+      [
+        241,
+        "#[path = \"phase_peaks.rs\"]\n#[allow(\n    dead_code,\n    reason = \"standalone allocation harnesses omit named intervals\"\n)]\nmod phase_peaks;\n",
+        ""
+      ],
+      [
+        4887,
+        "        phase_peaks::allocated(live);\n",
+        ""
+      ]
+    ]
+  },
+  "src/workspace_graph/forecast_observation.rs": {
+    "current_sha256": "3d3126f89e21d639e6e726ad53984a2a855633b7bc438867e59fc0a23dc6ef94",
+    "previous_sha256": "678c0ec588b54c52f841258850af1b4a11447cb7cbf031da2f3d62c437b341a2",
+    "inverse": [
+      [
+        728,
+        "// A dedicated latest-live-pass buffer prevents the diagnostic ring's bounded\n// history eviction from losing the actual refusing module association. Like the\n// ring, its backing is acquired by Report::prepare before compiler observation.\n#[derive(Clone, Copy)]\nstruct LiveModule {\n    path: [u8; PATH],\n    len: Option<usize>,\n    full: Option<Record>,\n    retained: Option<Record>,\n    formula: Option<[usize; 9]>,\n    full_terms: Option<Record>,\n    retained_terms: Option<Record>,\n}\nimpl Default for LiveModule {\n    fn default() -> Self {\n        Self {\n            path: [0; PATH],\n            len: None,\n            full: None,\n            retained: None,\n            formula: None,\n            full_terms: None,\n            retained_terms: None,\n        }\n    }\n}\n",
+        ""
+      ],
+      [
+        1516,
+        "    live_modules: Vec<LiveModule>,\n    live_pass: Option<(u8, usize)>,\n    live_expected: usize,\n    live_attempt: Option<[usize; 7]>,\n",
+        ""
+      ],
+      [
+        1944,
+        "            live_modules: Vec::new(),\n            live_pass: None,\n            live_expected: 0,\n            live_attempt: None,\n",
+        ""
+      ],
+      [
+        3981,
+        "/// Exact current selected HIR terms, supplementing the historical 19 fields.\npub(crate) fn record_live_hir_terms(path: &str, include_imports: bool, terms: [usize; 7]) {\n    if !ACTIVE.with(Cell::get) || path.len() > PATH {\n        return;\n    }\n    STATE.with(|state| {\n        let mut state = state.borrow_mut();\n        if state.live_pass != state.current_pass || !state.current_pass.is_some_and(|p| p.0 == 6) {\n            return;\n        }\n        let Some(index) = state.current_module else {\n            return;\n        };\n        let mut row = Record {\n            path: [0; PATH],\n            len: path.len(),\n            mode: 6,\n            pass: state.current_pass,\n            module: Some(index),\n            global: false,\n            step: false,\n            semantic: false,\n            include_imports,\n            legacy_components: false,\n            authority_request: false,\n            values: [0; VALUES],\n        };\n        row.path[..path.len()].copy_from_slice(path.as_bytes());\n        row.values[..7].copy_from_slice(&terms);\n        if let Some(module) = state.live_modules.get_mut(index) {\n            if include_imports {\n                module.full_terms = Some(row);\n            } else {\n                module.retained_terms = Some(row);\n            }\n        }\n    });\n}\n",
+        ""
+      ],
+      [
+        6157,
+        "        if matches!(kind, Kind::Component)\n            && mode == 6\n            && state.live_pass == stored.pass\n            && stored.pass.is_some_and(|pass| pass.0 == 6)\n        {\n            if let Some(module) = stored\n                .module\n                .and_then(|index| state.live_modules.get_mut(index))\n            {\n                if include_imports {\n                    module.full = Some(stored);\n                } else {\n                    module.retained = Some(stored);\n                }\n            }\n        }\n",
+        ""
+      ],
+      [
+        7827,
+        "    /// Only the actual uncached layout calls this, within its original pass.\n    pub(crate) fn live_layout(&self, expected: usize) {\n        if self.active {\n            STATE.with(|state| {\n                let mut state = state.borrow_mut();\n                state.live_modules.fill(LiveModule::default());\n                state.live_pass = state.current_pass;\n                state.live_expected = expected;\n                state.live_attempt = None;\n            });\n        }\n    }\n    pub(crate) fn live_formula(&self, index: usize, path: &str, values: [usize; 9]) {\n        if self.active {\n            STATE.with(|state| {\n                if let Some(module) = state.borrow_mut().live_modules.get_mut(index) {\n                    module.formula = Some(values);\n                    if path.len() <= PATH {\n                        module.path[..path.len()].copy_from_slice(path.as_bytes());\n                        module.len = Some(path.len());\n                    }\n                }\n            });\n        }\n    }\n    /// Exact live inputs immediately before checked_usage; no bound is rerun.\n    pub(crate) fn live_attempt(&self, values: [usize; 7]) {\n        if self.active {\n            STATE.with(|state| state.borrow_mut().live_attempt = Some(values));\n        }\n    }\n",
+        ""
+      ],
+      [
+        11603,
+        "        state\n            .live_modules\n            .resize(crate::workspace_graph::MAX_FILES, LiveModule::default());\n        state.live_modules.fill(LiveModule::default());\n        state.live_pass = None;\n        state.live_expected = 0;\n        state.live_attempt = None;\n",
+        ""
+      ],
+      [
+        14054,
+        "fn write_live_precharge(\n    output: &mut impl Write,\n    application: &str,\n    state: &State,\n    attempt: [usize; 7],\n) {\n    let [index, ordinal, retained, full, kept, limit, resolving] = attempt;\n    let additional = if resolving != 0 { full } else { kept };\n    let complete = state.live_expected <= state.live_modules.len()\n        && state.live_modules[..state.live_expected]\n            .iter()\n            .all(|module| {\n                let (Some(formula), Some(len), Some(full), Some(retained)) = (\n                    module.formula,\n                    module.len,\n                    module.full_terms,\n                    module.retained_terms,\n                ) else {\n                    return false;\n                };\n                [\n                    module.full,\n                    module.retained,\n                    module.full_terms,\n                    module.retained_terms,\n                ]\n                .iter()\n                .all(|row| row.is_some_and(|row| row.path[..row.len] == module.path[..len]))\n                    && full.values[..6]\n                        .iter()\n                        .try_fold(0usize, |n, v| n.checked_add(*v))\n                        == Some(formula[2])\n                    && retained.values[..6]\n                        .iter()\n                        .try_fold(0usize, |n, v| n.checked_add(*v))\n                        == Some(formula[3])\n                    && full.values[6] == formula[2]\n                    && retained.values[6] == formula[3]\n                    && formula[2].checked_add(formula[8]) == Some(formula[0])\n                    && formula[3]\n                        .checked_sub(formula[4])\n                        .and_then(|n| n.checked_add(formula[8]))\n                        == Some(formula[1])\n            });\n    write_row(\n        output,\n        serde_json::json!({\"schema\":\"semaprax.forecast-live-precharge.v1\",\n        \"application\":application,\"pass_id\":state.live_pass.map(|pass|pass.1),\n        \"scope\":\"last attempted precharge of the actual captured mode6 pass; not reconstructed, allocations or application admission\",\n        \"module_index\":index,\"sorted_step\":ordinal,\"retained_before\":retained,\n        \"full_cost\":full,\"retained_cost\":kept,\"phase\":if resolving!=0 {\"resolve\"} else {\"retain\"},\n        \"additional\":additional,\"limit\":limit,\"total\":retained.checked_add(additional),\n        \"would_refuse\":retained.checked_add(additional).is_none_or(|total|total>limit),\n        \"expected_modules\":state.live_expected,\"complete_live_components\":complete,\n        \"observer_backing\":\"separate MAX_FILES-bounded latest-pass buffer prepared before fixtures; no collection allocation\"}),\n    );\n    for (index, module) in state\n        .live_modules\n        .iter()\n        .take(state.live_expected)\n        .enumerate()\n    {\n        let Some(formula) = module.formula else {\n            continue;\n        };\n        let path = module\n            .len\n            .and_then(|len| std::str::from_utf8(&module.path[..len]).ok());\n        let full_path = module\n            .full\n            .as_ref()\n            .and_then(|row| std::str::from_utf8(&row.path[..row.len]).ok());\n        let retained_path = module\n            .retained\n            .as_ref()\n            .and_then(|row| std::str::from_utf8(&row.path[..row.len]).ok());\n        let terms_match = |row: Option<Record>| {\n            row.is_some_and(|row| {\n                module\n                    .len\n                    .is_some_and(|len| row.path[..row.len] == module.path[..len])\n            })\n        };\n        let terms_reconcile = |row: Option<Record>| {\n            row.is_some_and(|row| {\n                row.values[..6]\n                    .iter()\n                    .try_fold(0usize, |sum, n| sum.checked_add(*n))\n                    == Some(row.values[6])\n            })\n        };\n        write_row(\n            output,\n            serde_json::json!({\"schema\":\"semaprax.forecast-live-module.v1\",\n            \"application\":application,\"pass_id\":state.live_pass.map(|pass|pass.1),\"module_index\":index,\"path\":path,\n            \"full_cost\":formula[0],\"retained_cost\":formula[1],\"full_hir\":formula[2],\"retained_hir_before_scratch\":formula[3],\n            \"retired_scratch_bytes\":formula[4],\"covered_expressions\":formula[5],\"maximum_covered_function\":formula[6],\n            \"covered_functions\":formula[7],\"receiving\":formula[8],\n            \"full_reconciles\":formula[2].checked_add(formula[8])==Some(formula[0]),\n            \"retained_reconciles\":formula[3].checked_sub(formula[4]).and_then(|n|n.checked_add(formula[8]))==Some(formula[1]),\n            \"component_order\":\"raw_total,raw_strings,raw_exact_expressions,raw_literal_absence,runtime_total,runtime_strings,runtime_exact_expressions,structure_input,string_input,fixed_before,fixed_after,identity_occurrence,identity_carrier,retained_clone_and_hir,generic_instances,transient_import_clone,original_mode7_fixed,prelude_hir,hir_upper\",\n            \"actual_full_path\":full_path,\"actual_retained_path\":retained_path,\n            \"paths_match_actual_module\":path.is_some() && path==full_path && path==retained_path,\n            \"actual_full_components\":module.full.map(|row|row.values),\n            \"actual_retained_components\":module.retained.map(|row|row.values),\n            \"historical_component_equations_valid\":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),\n            \"hir_term_order\":\"fixed_upper,call_proof,shared_callee_proof,prelude_hir,identity_carrier,identity_occurrence,hir_upper\",\n            \"actual_full_hir_terms\":module.full_terms.map(|row|row.values[..7].to_vec()),\n            \"actual_retained_hir_terms\":module.retained_terms.map(|row|row.values[..7].to_vec()),\n            \"hir_term_paths_match\":terms_match(module.full_terms) && terms_match(module.retained_terms),\n            \"hir_term_equations_valid\":terms_reconcile(module.full_terms) && terms_reconcile(module.retained_terms),\n            \"hir_terms_match_returned_costs\":module.full_terms.is_some_and(|row|row.values[6]==formula[2]) && module.retained_terms.is_some_and(|row|row.values[6]==formula[3])}),\n        );\n    }\n}\n",
+        ""
+      ],
+      [
+        20642,
+        "        if let Some(attempt) = state.live_attempt {\n            write_live_precharge(output, application, &state, attempt);\n        }\n",
+        ""
+      ],
+      [
+        38535,
+        "    #[test]\n    fn live_precharge_survives_history_eviction_and_excludes_reconstruction() {\n        let report = Report::prepare(\"live-precharge-contract\");\n        let capture = report.capture();\n        let (_, metrics) = crate::test_allocation_observer::measure(|| {\n            let pass = begin_pass(6);\n            pass.live_layout(1);\n            pass.module(0);\n            let mut components = [0; VALUES];\n            components[10] = 1;\n            components[11] = 6;\n            components[12] = 5;\n            components[17] = 4;\n            components[18] = 21;\n            components[13] = 21;\n            for imports in [true, false] {\n                record_live_hir_terms(\"actual/doc.spx\", imports, [1, 2, 3, 4, 5, 6, 21]);\n                record_components(\"actual/doc.spx\", 6, false, imports, components);\n            }\n            pass.live_formula(0, \"actual/doc.spx\", [31, 26, 21, 21, 5, 1, 1, 1, 10]);\n            pass.live_attempt([0, 9, 62_580_563, 6_125_249, 5_000_000, 1 << 26, 1]);\n            // The old bounded record ring intentionally loses its prefix.\n            // A differently-modeled nested observation is not the live module.\n            for _ in 0..SLOTS + 1 {\n                record_components(\"other-mode\", 5, false, false, [0; VALUES]);\n            }\n        });\n        assert!(!metrics.invalid);\n        assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));\n        drop(capture);\n        // This models the existing failure-only reconstruction after the live\n        // Capture has ended. It cannot replace the captured refusing formula.\n        let reconstructed = begin_pass(6);\n        reconstructed.live_layout(1);\n        reconstructed.module(0);\n        reconstructed.live_formula(0, \"reconstructed\", [0; 9]);\n        reconstructed.live_attempt([0; 7]);\n        record_live_hir_terms(\"reconstructed\", true, [0; 7]);\n        record_components(\"reconstructed\", 6, false, true, [0; VALUES]);\n        drop(reconstructed);\n        let mut output = Vec::new();\n        write_observation(&mut output, \"live-precharge-contract\", false);\n        let rows = output\n            .split(|byte| *byte == b'\\n')\n            .filter(|line| !line.is_empty())\n            .map(|line| serde_json::from_slice::<serde_json::Value>(line).unwrap())\n            .collect::<Vec<_>>();\n        assert_eq!(rows[0][\"schema\"], \"semaprax.forecast-live-precharge.v1\");\n        assert_eq!(rows[0][\"retained_before\"], 62_580_563);\n        assert_eq!(rows[0][\"full_cost\"], 6_125_249);\n        assert_eq!(rows[0][\"phase\"], \"resolve\");\n        assert_eq!(rows[0][\"would_refuse\"], true);\n        assert_eq!(rows[0][\"complete_live_components\"], true);\n        assert_eq!(rows[1][\"path\"], \"actual/doc.spx\");\n        assert_eq!(rows[1][\"paths_match_actual_module\"], true);\n        assert_eq!(rows[1][\"hir_term_paths_match\"], true);\n        assert_eq!(rows[1][\"hir_term_equations_valid\"], true);\n        assert_eq!(rows[1][\"hir_terms_match_returned_costs\"], true);\n        assert_eq!(rows[1][\"full_reconciles\"], true);\n        assert_eq!(rows[1][\"retained_reconciles\"], true);\n        assert_eq!(\n            rows[2][\"complete_records\"], false,\n            \"old lost-ring control unchanged\"\n        );\n        drop(report);\n    }\n",
+        ""
+      ]
+    ]
+  },
+  "scripts/tests/test_ci_low_stack_trace.py": {
+    "current_sha256": "1710be673c5950542f9a8981f4111bae5a375751a8d43ee85d831fa6b6112ec6",
+    "previous_sha256": "60acc9aa09a1ebb96781274862ebdefce46afb54d9e58a731aac57381da28661",
+    "inverse": [
+      [
+        715,
+        "        self.successors = json.loads((self.evidence / \"source-successors.json\").read_text())\n        self.assertEqual(set(self.successors), {\n            \"src/test_allocation_observer.rs\",\n            \"src/test_allocation_observer/backing.rs\",\n            \"src/workspace_graph/forecast_observation.rs\",\n            \"scripts/tests/test_ci_low_stack_trace.py\",\n        })\n",
+        ""
+      ],
+      [
+        1352,
+        "    def _predecessor_source(self, path, overrides=None):\n        value = ((overrides or {})[path] if path in (overrides or {})\n                 else (self.root / path).read_text(encoding=\"utf-8\"))\n        if path not in self.successors:\n            return value\n        row = self.successors[path]\n        digest = lambda text: hashlib.sha256(text.encode()).hexdigest()\n        if digest(value) != row[\"current_sha256\"]:\n            raise ValueError(\"physical current source drift\")\n        for change in reversed(row[\"inverse\"]):\n            start, after, before = change\n            if value[start:start + len(after)] != after:\n                raise ValueError(\"invalid current source inverse\")\n            value = value[:start] + before + value[start + len(after):]\n        if digest(value) != row[\"previous_sha256\"]:\n            raise ValueError(\"complete preceding source drift\")\n        return value\n\n",
+        ""
+      ],
+      [
+        2314,
+        "        read = lambda path: self._predecessor_source(path, overrides)\n",
+        "        overrides = overrides or {}\n        read = lambda path: overrides[path] if path in overrides else (self.root / path).read_text(encoding=\"utf-8\")\n"
+      ],
+      [
+        8686,
+        "        # The current callback reports the named phase after updating the\n        # original metrics. Check the complete original callback around that call.\n        phase_call = \"        phase_peaks::allocated(live);\\n\"\n        self.assertEqual(current.count(phase_call), 1)\n        current = current.replace(phase_call, \"\", 1)\n",
+        ""
+      ],
+      [
+        15114,
+        "        self.root = Path(self.directory.name).resolve()\n",
+        "        self.root = Path(self.directory.name)\n"
+      ]
+    ]
+  }
+}

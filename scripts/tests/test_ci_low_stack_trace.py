@@ -23,14 +23,38 @@ class InstrumentationSourceCustody(unittest.TestCase):
         self.root = Path(__file__).resolve().parents[2]
         self.evidence = self.root / "docs/evidence/lazy-test-instrumentation-v1"
         self.records = json.loads((self.evidence / "sources.json").read_text())
+        self.successors = json.loads((self.evidence / "source-successors.json").read_text())
+        self.assertEqual(set(self.successors), {
+            "src/test_allocation_observer.rs",
+            "src/test_allocation_observer/backing.rs",
+            "src/workspace_graph/forecast_observation.rs",
+            "scripts/tests/test_ci_low_stack_trace.py",
+        })
         self.assertEqual({record["path"] for record in self.records}, {
             "src/test_allocation_observer.rs", "src/workspace_graph/forecast_observation.rs",
             "scripts/ci-low-stack-trace.py", "scripts/tests/test_ci_low_stack_trace.py",
         })
 
+    def _predecessor_source(self, path, overrides=None):
+        value = ((overrides or {})[path] if path in (overrides or {})
+                 else (self.root / path).read_text(encoding="utf-8"))
+        if path not in self.successors:
+            return value
+        row = self.successors[path]
+        digest = lambda text: hashlib.sha256(text.encode()).hexdigest()
+        if digest(value) != row["current_sha256"]:
+            raise ValueError("physical current source drift")
+        for change in reversed(row["inverse"]):
+            start, after, before = change
+            if value[start:start + len(after)] != after:
+                raise ValueError("invalid current source inverse")
+            value = value[:start] + before + value[start + len(after):]
+        if digest(value) != row["previous_sha256"]:
+            raise ValueError("complete preceding source drift")
+        return value
+
     def _current_source(self, record, overrides=None):
-        overrides = overrides or {}
-        read = lambda path: overrides[path] if path in overrides else (self.root / path).read_text(encoding="utf-8")
+        read = lambda path: self._predecessor_source(path, overrides)
         value = read(record["path"])
         revision = record.get("current_projection")
         if revision is None:
@@ -143,6 +167,11 @@ class InstrumentationSourceCustody(unittest.TestCase):
         before = (self.evidence / record["archive"]).read_text()
         self._current_source(record)  # Authenticate both actual current root and backing first.
         current = (self.root / "src/test_allocation_observer/backing.rs").read_text()
+        # The current callback reports the named phase after updating the
+        # original metrics. Check the complete original callback around that call.
+        phase_call = "        phase_peaks::allocated(live);\n"
+        self.assertEqual(current.count(phase_call), 1)
+        current = current.replace(phase_call, "", 1)
         for start, end in [
             ("    fn allocated(", "\nthread_local!"),
             ("unsafe impl GlobalAlloc for ObservedSystem", "\nstruct Guard;"),
@@ -257,7 +286,7 @@ class ArtifactProvenance(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = Path(self.directory.name)
+        self.root = Path(self.directory.name).resolve()
         self.target = self.root / "target"
         self.target.mkdir()
         self.executable = self.target / "semaprax-test"

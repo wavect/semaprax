@@ -26,6 +26,18 @@ fn capture_difference() -> usize {
         .unwrap()
 }
 
+pub(super) fn complete_capture_prices(
+    old: &pair_scope_census::Row,
+    current: &pair_scope_census::Row,
+) -> (usize, usize) {
+    assert!(old.complete && current.complete);
+    assert_eq!(old.shared_runs, current.shared_runs);
+    (
+        current.shared_runs * certified_heads::RUN_SCALAR_CAPTURE,
+        old.shared_runs * certified_heads::before_countdown::RUN_CAPTURE,
+    )
+}
+
 #[test]
 fn countdown_full_typed_banks_keep_the_surviving_independent_driver_paid() {
     let driver = 2 * size_of::<&[Rc<SkeletonObservation>]>()

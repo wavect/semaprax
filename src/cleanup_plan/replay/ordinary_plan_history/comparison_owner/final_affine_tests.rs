@@ -66,12 +66,16 @@ fn report(old: &Run, current: &Run) {
     );
     let (added, removed) = final_affine::delta(&current.row);
     let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
+    // The frozen comparator pays for the unit iterator at each certified run.
+    // The current comparator pays for the scalar countdown at that same site.
+    let (countdown_added, countdown_removed) =
+        certified_countdown_tests::complete_capture_prices(&old.row, &current.row);
     assert_eq!(
-        current.observed.2 + removed + loaded_removed,
-        old.observed.2 + added + loaded_added
+        current.observed.2 + removed + loaded_removed + countdown_removed,
+        old.observed.2 + added + loaded_added + countdown_added
     );
     eprintln!(
-        "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={} loaded_added={} loaded_removed={} old_heap={:?} current_heap={:?} old_outcome={:?} current_outcome={:?}; independent content, full heap/Drop, cold losses retained; no app admission claim",
+        "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={} loaded_added={} loaded_removed={} countdown_added={} countdown_removed={} old_heap={:?} current_heap={:?} old_outcome={:?} current_outcome={:?}; independent content, full heap/Drop, cold losses retained; no app admission claim",
         old.observed.2,
         current.observed.2,
         added,
@@ -82,6 +86,8 @@ fn report(old: &Run, current: &Run) {
         current.row.final_tails,
         loaded_added,
         loaded_removed,
+        countdown_added,
+        countdown_removed,
         old.observed.0 .1,
         current.observed.0 .1,
         old.observed.0 .0,

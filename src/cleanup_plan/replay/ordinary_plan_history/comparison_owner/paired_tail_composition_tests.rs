@@ -20,6 +20,8 @@ fn tail_run(
 }
 fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, usize) {
     let loaded_delta = loaded::complete_loaded_delta(row);
+    let (countdown_added, countdown_removed) =
+        certified_countdown_tests::complete_capture_prices(old, row);
     let immediate438_counts = loaded::complete_immediate438_invoice_counts(row);
     let row = &immediate438_counts;
     let prior_generation = {
@@ -62,8 +64,8 @@ fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, 
         (current, removed)
     };
     (
-        prior_generation.0 + loaded_delta.0,
-        prior_generation.1 + loaded_delta.1,
+        prior_generation.0 + loaded_delta.0 + countdown_added,
+        prior_generation.1 + loaded_delta.1 + countdown_removed,
     )
 }
 #[test]

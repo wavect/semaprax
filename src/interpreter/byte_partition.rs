@@ -301,9 +301,11 @@ impl<R: InvocationRuntime> Registry<R> {
     }
     /// Public boundary receives an ordinary fresh owner only after provider
     /// settlement. No interior pointer or registry handle crosses the boundary.
-    /// Failed settlement releases the staged copy and preserves its refusal;
-    /// its ordinary event/payload debit is never refunded.
+    /// Check the lease's settlement authority before allocating the copy.
+    /// Any later refusal releases the staged copy without refunding its debit.
     pub(crate) fn copy_out_and_settle(&mut self, owner: &mut Owner) -> Result<R::Owner, Refusal> {
+        self.active()?;
+        self.preflight_settlement(owner)?;
         let copied = self.deep_clone(owner)?;
         match self.settle(owner) {
             Ok(()) => Ok(copied),

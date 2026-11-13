@@ -430,6 +430,25 @@ test("lease witness charges exactly the ordinary allocation", () => {
 test("public copy-out plus provider drop never exports the backing", () => {
   const { env, facade, receipt } = fresh();
   const [a, b] = partition(facade, filled(env), 2, 6);
+  const before = facade.stats();
+  // Inject snapshot allocation failure at the exact copy-out boundary.
+  const OriginalBytes = globalThis.Uint8Array;
+  try {
+    globalThis.Uint8Array = class extends OriginalBytes {
+      constructor(size) {
+        if (size === 6) throw new Error("injected snapshot allocation failure");
+        super(size);
+      }
+    };
+    throws(() => facade.copyOutAndDrop(a), /injected snapshot allocation failure/,
+      "failed snapshot preserves the source lease");
+  } finally {
+    globalThis.Uint8Array = OriginalBytes;
+  }
+  const refused = facade.stats();
+  check(refused.drops === before.drops && refused.liveLeases === before.liveLeases
+    && refused.releasedBackings === before.releasedBackings, "failed snapshot records no settlement");
+  check(same([...facade.peek(a)], PAYLOAD.slice(0, 6)), "failed snapshot leaves bytes intact");
   const snapshot = facade.copyOutAndDrop(a);
   check(same([...snapshot], PAYLOAD.slice(0, 6)), "copy-out bytes");
   check(snapshot.byteOffset === 0 && snapshot.buffer.byteLength === 6, "snapshot is a fresh exact buffer");

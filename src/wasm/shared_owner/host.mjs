@@ -738,8 +738,9 @@ export function createPrivateOrdinaryByteHost(options = {}) {
       live();
       if (managed) throw new Error("SEMAPRAX private managed entry has no copy-out bridge");
       if (shared.owns(carrier)) {
+        const snapshot = shared.copyOutAndRelease(carrier);
         drops += 1;
-        return shared.copyOutAndRelease(carrier);
+        return snapshot;
       }
       const snapshot = new Uint8Array(owned(carrier));
       drop(carrier);

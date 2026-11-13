@@ -91,6 +91,13 @@ children. Abort and preparation allocation failure clear the claim, and commit
 clears it as the whole lease is consumed. Registry settlement checks for
 outstanding claims even when their child-slot charge is zero.
 
+Native Vec operations that publish a successor check its generation before
+moving a child, dropping rows, or replacing the row array. The paired Core-Wasm
+host likewise acquires a successor handle before changing its Vec. The
+exhaustion controls check that the current Vec and child leases remain live,
+that native output slots stay untouched, and that the original owners can
+still settle. Capacity and index failures retain their existing precedence.
+
 The paired Core-Wasm registry binds each preparation to the live invocation
 and claims the exact buffer for the ticket's lifetime. A second array view of
 the same buffer cannot prepare overlapping ranges. Abort releases the claim

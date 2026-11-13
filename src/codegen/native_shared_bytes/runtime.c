@@ -179,9 +179,12 @@ SPX_SHB_FN uint64_t spx_shb_fresh_nonce(spx_shb_registry *registry) {
         SPX_SHB_FAIL_STOP("shared Bytes lease generation exhausted");
     return registry->next_nonce++;
 }
-SPX_SHB_FN uint64_t spx_shb_fresh_generation(spx_shb_registry *registry) {
+SPX_SHB_FN void spx_shb_require_generation(const spx_shb_registry *registry) {
     if (registry->next_generation == UINT64_C(0) || registry->next_generation == UINT64_MAX)
         SPX_SHB_FAIL_STOP("shared Bytes Vec generation exhausted");
+}
+SPX_SHB_FN uint64_t spx_shb_fresh_generation(spx_shb_registry *registry) {
+    spx_shb_require_generation(registry);
     return registry->next_generation++;
 }
 SPX_SHB_FN bool spx_shb_is_vacant(const spx_shb_bytes *value) {
@@ -437,19 +440,21 @@ SPX_SHB_FN spx_shb_vec_entry *spx_shb_vec_require(
 SPX_SHB_FN spx_shb_vec_entry *spx_shb_vec_valid(spx_shb_registry *registry, const spx_shb_vec *value) {
     return spx_shb_vec_require(registry, value, SPX_SHB_VEC_LIVE, value == NULL ? UINT64_C(0) : value->len);
 }
-SPX_SHB_FN uint32_t spx_shb_vec_reserve_authority(spx_shb_registry *registry) {
+SPX_SHB_FN uint32_t spx_shb_vec_available(const spx_shb_registry *registry) {
     for (uint32_t i = 0u; i < SPX_SHB_VECS; ++i)
-        if (registry->vec[i].state == SPX_SHB_VEC_FREE) {
-            registry->vec[i] = (spx_shb_vec_entry){ .state = SPX_SHB_VEC_RESERVED };
-            return i + 1u;
-        }
+        if (registry->vec[i].state == SPX_SHB_VEC_FREE) return i + 1u;
     return 0u;
 }
+SPX_SHB_FN uint32_t spx_shb_vec_reserve_authority(spx_shb_registry *registry) {
+    uint32_t authority = spx_shb_vec_available(registry);
+    if (authority != 0u)
+        registry->vec[authority - 1u] = (spx_shb_vec_entry){ .state = SPX_SHB_VEC_RESERVED };
+    return authority;
+}
 SPX_SHB_FN void spx_shb_vec_publish(
-    spx_shb_registry *registry, spx_shb_vec *source, spx_shb_vec_entry *e, spx_shb_vec *out
+    spx_shb_vec *source, spx_shb_vec_entry *e, spx_shb_vec *out, uint64_t generation
 ) {
-    if (out == NULL || out == source) SPX_SHB_FAIL_STOP("invalid shared Bytes Vec result");
-    source->generation = spx_shb_fresh_generation(registry);
+    source->generation = generation;
     *e = (spx_shb_vec_entry){ .rows = source->rows, .len = source->len,
         .capacity = source->capacity, .generation = source->generation, .state = SPX_SHB_VEC_LIVE };
     *out = *source; *source = (spx_shb_vec){0};
@@ -487,19 +492,24 @@ SPX_SHB_FN void spx_shb_preflight_rows(
 SPX_SHB_FN uint32_t spx_shb_vec_with_capacity(spx_shb_registry *registry, uint64_t capacity, spx_shb_vec *out) {
     spx_shb_require(registry);
     if (out == NULL) SPX_SHB_FAIL_STOP("shared Bytes Vec has no result carrier");
-    *out = (spx_shb_vec){0};
-    if (capacity > SPX_SHB_VEC_CAPACITY) return SPX_SHB_VEC_CAPACITY_REFUSED;
-    uint32_t authority = spx_shb_vec_reserve_authority(registry);
-    if (authority == 0u) return SPX_SHB_VEC_CAPACITY_REFUSED;
+    uint32_t authority = capacity <= SPX_SHB_VEC_CAPACITY ? spx_shb_vec_available(registry) : 0u;
+    if (authority == 0u) {
+        *out = (spx_shb_vec){0};
+        return SPX_SHB_VEC_CAPACITY_REFUSED;
+    }
+    spx_shb_require_generation(registry);
+    spx_shb_vec_entry *e = &registry->vec[authority - 1u];
+    *e = (spx_shb_vec_entry){ .state = SPX_SHB_VEC_RESERVED };
     spx_shb_stored *rows = capacity == UINT64_C(0) ? NULL
         : (spx_shb_stored *)SPX_SHB_METADATA_CALLOC((size_t)capacity, sizeof(spx_shb_stored));
     if (capacity != UINT64_C(0) && rows == NULL) {
-        registry->vec[authority - 1u] = (spx_shb_vec_entry){0};
+        *e = (spx_shb_vec_entry){0};
+        *out = (spx_shb_vec){0};
         return SPX_SHB_VEC_CAPACITY_REFUSED;
     }
     spx_shb_vec staged = { .rows = rows, .capacity = capacity, .issuer = registry->issuer,
         .authority = authority };
-    spx_shb_vec_publish(registry, &staged, &registry->vec[authority - 1u], out);
+    spx_shb_vec_publish(&staged, e, out, spx_shb_fresh_generation(registry));
     return SPX_SHB_OK;
 }
 /* A refused push leaves the staged owner with the caller, as legacy does. */
@@ -511,10 +521,11 @@ SPX_SHB_FN uint32_t spx_shb_vec_push(
     (void)spx_shb_resolve_unloaned(registry, value);
     if (out == NULL || out == source) SPX_SHB_FAIL_STOP("invalid shared Bytes Vec result");
     if (source->len == source->capacity) return SPX_SHB_VEC_FULL;
+    uint64_t generation = spx_shb_fresh_generation(registry);
     source->rows[source->len] = spx_shb_take_owner(registry, value); source->len++;
-    spx_shb_vec_publish(registry, source, e, out); return SPX_SHB_OK;
+    spx_shb_vec_publish(source, e, out, generation); return SPX_SHB_OK;
 }
-/* Pop transfers the original lease; nothing is renewed or allocated. */
+/* Pop transfers the original lease and renews only the Vec authority. */
 SPX_SHB_FN void spx_shb_vec_pop(
     spx_shb_registry *registry, spx_shb_vec *source, uint32_t *tag, spx_shb_bytes *item, spx_shb_vec *out
 ) {
@@ -522,14 +533,18 @@ SPX_SHB_FN void spx_shb_vec_pop(
     spx_shb_preflight_rows(registry, source, UINT64_C(0));
     if (tag == NULL || item == NULL || out == NULL || out == source)
         SPX_SHB_FAIL_STOP("invalid shared Bytes Vec pop output");
-    *tag = 0u; *item = (spx_shb_bytes){0};
+    spx_shb_bytes popped = {0};
+    uint32_t has_item = 0u;
     if (source->len != UINT64_C(0)) {
         uint64_t last = source->len - 1u;
         spx_shb_bytes owner = spx_shb_row_owner(source, last);
-        *item = spx_shb_move(registry, &owner);
-        source->rows[last] = (spx_shb_stored){0}; source->len = last; *tag = 1u;
+        popped = spx_shb_move(registry, &owner);
+        has_item = 1u;
     }
-    spx_shb_vec_publish(registry, source, e, out);
+    uint64_t generation = spx_shb_fresh_generation(registry);
+    if (has_item) source->rows[--source->len] = (spx_shb_stored){0};
+    spx_shb_vec_publish(source, e, out, generation);
+    *item = popped; *tag = has_item;
 }
 SPX_SHB_FN uint32_t spx_shb_vec_view(
     spx_shb_registry *registry, const spx_shb_vec *source, uint64_t index, spx_slice_u8_v1 *out
@@ -551,18 +566,20 @@ SPX_SHB_FN uint32_t spx_shb_vec_set(
     if (index >= source->len) return SPX_SHB_VEC_INDEX;
     if (source->rows[index].slot == value->slot)
         SPX_SHB_FAIL_STOP("shared Bytes Vec set value aliases its replaced row");
+    uint64_t generation = spx_shb_fresh_generation(registry);
     spx_shb_drop_row(registry, source, index);
     source->rows[index] = spx_shb_take_owner(registry, value);
-    spx_shb_vec_publish(registry, source, e, out); return SPX_SHB_OK;
+    spx_shb_vec_publish(source, e, out, generation); return SPX_SHB_OK;
 }
 /* Canonical ascending element order, as the legacy runtime settles rows. */
 SPX_SHB_FN void spx_shb_vec_clear(spx_shb_registry *registry, spx_shb_vec *source, spx_shb_vec *out) {
     spx_shb_vec_entry *e = spx_shb_vec_valid(registry, source);
     if (out == NULL || out == source) SPX_SHB_FAIL_STOP("invalid shared Bytes Vec result");
     spx_shb_preflight_rows(registry, source, UINT64_C(0));
+    uint64_t generation = spx_shb_fresh_generation(registry);
     for (uint64_t i = UINT64_C(0); i < source->len; ++i) spx_shb_drop_row(registry, source, i);
     source->len = UINT64_C(0);
-    spx_shb_vec_publish(registry, source, e, out);
+    spx_shb_vec_publish(source, e, out, generation);
 }
 SPX_SHB_FN uint32_t spx_shb_vec_reserve_exact(
     spx_shb_registry *registry, spx_shb_vec *source, uint64_t additional, spx_shb_vec *out
@@ -574,6 +591,7 @@ SPX_SHB_FN uint32_t spx_shb_vec_reserve_exact(
     uint64_t required = source->len + additional;
     uint64_t target = source->capacity > required ? source->capacity : required;
     if (target > SPX_SHB_VEC_CAPACITY) return SPX_SHB_VEC_CAPACITY_REFUSED;
+    spx_shb_require_generation(registry);
     if (target != source->capacity) {
         spx_shb_stored *rows = (spx_shb_stored *)SPX_SHB_METADATA_CALLOC((size_t)target, sizeof(spx_shb_stored));
         if (rows == NULL) return SPX_SHB_VEC_CAPACITY_REFUSED;
@@ -581,7 +599,7 @@ SPX_SHB_FN uint32_t spx_shb_vec_reserve_exact(
         if (source->rows != NULL) SPX_SHB_METADATA_FREE(source->rows);
         source->rows = rows; source->capacity = target;
     }
-    spx_shb_vec_publish(registry, source, e, out); return SPX_SHB_OK;
+    spx_shb_vec_publish(source, e, out, spx_shb_fresh_generation(registry)); return SPX_SHB_OK;
 }
 SPX_SHB_FN uint32_t spx_shb_vec_clone_at(
     spx_shb_registry *registry, const spx_shb_vec *source, uint64_t index, spx_shb_bytes *out
@@ -752,8 +770,7 @@ SPX_SHB_FN void spx_shb_partition_commit(
         SPX_SHB_FAIL_STOP("shared Bytes partition commit lost its preflight");
     if (registry->next_nonce == UINT64_C(0) || reservation.count > UINT64_MAX - registry->next_nonce)
         SPX_SHB_FAIL_STOP("shared Bytes lease generation exhausted");
-    if (registry->next_generation == UINT64_C(0) || registry->next_generation == UINT64_MAX)
-        SPX_SHB_FAIL_STOP("shared Bytes Vec generation exhausted");
+    uint64_t generation = spx_shb_fresh_generation(registry);
     spx_shb_backing *backing = r.backing;
     *source = (spx_shb_bytes){0};
     backing->whole.live = 0u;
@@ -773,7 +790,7 @@ SPX_SHB_FN void spx_shb_partition_commit(
     spx_shb_vec staged = { .rows = reservation.rows, .len = reservation.count, .capacity = reservation.count,
         .issuer = registry->issuer, .authority = plan->authority };
     *plan = (spx_shb_partition_plan){0};
-    spx_shb_vec_publish(registry, &staged, e, out);
+    spx_shb_vec_publish(&staged, e, out, generation);
 }
 
 /* Public boundary: copy out into a fresh provider allocation, then settle the

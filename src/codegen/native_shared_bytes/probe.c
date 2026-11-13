@@ -100,6 +100,46 @@ PROBE_FN void pop_survives_parent_and_sibling_drop(void) {
     spx_shb_registry_finish(&reg);
 }
 
+PROBE_FN void vec_generation_precedes_mutation(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_copy(&reg, slice("abc", 3u), &a);
+    partition(&a, 3u, 1u, &v);
+    stale_vec = v;
+    tag = 7u;
+    c = (spx_shb_bytes){ .issuer = UINT64_C(99) };
+    w = (spx_shb_vec){ .generation = UINT64_C(99) };
+    reg.next_generation = UINT64_MAX;
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_pop(&reg, &v, &tag, &c, &w));
+    assert(tag == 7u && c.issuer == 99u && w.generation == 99u);
+    assert(v.len == stale_vec.len && v.generation == stale_vec.generation);
+    stale = spx_shb_row_owner(&v, 2u);
+    assert(view_is(&stale, "c", 1u) && payload_pool.frees == 0u);
+
+    spx_shb_zeroed(&reg, 1u, &b);
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_set(&reg, &v, 2u, &b, &w));
+    assert(view_is(&b, "\0", 1u) && view_is(&stale, "c", 1u));
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_clear(&reg, &v, &w));
+    assert(v.len == 3u && payload_pool.frees == 0u && view_is(&stale, "c", 1u));
+    const size_t metadata_calls = metadata_pool.calls;
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_reserve_exact(&reg, &v, 4u, &w));
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_with_capacity(&reg, 4u, &w));
+    assert(metadata_pool.calls == metadata_calls && w.generation == 99u);
+    assert(spx_shb_vec_push(&reg, &v, &b, &w) == SPX_SHB_VEC_FULL);
+
+    reg.next_generation = UINT64_MAX - 1u;
+    spx_shb_vec_pop(&reg, &v, &tag, &c, &w);
+    assert(tag == 1u && w.generation == UINT64_MAX - 1u && reg.next_generation == UINT64_MAX);
+    EXPECT_STOP("stale", (void)spx_shb_vec_len(&reg, &stale_vec));
+    EXPECT_STOP("Vec generation exhausted", spx_shb_vec_push(&reg, &w, &b, &v));
+    assert(w.len == 2u && view_is(&b, "\0", 1u));
+    spx_shb_vec_drop(&reg, &w);
+    assert(view_is(&c, "c", 1u) && payload_pool.frees == 0u);
+    spx_shb_drop(&reg, &c);
+    spx_shb_drop(&reg, &b);
+    assert(payload_pool.frees == 2u && metadata_pool.live == 0u);
+    spx_shb_registry_finish(&reg);
+}
+
 /* Iteration transfers leases; abandonment settles the rest in order. */
 PROBE_FN void iteration_and_abandonment(void) {
     census_reset(); fresh(&reg);
@@ -630,6 +670,7 @@ int main(void) {
     exact_bytes_and_no_payload_charge();
     mutation_isolation();
     pop_survives_parent_and_sibling_drop();
+    vec_generation_precedes_mutation();
     iteration_and_abandonment();
     iterator_generation_precedes_child_transfer();
     deep_clone_isolation_and_charges();

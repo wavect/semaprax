@@ -347,11 +347,10 @@ export function createPrivateOrdinaryByteHost(options = {}) {
     return value;
   };
   // Every successful Vec mutation renews the Vec authority.
-  const renewVec = (handle, value) => {
+  const renewVec = (handle, value, successor) => {
     vectors.delete(handle);
-    const renewed = nextHandle();
-    vectors.set(renewed, value);
-    return renewed;
+    vectors.set(successor, value);
+    return successor;
   };
   const outputView = (out, length) => {
     if (!Number.isInteger(out) || out < 0 || out > memory().buffer.byteLength - length) return null;
@@ -569,8 +568,9 @@ export function createPrivateOrdinaryByteHost(options = {}) {
       const value = vector(handle, tag);
       if (tag === OWNED_BYTES_TAG) owned(item);
       if (BigInt(value.values.length) >= value.capacity) return 0n;
+      const successor = nextHandle();
       value.values.push(item);
-      return renewVec(handle, value);
+      return renewVec(handle, value, successor);
     },
     spx_vec_len_v2: (handle, tag) => BigInt(vector(handle, tag).values.length),
     spx_vec_capacity_v2: (handle, tag) => vector(handle, tag).capacity,
@@ -593,23 +593,26 @@ export function createPrivateOrdinaryByteHost(options = {}) {
       if (typeof additional !== "bigint" || additional < 0n) return 0n;
       const target = BigInt(value.values.length) + additional;
       if (target > MAX_VEC_CAPACITY) return 0n;
+      const successor = nextHandle();
       if (target > value.capacity) value.capacity = target;
-      return renewVec(handle, value);
+      return renewVec(handle, value, successor);
     },
     spx_vec_set_v2: (handle, tag, index, item) => {
       const value = vector(handle, tag);
       if (tag === OWNED_BYTES_TAG) owned(item);
       if (typeof index !== "bigint" || index < 0n || index >= BigInt(value.values.length)) return 0n;
+      const successor = nextHandle();
       if (tag === OWNED_BYTES_TAG) drop(value.values[Number(index)]);
       value.values[Number(index)] = item;
-      return renewVec(handle, value);
+      return renewVec(handle, value, successor);
     },
     spx_vec_clear_v2: (handle, tag) => {
       const value = vector(handle, tag);
+      const successor = nextHandle();
       const old = value.values;
       value.values = [];
       if (tag === OWNED_BYTES_TAG) for (const item of old) drop(item);
-      return renewVec(handle, value);
+      return renewVec(handle, value, successor);
     },
 
     // Consuming traversal: the Vec authority ends and the iterator owns the

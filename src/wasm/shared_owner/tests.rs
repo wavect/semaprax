@@ -706,4 +706,16 @@ fn shared_owner_hostile_lifecycle_regressions() {
     let directory = stage(&[("hostile.mjs", HOSTILE.as_bytes())]);
     let stdout = run_node(&directory, "hostile.mjs", &[]);
     assert!(stdout.contains("shared-owner-ok"), "{stdout}");
+    // Run the actual host operations with its handle sequence at the boundary.
+    let start = "let nextHandleSerial = 1n;";
+    assert_eq!(HOST_SOURCE.matches(start).count(), 1);
+    let edge = HOST_SOURCE.replacen(start, "let nextHandleSerial = (1n << 63n) - 3n;", 1);
+    let directory = stage(&[
+        ("host.mjs", edge.as_bytes()),
+        (
+            "vec-generation.mjs",
+            include_bytes!("tests/vec-generation.mjs"),
+        ),
+    ]);
+    run_node(&directory, "vec-generation.mjs", &[]);
 }

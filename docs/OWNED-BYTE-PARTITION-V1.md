@@ -271,6 +271,13 @@ including failures in each lexical scope and bounded producer refusal.
 The [run at `19a7abc88`](https://github.com/wavect/semaprax/actions/runs/43515606457)
 passed the same 36 selected tests and Clippy with the generated native and
 Wasm repeated-source failure paths and the native result-generation preflight.
+The [run at `dfd77d2a7`](https://github.com/wavect/semaprax/actions/runs/43517557123)
+passed the 36-test selection with native stale-ticket rejection. The
+[42-test run at `9a8bcab70`](https://github.com/wavect/semaprax/actions/runs/43520085520)
+also passed scoped production Clippy. It adds the independent operation and
+source/HIR operand proofs to the selection and covers Wasm empty-ticket
+settlement, duplicate backing claims, and private source/cache round-trip
+with refusal at ordinary graph and public target entry points.
 
 The previous native registry kept a child-table debit after the table was
 freed. The Wasm host previously admitted new partitions using individual

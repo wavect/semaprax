@@ -470,6 +470,23 @@ PROBE_FN void generation_exhaustion(void) {
     assert(payload_pool.live == 0u && metadata_pool.live == 0u);
 }
 
+/* Vec result generation is checked before committing the source lease. */
+PROBE_FN void partition_result_generation_exhaustion(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_copy(&reg, slice("abcd", 4u), &a);
+    assert(spx_shb_partition_prepare(&reg, &a, 2u, 2u, &plan) == SPX_SHB_OK);
+    v = (spx_shb_vec){ .len = UINT64_C(123) };
+    reg.next_generation = UINT64_MAX;
+    EXPECT_STOP("Vec generation exhausted", spx_shb_partition_commit(&reg, &plan, &a, &v));
+    assert(v.len == 123u && view_is(&a, "abcd", 4u));
+    assert(reg.next_nonce == 2u && reg.child_held == 2u && reg.child_table_slots == 0u);
+    assert(plan.armed && reg.vec[plan.authority - 1u].state == SPX_SHB_VEC_RESERVED);
+    spx_shb_partition_abort(&reg, &plan);
+    assert(metadata_pool.live == 0u && payload_pool.live == 1u);
+    spx_shb_drop(&reg, &a);
+    spx_shb_registry_finish(&reg);
+}
+
 /* Ordinary Vec<Bytes> transitions keep the legacy failure selection. */
 PROBE_FN void vec_operations(void) {
     census_reset(); fresh(&reg);
@@ -513,6 +530,7 @@ int main(void) {
     copy_out_and_provider_drop();
     plans_and_final_settlement();
     generation_exhaustion();
+    partition_result_generation_exhaustion();
     vec_operations();
     puts("shared-owner Bytes probe: ok");
     return 0;

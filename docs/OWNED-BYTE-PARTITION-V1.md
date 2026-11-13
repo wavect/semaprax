@@ -591,7 +591,9 @@ the sealed source functions. No caller can supply a raw program or closure.
 
 Partition preparation leaves the canonical staged Bytes live on failure; the
 actual operation status selects its existing exact failure exit. Successful
-commit clears that same carrier before result initialization. One registry
+commit checks child and Vec result generation capacity before clearing that
+carrier. The exhaustion probe verifies that the original owner, unpublished
+reservation, and caller result slot survive the refusal. One registry
 covers the entry and all helpers, and detachment requires zero loans, leases,
 Vecs and pending reservations before result publication. The additional graph
 counter does not fund compiler proof or runtime heap storage. Ordinary/default

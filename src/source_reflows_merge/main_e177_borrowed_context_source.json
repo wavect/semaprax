@@ -1,0 +1,84 @@
+[
+  {
+    "begin": "// BEGIN BORROWED INDEPENDENT OLD DIRECT CONTROL\n",
+    "end": "// END BORROWED INDEPENDENT OLD ROW CONTROL\n",
+    "edits": [
+      [
+        13,
+        "fn independent_old_direct(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    expected: &str,\n    supplied: &str,\n) -> String {\n",
+        "fn independent_old_direct(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n"
+      ],
+      [
+        1221,
+        "fn independent_old_row(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    expected: &str,\n    supplied: &str,\n) -> String {\n",
+        "fn independent_old_row(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n"
+      ]
+    ]
+  },
+  {
+    "begin": "// BEGIN EXPLICIT BORROWED STAGE METADATA\n",
+    "end": "// END BORROWED CURRENT CONTINUATION\n",
+    "edits": [
+      [
+        0,
+        "fn stage_with_context(\n    authenticated: &serde_json::Value,\n    canonical: &serde_json::Value,\n    row: &serde_json::Value,\n) -> Option<serde_json::Value> {\n",
+        "fn stage_with_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<serde_json::Value> {\n"
+      ],
+      [
+        209,
+        "    if !super::overlay_v2::REPLACEMENTS.contains(&source)\n        && !super::overlay_v2::ADDITIONS.contains(&source)\n    {\n        return None;\n    }\n    let current_row = authenticated[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|r| r[\"source\"] == source)\n        .unwrap()\n        .clone();\n",
+        "    if !super::overlay_v2::REPLACEMENTS.contains(&source) && !super::overlay_v2::ADDITIONS.contains(&source) { return None; }\n    let current_row = authenticated[\"rows\"].as_array().unwrap().iter().find(|r| r[\"source\"] == source).unwrap().clone();\n"
+      ],
+      [
+        829,
+        "fn stage_normalize_context(\n    authenticated: &serde_json::Value,\n    canonical: &serde_json::Value,\n    row: &serde_json::Value,\n    supplied: &str,\n) -> Option<String> {\n",
+        "fn stage_normalize_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value, supplied: &str) -> Option<String> {\n"
+      ],
+      [
+        1264,
+        "fn stage_requested_context(\n    authenticated: &serde_json::Value,\n    canonical: &serde_json::Value,\n",
+        "fn stage_requested_context(authenticated: &serde_json::Value, canonical: &serde_json::Value,\n"
+      ],
+      [
+        2108,
+        "fn requested_context(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    expected: &str,\n    supplied: &str,\n) -> Option<String> {\n    clippy_stage::compiled(source)?;\n    let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n    let packet = stage;\n    let row = packet[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|row| row[\"source\"] == source)?;\n    if let Some(value) = stage_requested_context(authenticated, stage, row, expected, supplied) {\n        return value;\n",
+        "fn requested_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> Option<String> {\n        clippy_stage::compiled(source)?;\n        let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n        let packet = stage;\n        let row = packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|row| row[\"source\"] == source)?;\n        if let Some(value) = stage_requested_context(authenticated, stage, row, expected, supplied) {\n            return value;\n        }\n        let actual = current_context(authenticated, stage, row);\n        let selected = [&row[\"before\"], &row[\"current\"]]\n            .into_iter()\n            .chain(\n                row.get(\"views\")\n                    .and_then(serde_json::Value::as_array)\n                    .into_iter()\n                    .flatten(),\n            )\n            .find(|pin| pin[\"sha256\"] == expected)?;\n        let previous = clippy_stage::pin(selected);\n        if supplied == actual || supplied == previous {\n            Some(previous)\n        } else {\n            None\n        }\n"
+      ],
+      [
+        2689,
+        "    let actual = current_context(authenticated, stage, row);\n    let selected = [&row[\"before\"], &row[\"current\"]]\n        .into_iter()\n        .chain(\n            row.get(\"views\")\n                .and_then(serde_json::Value::as_array)\n                .into_iter()\n                .flatten(),\n        )\n        .find(|pin| pin[\"sha256\"] == expected)?;\n    let previous = clippy_stage::pin(selected);\n    if supplied == actual || supplied == previous {\n        Some(previous)\n    } else {\n        None\n",
+        "fn normalize_context<'a>(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {\n        if clippy_stage::compiled(source).is_none() {\n            return std::borrow::Cow::Borrowed(supplied);\n        }\n        let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n        let packet = stage;\n        let Some(row) = packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|row| row[\"source\"] == source)\n        else {\n            return std::borrow::Cow::Borrowed(supplied);\n        };\n        if let Some(value) = stage_normalize_context(authenticated, stage, row, supplied) {\n            return std::borrow::Cow::Owned(value);\n        }\n        let actual = current_context(authenticated, stage, row);\n        if supplied == actual {\n            std::borrow::Cow::Owned(clippy_stage::pin(&row[\"before\"]))\n        } else {\n            std::borrow::Cow::Borrowed(supplied)\n        }\n"
+      ],
+      [
+        3195,
+        "}\nfn normalize_context<'a>(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    supplied: &'a str,\n) -> std::borrow::Cow<'a, str> {\n    if clippy_stage::compiled(source).is_none() {\n        return std::borrow::Cow::Borrowed(supplied);\n    }\n    let stage = stage.expect(\"compiled stage metadata belongs to this invocation\");\n    let packet = stage;\n    let Some(row) = packet[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|row| row[\"source\"] == source)\n    else {\n        return std::borrow::Cow::Borrowed(supplied);\n    };\n    if let Some(value) = stage_normalize_context(authenticated, stage, row, supplied) {\n        return std::borrow::Cow::Owned(value);\n    }\n    let actual = current_context(authenticated, stage, row);\n    if supplied == actual {\n        std::borrow::Cow::Owned(clippy_stage::pin(&row[\"before\"]))\n    } else {\n        std::borrow::Cow::Borrowed(supplied)\n    }\n}\nfn with_packet_direct_context(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    expected: &str,\n    supplied: &str,\n) -> String {\n",
+        "fn with_packet_direct_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n"
+      ],
+      [
+        5186,
+        "fn direct_row_context(\n    authenticated: &serde_json::Value,\n    stage: Option<&serde_json::Value>,\n    source: &str,\n    expected: &str,\n    supplied: &str,\n) -> String {\n    if authenticated[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .any(|row| row[\"source\"] == source)\n    {\n",
+        "fn direct_row_context(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source: &str, expected: &str, supplied: &str) -> String {\n    if authenticated[\"rows\"].as_array().unwrap().iter().any(|row| row[\"source\"] == source) {\n"
+      ],
+      [
+        5577,
+        "    } else {\n        supplied.to_owned()\n    }\n",
+        "    } else { supplied.to_owned() }\n"
+      ],
+      [
+        5667,
+        "fn stage_current_context(\n    authenticated: &serde_json::Value,\n    canonical: &serde_json::Value,\n    row: &serde_json::Value,\n) -> Option<String> {\n",
+        "fn stage_current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> Option<String> {\n"
+      ],
+      [
+        5937,
+        "fn current_context(\n    authenticated: &serde_json::Value,\n    canonical: &serde_json::Value,\n    row: &serde_json::Value,\n) -> String {\n    if let Some(value) = stage_current_context(authenticated, canonical, row) {\n        return value;\n",
+        "fn current_context(authenticated: &serde_json::Value, canonical: &serde_json::Value, row: &serde_json::Value) -> String {\n        if let Some(value) = stage_current_context(authenticated, canonical, row) {\n            return value;\n        }\n        let source = row[\"source\"].as_str().unwrap();\n        let expected = &row[\"current\"];\n        let raw = super::held_4a6eb(\n            &Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source),\n            expected[\"length\"].as_u64().unwrap() as usize,\n            expected[\"sha256\"].as_str().unwrap(),\n        )\n        .unwrap();\n        assert_eq!(\n            Some(raw.as_str()),\n            clippy_stage::compiled(source),\n            \"complete successor compiled source\"\n        );\n        assert_eq!(raw, clippy_stage::pin(expected), \"complete successor archive\");\n        raw\n"
+      ],
+      [
+        6182,
+        "    let source = row[\"source\"].as_str().unwrap();\n    let expected = &row[\"current\"];\n    let raw = super::held_4a6eb(\n        &Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source),\n        expected[\"length\"].as_u64().unwrap() as usize,\n        expected[\"sha256\"].as_str().unwrap(),\n    )\n    .unwrap();\n    assert_eq!(\n        Some(raw.as_str()),\n        clippy_stage::compiled(source),\n        \"complete successor compiled source\"\n    );\n    assert_eq!(\n        raw,\n        clippy_stage::pin(expected),\n        \"complete successor archive\"\n    );\n    raw\n}\n",
+        ""
+      ]
+    ]
+  }
+]

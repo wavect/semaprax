@@ -562,6 +562,12 @@ receiving and the complete caller-funded native account remain pending.
 Two owning source bodies retain original 4096/count geometry at O0/O2 and actual
 four-code failure/poison-result/reentry controls. Both bodies passed in the
 focused run above.
+The private native entry copies the normalized failure domain into caller-owned
+storage before its local status arena expires. Success leaves the caller's
+status outputs untouched. An AddressSanitizer probe on the retained generated
+failure unit reproduced a stack-use-after-return with the original entry and
+passed at C11 O0 and O2 with the copied domain and poisoned scalar output.
+
 ### Closed interpreter invocation account and whole backing receiver
 
 The private interpreter receiver now lends one stack-held account into the

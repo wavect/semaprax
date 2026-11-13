@@ -1,6 +1,7 @@
 /* One registry covers all actual source helpers in this invocation. */
+typedef char spx_partition_status_domain[SPX_STATUS_DOMAIN_MAX_BYTES];
 static __attribute__((unused)) uint32_t spx_partition_run(
-    int64_t *result_out, const char **domain_out, uint32_t *code_out
+    int64_t *result_out, spx_partition_status_domain *domain_out, uint32_t *code_out
 ) {
     if (result_out == NULL || domain_out == NULL || code_out == NULL)
         spx_runtime_invariant_failure("partition entry output is absent");
@@ -20,7 +21,10 @@ static __attribute__((unused)) uint32_t spx_partition_run(
     if (status != SPX_STATUS_SUCCESS) {
         if (context.status_arena.length != 1u)
             spx_runtime_invariant_failure("partition entry status is not selected");
-        *domain_out = entries[0].status.domain_id;
+        size_t domain_size = 0;
+        if (!spx_status_domain_size(entries[0].status.domain_id, &domain_size))
+            spx_runtime_invariant_failure("partition entry status domain is invalid");
+        memcpy(*domain_out, entries[0].status.domain_id, domain_size);
         *code_out = entries[0].status.code;
         return 1u;
     }
@@ -30,7 +34,7 @@ static __attribute__((unused)) uint32_t spx_partition_run(
 #ifndef SPX_NO_ENTRY_WRAPPER
 int main(void) {
     int64_t result = INT64_C(0);
-    const char *domain = NULL; uint32_t code = 0u;
+    spx_partition_status_domain domain = {0}; uint32_t code = 0u;
     if (spx_partition_run(&result, &domain, &code) != 0u) {
         fprintf(stderr, "%s:%u\n", domain, code); return 1;
     }

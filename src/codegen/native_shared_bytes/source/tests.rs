@@ -55,9 +55,9 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
 {unit}
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
-        int64_t result = INT64_C(-999); const char *domain = NULL; uint32_t code = 0u;
+        int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
         if (spx_partition_run(&result, &domain, &code) != 0u || result != INT64_C({expected})) return 1;
-        if (domain != NULL || code != 0u) return 2;
+        if (strcmp(domain, "unpublished") != 0 || code != 0u) return 2;
     }}
     return 0;
 }}
@@ -99,9 +99,9 @@ fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup
                 r#"
 int main(void) {{
     for (uint32_t i = 0; i < 3u; ++i) {{
-        int64_t result = INT64_C(-999); const char *domain = NULL; uint32_t code = 0u;
+        int64_t result = INT64_C(-999); spx_partition_status_domain domain = "unpublished"; uint32_t code = 0u;
         if (spx_partition_run(&result, &domain, &code) != 1u) return 1;
-        if (result != INT64_C(-999) || domain == NULL || strcmp(domain, "{STATUS_DOMAIN}") != 0 || code != {code}u) return 2;
+        if (result != INT64_C(-999) || strcmp(domain, "{STATUS_DOMAIN}") != 0 || code != {code}u) return 2;
     }}
     return 0;
 }}

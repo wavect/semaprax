@@ -7,6 +7,8 @@ use crate::construction_fusion::{domain::Refusal, partition::Fault};
 use crate::hir::byte_partition::ValidatedPartitionProgram;
 
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
+const EMPTY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 
 fn source(extent: u64, count: u64, width: u64) -> String {
     format!(
@@ -24,7 +26,7 @@ fn original_4096_source_uses_one_backing_and_canonical_scalar_publication() {
     for (text, extent, count) in [
         (source(12288, 4096, 3), 12288, 4096),
         (source(3, 1, 3), 3, 1),
-        (source(0, 0, u64::MAX), 0, 0),
+        (EMPTY_SOURCE.to_owned(), 0, 0),
         (SHARED_SOURCE.to_owned(), 65_536, 4096),
     ] {
         assert!(crate::check(&text, "partition-direct.spx").is_err());

@@ -1,0 +1,9 @@
+module partition_direct;
+
+@id("partition_direct.main")
+fn main() -> i64
+{
+    let whole = bytes_zeroed(0usize);
+    let children = bytes_partition(whole, 0usize, 18446744073709551615usize);
+    i64_from_usize(vec_len<Bytes>(children))
+}

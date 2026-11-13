@@ -12,6 +12,8 @@ const SOURCE: &str = r#"module partition_native;
 }
 "#;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
+const EMPTY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 fn source(text: &str) -> String {
     let ast = crate::parse(text, "partition_native.spx").unwrap();
     assert!(crate::check(text, "partition_native.spx").is_err());
@@ -45,8 +47,12 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
     assert!(emitted.contains("spx_shb_partition_commit(spx_shb_held(spx_ctx)"));
     assert!(emitted.contains("#define spx_bytes_drop(value) spx_shb_drop"));
     assert!(emitted.contains("spx_shb_detach(&context);"));
-    for (unit, expected) in [(emitted, 7), (source(SHARED_SOURCE), 4096)] {
-        let root = scratch("source-4096");
+    for (unit, expected) in [
+        (emitted, 7),
+        (source(SHARED_SOURCE), 4096),
+        (source(EMPTY_SOURCE), 0),
+    ] {
+        let root = scratch("source-partition");
         compile_and_run(
             &root,
             &format!(

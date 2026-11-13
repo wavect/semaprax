@@ -13,6 +13,8 @@ const SOURCE: &str = r#"module partition_wasm;
 }
 "#;
 const SHARED_SOURCE: &str = include_str!("../../../../tests/fixtures/byte-partition-private.spx");
+const EMPTY_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 
 fn emitted(source: &str) -> PartitionModule {
     let ast = crate::parse(source, "partition_wasm.spx").unwrap();
@@ -41,10 +43,11 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         "if vec_len<Bytes>(values)==4096usize {7}else{0}",
         "let mut seen=0; for own item in vec_into_iter<Bytes>(values) { let view=bytes_as_slice(item); if byte_len(view)==16usize {seen=seen+1;0}else{seen=0;0} } seen",
     );
-    for (source, expected) in [
-        (SOURCE, "7"),
-        (iterator.as_str(), "4096"),
-        (SHARED_SOURCE, "4096"),
+    for (source, expected, payload) in [
+        (SOURCE, "7", "65536"),
+        (iterator.as_str(), "4096", "65536"),
+        (SHARED_SOURCE, "4096", "65536"),
+        (EMPTY_SOURCE, "0", "0"),
     ] {
         let module = emitted(source);
         if node_available() {
@@ -55,7 +58,11 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
                 ("app.wasm", module.bytes()),
                 ("entry.mjs", entry.as_bytes()),
             ]);
-            let stdout = run_node(&directory, "ordinary.mjs", &["app.wasm", expected, "plain"]);
+            let stdout = run_node(
+                &directory,
+                "ordinary.mjs",
+                &["app.wasm", expected, "plain", payload],
+            );
             assert!(stdout.contains("shared-owner-ordinary-ok"));
             assert!(stdout.contains("partition-paired-success-ok"));
         }
@@ -115,13 +122,14 @@ console.log('partition-entry-ok');
 const SUCCESS_ENTRY_TEST: &str = r#"
 import { install } from './entry.mjs';
 const pairedMetadata = 16384*6 + 8192*22 + 32*11 + 32*8;
-const pairedEntry = await install(pairedMetadata+65536);
+const payload = Number(process.argv[5]);
+const pairedEntry = await install(pairedMetadata+payload);
 for (let run=0; run<4; run+=1) {
  const outcome = pairedEntry.invoke();
  if (JSON.stringify(outcome) !== JSON.stringify({outcome:'returned',result:expected.toString()})) throw new Error(JSON.stringify(outcome));
  if ('status' in outcome || 'reason' in outcome) throw new Error('success published failure');
  const account = pairedEntry.account();
- if (account.reserved !== pairedMetadata || account.peak !== pairedMetadata+65536) throw new Error(JSON.stringify(account));
+ if (account.reserved !== pairedMetadata || account.peak !== pairedMetadata+payload) throw new Error(JSON.stringify(account));
 }
 console.log('partition-paired-success-ok');
 "#;

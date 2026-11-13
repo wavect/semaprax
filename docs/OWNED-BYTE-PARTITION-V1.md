@@ -222,11 +222,16 @@ result publication and reentry. The operation tests exercised geometry and
 diagnostic precedence, operand mutations and sticky work refusal.
 
 These cases establish the private execution contours described below. A single
-fixture, `tests/fixtures/byte-partition-private.spx`, is now shared by the three
-private receiver harnesses for a 4,096-child result and all four geometry
-faults. Executable qualification of the shared cases is pending. The full
-shared ownership matrix, ordinary graph/cache replay and the public copy-out
-bridge remain qualification requirements.
+fixture, `tests/fixtures/byte-partition-private.spx`, is shared by the three
+private receiver harnesses. At `f9849aaf2e`, the
+[hosted Linux qualification](https://github.com/wavect/semaprax/actions/runs/43507327046)
+passed all 14 selected tests and scoped production Clippy. It covers the
+shared 4,096-child result, all four geometry faults, and bounded producer
+failure before partition. The interpreter, native C11 at O0/O2, and paired
+Core-Wasm also share the zero-child fixture
+`tests/fixtures/byte-partition-private-empty.spx` in the owning selectors.
+The full shared ownership matrix, ordinary graph/cache replay and the public
+copy-out bridge remain qualification requirements.
 
 ## Separate construction-fusion obligation
 
@@ -663,7 +668,8 @@ import.
 
 Local probes exercised the actual empty producer-failure exit and replayed
 the bounded guard on retained native C11 and Core-Wasm partition artifacts.
-The focused original-source tests for all three private receivers remain queued.
+The hosted qualification above exercised the focused original-source tests for
+all three private receivers.
 Ordinary activation still needs copy and computed-request execution, views,
 iteration, helpers, contracts, general loan/frame settlement and public owned
 results.

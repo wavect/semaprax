@@ -86,8 +86,13 @@ fn same_program_roots_and_guard_reentry_keep_old_paths_work_and_first_errors() {
     let mut storage = Storage::new(&program);
     let mut old_budget = ReplayBudget::unobserved();
     let mut new_budget = ReplayBudget::unobserved();
-    reserve_program_skeleton_work(&program, program.functions.iter(), &mut old_budget).unwrap();
-    reserve_program_skeleton_work(&program, program.functions.iter(), &mut new_budget).unwrap();
+    // Both test arms enter enumeration directly. The program preflight can
+    // defer this reservation until after a factored comparison is attempted.
+    for function in &program.functions {
+        let upper = skeleton_work_upper(&program, function).unwrap();
+        factored::strategy::reserve_enumerated(function, &mut old_budget, upper).unwrap();
+        factored::strategy::reserve_enumerated(function, &mut new_budget, upper).unwrap();
+    }
     for function in &program.functions {
         let mut old = SkeletonWork::new(&program, function, &mut old_budget);
         let mut current = SkeletonWork::new(&program, function, &mut new_budget);

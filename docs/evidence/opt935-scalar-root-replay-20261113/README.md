@@ -12,4 +12,6 @@ The mixed fixture resolves and validates a program containing a partial byte rec
 | Heap requested in the observed window (bytes) | 0 | 0 |
 | Heap live on return in the observed window (bytes) | 0 | 0 |
 
-The skipped setups cover two contracts and three scalar function bodies. The selector consumes 405 reservation bytes per reached root, including roots that still use the walk. This fixture measured setup counts and reservations. CPU time and application admission remain unqualified, along with the complete native/Wasm and compiler quality gates required by [#935](https://github.com/wavect/semaprax/issues/935).
+The skipped setups cover two contracts and three scalar function bodies. The selector consumes 405 reservation bytes per reached root, including roots that still use the walk. This fixture measured setup counts and reservations.
+
+The nine `useful_data::byte_slice_for_runtime` tests also passed on the retained `c28cc443292fb5afb4e29f8db468d1b8b7336049` build. They exercise the interpreter, native C11, and Core Wasm, including nested traversal, failure cleanup, and the no-buffer check. The traversal receiver, its children, and those integration test sources match the recorded main checkout byte for byte. Full current-head compiler quality, CPU time, and application admission remain unqualified for [#935](https://github.com/wavect/semaprax/issues/935).

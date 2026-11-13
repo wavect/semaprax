@@ -301,6 +301,9 @@ paired Core Wasm return `semaprax.contract.v1` code 2 after settlement.
 The native test keeps the caller result sentinel intact and checks each
 backing free. The Wasm test checks that failure has no result and that the
 managed account returns to its metadata baseline before reentry.
+The [hosted run at `ed2103682`](https://github.com/wavect/semaprax/actions/runs/43522226242)
+passed all 43 selected tests and scoped production Clippy, including the
+interpreter, native and paired Wasm postcondition controls.
 
 The full shared ownership matrix, ordinary graph/cache replay and the public
 copy-out bridge remain qualification requirements.

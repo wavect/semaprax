@@ -180,8 +180,16 @@ The original fixture SHA-256 was
 The standalone compiler SHA-256 was
 `de70b5ec8e087ec4e718e6ecd14d26a873a3721cb7c309ee70fdf97528754e08`.
 These results qualify the retained compiler and current CLI harness together.
-The current compiler, the full #746 dependency, and matched agent costs
-remain open qualification work.
+The [hosted Linux run at `e5d46916d`](https://github.com/wavect/semaprax/actions/runs/43516458190)
+rebuilt the compiler and all three owning images with Rust 1.97.1. All 26
+selected tests passed, as did production library and CLI Clippy with warnings
+denied. The unchanged maximum fixture ran through the interpreter, C11 at O0
+and O2, and paired Core Wasm. The receipt also covers the alternate source
+geometry, cumulative funding and reentry, fresh source/cache selection,
+forged HIR refusals, and the ordinary allocation-limit controls.
+
+The full #746 dependency, the remaining cross-backend ownership cases, and
+matched agent costs remain open qualification work.
 
 ## Separate ordinary finite capacity prerequisite
 

@@ -402,7 +402,9 @@ pub(crate) fn execute(
                 mutable: false,
                 value,
                 ..
-            }, rest @ [_, _]] => {
+            }, rest @ ..]
+                if rest.len() == 2 =>
+            {
                 let K::Block {
                     statements,
                     tail: prefix_result,

@@ -426,14 +426,13 @@ pub(super) fn select_scalar_generic_closure(
 
 /// Retain a matched key's backing. An absent root still enters the original
 /// ordered closure walk so its diagnostic keeps the same priority.
-fn selected_root_identity<F>(
+pub(super) fn selected_root_identity<F>(
     available: &BTreeMap<hir::DeclarationId, F>,
     root: &str,
 ) -> hir::DeclarationId {
-    available.get_key_value(root).map_or_else(
-        || hir::DeclarationId::new(root),
-        |(id, _)| id.clone(),
-    )
+    available
+        .get_key_value(root)
+        .map_or_else(|| hir::DeclarationId::new(root), |(id, _)| id.clone())
 }
 
 pub(super) fn select_scalar_generic_roots(

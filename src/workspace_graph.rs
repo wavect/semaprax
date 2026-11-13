@@ -1653,7 +1653,7 @@ impl WorkspaceGraphBuild {
         if scalar_closure.is_none() {
             let mut pending = additional_roots
                 .iter()
-                .map(|root| hir::DeclarationId::new(root.clone()))
+                .map(|root| owned_generics::selected_root_identity(&available, root))
                 .collect::<BTreeSet<_>>();
             pending.insert(web_entrypoint.clone());
             while let Some(function_id) = pending.pop_first() {
@@ -1746,7 +1746,7 @@ impl WorkspaceGraphBuild {
                     profile,
                     base.module,
                     base.entrypoint,
-                    hir::DeclarationId::new(command_id.clone()),
+                    owned_generics::selected_root_identity(&available, command_id),
                     functions,
                 )
             }
@@ -1760,7 +1760,7 @@ impl WorkspaceGraphBuild {
                 hir::link_line_command_io_workspace(
                     base.module,
                     base.entrypoint,
-                    hir::DeclarationId::new(command_id.clone()),
+                    owned_generics::selected_root_identity(&available, command_id),
                     functions,
                 )
             }
@@ -1774,7 +1774,7 @@ impl WorkspaceGraphBuild {
                 hir::link_network_command_io_workspace(
                     base.module,
                     base.entrypoint,
-                    hir::DeclarationId::new(command_id.clone()),
+                    owned_generics::selected_root_identity(&available, command_id),
                     functions,
                 )
             }
@@ -1788,7 +1788,7 @@ impl WorkspaceGraphBuild {
                 hir::link_https_command_io_workspace(
                     base.module,
                     base.entrypoint,
-                    hir::DeclarationId::new(command_id.clone()),
+                    owned_generics::selected_root_identity(&available, command_id),
                     functions,
                 )
             }

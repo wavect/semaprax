@@ -244,6 +244,7 @@ PROBE_FN void metadata_allocation_failure_releases_unpublished_preparation(void)
         assert(!plan.armed && reg.child_held == 0u && reg.child_table_slots == 0u);
         assert(metadata_pool.calls == failed_request && metadata_pool.live == 0u);
         assert(metadata_pool.frees == failed_request - 1u);
+        assert(reg.backing[0].partition_authority == 0u);
         assert(view_is(&a, "hello!", 6u) && payload_pool.live == 1u && payload_pool.frees == 0u);
         assert(reg.events == 1u && reg.cumulative == 6u);
         for (size_t i = 0u; i < SPX_SHB_VECS; ++i) assert(reg.vec[i].state == SPX_SHB_VEC_FREE);
@@ -453,6 +454,31 @@ PROBE_FN void plans_and_final_settlement(void) {
     assert(payload_pool.live == 0u && metadata_pool.live == 0u);
 }
 
+/* Empty and nonempty reservations both claim their exact backing. */
+PROBE_FN void partition_preparation_claims_its_backing(void) {
+    census_reset(); fresh(&reg);
+    spx_shb_copy(&reg, slice("abcd", 4u), &a);
+    spx_shb_zeroed(&reg, 0u, &b);
+    assert(spx_shb_partition_prepare(&reg, &a, 2u, 2u, &plan) == SPX_SHB_OK);
+    stale = a;
+    EXPECT_STOP("backing already has a partition reservation",
+        (void)spx_shb_partition_prepare(&reg, &stale, 4u, 1u, &third_plan));
+    assert(reg.child_held == 2u && metadata_pool.calls == 2u && !third_plan.armed);
+    assert(spx_shb_partition_prepare(&reg, &b, 0u, 1u, &third_plan) == SPX_SHB_OK);
+    spx_shb_partition_abort(&reg, &plan);
+    assert(reg.child_held == 0u && metadata_pool.live == 0u);
+    EXPECT_STOP("backing already has a partition reservation",
+        (void)spx_shb_partition_prepare(&reg, &b, 0u, 1u, &plan));
+    spx_shb_drop(&reg, &a);
+    EXPECT_STOP("hold outlived", spx_shb_registry_finish(&reg));
+    spx_shb_partition_abort(&reg, &third_plan);
+    partition(&b, 0u, UINT64_MAX, &v);
+    assert(spx_shb_vec_len(&reg, &v) == 0u);
+    spx_shb_vec_drop(&reg, &v);
+    spx_shb_registry_finish(&reg);
+    assert(payload_pool.live == 0u && metadata_pool.live == 0u);
+}
+
 /* A reservation slot may be reused even for the same unchanged owner and
    geometry. A ticket from the retired reservation must still refuse. */
 PROBE_FN void partition_reservation_reuse_rejects_retired_ticket(void) {
@@ -586,6 +612,7 @@ int main(void) {
     loans_preflight_all_container_finalizers();
     copy_out_and_provider_drop();
     plans_and_final_settlement();
+    partition_preparation_claims_its_backing();
     partition_reservation_reuse_rejects_retired_ticket();
     generation_exhaustion();
     partition_child_nonce_exact_boundary();

@@ -85,6 +85,11 @@ monotonic reservation ticket. Commit and abort authenticate that ticket before
 accessing the reservation. Reusing a Vec authority slot for the same source and
 geometry still invalidates every retired ticket. The reservation reuses the
 existing Vec authority record's storage and adds one 64-bit counter per registry.
+Each backing records its one pending Vec reservation. A second preparation
+refuses before reserving slots or allocating, even when both request zero
+children. Abort and preparation allocation failure clear the claim, and commit
+clears it as the whole lease is consumed. Registry settlement checks for
+outstanding claims even when their child-slot charge is zero.
 
 The paired Core-Wasm registry binds each preparation to the live invocation
 and claims the exact buffer for the ticket's lifetime. A second array view of

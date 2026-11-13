@@ -98,7 +98,7 @@ typedef struct {
     unsigned char *payload; spx_shb_lease *child;
     uint64_t extent, width;
     spx_shb_lease whole;
-    uint32_t state, count, live, reserved;
+    uint32_t state, count, live, partition_authority;
 } spx_shb_backing;
 typedef struct {
     spx_shb_stored *rows; spx_shb_lease *table;
@@ -658,8 +658,8 @@ SPX_SHB_FN void spx_shb_iter_next(
 /* Partition. Prepare validates in the specified order, then holds and
    allocates the complete unpublished inventory; the source stays a caller-
    owned staged value. Abort releases only that unpublished metadata. Commit
-   cannot fail: it re-authenticates, then invalidates the whole lease and
-   publishes every child at once. Child leases and offset-zero or whole-extent
+   re-authenticates the reservation and source before it invalidates the whole
+   lease and publishes every child at once. Child leases and offset-zero or whole-extent
    children are never partition inputs. */
 SPX_SHB_FN uint32_t spx_shb_partition_prepare(
     spx_shb_registry *registry, const spx_shb_bytes *source, uint64_t count, uint64_t width,
@@ -669,6 +669,8 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
     spx_shb_resolved r = spx_shb_resolve_unloaned(registry, source);
     if (r.backing->state != SPX_SHB_WHOLE || r.lease_index != UINT64_C(0))
         SPX_SHB_FAIL_STOP("partition input is not an ordinary whole-backing lease");
+    if (r.backing->partition_authority != 0u)
+        SPX_SHB_FAIL_STOP("shared Bytes backing already has a partition reservation");
     if (width == UINT64_C(0)) return SPX_SHB_PARTITION_WIDTH_ZERO;
     if (count != UINT64_C(0) && width > UINT64_MAX / count) return SPX_SHB_PARTITION_EXTENT_OVERFLOW;
     if (count * width != r.len) return SPX_SHB_PARTITION_EXTENT_MISMATCH;
@@ -682,6 +684,7 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
         registry->vec[authority - 1u] = (spx_shb_vec_entry){0};
         SPX_SHB_FAIL_STOP("shared Bytes partition ticket exhausted");
     }
+    r.backing->partition_authority = authority;
     registry->child_held += count;
     spx_shb_stored *rows = NULL; spx_shb_lease *table = NULL;
     if (count != UINT64_C(0)) {
@@ -691,6 +694,7 @@ SPX_SHB_FN uint32_t spx_shb_partition_prepare(
         if (table == NULL) {
             if (rows != NULL) SPX_SHB_METADATA_FREE(rows);
             registry->child_held -= count;
+            r.backing->partition_authority = 0u;
             registry->vec[authority - 1u] = (spx_shb_vec_entry){0};
             SPX_SHB_FAIL_STOP("shared Bytes partition metadata allocation failed");
         }
@@ -712,7 +716,9 @@ SPX_SHB_FN spx_shb_vec_entry *spx_shb_plan_require(spx_shb_registry *registry, c
         || plan->authority > SPX_SHB_VECS || plan->ticket == UINT64_C(0))
         SPX_SHB_FAIL_STOP("forged shared Bytes partition plan");
     spx_shb_vec_entry *e = &registry->vec[plan->authority - 1u];
-    if (e->state != SPX_SHB_VEC_RESERVED || e->partition.ticket != plan->ticket)
+    if (e->state != SPX_SHB_VEC_RESERVED || e->partition.ticket != plan->ticket
+        || e->partition.backing_index >= registry->events
+        || registry->backing[e->partition.backing_index].partition_authority != plan->authority)
         SPX_SHB_FAIL_STOP("forged shared Bytes partition reservation");
     return e;
 }
@@ -720,6 +726,7 @@ SPX_SHB_FN void spx_shb_partition_abort(spx_shb_registry *registry, spx_shb_part
     spx_shb_vec_entry *e = spx_shb_plan_require(registry, plan);
     spx_shb_partition_reservation reservation = e->partition;
     registry->child_held -= reservation.count;
+    registry->backing[reservation.backing_index].partition_authority = 0u;
     *e = (spx_shb_vec_entry){0}; *plan = (spx_shb_partition_plan){0};
     if (reservation.table != NULL) SPX_SHB_METADATA_FREE(reservation.table);
     if (reservation.rows != NULL) SPX_SHB_METADATA_FREE(reservation.rows);
@@ -744,6 +751,7 @@ SPX_SHB_FN void spx_shb_partition_commit(
     spx_shb_backing *backing = r.backing;
     *source = (spx_shb_bytes){0};
     backing->whole.live = 0u;
+    backing->partition_authority = 0u;
     registry->child_held -= reservation.count; registry->child_table_slots += reservation.count;
     if (reservation.count == UINT64_C(0)) {
         backing->live = 0u; spx_shb_release_backing(registry, backing);
@@ -791,9 +799,13 @@ SPX_SHB_FN void spx_shb_registry_finish(spx_shb_registry *registry) {
     spx_shb_require(registry);
     if (registry->loans != 0u) SPX_SHB_FAIL_STOP("shared Bytes registry finished with a live loan");
     if (registry->child_held != UINT64_C(0)) SPX_SHB_FAIL_STOP("shared Bytes partition hold outlived its call");
-    for (uint32_t i = 0u; i < registry->events; ++i)
-        if (registry->backing[i].state != SPX_SHB_RELEASED || registry->backing[i].live != 0u)
+    for (uint32_t i = 0u; i < registry->events; ++i) {
+        const spx_shb_backing *backing = &registry->backing[i];
+        if (backing->partition_authority != 0u)
+            SPX_SHB_FAIL_STOP("shared Bytes partition hold outlived its call");
+        if (backing->state != SPX_SHB_RELEASED || backing->live != 0u)
             SPX_SHB_FAIL_STOP("shared Bytes registry finished with a live lease");
+    }
     if (registry->child_table_slots != UINT64_C(0))
         SPX_SHB_FAIL_STOP("shared Bytes child table outlived its backing");
     for (uint32_t i = 0u; i < SPX_SHB_VECS; ++i)

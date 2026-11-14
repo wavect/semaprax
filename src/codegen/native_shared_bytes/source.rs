@@ -6,6 +6,22 @@ use crate::codegen::COutput;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedType};
 
+/// Emit an opt-in native scalar entry from exact source. The returned C11
+/// translation unit owns one partition registry per invocation.
+pub fn emit_native_partition_entry(
+    program: &crate::ast::Program,
+    work: &mut usize,
+) -> Result<String, Diagnostic> {
+    let result = (|| {
+        let owner = hir::byte_partition::ValidatedPartitionProgram::compile_source(program, work)?;
+        Projection::receive(&owner, work)?.emit()
+    })();
+    if result.is_err() {
+        *work = 0;
+    }
+    result
+}
+
 /// Emit the opt-in C11 partition provider for an explicitly identified
 /// source function with no arguments and an owned Bytes result.
 ///

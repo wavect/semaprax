@@ -80,3 +80,65 @@ fn explicit_partition_source_run_publishes_scalar_and_failure_after_cleanup() {
     assert!(report.get("result").is_none());
     assert_eq!(std::fs::read_to_string(path).unwrap(), failure);
 }
+
+#[test]
+fn explicit_partition_source_build_runs_native_and_refuses_other_targets() {
+    let fixture = Fixture::new("partition-native");
+    let path = fixture.root.join("input.spx");
+    let source = include_str!("../fixtures/byte-partition-private-clone.spx");
+    let build = |output: &str| {
+        cli(
+            &fixture.root,
+            &[
+                "build",
+                "input.spx",
+                "--profile",
+                "byte-partition-v1",
+                "--target",
+                "native",
+                "--output",
+                output,
+            ],
+        )
+    };
+    let run = |name: &str| Command::new(fixture.root.join(name)).output().unwrap();
+    std::fs::write(&path, source).unwrap();
+    let unsupported = cli(
+        &fixture.root,
+        &[
+            "build",
+            "input.spx",
+            "--profile",
+            "byte-partition-v1",
+            "--target",
+            "wasm",
+            "--output",
+            "unsupported",
+        ],
+    );
+    assert_eq!(unsupported.status.code(), Some(2));
+    assert!(!fixture.root.join("unsupported").exists());
+    let ordinary = cli(
+        &fixture.root,
+        &["build", "input.spx", "--output", "ordinary"],
+    );
+    assert!(!ordinary.status.success());
+    assert!(!fixture.root.join("ordinary").exists());
+
+    let output = build("valid");
+    assert!(output.status.success(), "{output:?}");
+    let output = run("valid");
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(output.stdout, b"1\n");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), source);
+
+    let failure = source.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
+    std::fs::write(&path, &failure).unwrap();
+    let output = build("failure");
+    assert!(output.status.success(), "{output:?}");
+    let output = run("failure");
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(output.stderr, b"semaprax.byte-buffer.v1:1\n");
+    assert!(output.stdout.is_empty());
+    assert_eq!(std::fs::read_to_string(path).unwrap(), failure);
+}

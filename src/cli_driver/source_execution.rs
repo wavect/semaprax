@@ -53,14 +53,23 @@ pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> 
         report_source_build_success(options, "internal String web package", output, None);
         return Ok(());
     }
-    let program = checked_for_output(input, options.json)?;
     let output = options
         .output
         .as_deref()
         .expect("source build options always have an output");
+    if options.profile.as_deref() == Some(interpreter::partition_source::PROFILE) {
+        let c_source = interpreter::partition_source::emit_native(input)
+            .map_err(|errors| report(&errors, options.json))?;
+        let destination = cli::build::SourceNativeOutput::prepare(output)
+            .map_err(|error| report(&[error], options.json))?;
+        publish_native_source(&c_source, destination, options.json)?;
+        report_source_build_success(options, "native byte partition executable", output, None);
+        return Ok(());
+    }
+    let program = checked_for_output(input, options.json)?;
     match options.target.as_str() {
         "native" => {
-            let mut destination = cli::build::SourceNativeOutput::prepare(output)
+            let destination = cli::build::SourceNativeOutput::prepare(output)
                 .map_err(|error| report(&[error], options.json))?;
             let c_source = if semaprax::source_command::selects(&program.permits) {
                 codegen::emit_c_with_source_command(&program)
@@ -68,31 +77,7 @@ pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> 
                 codegen::emit_c(&program)
             }
             .map_err(|error| report(&[error], options.json))?;
-            let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
-            let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
-                report(
-                    &[Diagnostic::io(
-                        "SPX-I301",
-                        format!("cannot create native build scratch: {error}"),
-                    )],
-                    options.json,
-                )
-            })?;
-            codegen::compile_native_executable(&c_source, scratch.path())
-                .map_err(|error| report(&[error], options.json))?;
-            scratch.seal().map_err(|error| {
-                report(
-                    &[Diagnostic::io(
-                        "SPX-I301",
-                        format!("cannot seal native build scratch: {error}"),
-                    )],
-                    options.json,
-                )
-            })?;
-            destination
-                .publish(scratch.path())
-                .map_err(|error| report(&[error], options.json))?;
-            let _ = scratch.cleanup();
+            publish_native_source(&c_source, destination, options.json)?;
             report_source_build_success(options, "native executable", output, None);
         }
         "web" | "wasm" => {
@@ -129,6 +114,39 @@ pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> 
         }
         _ => unreachable!("validated build target"),
     }
+    Ok(())
+}
+
+fn publish_native_source(
+    c_source: &str,
+    mut destination: cli::build::SourceNativeOutput,
+    json: bool,
+) -> Result<(), u8> {
+    let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
+    let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-I301",
+                format!("cannot create native build scratch: {error}"),
+            )],
+            json,
+        )
+    })?;
+    codegen::compile_native_executable(c_source, scratch.path())
+        .map_err(|error| report(&[error], json))?;
+    scratch.seal().map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-I301",
+                format!("cannot seal native build scratch: {error}"),
+            )],
+            json,
+        )
+    })?;
+    destination
+        .publish(scratch.path())
+        .map_err(|error| report(&[error], json))?;
+    let _ = scratch.cleanup();
     Ok(())
 }
 

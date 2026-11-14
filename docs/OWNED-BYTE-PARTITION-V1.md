@@ -824,8 +824,21 @@ serialization and the host thread stack are outside that accounting scope.
 
 A returned scalar exits zero. Language failure and administrative refusal exit
 one with no result field. CLI option errors exit two. This entry covers the
-direct receivers documented below. Workspace, native CLI and public target
+direct receivers documented below. Workspace and additional public target
 admission remain separate qualification requirements.
+
+### Explicit single-file native build
+
+```sh
+semaprax build tests/fixtures/byte-partition-private-clone.spx --profile byte-partition-v1 --target native --output partition-clone
+./partition-clone
+```
+
+The native build rechecks the exact source before reserving a fresh output.
+The generated executable owns one partition registry per invocation. It
+prints the scalar after settlement or reports the normalized failure domain
+and code on stderr. Native uses its existing allocation policy. The explicit
+managed-byte account belongs to the interpreter route.
 
 ### Private direct source entry checkpoint
 

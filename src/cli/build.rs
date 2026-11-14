@@ -620,6 +620,7 @@ pub(crate) fn parse_with_capabilities(
     };
     if let Some(profile) = &profile {
         if fused_account.is_none()
+            && profile != semaprax::interpreter::partition_source::PROFILE
             && (!matches!(profile.as_str(), "internal-strings-v1" | "text-toolkit-v1")
                 || !matches!(&input, BuildInput::Source(_))
                 || !matches!(target.as_str(), "web" | "wasm")
@@ -635,6 +636,15 @@ pub(crate) fn parse_with_capabilities(
             }
             return Err(2);
         }
+    }
+    if profile.as_deref() == Some(semaprax::interpreter::partition_source::PROFILE)
+        && (!matches!(input, BuildInput::Source(_))
+            || target != "native"
+            || function.is_some()
+            || !exports.is_empty())
+    {
+        eprintln!("byte-partition-v1 build requires one source file and a native target");
+        return Err(2);
     }
     let available_targets = target_catalog(&input, private_toolchain);
     if !available_targets.contains(&target.as_str()) {

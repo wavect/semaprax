@@ -7,7 +7,7 @@ mod native_adapter_abi;
 pub(crate) mod native_aggregate;
 mod native_box;
 mod native_byte_data;
-pub use native_byte_data::emit_native_partition_copy_out;
+pub use native_byte_data::{emit_native_partition_copy_out, emit_native_partition_entry};
 mod native_bytes;
 mod native_callable_abi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

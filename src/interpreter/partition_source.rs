@@ -47,30 +47,23 @@ fn run_on_current_thread(
     path: &Path,
     funding: RuntimeAccount,
 ) -> Result<Interpretation, Vec<Diagnostic>> {
-    let canonical = patch::canonical_source_path(path)?;
-    let before = patch::read_source_snapshot_bounded(&canonical, MAX_SOURCE_BYTES, "SPX-F104")?;
-    let source = crate::parse(before.source(), path).map_err(|error| vec![error])?;
-    let revision = crate::graph::revision(&source);
-    let mut work = MAX_GRAPH_WORK;
-    let program = ValidatedPartitionProgram::compile_source(&source, &mut work)
-        .map_err(|error| vec![error])?;
-    let mut allocations = 0;
-    let mut payload = 0;
-    let (outcome, cleanup, reserved) =
-        match Account::funded(&mut allocations, &mut payload, funding.bytes()) {
-            Ok(account) => {
-                let report = direct::execute(&program, &account, &mut work);
-                (report.outcome, report.cleanup_complete, account.charged())
-            }
-            Err(_) => (Outcome::Refused, false, 0),
-        };
-    patch::validate_source_unchanged_bounded(
-        &canonical,
-        path,
-        &before,
-        &revision,
-        MAX_SOURCE_BYTES,
-    )?;
+    let ((outcome, cleanup, reserved, allocations, payload), revision) =
+        with_held_source(path, |source| {
+            let mut work = MAX_GRAPH_WORK;
+            let program = ValidatedPartitionProgram::compile_source(source, &mut work)
+                .map_err(|error| vec![error])?;
+            let mut allocations = 0;
+            let mut payload = 0;
+            let (outcome, cleanup, reserved) =
+                match Account::funded(&mut allocations, &mut payload, funding.bytes()) {
+                    Ok(account) => {
+                        let report = direct::execute(&program, &account, &mut work);
+                        (report.outcome, report.cleanup_complete, account.charged())
+                    }
+                    Err(_) => (Outcome::Refused, false, 0),
+                };
+            Ok((outcome, cleanup, reserved, allocations, payload))
+        })?;
     let mut report = serde_json::json!({
         "schema": SCHEMA,
         "profile": PROFILE,
@@ -127,4 +120,33 @@ fn run_on_current_thread(
         envelope: report.to_string(),
         returned,
     })
+}
+
+/// Compile the held source to a private native entry. The receiving proof
+/// and final source recheck complete before the host can stage the C11 unit.
+pub fn emit_native(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    with_held_source(path, |source| {
+        crate::codegen::emit_native_partition_entry(source, &mut { MAX_GRAPH_WORK })
+            .map_err(|error| vec![error])
+    })
+    .map(|(c, _)| c)
+}
+
+fn with_held_source<T>(
+    path: &Path,
+    operation: impl FnOnce(&crate::ast::Program) -> Result<T, Vec<Diagnostic>>,
+) -> Result<(T, String), Vec<Diagnostic>> {
+    let canonical = patch::canonical_source_path(path)?;
+    let before = patch::read_source_snapshot_bounded(&canonical, MAX_SOURCE_BYTES, "SPX-F104")?;
+    let source = crate::parse(before.source(), path).map_err(|error| vec![error])?;
+    let revision = crate::graph::revision(&source);
+    let value = operation(&source)?;
+    patch::validate_source_unchanged_bounded(
+        &canonical,
+        path,
+        &before,
+        &revision,
+        MAX_SOURCE_BYTES,
+    )?;
+    Ok((value, revision))
 }

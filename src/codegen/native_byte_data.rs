@@ -27,7 +27,9 @@ mod stream_epoch;
 /// Selected ordinary shared-owner Bytes profile (OPT #746); admission closed.
 #[path = "native_shared_bytes.rs"]
 pub(super) mod native_shared_bytes;
-pub use native_shared_bytes::source::emit_native_partition_copy_out;
+pub use native_shared_bytes::source::{
+    emit_native_partition_copy_out, emit_native_partition_entry,
+};
 
 /// Emit byte-buffer store helpers introduced after the frozen default runtime.
 ///

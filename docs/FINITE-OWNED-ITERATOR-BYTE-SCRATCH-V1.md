@@ -78,6 +78,35 @@ Direct codec controls retained exact bytes across decode and re-encode,
 re-derived the same four-event, nine-byte bound, and refused a forged latch
 after decoding.
 
+The ordinary nonallocating `Vec<Bytes>` loop was compared across
+`ef1b0d68c36291fc4a5375d824223a8f965d45b5` and
+`c87fdf5cecef9463d708777964a2de6187a60ae6` on macOS arm64 with Rust 1.97.1
+(`8bab26f4f68e0e26f0bb7960be334d5b520ea452`). The historical feature
+checkout needed the one-line `crate::prelude::VEC_ID` path correction
+recorded in `2c8c1ebaa`. The standalone loop has one owned input, increments
+a scalar counter, and allocates nothing inside the loop. Its source SHA-256
+is `a16235f22d8cf35a8bba11474383bdbaca55ee0ad510826298d353811068bfef`.
+The two compilers emitted identical graph and Core Wasm bytes, with these
+SHA-256 digests.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Standalone Graph v45 | 73,175 | `53e6cd1a0e08cf604a81af77cd79b3c6128cefe22585d9a57de9372d49cf74e1` |
+| Standalone Core Wasm | 4,580 | `c87a9988abd3334f461132337cf6a35120cfe6fa41fcc37f85d0913346d74de0` |
+| Three-module Project cache payload | 76,818 | `139695d4b74368d17f95976b3b5aad4a905ff9f1fdfe1164149ade2c421a1934` |
+
+The Project imports the same nonallocating traversal shape. Both cold opens
+reported a 445,276-byte AST construction prebound, three module resolutions,
+eight monomorphic function resolutions, and identical frontend work.
+The compiler binary hashes were
+`bbfffeac976df582d7e140a06a87c0f88922c46a81a6df14fc9929c061ec8577`
+before and `21fb2ff2bd63980ccc16255e1246fce8c7f70d836162200c3184b76b1b4f5e82`
+after. A later comparison at `0c16fd338` kept the graph and Wasm bytes
+identical and used a newer Project cache compatibility version and a
+662,860-byte AST construction prebound. That comparison spans other changes
+to the cache and compiler, while the adjacent historical comparison isolates
+the finite-scratch change.
+
 The focused source/HIR and backend gates passed, including the original
 `lexical_exits::iterator_resume::` eight-copy/eight-drop oracle and hostile
 resume controls. The same unchanged two-continue-site source and its late

@@ -479,3 +479,27 @@ bytes versus 130,736 originally. Both call-free 64-function fixtures,
 including the one-binding-per-function case, required no heap backing in
 this prototype. These measurements use a simulated reservation ledger.
 The candidate's complete production forecast controls are pending.
+
+The workspace preflight usually runs before the live builder ledger exists.
+The production receiver therefore also needs a bound when no ledger is
+active. A separate patch threads one local scratch counter through the
+identity census at the unchanged builder limit. An already active ledger
+remains the payer, including its sticky refusal. The isolated probe compared
+the exact, one-byte-short and zero bounds with and without an active
+simulated ledger. The reverse-ordered 4,095-name case requested and freed
+327,600 bytes at the exact bound. The independently retained old discount
+agreed in all ten fixture/import comparisons. Probe log SHA-256
+`8a95447b41f2cb8ce2a87b87bb1e82c5a90f8841310d312b9173efc7391e4789`. The standalone patch has not yet
+run through the complete workspace forecast.
+
+An independent AST census of the twelve unchanged normalizer sources counted
+10,915 nodes in authored top-level function bodies and contracts, before
+dependency pruning. Even if all of those nodes qualified for the existing
+74-byte reachability subtraction, the gross reduction would be 807,710 bytes
+before overlapping validation. That upper bound for this authored class is
+below the 7,604,120-byte excess in the earlier matched complete forecast.
+Actual constructor eligibility covers fewer sites. The count does not
+describe generic/default expansions or another retained backing class.
+The source lengths and SHA-256 hashes match the prior normalizer observation.
+Census log SHA-256
+`050177b3b4fa66b7c81031162d19e3210605fa00e170e52dd38cc04d493c78a1`.

@@ -137,3 +137,24 @@ complete immediate predecessor and its inverse. The 14 source-authority
 tests passed independently. The remaining bootstrap comparison needs two
 successful one-worker builds with exact executable inventories and an
 intervention that targets the measured high-water phase.
+
+## All-features link attempt at `1fe13fc79`
+
+Two fresh private targets requested the whole all-features library test
+artifact on the same 18 GiB macOS arm64 host and Rust 1.97.1. Both builds ran
+with one Cargo worker, optimization level 0, 256 codegen units, no debug
+info, no incremental compilation, and a serial rustc front end and LLVM
+backend. The primary compiler commands differed only in target paths and
+symbol mangling. The sampler checked system memory pressure about once
+per second and retained phase events and sampled process-group RSS.
+
+| Mangling | rustc seconds to exit | Peak sampled group RSS | Last completed rustc pass |
+| --- | ---: | ---: | --- |
+| legacy | 37.72 | 4,092,428,288 bytes | `emit_ast_lowering_delayed_lints` |
+| v0 | 26.46 | 3,419,619,328 bytes | `complete_gated_feature_checking` |
+
+The host guard stopped both compilers after three consecutive checks at
+macOS memory pressure level 2. Both stopped before monomorphization and
+symbol mangling. These peaks cover different incomplete front-end
+intervals. Executable inventory parity and a completed memory comparison
+remain unverified.

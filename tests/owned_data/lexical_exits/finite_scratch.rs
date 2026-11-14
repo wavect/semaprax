@@ -23,3 +23,52 @@ fn finite_iteration_scratch_preserves_cumulative_allocation_settlement_and_reent
     crate::owned_vec_bytes_runtime::run_wasm_expected(&failure, 10, 4, "none", 0);
     interpret(SOURCE, 4, false);
 }
+
+#[test]
+fn finite_scratch_runs_at_both_cumulative_limits_without_refunding() {
+    use crate::owned_vec_bytes_runtime::{run_native, run_wasm_expected};
+
+    let source = |rows: usize, first_bytes: usize, extra_empty: bool| {
+        let mut text =
+            String::from("module finite.scratch.boundary; @id(\"app.main\") fn main()->i64 {\n");
+        if extra_empty {
+            text.push_str("let extra=bytes_zeroed(0usize);\n");
+        }
+        let mut previous = format!("vec_with_capacity<Bytes>({rows}usize)");
+        for row in 0..rows {
+            let name = format!("row{row}");
+            let input_bytes = if row == 0 { first_bytes } else { 0 };
+            text.push_str(&format!(
+                "let {name}=vec_push<Bytes>({previous},bytes_zeroed({input_bytes}usize));\n"
+            ));
+            previous = name;
+        }
+        text.push_str(&format!(
+            r#"let values={previous};
+let mut seen=0;
+for own item in vec_into_iter<Bytes>(values) {{
+    let scratch=bytes_zeroed(131072usize);
+    if byte_len(bytes_as_slice(scratch))!=131072usize {{return -1;}};
+    seen=seen+1;
+    0
+}}
+return seen;
+}}"#
+        ));
+        text
+    };
+    for (rows, result, events) in [(0, 0, 0), (16, 16, 32)] {
+        let input = source(rows, 0, false);
+        interpret(&input, result, false);
+        run_native(&input, "", 0, result, "none");
+        run_wasm_expected(&input, 0, events, "none", result);
+    }
+
+    // Exceed the event and payload caps independently by exactly one.
+    for input in [source(16, 0, true), source(16, 1, false)] {
+        let diagnostics = semaprax::check(&input, "finite-scratch-over-limit.spx").unwrap_err();
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T267"));
+    }
+}

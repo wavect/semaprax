@@ -85,6 +85,15 @@ and seven frees per invocation, totaling 22 requested bytes and peaking at
 five live payloads. Both variants settled every tracked allocation and
 vector handle. The separate seven-String assertion retains its own fixture.
 
+A boundary program with sixteen empty input owners and sixteen 131,072-byte
+scratch owners runs at exactly 32 allocation events and 2,097,152 payload
+bytes. The interpreter, native C11 at O0 and O2, and strict Core Wasm return
+the same count on repeated invocations. A zero-iteration control creates no
+scratch owner. The Wasm host observes 32 allocations and 32 drops at the
+exact limit, and zero of each in the empty case. Source validation refuses
+one additional zero-byte allocation or one additional payload byte with
+`SPX-T267`.
+
 The import-free public generic provider has no owned Bytes iterator runtime.
 A probe routed the original loop through a reachable provider helper and
 reached module emission. Node v24.15.0 rejected the emitted call signature

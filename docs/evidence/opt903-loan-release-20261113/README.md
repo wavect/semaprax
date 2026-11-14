@@ -851,6 +851,67 @@ The shipping library at `cd0da39c8` passed all 294 selected comparator and
 expression-fact tests in 873.13 seconds. The test log SHA-256 is
 `ffcecdba59957c7de3f52fe5f7f25f56744ce47d8a02e7b594c6eae89b5b4cd7`.
 
+### Shared Row response bodies on the complete ShiftSim command
+
+This source experiment used the already generated request and response
+modules and activated the unchanged ShiftSim command. It kept the
+direct and indexed Row helper signatures, persistent identities, render
+preconditions and field order. The wrappers pass borrowed String views
+and Copy scalar fields. One arm shared the render body, and a second arm
+also shared the length body. Metrics and request generation stayed
+byte-identical.
+
+All three arms used the same compiler built from `540d5ee48` with a 64 MiB
+default. Each earlier module in the seven-module retained prefix was
+unchanged, for a total of 61,391,864 bytes. Each arm still refused
+`src/response.spx` at static admission.
+
+| Response source | Source bytes | Complete response-module forecast | Forecast reduction |
+| --- | ---: | ---: | ---: |
+| Original generated source | 23,829 | 13,130,193 | 0 |
+| Shared render body | 21,557 | 11,926,772 | 1,203,421 |
+| Shared length and render bodies | 21,362 | 11,814,960 | 1,315,233 |
+
+The separate descriptor forecast experiment admitted the response module
+in all three arms. The next refusal was the UTF-8 dependency at the
+same 3,155,235-byte complete forecast, with thirteen earlier retained
+modules in each arm. The shared length and render arm reduced that
+retained prefix by 1,340,193 bytes. Its first refusal was still 507,902
+bytes above the cap. This first refusal leaves the rest of the forecast
+and live validation unmeasured.
+
+| Response source with the descriptor experiment | Retained before UTF-8 | Total at refusal | Excess over 64 MiB |
+| --- | ---: | ---: | ---: |
+| Original generated source | 65,801,724 | 68,956,959 | 1,848,095 |
+| Shared render body | 64,585,823 | 67,741,058 | 632,194 |
+| Shared length and render bodies | 64,461,531 | 67,616,766 | 507,902 |
+
+At the shipping 128 MiB limit, the macOS arm64 reference compiler from
+`6f1db7ec4` passed both declared Project tests and built a native executable
+for each arm. All three executables passed the unchanged 11 valid and
+four invalid acceptance cases. An additional differential run compared
+exit status and exact stdout and stderr across those 15 inputs and the
+two checked-in fixtures. All 17 inputs matched.
+
+The experiments edited an isolated generated module. The current codec
+emitter, source derivation and receipt replay remain the owning
+qualification routes for a production change. This execution checks the
+native command and its retained wire corpus. It does not establish the
+original-cap paired codec gate or the behavior of arbitrary schemas.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| 64 MiB compiler binary | `4a7c22eedc04df6e25754c66236da1ea4898b58ebe760973f92a776a21417c25` |
+| 128 MiB reference compiler binary | `33cd423478fd9b752b72daa8eebdd45d27d49fd640bc314656c5021e25e370ef` |
+| Render-only experiment patch | `5ce1e8676248dca9a9774ab79f85c39349501618d04c2f90237bca0139433f77` |
+| Shared length and render experiment patch | `6988226b88b0133b0cb82cba3a0e8636e4265a22351b006f9138ddf76e2cb3b1` |
+| Identical native corpus receipt | `6d2edb5c32701c57d8f4b8c2c065c2e0bbd2951c1db88598c2dcda62c88dc1af` |
+| Differential 17-input log | `e20933b25b4fb631d5ddd8101482356a1b7c2024740564319cf3bf5c459a90f2` |
+| Descriptor experiment CLI binary | `18d71d7d5f8d7ce4a6fc8f1328b8d5803449e103ef8b068b94d1a2c561fe6c9d` |
+| Descriptor experiment, original response log | `f725082d94d1eb51b2aaadf1505d9b641bca4516218dc878262b1126fadd3ed4` |
+| Descriptor experiment, shared render log | `161eb2697f62a90fc6ac22276f509c64b31cc125f06510c4ce653707273afedb` |
+| Descriptor experiment, shared length and render log | `b08d42defc06c60a5d23c20e37df0c1cc4249d7fd07acbb5768cc163b85b6fcd` |
+
 ### Native codec and generated key controls at 64 MiB
 
 On the historical-default build above, both native primitive String codec

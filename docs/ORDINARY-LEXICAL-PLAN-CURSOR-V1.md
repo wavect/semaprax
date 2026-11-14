@@ -415,6 +415,12 @@ generations, including the changes after the first-head continuation.
 The Normalizer entered no comparison phase and reproduced the same
 static refusal in all three builds.
 
+Both matched arms passed the two declared Catalog tests, the two declared
+ShiftSim tests and the 49 selected-file LogLens checks. The fixed
+predecessor reproduced the current Catalog23, ShiftSim15 and Normalizer
+owning refusals with byte-identical diagnostic payloads. The owning
+original-cap application criterion remains open.
+
 | Artifact | SHA-256 |
 | --- | --- |
 | Predecessor substitution with the cursor backing fix | `c56cc0445dde23708bd82e04d8ae90683ef606c0a282b874ee88db714d078849` |
@@ -424,6 +430,10 @@ static refusal in all three builds.
 | Fixed predecessor ShiftSim Project report | `57de14a80c59c2e78d559bedffb76bf4ef8f2ee4e8ab4fe95ce9526c074d70a9` |
 | Current LogLens Project report | `ba20a603fd45ce387cbe725a1e37c4f23006b004800fdbda21a35094f5d31087` |
 | Fixed predecessor LogLens Project report | `ab473f8bb43ef6de33094251b9925b711293717192e5019e07ab2ea7bbc1a460` |
+| Fixed predecessor native LogLens acceptance receipt | `e9bbf541a8901b0f68fdee1db7bb7461d21b308354420c041438296779f2714c` |
+| Fixed predecessor Catalog23 owning log | `dff949e0f56fdaa86fe2b7105d94a702bcf0ae35f8118a0529c5e78766e2a401` |
+| Fixed predecessor ShiftSim15 owning log | `f26e28163afb896717363069e7617a71bd9d56cffa19428d3c84ca979900f31b` |
+| Fixed predecessor Normalizer owning log | `6abf6b5713371fb9dae1db921941276120f753d6acfbc53ce45e22b6ae7eed6a` |
 
 ## Shared immutable segment boundary continuation
 

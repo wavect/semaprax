@@ -287,3 +287,32 @@ HIR loan-plan construction. Mode two prebound 81,369,005 bytes and completed
 at 107,349,690 bytes. The first failed attempt's debit remained in the maximum
 phase receipt. The owner reached no mode-six forecast at this cap. Log SHA-256
 is `16318553222c1ae43c828b93aa7c19450cf90866d2ea57845b4b85a5311c3e51`.
+
+### Hosted shipping-limit checks
+
+The [hosted production reservation census](https://github.com/wavect/semaprax/actions/runs/43585128348)
+used `main` at `1fe13fc7955d3335ee32742a12c4d0905117400b`, with Rust 1.97.1
+on Linux x86-64. Production Clippy with workflow profiling and warnings denied
+passed. All six unchanged manifests returned a successful Project check with
+identical complete products before and after enabling observation. The
+retained report's SHA-256 is
+`df32af082ca187c969888152402b292f6706192a9286bad82f0094a881712706`.
+Every recorded manifest and declared module source digest was independently
+checked against the Git tree, together with both logs for each subject.
+
+| Project | Successful mode | Cumulative reservation in the attempt (bytes) |
+| --- | ---: | ---: |
+| Int decimal | 1 | 19,652,251 |
+| Catalog scoped record | 1 | 48,592,503 |
+| ShiftSim typed record | 1 | 80,284,328 |
+| Catalog normalizer | 2 | 107,348,032 |
+| LogLens adapted matcher | 1 | 98,380,966 |
+| LogLens selected file | 1 | 21,408,907 |
+
+At the same 134,217,728-byte cap, the normalizer's first attempt refused a
+160-byte reservation at `src/bounded_output/cfg_reservation.rs:116:8`, with
+113 bytes remaining and zero reserved floor. It had consumed 134,217,615
+bytes. Its complete second attempt succeeded with 26,869,696 bytes remaining.
+The hosted run used the default cap and reached no mode-six attempt. The
+unchanged 64 MiB comparison above still refuses. This run performed Project
+checks; CLI49 and application execution require separate owning runs.

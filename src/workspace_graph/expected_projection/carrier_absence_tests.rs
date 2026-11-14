@@ -4,7 +4,10 @@
 //! allocation highwater gate. Variable roots keep all storage and closure
 //! subtrees keep every variable auxiliary carrier. This source batch awaits
 //! executable qualification. Nothing here mirrors `declaration_cost`.
-use super::super::{cached_exact, dependency_identity_max, synthetic_builder_bytes_scoped};
+use super::super::{
+    cached_exact, dependency_identity_max, shared_local_callees, synthetic_builder_bytes_scoped,
+    HIR_IDENTITY_COPY_FACTOR,
+};
 use super::StructuralCost;
 use crate::ast::{Expr, ExprKind, Program};
 use crate::hir::{ResolvedExpr, ResolvedExprKind, ResolvedStatement};
@@ -671,28 +674,44 @@ fn moved_roots_differ_by_exact_carriers(moved: fn(usize) -> String) {
     for mode in [5, 6] {
         let (free_hir, free_total) = retained(&free, mode);
         let (delegated_hir, delegated_total) = retained(&delegated, mode);
-        let free_proof = super::super::call_carriers::count(
-            &free[0],
-            &crate::workspace_graph::index_authored(&free).unwrap(),
-            true,
-        );
-        let delegated_proof = super::super::call_carriers::count(
-            &delegated[0],
-            &crate::workspace_graph::index_authored(&delegated).unwrap(),
-            true,
-        );
-        assert_eq!(free_proof.roots, 1);
-        assert_eq!(delegated_proof.roots, N + 1);
-        // Moving N literal/if/variable/block roots to argument positions
-        // moves N ordinary call roots in the opposite direction. Their six
-        // carrier deltas cancel; only the explicit new proof invoice differs.
+        let forecast_terms = |programs: &[Program]| {
+            let authored = crate::workspace_graph::index_authored(programs).unwrap();
+            let program = &programs[0];
+            let auxiliary = super::super::call_carriers::count(program, &authored, true);
+            let (certificate, identity_credit) = if mode == 6 {
+                let local = shared_local_callees::costs(shared_local_callees::Context {
+                    program,
+                    authored: &authored,
+                    programs,
+                })
+                .unwrap();
+                let maximum = dependency_identity_max(program, &authored, programs).unwrap();
+                (
+                    local.bytes,
+                    local.slots * maximum * HIR_IDENTITY_COPY_FACTOR,
+                )
+            } else {
+                (0, 0)
+            };
+            (
+                auxiliary.roots,
+                auxiliary.bytes + certificate,
+                identity_credit,
+            )
+        };
+        let (free_roots, free_fee, free_credit) = forecast_terms(&free);
+        let (delegated_roots, delegated_fee, delegated_credit) = forecast_terms(&delegated);
+        assert_eq!(free_roots, 1);
+        assert_eq!(delegated_roots, N + 1);
+        // The six carrier deltas cancel. Mode six also charges a separate
+        // local-callee certificate and subtracts its authenticated identity slots.
         assert_eq!(
-            delegated_hir + free_proof.bytes,
-            free_hir + delegated_proof.bytes
+            delegated_hir + delegated_credit + free_fee,
+            free_hir + free_credit + delegated_fee
         );
         assert_eq!(
-            delegated_total + free_proof.bytes,
-            free_total + delegated_proof.bytes
+            delegated_total + delegated_credit + free_fee,
+            free_total + free_credit + delegated_fee
         );
     }
     for (retention, copies) in [

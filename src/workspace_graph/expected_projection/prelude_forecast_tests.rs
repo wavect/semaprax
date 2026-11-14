@@ -1,4 +1,4 @@
-use super::super::{cached_exact, dependency_identity_max};
+use super::super::{cached_exact, dependency_identity_max, shared_local_callees};
 use super::{input_cost, limit_error, retained_upper, StructuralCost};
 use crate::prelude::base_schema::{BASE, OPTION, RESULT};
 
@@ -45,7 +45,7 @@ fn borrowed_metadata_matches_independent_ast_inputs_without_allocating() {
 }
 
 #[test]
-fn complete_saved_forecast_differs_only_by_base_prelude_retention() {
+fn complete_saved_forecast_reconciles_prelude_and_later_certificates() {
     for source in [
         "module prelude.forecast; @id(\"entry\") fn main() -> i64 { 0 }",
         // A parser-only shadow control: resolution admission remains separate.
@@ -64,10 +64,23 @@ fn complete_saved_forecast_differs_only_by_base_prelude_retention() {
                     &programs[0], &authored, &programs, Some(maximum), true, (mode, retention), None).unwrap();
                 let saved = super::super::prelude_forecast_original::synthetic_builder_bytes_scoped_with_retention_with_registry(
                     &programs[0], &authored, &programs, Some(maximum), true, (mode, retention), None).unwrap();
-                let invoice = if mode >= 5 { proof.bytes } else { 0 };
-                assert_eq!(current.retained_hir, saved.retained_hir + delta + invoice);
-                assert_eq!(current.retained_clone_and_hir, saved.retained_clone_and_hir + delta + invoice);
-                assert_eq!(current.raw_clone_and_hir, saved.raw_clone_and_hir + delta + invoice);
+                let auxiliary_fee = if mode >= 5 { proof.bytes } else { 0 };
+                let local_fee = if mode == 6 && retention == cached_exact::Retention::Parsed {
+                    let local = shared_local_callees::costs(shared_local_callees::Context {
+                        program: &programs[0],
+                        authored: &authored,
+                        programs: &programs,
+                    })
+                    .unwrap();
+                    assert_eq!(local.slots, 0, "the fixture contains no calls");
+                    local.bytes
+                } else {
+                    0
+                };
+                let adjustment = delta + auxiliary_fee + local_fee;
+                assert_eq!(current.retained_hir, saved.retained_hir + adjustment);
+                assert_eq!(current.retained_clone_and_hir, saved.retained_clone_and_hir + adjustment);
+                assert_eq!(current.raw_clone_and_hir, saved.raw_clone_and_hir + adjustment);
                 assert_eq!(current.runtime, saved.runtime);
                 assert_eq!(current.synthetic_ast, saved.synthetic_ast);
                 assert_eq!(current.transient_import_clone, saved.transient_import_clone);

@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1756449,
-        "5543cbe3a41399e92dacb798e53e11bcb84cc5339d3c885c6bfb77530c0512e3",
+        1899426,
+        "71e9a44b125b25e219b6cb4a399c9455776db51ab25039669785fa3d7478df4d",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -451,6 +451,12 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/cleanup_plan/replay/expression_facts/receiving.rs", "a179fa71398494ef6f96fdf14713d17a563c0649c883197dbc9c1840eb2cadde") => Some((45,222)),
+("src/cleanup_plan/replay.rs", "1ee09bd6f221d0eb3e272016f243a00c67815d56fcc246b794975c9ee00a5220") => Some((45,223)),
+("src/graph.rs", "fe9f0d212f1a771f671ecfda9ab7c9d621022ab24846699f656b62611fc1a49c") => Some((45,224)),
+("src/workspace_graph/source_schema/static_text/tests/retained_lexical_composition.rs", "a3e0ce93da0450228c86e09f351830e8c4ee105a01b2fb769374e5c1b8b074e2") => Some((45,225)),
+("src/cleanup_plan/replay/schema/paid_summary/tests.rs", "102d836482524609816b9cd71c4ecc979fde179a040e9b76dd0e7d75eade3557") => Some((45,226)),
+("src/cleanup_plan/replay/live_oracle/source_custody/a.rs", "d3116e1e6b85c0ce8f8df76cc4d8247b74039886ed05b4226100e06748901e00") => Some((45,227)),
 ("src/hir/ids/compiler.rs", "89ff8b726bcbacb4474e73f7bb7a1c321da261666c4b039e98745d2fbcab15df") => Some((43,109)),
 ("src/iterator_ops.rs", "dc672b05a80a67c565e58d13e1c60ec2c3e9ad8a7b1d3828378c376f0a47c391") => Some((43,110)),
 ("src/list_ops.rs", "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2") => Some((43,111)),

@@ -602,5 +602,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/factored/strategy/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/strategy/tests.rs")),
 "src/cleanup_plan/replay/fact_preflight.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/fact_preflight.rs")),
 "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs")),
+"src/graph.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graph.rs")),
+"src/cleanup_plan/replay/live_oracle/source_custody/a.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/a.rs")),
 _ => panic!("unknown declared current source"), }
 }

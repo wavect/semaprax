@@ -652,16 +652,22 @@ fn compact_digest(page: &Value, tail: &[Value]) -> Result<[u8; 32], &'static str
             .get(index)
             .ok_or("v20 digest index")?;
     }
-    let text = digest(value)?;
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let text = value.as_str().ok_or("v13 digest type")?;
+    if text.len() != 43 {
+        return Err("v13 digest spelling");
+    }
     let mut raw = [0u8; 32];
     let (mut bits, mut accumulator, mut at) = (0u32, 0u32, 0usize);
     for byte in text.bytes() {
-        let digit = ALPHABET
-            .iter()
-            .position(|b| *b == byte)
-            .ok_or("v20 digest spelling")?;
-        accumulator = (accumulator << 6) | digit as u32;
+        let digit = match byte {
+            b'A'..=b'Z' => byte - b'A',
+            b'a'..=b'z' => byte - b'a' + 26,
+            b'0'..=b'9' => byte - b'0' + 52,
+            b'-' => 62,
+            b'_' => 63,
+            _ => return Err("v13 digest spelling"),
+        };
+        accumulator = (accumulator << 6) | u32::from(digit);
         bits += 6;
         if bits >= 8 {
             bits -= 8;
@@ -670,8 +676,9 @@ fn compact_digest(page: &Value, tail: &[Value]) -> Result<[u8; 32], &'static str
         }
         accumulator &= (1 << bits) - 1;
     }
-    if at != 32 || accumulator != 0 {
-        return Err("v20 digest spelling");
+    // Exactly 43 digits fill 32 bytes and leave two canonical zero pad bits.
+    if accumulator != 0 {
+        return Err("v13 digest spelling");
     }
     Ok(raw)
 }
@@ -1100,6 +1107,45 @@ mod compact_tests {
         }
         encode_compact_rows(&expand_indexed_to_v15(&outer["page"]).unwrap()).unwrap()
     }
+    #[test]
+    fn compact_digest_preserves_inline_and_indexed_spelling_and_error_order() {
+        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+
+        let wire = current();
+        for tail in wire["pin_tails"].as_array().unwrap() {
+            let tail = tail.as_array().unwrap();
+            let value = match tail[1].as_u64() {
+                Some(index) => &wire["digest_table"][usize::try_from(index).unwrap()],
+                None => &tail[1],
+            };
+            let expected = URL_SAFE_NO_PAD.decode(digest(value).unwrap()).unwrap();
+            assert_eq!(compact_digest(&wire, tail).unwrap().as_slice(), expected);
+        }
+
+        let mut text = [b'A'; 43];
+        for at in 0..text.len() {
+            for byte in 0..=127 {
+                text[at] = byte;
+                let value = Value::from(std::str::from_utf8(&text).unwrap());
+                let expected = digest(&value).map(|text| {
+                    <[u8; 32]>::try_from(URL_SAFE_NO_PAD.decode(text).unwrap()).unwrap()
+                });
+                assert_eq!(compact_digest(&Value::Null, &[0.into(), value]), expected);
+            }
+            text[at] = b'A';
+        }
+        let page = serde_json::json!({"digest_table": [true, "é", "A".repeat(44)]});
+        for (slot, error) in [
+            (0.into(), "v13 digest type"),
+            (1.into(), "v13 digest spelling"),
+            (2.into(), "v13 digest spelling"),
+            (3.into(), "v20 digest index"),
+            (false.into(), "v20 digest index"),
+        ] {
+            assert_eq!(compact_digest(&page, &[0.into(), slot]), Err(error));
+        }
+    }
+
     #[test]
     fn compact_current_whole_inverse_and_exact_bounds_match_python() {
         let wire = current();

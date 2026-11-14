@@ -28,6 +28,9 @@ use super::{
 pub(in crate::wasm) const PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN: u32 =
     SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + OWNED_BUFFER_IMPORT_COUNT;
 
+const PROVIDER_ITERATOR_RUNTIME_SLOTS: u32 =
+    3 + super::VEC_IMPORT_COUNT + super::OWNED_ITER_IMPORT_COUNT;
+
 /// Lower the exact reachable closure of one admitted monomorphic endpoint.
 ///
 /// The public-generic boundary admits a monomorphic exported function whose
@@ -45,7 +48,7 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
     program: &ResolvedProgram,
     selected: &DeclarationId,
     source_function_index_base: u32,
-) -> Result<SelectedAggregateLowering, Diagnostic> {
+) -> Result<(SelectedAggregateLowering, u32), Diagnostic> {
     if crate::hir::validate_with_static_text(program)? {
         return Err(crate::diagnostic::Diagnostic::io(
             "SPX-W119",
@@ -86,6 +89,26 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
     }
 
     let ordered = reachable_execution_closure(program, selected)?;
+    let uses_iterator = ordered.iter().try_fold(false, |used, execution| {
+        function_for_execution(program, execution)
+            .map(|function| used || crate::iterator_ops::function_uses_owned_iterator(function))
+    })?;
+    let source_function_index_base = if uses_iterator {
+        iterator_capacity::prove(program, &FunctionExecutionId::Monomorphic(selected.clone()))?;
+        if super::vec_import_base(program) != PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN
+            || super::iterator_ops::owned_import_base(program)
+                != PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN + super::VEC_IMPORT_COUNT
+        {
+            return Err(error(
+                "public-generic Wasm Bytes iterator runtime slots disagree",
+            ));
+        }
+        source_function_index_base
+            .checked_add(PROVIDER_ITERATOR_RUNTIME_SLOTS)
+            .ok_or_else(|| error("public-generic provider iterator function index overflows u32"))?
+    } else {
+        source_function_index_base
+    };
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
@@ -94,13 +117,7 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
 
     for (offset, execution) in ordered.iter().enumerate() {
         let function = function_for_execution(program, execution)?;
-        if crate::iterator_ops::function_uses_owned_iterator(function) {
-            return Err(error(format!(
-                "public-generic Core Wasm provider has no runtime for the owned Bytes iterator in `{}`",
-                execution.identity_key()
-            )));
-        }
-        if function_uses_vec_operations(function) {
+        if !uses_iterator && function_uses_vec_operations(function) {
             return Err(error(format!(
                 "public-generic Core Wasm provider has no runtime for Vec operations in `{}`",
                 execution.identity_key()
@@ -161,12 +178,19 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(SelectedAggregateLowering {
-        types,
-        function_type_indexes,
-        bodies,
-        selected_index,
-    })
+    Ok((
+        SelectedAggregateLowering {
+            types,
+            function_type_indexes,
+            bodies,
+            selected_index,
+        },
+        if uses_iterator {
+            PROVIDER_ITERATOR_RUNTIME_SLOTS
+        } else {
+            0
+        },
+    ))
 }
 
 fn function_uses_vec_operations(function: &ResolvedFunction) -> bool {
@@ -287,3 +311,5 @@ fn function_for_execution<'a>(
             }),
     }
 }
+
+mod iterator_capacity;

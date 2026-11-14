@@ -1,3 +1,7 @@
+## Finite Bytes iterator support in the import-free Wasm provider (2026-11-14)
+
+- Replay reachable Vec construction demand before selecting a fixed Bytes iterator table. Exercise both continue sites, break, return and failure reentry through the existing provider ABI. Verify settlement at 32 allocations and 2,097,152 payload bytes.
+
 ## Exact bounded-divisor decimal arithmetic (2026-11-08)
 
 - Use digit-wise i64 remainder arithmetic in `std.int.decimal.divide` for canonical divisors at most 922337203685477580, without narrowing the dividend. Retain the original arbitrary-divisor implementation, public identities, contracts and target inventory. Add threshold, fallback and quotient-zero controls plus native O0/O2 checks for 33,000- and 65,536-digit dividends. This does not adopt the library in the frozen LogLens application or establish a token/cost advantage.

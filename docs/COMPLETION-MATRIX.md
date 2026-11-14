@@ -143,6 +143,13 @@ claim follows from any of it, and no public support follows from the
 versioned descriptor/carrier code that now exists. Every physical adapter
 PG-5/PG-6 themselves define still calls a fixture endpoint rather than a
 compiler-derived generic export.
+[Finite Owned Iterator Byte Scratch v1](FINITE-OWNED-ITERATOR-BYTE-SCRATCH-V1.md)
+has focused local interpreter, native C11 O0/O2, strict Core Wasm and
+import-free public generic Core Wasm evidence. The provider gate checks
+the original two-continue loop, break, early return, failure and reentry,
+and the exact cumulative allocation limit with its existing carrier ABI.
+The accumulating 4,096-row witness remains outside this profile.
+
 The internal
 [`public-generic-wasm-provider.v1`](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)
 profile now admits and independently replays one checked generic endpoint and

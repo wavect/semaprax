@@ -1,7 +1,7 @@
 # Finite owned iterator byte scratch v1
 
-Status: focused local interpreter, native C11 and strict Core-Wasm checks
-passed. Import-free provider qualification remains open.
+Status: focused local interpreter, native C11, strict Core Wasm and
+import-free public generic Core Wasm checks passed.
 Audience: compiler contributors, agents and reviewers.
 
 This OPT741 profile adds iteration-local literal-sized `bytes_zeroed` owners to
@@ -101,32 +101,32 @@ postcondition, and division by zero in the return operand. Division by
 zero keeps its arithmetic status even when the postcondition would fail.
 The Wasm host observes three allocations and three drops per invocation.
 
-The import-free public generic provider has no owned Bytes iterator runtime.
-A probe routed the original loop through a reachable provider helper and
-reached module emission. Node v24.15.0 rejected the emitted call signature
-during validation. The provider now checks the reachable function inventory
-for owned Bytes iterators before emission. The existing provider regression
-validates the import-free module when the helper is unreachable and checks
-`SPX-W110` when it enters the endpoint closure. Executable import-free support
-still needs a provider-owned Vec and iterator runtime with cumulative backing,
-transfer and drop accounting.
+The import-free public generic Core Wasm provider reserves 8,960 bytes for
+32 rows of up to 32 Bytes carriers each. In addition to ordinary HIR replay,
+the provider bounds table demand from the selected endpoint's exact reachable
+closure. It charges all reachable literal Vec constructions, including
+multiple calls to the same helper and constructors on different branches.
+Recursion, unknown calls, loop-local Vec construction and unsupported Vec
+operations fail closed. The table occupies the existing reserved space
+between the byte token table and its payload arena.
 
-The provider runtime tests exercise a fixed table of 32 rows with up to 32
-carrier slots each. The table needs 8,960 bytes. Vec and iterator handles
-identify both a row and its generation. Vec mutation, iterator conversion,
-and a successful Yield renew the handle before publishing a successor. Yield
-transfers the existing Bytes carrier and advances the authenticated cursor.
-Drop consumes only the untransferred suffix in element order. Done retires
-the iterator and writes an all-zero Step. Invocation reset clears row liveness
-and retains generations.
+Vec mutation, iterator conversion and Yield renew the handle before
+publishing its successor. Yield transfers the existing Bytes carrier and
+advances the authenticated cursor. Drop consumes the untransferred suffix
+in element order. Done retires the iterator and writes an all-zero Step.
+The provider preserves generations across invocations and checks row
+settlement on both successful and failed calls before returning to the host.
 
-The table size does not establish a bound on reachable constructors or live
-owners. Provider selection still needs to prove that every reachable
-constructor fits a row and that the maximum simultaneous Vec and iterator
-demand fits the table. The compiler must also bind calls and cleanup to the
-provider functions and keep the table outside the public scratch ranges.
-The current provider admission still refuses reachable Vec operations and
-owned Bytes iterators.
+Node v24.15.0 ran the import-free artifact with the existing public export
+inventory. The tests use one provider instance across repeated calls and
+inspect the actual byte token table for issued lengths and retired pointers.
+They cover the original two-continue loop (eight issued and eight retired),
+normal/continue/break (seven), and early return with the current item and
+untransferred suffix live (three). The early-return cases include division
+by zero in the return operand, a false postcondition and successful reentry.
+The provider's public status represents both failure domains as code 11.
+The exact limit test observed sixteen empty owners and sixteen
+131,072-byte scratch owners, all retired before publishing the result.
 
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation

@@ -138,13 +138,26 @@ impl Runtime {
         );
     }
 
-    pub(super) fn reset(self, body: &mut Function) {
+    pub(super) fn reset_bytes(self, body: &mut Vec<u8>) {
+        let mut instructions = Function::new([]);
+        self.reset(&mut instructions);
+        body.extend_from_slice(&instructions.into_raw_body()[1..]);
+    }
+
+    pub(super) fn verify_settled(self, body: &mut Vec<u8>) {
         for slot in 0..SLOTS {
             let row = self.table as i32 + slot * ROW_BYTES;
-            emit(
-                body,
-                &[I::I32Const(row), I::I32Const(0), I::I32Store(mem(KIND, 2))],
-            );
+            I::I32Const(row).encode(body);
+            I::I32Load(mem(KIND, 2)).encode(body);
+            I::If(BlockType::Empty).encode(body);
+            I::Unreachable.encode(body);
+            I::End.encode(body);
+        }
+    }
+
+    fn reset(self, body: &mut Function) {
+        for slot in 0..SLOTS {
+            let row = self.table as i32 + slot * ROW_BYTES;
             // Preserve the generation across invocations. Only a fresh row
             // needs its low slot bits initialized.
             emit(
@@ -164,7 +177,7 @@ impl Runtime {
         }
     }
 
-    pub(super) fn bodies(self, code: &mut Vec<u8>) {
+    pub(super) fn bodies(self, code: &mut Vec<u8>, include_get_slot: bool) {
         // with_capacity(tag, capacity) -> handle
         let mut body = Function::new_with_locals_types([ValType::I32, ValType::I64]);
         emit(
@@ -271,6 +284,12 @@ impl Runtime {
                 &mut body,
                 &[I::LocalGet(2), I::I32Load(mem(offset, 2)), I::I64ExtendI32U],
             );
+            finish(code, body);
+        }
+        if include_get_slot {
+            // Vec<Bytes> get is never admitted, but occupies its canonical slot.
+            let mut body = Function::new([]);
+            body.instruction(&I::Unreachable);
             finish(code, body);
         }
         self.drop_suffix(code, VECTOR);

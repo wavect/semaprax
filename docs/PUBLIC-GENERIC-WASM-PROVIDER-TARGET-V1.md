@@ -132,10 +132,15 @@ payload capacity. The physical reservation retains its original size.
 Exceeding either language limit traps before issuing a token or advancing
 the heap cursor.
 
-The exact reachable endpoint closure currently refuses Vec operations and
-owned Bytes iterators with `SPX-W110` before emitting provider functions.
-Their aggregate lowering needs runtime slots that this import-free profile
-does not provide. Unreachable helper definitions are outside that closure.
+For a reachable owned Bytes iterator, the provider additionally selects the
+[finite iterator runtime](FINITE-OWNED-ITERATOR-BYTE-SCRATCH-V1.md) after
+proving the endpoint closure's Vec construction demand. The reserved heap
+table page holds up to 32 rows of 32 carriers. Iterator handles authenticate
+the row and generation. Each invocation checks that all rows have been
+settled before returning. The endpoint retains its existing carrier
+shape, public export inventory and allocation limits. Unsupported reachable
+Vec operations and unproved table demand refuse with `SPX-W110`. Unreachable
+helpers do not select the runtime.
 
 `spx_pg_v1_open` already refuses with status 7 before scratch reserve, so a
 live provider implies a backed scratch range; `spx_pg_v1_input_prepare`

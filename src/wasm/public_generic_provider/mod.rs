@@ -14,7 +14,6 @@ mod byte_runtime;
 mod carrier_classify;
 mod carrier_codec;
 mod component;
-#[cfg(test)]
 mod iterator_runtime;
 pub use component::PublicGenericWasmComponentArtifactV1;
 pub(crate) use component::{emit as emit_component, replay as replay_component};
@@ -78,7 +77,7 @@ const STANDALONE_INPUT_PAYLOADS: u32 = PROVIDER_MEMORY_LIMIT;
 const STANDALONE_HEAP_TABLE: u32 = STANDALONE_INPUT_PAYLOADS + MAX_INPUT_PAYLOAD_BYTES;
 const STANDALONE_HEAP_DATA: u32 = STANDALONE_HEAP_TABLE + 65_536;
 const STANDALONE_HEAP_END: u32 = STANDALONE_HEAP_DATA + byte_runtime::HEAP_DATA_BYTES;
-const _: () = assert!(byte_runtime::HEAP_TABLE_BYTES <= 65_536);
+const _: () = assert!(byte_runtime::HEAP_TABLE_BYTES + iterator_runtime::TABLE_BYTES <= 65_536);
 const _: () = assert!(STANDALONE_INPUT_PAYLOADS >= RESULT_CARRIER + MAX_SCRATCH_BYTES);
 const _: () = assert!(MAX_COMPONENT_INPUT_PAYLOAD_BYTES == MAX_INPUT_PAYLOAD_BYTES);
 
@@ -333,7 +332,7 @@ fn emit_bound_core(
             "Phase-B provider currently admits exactly two ordered owned Bytes leaves per endpoint direction",
         ));
     }
-    let lowering = crate::wasm::aggregate::lower_public_generic_provider_closure(
+    let (lowering, iterator_slots) = crate::wasm::aggregate::lower_public_generic_provider_closure(
         program,
         &crate::hir::DeclarationId::new(endpoint.export_id()),
         23,
@@ -365,6 +364,7 @@ fn emit_bound_core(
         &classifier,
         component_helpers,
         layout,
+        iterator_slots,
     )?;
     let provisional_slot = locate_binding_slot(&provisional_wasm, &provisional_bytes)?;
     let artifact_digest = artifact_digest(&provisional_wasm, provisional_slot);
@@ -383,7 +383,13 @@ fn emit_bound_core(
         &classifier,
         component_helpers,
         layout,
+        iterator_slots,
     )?;
+    if iterator_slots != 0 {
+        wasmparser::Validator::new()
+            .validate_all(&wasm)
+            .map_err(|cause| error(format!("invalid finite-iterator provider module: {cause}")))?;
+    }
     Ok(ComponentProviderCoreV1 {
         wasm,
         descriptor: endpoint.descriptor_bytes().to_vec(),
@@ -468,7 +474,9 @@ fn assemble(
     classifier: &carrier_classify::Classifier,
     component_helpers: bool,
     layout: ProviderLayout,
+    iterator_slots: u32,
 ) -> Result<Vec<u8>, Diagnostic> {
+    let uses_iterator = iterator_slots != 0;
     if descriptor.len() > 64 * 1024 || binding.len() > 256 * 1024 {
         return Err(error(
             "provider descriptor or binding exceeds its bounded data segment",
@@ -482,10 +490,18 @@ fn assemble(
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut types = Vec::new();
     // Internal slots 0..=12 reproduce aggregate lowering's canonical
-    // helper reservation without imports; ABI helpers occupy 13..=22 and
-    // checked source bodies start at 23. Keep this order synchronized with
-    // aggregate::provider_lowering.
-    let signatures: &[(&[u8], &[u8])] = &[
+    // helper reservation without imports. The selected iterator runtime
+    // occupies the additional aggregate slots before the provider ABI.
+    let iterator_signatures: &[(&[u8], &[u8])] = &[
+        (&[0x7f, 0x7e], &[0x7e]),
+        (&[0x7e, 0x7f, 0x7e], &[0x7e]),
+        (&[0x7e, 0x7f], &[0x7e]),
+        (&[0x7e, 0x7f, 0x7e], &[0x7e]),
+        (&[0x7e, 0x7f], &[0x7f]),
+        (&[0x7e, 0x7e, 0x7f], &[0x7f]),
+        (&[0x7e, 0x7e], &[]),
+    ];
+    let base_signatures: &[(&[u8], &[u8])] = &[
         (&[0x7e, 0x7e], &[0x7e]),       // 0 arithmetic binary
         (&[0x7e], &[0x7e]),             // 1 arithmetic unary
         (&[0x7f], &[]),                 // 2 contract failure
@@ -500,6 +516,11 @@ fn assemble(
         (&[0x7f, 0x7f], &[0x7e]),
         (&[0x7f], &[0x7f]),
     ];
+    let mut signatures = base_signatures.to_vec();
+    if uses_iterator {
+        signatures.extend_from_slice(iterator_signatures);
+    }
+    let abi_base = 13 + iterator_slots;
     u32_leb(
         &mut types,
         (signatures.len()
@@ -509,7 +530,7 @@ fn assemble(
             + byte_runtime::TYPE_COUNT as usize
             + carrier_classify::TYPE_COUNT as usize) as u32,
     );
-    for (params, results) in signatures {
+    for (params, results) in &signatures {
         types.push(0x60);
         bytes(&mut types, params);
         bytes(&mut types, results);
@@ -530,6 +551,9 @@ fn assemble(
     section(&mut module, 1, &types);
 
     let mut function_types = vec![0_u32, 0, 0, 0, 0, 1, 2, 3, 4, 5, 3, 3, 6];
+    if uses_iterator {
+        function_types.extend([7, 7, 7, 13, 14, 15, 15, 16, 5, 17, 18, 19]);
+    }
     function_types.extend([7, 8, 7, 9, 10, 11, 10, 12, 12, 12]);
     let source_type_base = signatures.len() as u32;
     function_types.extend(
@@ -606,10 +630,10 @@ fn assemble(
     for (index, export) in EXPORTS[1..].iter().enumerate() {
         name(&mut exports, export);
         exports.push(0x00);
-        u32_leb(&mut exports, 13 + index as u32);
+        u32_leb(&mut exports, abi_base + index as u32);
     }
     if component_helpers {
-        let codec_function_base = 23 + lowering.function_type_indexes.len() as u32;
+        let codec_function_base = abi_base + 10 + lowering.function_type_indexes.len() as u32;
         name(&mut exports, COMPONENT_INPUT_ENCODE_EXPORT_V1);
         exports.push(0x00);
         u32_leb(&mut exports, codec_function_base + 3);
@@ -622,7 +646,7 @@ fn assemble(
     }
     section(&mut module, 7, &exports);
 
-    let codec_function_base = 23 + lowering.function_type_indexes.len() as u32;
+    let codec_function_base = abi_base + 10 + lowering.function_type_indexes.len() as u32;
     let heap = byte_runtime::Heap {
         table: layout.heap_table,
         data: layout.heap_data,
@@ -640,7 +664,19 @@ fn assemble(
     body_i64_neg(&mut code);
     body_void(&mut code);
     byte_runtime::runtime_bodies(&mut code, heap);
-    // Slots 13..=22: scratch ptr, reserve, capacity and public lifecycle.
+    let iterator = uses_iterator.then_some(iterator_runtime::Runtime {
+        table: heap.table + byte_runtime::HEAP_TABLE_BYTES,
+        resolve_bytes: heap.resolve,
+        drop_bytes: 9,
+    });
+    if let Some(runtime) = iterator {
+        // Reserved aggregate buffer slots for operations the proof refuses.
+        for _ in 0..3 {
+            code.extend([3, 0, 0x00, 0x0b]);
+        }
+        runtime.bodies(&mut code, true);
+    }
+    // Scratch ptr, reserve, capacity and public lifecycle.
     body_i32_const(&mut code, SCRATCH_BASE as i32);
     body_scratch_reserve(&mut code, component_helpers);
     body_i32_const(&mut code, MAX_SCRATCH_BYTES as i32);
@@ -666,6 +702,7 @@ fn assemble(
         result_indexes.encode,
         layout,
         heap,
+        iterator,
     );
     body_result_export(&mut code);
     body_value_release(&mut code);
@@ -998,6 +1035,7 @@ fn body_call(
     encode_index: u32,
     layout: ProviderLayout,
     heap: byte_runtime::Heap,
+    iterator: Option<iterator_runtime::Runtime>,
 ) {
     let mut body = locals_i32_i64(1, 1);
     emit_live_handle_match(&mut body, 0, GLOBAL_PROVIDER);
@@ -1022,10 +1060,16 @@ fn body_call(
         layout.input_leaf_table,
         layout.input_aggregate,
     );
+    if let Some(runtime) = iterator {
+        runtime.reset_bytes(&mut body);
+    }
     body.extend(global_get(GLOBAL_INPUT_AGGREGATE));
     body.extend(global_get(GLOBAL_RESULT_AGGREGATE));
     body.push(0x10);
     u32_leb(&mut body, selected_index);
+    if let Some(runtime) = iterator {
+        runtime.verify_settled(&mut body);
+    }
     body.extend([0x45, 0x04, 0x40]);
     body.push(0x05);
     lane(&mut body, 11, 0);

@@ -71,7 +71,7 @@ fn iterator_transfers_one_carrier_and_drops_only_the_suffix() {
         ],
     );
     finish(&mut code, drop);
-    runtime.bodies(&mut code);
+    runtime.bodies(&mut code, false);
     let mut reset = Function::new([]);
     runtime.reset(&mut reset);
     finish(&mut code, reset);

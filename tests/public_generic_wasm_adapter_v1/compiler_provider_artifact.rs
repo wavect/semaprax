@@ -162,23 +162,14 @@ fn failing_artifact() -> semaprax::wasm::PublicGenericWasmProviderArtifactV1 {
         .unwrap()
 }
 
-fn frame(
+fn frame_for(
+    endpoint: &semaprax::public_generic_abi::compiler_endpoint::AdmittedPublicGenericEndpointV1,
     direction: semaprax::public_generic_abi::carrier::trace::Direction,
     payloads: &[&[u8]],
 ) -> Vec<u8> {
     use semaprax::public_generic_abi::carrier::frame::{
         CarrierFrameBinding, CarrierLeaf, LeafKind,
     };
-
-    let parsed = semaprax::parse(SOURCE, Path::new("compiler-provider-artifact.spx")).unwrap();
-    let source_revision = semaprax::format::canonical(&parsed);
-    let program = resolved_program(SOURCE);
-    let endpoint = semaprax::public_generic_abi::compiler_endpoint::derive_admitted_public_generic_endpoint_v1(
-        &program,
-        &source_revision,
-        "provider.transform",
-    )
-    .unwrap();
     let binding = CarrierFrameBinding::from_verified_descriptor(endpoint.descriptor(), direction);
     assert_eq!(binding.leaf_paths().len(), payloads.len());
     binding
@@ -223,7 +214,7 @@ fn compiler_provider_artifact_is_deterministic_closed_and_binding_normalized() {
 }
 
 #[test]
-fn provider_refuses_a_reachable_owned_bytes_iterator_before_emitting() {
+fn provider_executes_a_reachable_finite_owned_bytes_iterator() {
     let helper = r#"
 @id("provider.owning-break")
 fn owning_break() -> i64 {
@@ -257,11 +248,114 @@ fn owning_break() -> i64 {
     );
     let program = resolved_program(&source);
     let endpoint = endpoint_for(&source);
-    let error =
-        semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint).unwrap_err();
-    assert_eq!(error.code, "SPX-W110");
-    assert!(error.message.contains("owned Bytes iterator"));
-    assert!(error.message.contains("provider.owning-break"));
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("finite owned Bytes iterator fits the provider table");
+    wasmparser::Validator::new()
+        .validate_all(artifact.wasm())
+        .unwrap();
+    run_compiled_provider(
+        &artifact,
+        &endpoint,
+        Some(("break", &[7, 1, 2, 3, 3, 3, 3])),
+    );
+}
+
+#[test]
+fn provider_preserves_both_continue_sites_in_the_original_finite_iterator() {
+    // Compile the original backend oracle as a reachable helper without
+    // changing the loop body, allocation sites, exits or postcondition.
+    let oracle = include_str!("../owned_data/lexical_exits/iterator_resume.rs");
+    let (_, source) = oracle.split_once("const SOURCE: &str = r#\"").unwrap();
+    let (source, _) = source.split_once("\"#;").unwrap();
+    let (_, helper) = source.split_once('\n').unwrap();
+    let helper = helper.replace("fn main()", "fn iterator_resume()");
+    let source = format!("{SOURCE}{helper}").replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let observed = iterator_resume();\n    if observed != 43 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("the original two-continue fixture fits the provider table");
+    run_compiled_provider(
+        &artifact,
+        &endpoint,
+        Some(("resume", &[1, 2, 3, 4, 1, 1, 1, 1])),
+    );
+}
+
+#[test]
+fn provider_settles_finite_iterator_on_return_and_failure_before_reentry() {
+    let helper = r#"
+@id("provider.owning-return")
+fn owning_return(mode: usize) -> i64 ensures result == 4 {
+    let a = vec_push<Bytes>(vec_with_capacity<Bytes>(2usize), bytes_zeroed(1usize));
+    let values = vec_push<Bytes>(a, bytes_zeroed(2usize));
+    for own item in vec_into_iter<Bytes>(values) {
+        let scratch = bytes_zeroed(3usize);
+        if byte_len(bytes_as_slice(item)) == 1usize {
+            let divisor = if mode == 3usize { 0 } else { 2 };
+            if mode == 5usize { return 3; };
+            return 8 / divisor;
+        };
+        0
+    }
+    0
+}
+"#;
+    let source = format!("{SOURCE}{helper}").replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let observed = owning_return(byte_len(bytes_as_slice(value.payload.left)));\n    if observed != 4 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("finite iterator with an early return fits the provider table");
+    run_compiled_provider(&artifact, &endpoint, Some(("return", &[1, 2, 3])));
+}
+
+#[test]
+fn provider_executes_finite_scratch_at_both_cumulative_limits() {
+    let mut helper = String::from(
+        r#"
+@id("provider.owning-limit")
+fn owning_limit() -> i64 {
+    let row0 = vec_with_capacity<Bytes>(16usize);
+"#,
+    );
+    for row in 0..16 {
+        use std::fmt::Write;
+        writeln!(
+            helper,
+            "let row{} = vec_push<Bytes>(row{row}, bytes_zeroed(0usize));",
+            row + 1
+        )
+        .unwrap();
+    }
+    helper.push_str(
+        r#"
+    let mut seen = 0;
+    for own item in vec_into_iter<Bytes>(row16) {
+        let scratch = bytes_zeroed(131072usize);
+        if byte_len(bytes_as_slice(scratch)) == 131072usize {
+            seen = seen + 1;
+        };
+        0
+    }
+    seen
+}
+"#,
+    );
+    let source = format!("{SOURCE}{helper}").replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let seen = owning_limit();\n    if seen != 16 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("the exact cumulative byte limits fit the provider");
+    let lengths = std::array::from_fn::<_, 32, _>(|index| if index < 16 { 0 } else { 131_072 });
+    run_compiled_provider(&artifact, &endpoint, Some(("limit", &lengths)));
 }
 
 #[test]
@@ -297,10 +391,19 @@ fn byte_vec() -> i64 {
 
 #[test]
 fn node_loads_exact_closed_provider_inventory_without_fixture_or_host_imports() {
-    if !node_available() {
+    run_compiled_provider(&artifact(), &endpoint(), None);
+}
+
+fn run_compiled_provider(
+    artifact: &semaprax::wasm::PublicGenericWasmProviderArtifactV1,
+    endpoint: &semaprax::public_generic_abi::compiler_endpoint::AdmittedPublicGenericEndpointV1,
+    iterator: Option<(&str, &[u32])>,
+) {
+    if iterator.is_some() {
+        assert!(node_available(), "finite iterator provider requires Node");
+    } else if !node_available() {
         return;
     }
-    let artifact = artifact();
     let root = std::env::temp_dir().join(format!(
         "semaprax-pg-compiler-provider-artifact-{}-{}",
         std::process::id(),
@@ -312,7 +415,8 @@ fn node_loads_exact_closed_provider_inventory_without_fixture_or_host_imports() 
     fs::write(root.join("binding.bin"), artifact.binding_bytes()).unwrap();
     fs::write(
         root.join("input.bin"),
-        frame(
+        frame_for(
+            endpoint,
             semaprax::public_generic_abi::carrier::trace::Direction::Input,
             &[b"left", b"right"],
         ),
@@ -320,12 +424,29 @@ fn node_loads_exact_closed_provider_inventory_without_fixture_or_host_imports() 
     .unwrap();
     fs::write(
         root.join("expected.bin"),
-        frame(
+        frame_for(
+            endpoint,
             semaprax::public_generic_abi::carrier::trace::Direction::Result,
             &[b"right", b"left"],
         ),
     )
     .unwrap();
+    if iterator.is_some_and(|(mode, _)| mode == "return") {
+        for (filename, left) in [
+            ("arithmetic-input.bin", b"div".as_slice()),
+            ("contract-input.bin", b"false".as_slice()),
+        ] {
+            fs::write(
+                root.join(filename),
+                frame_for(
+                    endpoint,
+                    semaprax::public_generic_abi::carrier::trace::Direction::Input,
+                    &[left, b"right"],
+                ),
+            )
+            .unwrap();
+        }
+    }
     fs::write(
         root.join("probe.mjs"),
         r#"import { readFileSync } from 'node:fs';
@@ -347,26 +468,63 @@ memory.set(descriptor, 393216);
 memory.set(binding, 393216 + descriptor.length);
 const opened = lane(instance.exports.spx_pg_v1_open(393216, descriptor.length, 393216 + descriptor.length, binding.length));
 if (opened.status !== 0 || !opened.value) throw new Error('open');
-memory.set(input, 393216);
-const prepared = lane(instance.exports.spx_pg_v1_input_prepare(opened.value, 393216, input.length));
-if (prepared.status !== 0 || !prepared.value) throw new Error('prepare:' + JSON.stringify(prepared));
-const called = lane(instance.exports.spx_pg_v1_call(opened.value, prepared.value));
-if (called.status !== 0 || !called.value) throw new Error('call:' + JSON.stringify(called));
-const probe = lane(instance.exports.spx_pg_v1_result_export(called.value, 393216, 0));
-if (probe.status !== 12 || probe.value !== expectedBytes.length) throw new Error('export probe:' + JSON.stringify(probe) + ':expected=' + expectedBytes.length);
-const copied = lane(instance.exports.spx_pg_v1_result_export(called.value, 393216, probe.value));
-memory = new Uint8Array(instance.exports.memory.buffer);
-if (copied.status !== 0 || copied.value !== expectedBytes.length || !memory.slice(393216, 393216 + copied.value).every((byte, index) => byte === expectedBytes[index])) throw new Error('nonidentity result carrier');
-if (instance.exports.spx_pg_v1_result_release(called.value) !== 0) throw new Error('result release');
+const [mode, ...lengths] = process.argv.slice(2);
+const callInputs = [input, input, input, input];
+if (mode === 'return') {
+  callInputs.splice(1, 0, readFileSync('arithmetic-input.bin'));
+  callInputs.splice(3, 0, readFileSync('contract-input.bin'));
+}
+// The standalone layout reserves two carrier windows, aligned to 64 KiB,
+// followed by the two maximum input payloads and then the token table.
+const page = 65536;
+const heapTable = Math.ceil((393216 + 2 * (16 * 1024 * 1024 + 2056)) / page) * page + 2 * page;
+for (const callInput of callInputs) {
+  memory = new Uint8Array(instance.exports.memory.buffer);
+  memory.set(callInput, 393216);
+  const prepared = lane(instance.exports.spx_pg_v1_input_prepare(opened.value, 393216, callInput.length));
+  if (prepared.status !== 0 || !prepared.value) throw new Error('prepare:' + JSON.stringify(prepared));
+  const heap = new DataView(instance.exports.memory.buffer);
+  if (mode) {
+    for (let index = 0; index < 32; index++) {
+      heap.setUint32(heapTable + 8 * (index + 3) + 4, 0xffffffff, true);
+    }
+  }
+  const called = lane(instance.exports.spx_pg_v1_call(opened.value, prepared.value));
+  // Owned input tokens are 1 and 2. Every new Bytes allocation issues the
+  // next token. Its drop zeros the backing pointer and retains the length.
+  for (let index = 0; index < lengths.length; index++) {
+    const entry = heapTable + 8 * (index + 3);
+    if (heap.getUint32(entry, true) !== 0 || heap.getUint32(entry + 4, true) !== Number(lengths[index])) {
+      throw new Error('incorrect allocation or unsettled Bytes at index ' + index);
+    }
+  }
+  if (mode && lengths.length < 32 &&
+      heap.getUint32(heapTable + 8 * (lengths.length + 3) + 4, true) !== 0xffffffff) {
+    throw new Error('unexpected extra allocation');
+  }
+  if (callInput !== input) {
+    if (called.status !== 11 || called.value !== 0) throw new Error('failed call:' + JSON.stringify(called));
+    if (instance.exports.spx_pg_v1_value_release(prepared.value) !== 0) throw new Error('failed input release');
+    continue;
+  }
+  if (called.status !== 0 || !called.value) throw new Error('call:' + JSON.stringify(called));
+  const probe = lane(instance.exports.spx_pg_v1_result_export(called.value, 393216, 0));
+  if (probe.status !== 12 || probe.value !== expectedBytes.length) throw new Error('export probe:' + JSON.stringify(probe) + ':expected=' + expectedBytes.length);
+  const copied = lane(instance.exports.spx_pg_v1_result_export(called.value, 393216, probe.value));
+  memory = new Uint8Array(instance.exports.memory.buffer);
+  if (copied.status !== 0 || copied.value !== expectedBytes.length || !memory.slice(393216, 393216 + copied.value).every((byte, index) => byte === expectedBytes[index])) throw new Error('nonidentity result carrier');
+  if (instance.exports.spx_pg_v1_result_release(called.value) !== 0) throw new Error('result release');
+}
 if (instance.exports.spx_pg_v1_provider_close(opened.value) !== 0) throw new Error('provider close');
 "#,
     )
     .unwrap();
-    let output = Command::new("node")
-        .arg("probe.mjs")
-        .current_dir(&root)
-        .output()
-        .unwrap();
+    let mut probe = Command::new("node");
+    probe.arg("probe.mjs").current_dir(&root);
+    if let Some((mode, lengths)) = iterator {
+        probe.arg(mode).args(lengths.iter().map(u32::to_string));
+    }
+    let output = probe.output().unwrap();
     let _ = fs::remove_dir_all(&root);
     assert!(
         output.status.success(),

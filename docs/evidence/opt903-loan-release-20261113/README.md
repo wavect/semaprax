@@ -429,3 +429,12 @@ The probe exercises parsed input for the identity estimator, including
 unresolved arithmetic and calls. It grants no HIR admission and does not bind
 a production workspace reservation. Generator SHA-256
 `7f666fa1550fb918eedd27cb6dc67762c0ad3f14cbb5a0996c2c70a491bf92be`.
+
+The [Linux production census after the generic-template change](https://github.com/wavect/semaprax/actions/runs/43589935233)
+passed at `cfb533d37`. All six plain and profiled logs match the earlier
+`1fe13fc79` census byte for byte, including the normalizer's initial mode-one
+refusal and successful mode-two retry. Production Clippy passed with
+workflow profiling enabled and warnings denied. The retained provenance
+SHA-256 is
+`8a351dc33aa498d80731852159cf65771dd3d4a8354b24d008699d789d11117e`.
+Both runs used the shipping 128 MiB limit and reached no mode-six attempt.

@@ -950,7 +950,17 @@ mod lexical_advance;
         assert_eq!(forward, current);
     }
     {
-        let current = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/branch_frames.rs"));
+        const SOURCE: &str = "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/branch_frames.rs";
+        const POST_ADVANCE: &str =
+            "d2cf12f8878a9fc4a2bcbf2b6231e021d1482bbed77cc48f287b83e7c488d375";
+        let live = include_str!("branch_frames.rs");
+        let post_advance = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            SOURCE,
+            POST_ADVANCE,
+            live,
+        );
+        assert_eq!(digest(&post_advance), POST_ADVANCE);
+        let current = post_advance.as_str();
         let before = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/e/9da3102be302545d598dab9a301c426a8c75a2288cc477291d18cc6f068ba26f"

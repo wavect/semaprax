@@ -687,8 +687,7 @@ use super::super::super::regions_entry;
 mod prefitting_receiving {
     use super::*;
     use crate::cleanup_plan::replay::expression_facts::receiving::{helpers, require_status_paid};
-    use crate::cleanup_plan::replay::expression_facts::receiving::retained::{exit_prefix, validate_owned_edge_unique};
-    use super::super as case_certified;
+    use crate::cleanup_plan::replay::expression_facts::receiving::retained::{case_certified, exit_prefix, validate_owned_edge_unique};
     use super::prefitting_typed_skeleton as validate_typed_control_skeleton_with_index;
     #[path = "../last_use/before.rs"]
     pub(super) mod before;

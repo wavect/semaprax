@@ -53,7 +53,7 @@ pub(super) const PREPEND_CONTROLS: usize = 2 * NODE_CALL // leaf head and Cat jo
     + 3 * size_of::<std::rc::Rc<ObservationDag>>()
     + 4 * size_of::<Result<(), Diagnostic>>() + 4 * size_of::<usize>();
 
-macro_rules! share {
+macro_rules! historical_share {
     ($work:ident, $prefix:ident) => {{
         // Two scalar results reuse the original paid split's finite probe
         // storage before prefix_fusion acquires that same lexical frame.
@@ -89,7 +89,7 @@ macro_rules! share {
         }
     }};
 }
-pub(in crate::cleanup_plan::replay) use share;
+pub(in crate::cleanup_plan::replay) use historical_share as share;
 
 pub(in crate::cleanup_plan::replay) fn without_renewal(
     work: &mut SkeletonWork<'_, '_>,

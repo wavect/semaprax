@@ -331,10 +331,14 @@ fn complete_original_source_and_executable_oracle_remain_byte_bound() {
     );
     let expected = original.replacen("use super::*;", "use super::super::*;", 1)
         .replace("#[cfg(test)]\n#[path = \"enumerated_prefix/flat_probe/before.rs\"]\nmod before_flat_probe;\nmod flat_probe;", "use super::super::flat_probe;")
-        .replace("#[cfg(test)]\n#[rustfmt::skip]\nmod before;\n#[cfg(test)]\nmod source_custody;\n#[cfg(test)]\nmod tests;\n", "");
+        .replace("#[cfg(test)]\n#[rustfmt::skip]\nmod before;\n#[cfg(test)]\nmod source_custody;\n#[cfg(test)]\nmod tests;\n", "")
+        .replacen("macro_rules! share {", "macro_rules! historical_share {", 1)
+        .replacen("use share;", "use historical_share as share;", 1);
     assert_eq!(oracle, expected);
     let restored = oracle.replacen("use super::super::*;", "use super::*;", 1)
         .replacen("use super::super::flat_probe;", "#[cfg(test)]\n#[path = \"enumerated_prefix/flat_probe/before.rs\"]\nmod before_flat_probe;\nmod flat_probe;", 1)
+        .replacen("macro_rules! historical_share {", "macro_rules! share {", 1)
+        .replacen("use historical_share as share;", "use share;", 1)
         .replacen("\npub(in crate::cleanup_plan::replay) fn extend(", "#[cfg(test)]\n#[rustfmt::skip]\nmod before;\n#[cfg(test)]\nmod source_custody;\n#[cfg(test)]\nmod tests;\n\npub(in crate::cleanup_plan::replay) fn extend(", 1);
     assert_eq!(restored, original);
 }

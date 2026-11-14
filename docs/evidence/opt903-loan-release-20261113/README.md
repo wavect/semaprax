@@ -419,3 +419,13 @@ still reports 6,573,050 bytes against the saved 6,418,504. The two separate
 mode-six whole-forecast tests still request more heap bytes than their
 explicit reservations, so the generic-template change alone leaves these
 three owning assertions open.
+
+A deterministic generated-AST comparison expanded the local-scope prototype's
+parity coverage. It parsed 2,048 input programs with nested blocks, typed and
+untyped local declarations, assignments, branches, matching, ordinary calls
+and repeated names. Both import settings ran, for 4,096 equally sized old and
+candidate observations. All discounts agreed, including 921 nonzero results.
+The probe exercises parsed input for the identity estimator, including
+unresolved arithmetic and calls. It grants no HIR admission and does not bind
+a production workspace reservation. Generator SHA-256
+`7f666fa1550fb918eedd27cb6dc67762c0ad3f14cbb5a0996c2c70a491bf92be`.

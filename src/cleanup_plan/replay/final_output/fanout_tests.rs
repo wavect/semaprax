@@ -85,7 +85,11 @@ fn sequence(
     if old {
         before::sequence_skeleton_paths(prefixes, suffixes, work)
     } else {
-        super::super::sequence_skeleton_paths(prefixes, suffixes, work)
+        // The flat final-suffix transfer precedes completed-fork dispatch.
+        // Exercise the complete pre-fork receiver for its backing and floors.
+        ordinary_plan_history::completed_fork::emission::with_before(|| {
+            super::super::sequence_skeleton_paths(prefixes, suffixes, work)
+        })
     }
 }
 fn same_paths(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
@@ -167,6 +171,27 @@ fn final_fanout_keeps_complete_paths_and_reports_small_wide_transfer_costs() {
                     );
                 }
                 same_paths(&actual, &expected);
+                let mut shipping = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut shipping_work = SkeletonWork::new(&program, function, &mut shipping);
+                let (prefixes, live_suffixes, _) =
+                    inputs(&mut shipping_work, fanout, tail).unwrap();
+                let live = super::super::sequence_skeleton_paths(
+                    prefixes,
+                    &live_suffixes,
+                    &mut shipping_work,
+                )
+                .unwrap();
+                super::tests::same_paths(&live, &expected);
+                assert_eq!(
+                    shipping_work.budget.skeleton_spent,
+                    old_work.budget.skeleton_spent
+                );
+                assert_eq!(
+                    shipping_work.budget.skeleton_remaining,
+                    old_work.budget.skeleton_remaining
+                );
+                drop((live, live_suffixes, shipping_work));
+                drop(shipping);
                 drop((actual, expected, suffixes));
                 drop((old_work, work));
                 drop((old, current));
@@ -206,17 +231,17 @@ fn final_fanout_original_work_wins_competing_split_and_header_floors() {
     let program = program();
     let function = &program.functions[0];
     const LIMIT: usize = 1 << 24;
-    // The immutable caller and seeds are independently constructed before the
-    // observation account. No setup scratch is mislabeled receiving savings.
+    // Construction binds the query slot to this ledger. Start the work cut
+    // and floor after constructing the independently paid input paths.
     let run = |old, work_limit, floor_offset: Option<usize>| {
-        let mut caller = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-        let mut work = SkeletonWork::new(&program, function, &mut caller);
-        let (prefixes, suffixes, _) = inputs(&mut work, 3, super::FINAL_MINIMUM_ITEMS + 3).unwrap();
-        let observed = with_limit_usage_refusal_site(LIMIT, || {
+        with_limit_usage_refusal_site(LIMIT, || {
             measure(|| {
-                *work.budget = ReplayBudget::new();
-                work.budget.prepare_builder(function).unwrap();
+                let mut caller = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut work = SkeletonWork::new(&program, function, &mut caller);
+                let (prefixes, suffixes, _) =
+                    inputs(&mut work, 3, super::FINAL_MINIMUM_ITEMS + 3).unwrap();
                 work.budget.reserve_skeleton(function, work_limit).unwrap();
+                work.budget.skeleton_spent = 0;
                 super::FINAL_FRONTIERS.with(|slot| slot.set([None, None]));
                 let initial = active_remaining().unwrap();
                 if let Some(offset) = floor_offset {
@@ -240,14 +265,11 @@ fn final_fanout_original_work_wins_competing_split_and_header_floors() {
                     len
                 });
                 // Paid result/budget and every partial path are dropped in scope.
-                *work.budget = ReplayBudget::unobserved();
+                drop((suffixes, work));
+                drop(caller);
                 (outcome, retry, initial, frontiers, spent)
             })
-        });
-        drop(suffixes);
-        drop(work);
-        drop(caller);
-        observed
+        })
     };
     let (((outcome, _, initial, frontiers, _), allocation), refused, _, first, _) =
         run(false, MAX_REPLAY_WORK_UNITS, None);

@@ -171,21 +171,34 @@ fn complete_plan_paths_work_heap_and_exact_compact_result_delta_match_predecesso
             64 * 1024 * 1024,
             0,
         );
-        let new = run(true, f, usize::MAX, 64 * 1024 * 1024, 0);
+        let (new, census) =
+            merge_census::phase_census(|| run(true, f, usize::MAX, 64 * 1024 * 1024, 0));
         same(&old, &compact);
         same(&old, &new);
         assert!(new.result.is_ok() && !new.refused && !old.refused && !compact.refused);
-        // The compaction delta is exact on the compact producer that both this
-        // seam and production share. 827cda1f5 then let production copy short
-        // histories directly instead of entering the full take query; that
-        // route keeps every result, work, move and heap field (checked above)
-        // and only pays less. Its banks are pinned exactly by the short-plan
-        // tests in branch_clone::production_capacity::tests.
         assert_eq!(
             compact.paid + (selections(f) + 6 * compact.moves.0) * unit,
             old.paid
         );
-        assert!(new.paid <= compact.paid);
+        // The live caller also pays the prefix eligibility query and the
+        // short-copy selector. Short copies cover their own selector through
+        // the savings pinned by the short-plan cutoff test. A long history
+        // pays the selector and continues into the complete earlier producer.
+        assert!(census.complete());
+        let eligibility = plan_prefix::QUERY_CONTROLS;
+        assert_eq!(
+            census.phase("PLAN prefix eligibility receivers"),
+            (eligibility, 1)
+        );
+        let (selector_bytes, selectors) = census.phase("branch short-history selection controls");
+        let (copy_bytes, copies) = census.phase("branch short-history copy controls");
+        assert_eq!(selector_bytes, selectors * branch_clone::short_plan::SELECT);
+        assert_eq!(copy_bytes, copies * branch_clone::short_plan::COPY);
+        let fallthroughs = selectors.checked_sub(copies).unwrap();
+        assert!(
+            new.paid
+                <= compact.paid + eligibility + fallthroughs * branch_clone::short_plan::SELECT
+        );
         for observed in [&compact, &new] {
             assert!(
                 observed.heap.allocated <= observed.paid

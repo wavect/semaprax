@@ -360,3 +360,27 @@ four cost fields. The revised receiver skips this table only when the module
 has no local generic declarations. This probe covers the local estimator;
 the mode-six call-identity and layout allocations still need their own
 complete accounting.
+
+A separate Rust 1.97.1 allocation probe delayed the call-identity declaration
+index until the first eligible ordinary-callee lookup. It reused the current
+AST parser and the complete eager declaration-directory builder. The eager
+and deferred versions agreed on the scalar and binding fixtures, ordinary
+local and unknown calls, an imported call, an alias collision, a mismatched
+provider and a callable parameter that shadows a local function. Both import
+settings ran for every fixture. The probe used ordinary non-intrinsic call
+names and did not exercise the compiler-operation branch.
+
+| Fixture | Eager requested bytes | Deferred requested bytes |
+| --- | ---: | ---: |
+| 64 scalar functions | 3,408 | 0 |
+| 64 functions with a local binding | 61,264 | 57,856 |
+| Shadowed local call | 1,424 | 1,056 |
+
+Every observed allocation was freed. The other fixtures requested identical
+allocation totals in both arms. On the 64-function scalar fixture, deferring
+the index and omitting the empty generic-template table would eliminate
+12,960 requested bytes across the full and retained estimates. The binding
+fixture still requests 115,712 bytes from the two call-identity scans. The
+candidate needs an integrated reservation and Drop comparison before admission.
+The probe log SHA-256 is
+`63101ec849d592fc418f8126a0ee909b2af9c7d48e9e885282c06ccedf23d45e`.

@@ -220,6 +220,11 @@ The generated native test returns an actual partition child through an owning
 iterator. It checks that language failure and injected provider allocation
 refusal preserve the caller result, and that a subsequent invocation can
 publish a fresh copy which the provider drops exactly once.
+The selected native receiver also binds `bytes_copy` and `bytes_set` to the
+shared-owner runtime. The generated test copies a child containing NUL and
+non-UTF-8 bytes after its iterator has settled, mutates the original child,
+and verifies the copy retains its bytes. The adjacent out-of-bounds store
+selects the byte-buffer status and settles both backings before returning.
 
 ## Independent frontend and target proof obligations
 

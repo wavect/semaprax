@@ -127,6 +127,8 @@ impl<'owner, 'source> Projection<'owner, 'source> {
             let selection = closure::closed_over([
                 closure::Consumer::Zeroed,
                 closure::Consumer::ZeroedBounded,
+                closure::Consumer::Copy,
+                closure::Consumer::Set,
                 closure::Consumer::Partition,
                 closure::Consumer::Move,
                 closure::Consumer::CleanupFinalizer,
@@ -211,7 +213,8 @@ fn admitted_type(ty: &ResolvedType, work: &mut usize) -> Result<(), Diagnostic> 
         | ResolvedType::U8
         | ResolvedType::Usize
         | ResolvedType::Bytes
-        | ResolvedType::SliceU8 => Ok(()),
+        | ResolvedType::SliceU8
+        | ResolvedType::ArrayU8(_) => Ok(()),
         ResolvedType::Nominal {
             declaration,
             arguments,
@@ -270,6 +273,8 @@ fn check(
                         op,
                         crate::byte_ops::ByteOp::Zeroed
                             | crate::byte_ops::ByteOp::ZeroedBounded
+                            | crate::byte_ops::ByteOp::Copy
+                            | crate::byte_ops::ByteOp::Set
                             | crate::byte_ops::ByteOp::Partition
                             | crate::byte_ops::ByteOp::Len
                     ) {
@@ -318,7 +323,8 @@ fn check(
             Ok(())
         }
         ResolvedExprKind::BorrowPlace { operation, .. }
-            if equal(operation.as_str(), crate::byte_ops::BYTES_AS_SLICE_ID, work)? =>
+            if equal(operation.as_str(), crate::byte_ops::BYTES_AS_SLICE_ID, work)?
+                || equal(operation.as_str(), crate::byte_ops::ARRAY_AS_SLICE_ID, work)? =>
         {
             Ok(())
         }
@@ -332,6 +338,7 @@ fn check(
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Usize(_)
         | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::Binary { .. }

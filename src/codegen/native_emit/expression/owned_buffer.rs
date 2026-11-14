@@ -62,15 +62,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "owned byte store argument was not staged in its canonical epoch",
             ));
         }
-        self.line(&format!(
-            "spx_status = spx_bytes_set_check_v1(spx_ctx, {}, {});",
-            buffer, arguments[1].code
-        ));
-        self.emit_operation_failure_check()?;
-        self.line(&format!(
-            "{temporary} = spx_bytes_set(spx_bytes_move(&{buffer}), {}, {});",
-            arguments[1].code, arguments[2].code
-        ));
+        let index = &arguments[1].code;
+        let byte = &arguments[2].code;
+        if self.output_profile == super::super::NativeOutputProfile::SelectedPartition {
+            self.line(&format!(
+                "spx_status = spx_shb_status(spx_ctx, spx_shb_set_check(spx_shb_held(spx_ctx), &{buffer}, {index}));"
+            ));
+            self.emit_operation_failure_check()?;
+            self.line(&format!(
+                "spx_shb_set(spx_shb_held(spx_ctx), &{buffer}, {index}, {byte}, &{temporary});"
+            ));
+        } else {
+            self.line(&format!(
+                "spx_status = spx_bytes_set_check_v1(spx_ctx, {buffer}, {index});"
+            ));
+            self.emit_operation_failure_check()?;
+            self.line(&format!(
+                "{temporary} = spx_bytes_set(spx_bytes_move(&{buffer}), {index}, {byte});"
+            ));
+        }
         // The store committed: the staged argument epoch no longer owns the
         // buffer, exactly as an ordinary owned call argument stops owning it
         // at its commit boundary. A loop-carried fill reuses this slot.

@@ -91,6 +91,9 @@ impl NativeOutputProfile {
         op: crate::byte_ops::ByteOp,
     ) -> (&'static str, &'static str) {
         match (self, op) {
+            (Self::SelectedPartition, crate::byte_ops::ByteOp::Copy) => {
+                ("spx_partition_copy", "spx_ctx, ")
+            }
             (Self::SelectedPartition, crate::byte_ops::ByteOp::Zeroed) => {
                 ("spx_partition_zeroed", "spx_ctx, ")
             }

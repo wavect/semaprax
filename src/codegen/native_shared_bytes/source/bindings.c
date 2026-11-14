@@ -6,6 +6,13 @@ static __attribute__((unused)) spx_shb_bytes spx_partition_zeroed(struct spx_con
     return value;
 }
 #define spx_bytes_v1 spx_shb_bytes
+static __attribute__((unused)) spx_shb_bytes spx_partition_copy(
+    struct spx_context *spx_ctx, spx_slice_u8_v1 view
+) {
+    spx_shb_bytes value = {0};
+    spx_shb_copy(spx_shb_held(spx_ctx), view, &value);
+    return value;
+}
 #define spx_vec_v1 spx_shb_vec
 #define spx_bytes_move(value) spx_shb_move(spx_shb_held(spx_ctx), (value))
 #define spx_bytes_drop(value) spx_shb_drop(spx_shb_held(spx_ctx), (value))

@@ -145,11 +145,33 @@ fn copy_out_settles_the_selected_source_child() {
         assert!(crate::codegen::emit_native_partition_copy_out(&ast, id, &mut work).is_err());
         assert_eq!(work, 0);
     }
-    for (text, invalid) in [
-        (COPY_OUT_SOURCE.to_owned(), false),
+    let clone = COPY_OUT_SOURCE
+        .replace(
+            "let whole=bytes_zeroed(6usize);",
+            "let seed=[0u8,255u8,195u8,169u8,128u8,0u8]; let input=array_as_slice(seed); let whole=bytes_copy(input);",
+        )
+        .replace(
+            "@id(\"partition_provider.bytes\") fn exported()",
+            "@id(\"partition_provider.take\") fn take_child()",
+        )
+        .replace(
+            "@id(\"partition_provider.main\")",
+            "@id(\"partition_provider.bytes\") fn exported()->Bytes { let mut item=take_child(); let view=bytes_as_slice(item); let cloned=bytes_copy(view); item=bytes_set(item,1usize,77u8); cloned }\n@id(\"partition_provider.main\")",
+        );
+    for (text, failure_domain, child_copies, second_byte) in [
+        (COPY_OUT_SOURCE.to_owned(), "", 0, 0),
         (
             COPY_OUT_SOURCE.replace("3usize,2usize", "3usize,0usize"),
-            true,
+            crate::construction_fusion::partition::operation::STATUS_DOMAIN,
+            0,
+            0,
+        ),
+        (clone.clone(), "", 1, 255),
+        (
+            clone.replace("item,1usize,77u8", "item,2usize,77u8"),
+            crate::byte_ops::SET_STATUS_DOMAIN,
+            1,
+            255,
         ),
     ] {
         let ast = crate::parse(&text, "partition-provider.spx").unwrap();
@@ -157,7 +179,6 @@ fn copy_out_settles_the_selected_source_child() {
             crate::codegen::emit_native_partition_copy_out(&ast, ID, &mut { usize::MAX }).unwrap();
         assert!(unit.contains("uint32_t spx_partition_copy_out_v1("));
         let root = scratch("partition-provider-copy-out");
-        let invalid = u8::from(invalid);
         compile_and_run(
             &root,
             &format!(
@@ -172,16 +193,17 @@ int main(void) {{
     refuse_provider = true;
     uint32_t status = spx_partition_copy_out_v1(&result, &domain, &code);
     if (result.ptr != &sentinel || result.len != 1u || sentinel != 37u) return 1;
-    if (payload_allocations != 1u || payload_frees != 1u || provider_allocations != 0u) return 2;
-    if ({invalid}u) {{
-        if (status != 1u || code != 1u || strcmp(domain, "semaprax.byte-partition.v1") != 0) return 3;
+    if (payload_allocations != 1u + {child_copies}u || payload_frees != payload_allocations || provider_allocations != 0u) return 2;
+    if (sizeof("{failure_domain}") != 1u) {{
+        if (status != 1u || code != 1u || strcmp(domain, "{failure_domain}") != 0) return 3;
         return 0;
     }}
     if (status != 2u || code != 99u || strcmp(domain, "unpublished") != 0) return 4;
     refuse_provider = false;
     if (spx_partition_copy_out_v1(&result, &domain, &code) != 0u) return 5;
-    if (result.len != 2u || result.ptr == NULL || result.ptr[0] != 0u || result.ptr[1] != 0u) return 6;
-    if (payload_allocations != 2u || payload_frees != 2u || payload_bytes != 12u) return 7;
+    if (result.len != 2u || result.ptr == NULL || result.ptr[0] != 0u || result.ptr[1] != {second_byte}u) return 6;
+    if (payload_allocations != 2u * (1u + {child_copies}u) || payload_frees != payload_allocations
+        || payload_bytes != 12u + 4u * {child_copies}u) return 7;
     if (provider_allocations != 1u || provider_frees != 0u || code != 99u) return 8;
     spx_partition_provider_drop_v1(&result);
     if (provider_frees != 1u || result.ptr != NULL || result.len != 0u) return 9;

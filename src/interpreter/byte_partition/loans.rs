@@ -150,6 +150,10 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
         })();
         self.registry.select(result)
     }
+    #[cfg(test)]
+    pub(in crate::interpreter::byte_partition) fn all_owners_settled(&self) -> bool {
+        self.registry.contexts.iter().all(Option::is_none)
+    }
     pub(super) fn active(&self) -> Result<(), Refusal> {
         self.registry.active()
     }

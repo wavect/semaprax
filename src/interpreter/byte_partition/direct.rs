@@ -20,13 +20,16 @@ use crate::{
 };
 use std::alloc::Layout;
 
+mod copy_store;
 mod iterator;
+mod returned_child;
 use iterator::FirstChild;
 #[derive(Debug, PartialEq)]
 pub(crate) enum Outcome {
     Returned(i64),
     PartitionFault(partition::Fault),
     BufferBoundExceeded,
+    ByteStoreOutOfBounds,
     PostconditionFailed,
     AllocationFailure,
     Refused,
@@ -502,6 +505,17 @@ pub(crate) fn execute(
         let mut handle = account.borrowed();
         use crate::construction_fusion::domain::owner_core::Runtime;
         handle.reserve_metadata(Layout::new::<Report>())?;
+        if matches!(statements.first(), Some(S::Let { value, .. })
+            if matches!(&value.kind, K::Call { callee, .. }
+                if program.functions.iter().any(|f| &f.id == callee)))
+        {
+            report.outcome = copy_store::execute(owner, entry, exit, work, handle)?;
+            report.cleanup_complete = !matches!(
+                report.outcome,
+                Outcome::Refused | Outcome::AllocationFailure
+            );
+            return Ok(());
+        }
         handle.reserve_metadata(Layout::new::<(
             Option<PartitionStep>,
             PartitionStep,

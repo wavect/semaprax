@@ -230,12 +230,15 @@ non-UTF-8 bytes after its iterator has settled, mutates the original child,
 and verifies the copy retains its bytes. The adjacent out-of-bounds store
 selects the byte-buffer status and settles both backings before returning.
 The shared `byte-partition-private-clone.spx` fixture executes the same
-early iterator return, copy, mutation, and byte reads through native C11
-at O0/O2 and paired Core Wasm. It observes the mutated child and the
-original bytes in the copy, including NUL and 0xFF. Both executions account
-for two backing allocations and eight payload bytes per invocation.
-The paired Core-Wasm failure case also checks the exact byte-buffer status,
-settlement and reentry after a write past the child extent.
+early iterator return, copy, mutation, and byte reads through the private
+interpreter, native C11 at O0/O2, and paired Core Wasm. It observes the mutated
+child and the original bytes in the copy, including NUL and 0xFF. Each
+invocation accounts for two backing allocations and eight payload bytes.
+The interpreter and paired Core-Wasm failure controls check the byte-buffer
+status, settlement and reentry after a write past the child extent.
+The interpreter checks the callee's lexical return and the caller's success
+and store-failure cleanup routes against the current source-owned HIR. The
+caller follows exact loan edges for the copy, mutation, and byte observations.
 
 ## Independent frontend and target proof obligations
 

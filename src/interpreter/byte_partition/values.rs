@@ -34,6 +34,15 @@ pub(super) fn store_byte<R: InvocationRuntime>(
     let Backing::Partition(owner) = &mut value.bytes else {
         return Err(Flow::Guard("partition store requires its affine owner"));
     };
+    store_owner_byte(owner, receiver, index, byte)
+}
+
+pub(super) fn store_owner_byte<R: InvocationRuntime>(
+    owner: &mut super::Owner,
+    receiver: &mut Loans<'_, R>,
+    index: u64,
+    byte: u8,
+) -> Result<(), Flow> {
     receiver
         .checked_store(owner, index, &[byte])
         .map_err(|error| match error {

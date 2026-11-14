@@ -25,7 +25,7 @@ struct ChildRead {
     arm_after: u16,
 }
 
-fn endpoint(
+pub(super) fn endpoint(
     plan: &LoanPlan,
     expression: &ResolvedExpr,
     phase: LoanPointPhase,
@@ -49,7 +49,7 @@ fn endpoint(
     point.ok_or(Refusal::Identity)
 }
 
-fn slice_loan(
+pub(super) fn slice_loan(
     plan: &LoanPlan,
     view: &ResolvedExpr,
     place: &hir::Place,
@@ -252,19 +252,27 @@ pub(super) fn execute(
     invocation: &mut Invocation<'_>,
 ) -> Result<i64, Refusal> {
     let loans = &mut invocation.loans;
-    let Value::PartitionIter(mut iter) = super::super::values::into_iterator(value, loans)
-        .map_err(|(_, mut original)| {
+    let mut iter = into_iterator(value, loans)?;
+    if let Err(error) = loans.advance_straight_to(step.scrutinee_after) {
+        let _ = iter.settle(loans);
+        return Err(error);
+    }
+    execute_step(step, &mut iter, loans)
+}
+
+pub(super) fn into_iterator(
+    value: Value,
+    loans: &mut super::super::loans::Loans<'_, super::super::funding::BorrowedAccount<'_>>,
+) -> Result<super::super::flat::PartitionIterator, Refusal> {
+    let Value::PartitionIter(iter) =
+        super::super::values::into_iterator(value, loans).map_err(|(_, mut original)| {
             let _ = super::super::values::settle(&mut original, loans);
             Refusal::Identity
         })?
     else {
         return Err(Refusal::Identity);
     };
-    if let Err(error) = loans.advance_straight_to(step.scrutinee_after) {
-        let _ = iter.settle(loans);
-        return Err(error);
-    }
-    execute_step(step, &mut iter, loans)
+    Ok(iter)
 }
 
 fn execute_step(

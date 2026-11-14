@@ -180,6 +180,19 @@ estimates on the binding fixture. An allocation-free declaration lookup
 alone would still leave the binding costs. The probe used the repository
 AST child and scalar-initializer classifiers and no call or import route.
 
+An isolated successor stored the first newly active binding in each Block
+inline, retaining the existing Vec for later bindings and removing the
+first and subsequent names in their original order. The 64-function
+binding fixture kept the same identity discount and requested and freed
+57,168 bytes per estimate, compared with 61,264 bytes in the original.
+It omitted one 64-byte allocation per function. The call-free scalar
+fixture was unchanged. A follow-up probe preserved the computed discounts
+for one binding, multiple bindings, nested Blocks, duplicate spelling, and
+an unproved String initializer. It removed a 64-byte request in the
+single-binding and nested cases. The multi-binding case still needed the
+same 64-byte Vec backing and showed no heap reduction. These probes do
+not account for new inline storage and control roles in a complete payer.
+
 A separate production profiling build from
 `0a68f5420260999ef7e57a1a3641e41a69a95a4a` applied only the
 [64 MiB Project reporting patch](../opt785-application-preparation-20261113/current-builder-limit.patch)

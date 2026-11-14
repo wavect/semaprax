@@ -5,7 +5,7 @@ use super::{
     active_builder_limit, ast_function_contract_cost, ast_function_cost,
     ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
     ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
-    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
+    ast_type_identity_slots, cached_exact, checked_builder_sum, checked_usage, cost,
     generic_instance_source_cost_with_imports, import_stub, limit_error, private_layout,
     synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, StructuralCost,
     SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR, HIR_STRING_COPY_FACTOR,
@@ -177,15 +177,13 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
         runtime.add_split(synthetic_main.total, synthetic_main.string_bytes)?;
         runtime.add_identity_carriers(synthetic_main.identity_carriers)?;
     }
-    if layout_mode >= 2 {
-        identity_slots = identity_slots
-            .checked_sub(call_identity::discount_with_imports(
-                program,
-                authored,
-                include_imports,
-            ))
-            .expect("scalar calls retain their expression and callee identity slots");
-    }
+    identity_slots = identity_slots
+        .checked_sub(super::super::mode6_identity::discount(
+            program,
+            authored,
+            include_imports,
+        )?)
+        .expect("scalar calls retain their expression and callee identity slots");
     identity_slots = identity_slots
         .checked_sub(raw.scalar_identity_discount)
         .expect("raw scalar discount retains each expression identity slot");

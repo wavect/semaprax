@@ -462,3 +462,20 @@ reservation control with a simulated ledger requested 64 bytes at the exact
 bound and allocated nothing at one byte short or at zero. These observations
 cover the identity discount alone. The complete fallback and production
 ledger still need qualification.
+
+The [Linux production census at `b0a2e6248`](https://github.com/wavect/semaprax/actions/runs/43592009022)
+passed with profiling and production Clippy. All six plain and observed
+logs match the preceding corpus byte for byte. The unchanged applications
+again select modes one and two at the shipping cap. The report SHA-256 is
+`e767b9e601cfc40e1cb2f6ca1e3dbcddca8a3ade38c77b4c041c6f102aee2f82`.
+
+The next prototype also reserves each local-name backing replacement, keeps
+the first entry inline, and reuses the declaration row for active-scope state.
+It matched all 4,096 generated comparisons and 112 application and dependency
+comparisons. Its isolated requested and freed bytes were 611,552 across the
+six application closures, down from 1,831,424. The normalizer closure used
+208,864 bytes, down from 644,592. The 4,097-name refusal case used 131,040
+bytes versus 130,736 originally. Both call-free 64-function fixtures,
+including the one-binding-per-function case, required no heap backing in
+this prototype. These measurements use a simulated reservation ledger.
+The candidate's complete production forecast controls are pending.

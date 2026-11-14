@@ -78,6 +78,8 @@ pub(in crate::workspace_graph) use import_stub::core_proofs::CoreProviderProofs;
 // CORE_PROOF_RECEIVERS_END
 #[path = "expected_projection/local_identity.rs"]
 mod local_identity;
+#[path = "expected_projection/mode6_identity/mod.rs"]
+mod mode6_identity;
 #[path = "expected_projection/private_layout.rs"]
 pub(super) mod private_layout;
 pub(in crate::workspace_graph) use held_projection::{

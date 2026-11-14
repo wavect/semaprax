@@ -376,9 +376,63 @@ fn complete_before_caller_and_current_cold_comparison_keep_verdicts_and_final_dr
     assert!(!old.invalid && !new.invalid && old.live == 0 && new.live == 0);
     assert_eq!(old.allocated, old.freed);
     assert_eq!(new.allocated, new.freed);
+    // The old caller retains its scratch capacities. The live legacy caller
+    // can release those capacities and acquire fresh backing at the PLAN root.
+    // Compare the full caller delta to a separate run on one built automaton.
+    let mut build_budget = ReplayBudget::with_skeleton_limit(0);
+    let built = build_comparison(&program, function, &mut build_budget, None, None).unwrap();
+    let canonicalize = |release| {
+        measure(|| {
+            let mut budget = ReplayBudget::unobserved();
+            let mut canonical = canonical(&built);
+            assert!(!canonical.cold_dead_node(built.hir_root));
+            let mut receiving = receiving(function, &budget);
+            let id = canonical.canonical_dispatch(&budget.payer);
+            let hir = id(
+                &mut canonical,
+                function,
+                vec![(built.hir_root, 1)],
+                &mut budget,
+                &mut receiving,
+            )
+            .unwrap()
+            .unwrap();
+            if release {
+                assert!(canonical
+                    .release_hir_storage(function, &mut budget, built.hir_root, built.plan_root)
+                    .unwrap());
+                assert_eq!(&canonical.private_release_receipt()[8..], &[0, 0, 0, 0]);
+            }
+            let plan = id(
+                &mut canonical,
+                function,
+                vec![(built.plan_root, 1)],
+                &mut budget,
+                &mut receiving,
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(Some(hir == plan), old_result.0);
+        })
+        .1
+    };
+    let retained = canonicalize(false);
+    let retired = canonicalize(true);
+    for metrics in [retained, retired] {
+        assert!(!metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+    }
     assert_eq!(
-        (new.allocations, new.reallocations, new.allocated),
-        (old.allocations, old.reallocations, old.allocated)
+        (
+            new.allocations + retained.allocations,
+            new.reallocations + retained.reallocations,
+            new.allocated + retained.allocated,
+        ),
+        (
+            old.allocations + retired.allocations,
+            old.reallocations + retired.reallocations,
+            old.allocated + retired.allocated,
+        )
     );
     assert!(
         new.highwater < old.highwater,

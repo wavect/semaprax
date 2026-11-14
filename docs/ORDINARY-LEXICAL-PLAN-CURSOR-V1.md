@@ -307,6 +307,29 @@ measure application reach and refusal stages for one implementation. Matched
 predecessor runs are required to attribute savings to the certified branch.
 The historical-cap application criterion for #902 remains open.
 
+A current-source recheck at `66f19266e` passed the whole 32-row caller at
+67,108,864 bytes and reproduced its zero and 4,096-byte refusals. At the
+original cap it requested and freed 5,403,313 heap bytes, with a 660,282-byte
+peak and zero live bytes on return. The two independent reference
+receivers completed. The caller reached no paired comparator invocations.
+The earlier 33-test certified-head batch on `dfe57743b` passed all 32
+execution controls and failed one source-history check after its on-disk
+inputs advanced. The exact pair-link history selector passed on the fresh
+`66f19266e` build.
+
+A separate production profiling build restored 64 MiB as the default
+using the original retry path. ShiftSim checked successfully in mode 5
+after four refusing attempts, with 28,732 certified right-hand-side
+admissions across 193 completed comparison owners. Catalog and LogLens
+checked successfully in mode 1. Normalizer still refused in static
+precharge. These Project checks measure the current route. Matched
+predecessor runs are still required to attribute application savings.
+[Original-limit retry receipts](evidence/opt903-loan-release-20261113/README.md#historical-default-budget-and-retry-comparison)
+
+The whole-caller and fresh source-history log SHA-256 values are
+`2280d169d38fb0106bb4f75ddbb45c0a200e625ae249cbe8e384c4d02195a7b6`
+and `a201ce89c8eb14326c05a12155f3a7b53e9666c3eb740fdf1584c56a836b6de6`.
+
 ## Shared immutable segment boundary continuation
 
 When both loaded slices are empty, inspect only the next already validated

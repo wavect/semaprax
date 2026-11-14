@@ -72,3 +72,30 @@ return seen;
             .any(|diagnostic| diagnostic.code == "SPX-T267"));
     }
 }
+
+#[test]
+fn finite_scratch_return_settles_live_item_and_suffix_with_sticky_failure() {
+    use super::interpret_status;
+    use crate::owned_vec_bytes_runtime::{run_native, run_wasm_expected};
+
+    // Return on the first item, with both the iteration scratch and the
+    // untransferred second item still live. A zero divisor fails while
+    // evaluating the return operand, before the false ensures can run.
+    for (divisor, ensures, domain, code, wasm_status) in [
+        (2, 4, "", 0, 0),
+        (2, 5, "semaprax.contract.v1", 2, 10),
+        (0, 5, "semaprax.arithmetic.v1", 4, 4),
+    ] {
+        let source = SOURCE
+            .replace("ensures result==4", &format!("ensures result=={ensures}"))
+            .replace(
+                "if byte_len(bytes_as_slice(item))==1usize {continue;};",
+                &format!(
+                    "if byte_len(bytes_as_slice(item))==1usize {{let divisor={divisor}; return 8/divisor;}};"
+                ),
+            );
+        interpret_status(&source, 4, (code != 0).then_some((domain, code)));
+        run_native(&source, domain, code, 4, "none");
+        run_wasm_expected(&source, wasm_status, 3, "none", 4);
+    }
+}

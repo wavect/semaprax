@@ -94,6 +94,13 @@ exact limit, and zero of each in the empty case. Source validation refuses
 one additional zero-byte allocation or one additional payload byte with
 `SPX-T267`.
 
+The early-return fixture leaves the current item, its scratch owner and the
+untransferred suffix live at the return site. The interpreter, native C11
+at O0 and O2, and strict Core Wasm check successful return, a false
+postcondition, and division by zero in the return operand. Division by
+zero keeps its arithmetic status even when the postcondition would fail.
+The Wasm host observes three allocations and three drops per invocation.
+
 The import-free public generic provider has no owned Bytes iterator runtime.
 A probe routed the original loop through a reachable provider helper and
 reached module emission. Node v24.15.0 rejected the emitted call signature

@@ -35,6 +35,11 @@ const RETURN_BYTES: &str = r#"module lexical.result;
 "#;
 
 fn interpret(source: &str, expected: i64, failure: bool) {
+    let status = failure.then_some(("semaprax.contract.v1", 2));
+    interpret_status(source, expected, status);
+}
+
+fn interpret_status(source: &str, expected: i64, status: Option<(&str, u32)>) {
     let path = std::env::temp_dir().join(format!(
         "lexical-owned-{}-{}.spx",
         std::process::id(),
@@ -46,10 +51,10 @@ fn interpret(source: &str, expected: i64, failure: bool) {
         interpreter::verify_envelope(&observed.envelope).unwrap();
         let envelope: serde_json::Value = serde_json::from_str(&observed.envelope).unwrap();
         let outcome = &envelope["payload"]["outcome"];
-        if failure {
+        if let Some((domain, code)) = status {
             assert!(!observed.returned);
-            assert_eq!(outcome["status"]["domain_id"], "semaprax.contract.v1");
-            assert_eq!(outcome["status"]["code"], 2);
+            assert_eq!(outcome["status"]["domain_id"], domain);
+            assert_eq!(outcome["status"]["code"], code);
         } else {
             assert!(observed.returned);
             assert_eq!(outcome["value"], expected.to_string());

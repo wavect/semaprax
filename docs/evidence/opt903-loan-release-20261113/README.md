@@ -209,8 +209,18 @@ The normalizer reaches the mode-six static forecast and still exceeds the
 cap by 13,522 bytes at its first refusing step. Earlier retained modules
 account for 66,248,903 bytes at that step. That first-step gap does not
 bound the reduction required for the remaining modules or later validation.
-The combined joint and imported-module census candidate is being checked
-through the same Project entry point at the same cap.
+The combined joint and imported-module census candidate was checked through
+the same Project entry point and cap. Its production patch SHA-256 is
+`3218d9670e2700cc3b9b4f50ad10b1f22657c08b2648a06a67a51daf29fb9e9e`.
+The linked probe SHA-256 is
+`dd56d7ebe5516cdd911d020bd1f9218deb8b9c154d0acbb1f73a326e4101292e`.
+The Catalog, ShiftSim, and LogLens receipts matched the joint-only receipts
+byte for byte. The normalizer progressed one step further. Seven earlier
+modules retained 66,869,729 bytes before the full 290,366-byte
+`std.io.lines` estimate refused, at 67,160,095 bytes. That is 51,231 bytes
+over the cap at the new first refusal. The normalizer again made no live
+core attempt. A complete mode-six observation is still needed to measure
+the peak over all twelve modules and their subsequent validation.
 
 The existing whole-normalizer library owner passed at the default 128 MiB
 cap on the retained `6f1db7ec4` test image. All twelve authored and dependency

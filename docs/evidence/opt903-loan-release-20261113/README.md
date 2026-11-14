@@ -810,6 +810,47 @@ The test-only observer log SHA-256 is
 The local diagnostic patch SHA-256 is
 `82cc49a3442d116b9b9a44a8a905c174dc4f7eca2f289e46ff56fa02eb244741`.
 
+### Descriptor construction and decode at the original limit
+
+A second test-only observer on the same source measured the three
+authenticated descriptors independently. Construction covered the ordinary
+source descriptor and its identity. Decoding started with the complete
+identity and reconstructed the ordinary descriptor. Each measurement
+included dropping the resulting allocation.
+
+| Site | Construction traffic | Construction peak | Decode traffic | Decode peak |
+| --- | ---: | ---: | ---: | ---: |
+| `src/order.spx` `vec_sort_by` | 3,371 | 1,078 | 1,121 | 988 |
+| `src/schedule.spx` `vec_unique_by` | 2,786 | 788 | 603 | 577 |
+| `src/schedule.spx` `vec_update_field` | 1,650 | 535 | 410 | 380 |
+
+All amounts are bytes. Each measurement returned to zero live bytes.
+The one owning observer test passed and reproduced the unchanged
+`src/response.spx` refusal. The measured operations exclude later HIR
+copies and their owning validation passes.
+
+A local compiler experiment replaced the maximum-size descriptor allowance
+at these sites with a charge derived from the source descriptor's
+identity length, layout capacity and selector length. The unchanged
+ShiftSim project integration test advanced from six to twelve retained
+modules. Mode six then refused the UTF-8 dependency
+`dependencies/std.data.json.utf8/0.1.0/utf8.spx`.
+Its 3,155,235-byte forecast added to 64,675,563 retained bytes, for a
+67,830,798-byte total, 721,934 bytes above the original cap.
+The experiment measured the change in refusal site. A production bound
+still needs to cover temporary allocations and all relevant HIR copies.
+
+| Local artifact | SHA-256 |
+| --- | --- |
+| Descriptor observer patch | `859f8c1251936b3284238362c6ca74734a7bfe5c125ec9b4ef1c4d2b8a2ae66a` |
+| Observer test log | `ca7b0f590009537c2d2550c65ab7b501ee5beb3eb9dfdfd2d21d1eb4bdc88394` |
+| Forecast experiment patch | `233307f7c9165eba350781f5a26f6505183cf85c71f52dd744368a7d35dd9c13` |
+| Unchanged project test log for the experiment | `9ef7d0415ca2709064bcacb9072aa11be8884431a258fccbc541d793879a8c6d` |
+
+The shipping library at `cd0da39c8` passed all 294 selected comparator and
+expression-fact tests in 873.13 seconds. The test log SHA-256 is
+`ffcecdba59957c7de3f52fe5f7f25f56744ce47d8a02e7b594c6eae89b5b4cd7`.
+
 ### Native codec and generated key controls at 64 MiB
 
 On the historical-default build above, both native primitive String codec

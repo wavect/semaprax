@@ -558,3 +558,38 @@ and two at the shipping 128 MiB cap. These receipts do not exercise the
 mode-six fallback or the historical 64 MiB acceptance. The current artifact's
 provenance SHA-256 is
 `c1ed0b95ff324bf722c95cbe0f32d6028b2505c7ecfa68fa479e31980273188e`.
+
+### Functional owners and dense mode-six comparison
+
+The macOS arm64 test image from `790a5d3ca` passed the exact Catalog23 and
+ShiftSim15 functional owners and all 13 Catalog Normalizer tests. The
+normalizer tests include the independent original framing and indexed-decoder
+comparisons, native and Core Wasm execution, and the maximum valid outputs.
+The same image passed all four NDJSON package tests, including authenticated
+checked-cache reuse and forged-range refusal. At `776d76d01`, the [hosted
+installed compiler](https://github.com/wavect/semaprax/actions/runs/43596819582)
+passed the 33 historical checks and 16 boundary checks in each of the two
+unchanged native LogLens references. The hosted receipt binds the checkout
+and original compiler through both runs. Its SHA-256 is
+`99db40622fbb0d7db8956ca4b06f3e13b5c6dbc46bacda92b548facc1ac4104c`.
+
+A test-only probe at `776d76d01` used the same four authored dense fixtures,
+the complete pre-898 producer, the legacy mode-six producer and the production
+paired mode-six estimates. All arms kept the 134,217,728-byte limit. The
+success and refusal columns below are clone-plus-HIR estimates for one
+module. They precede the workspace's later validation ceiling.
+
+| Fixture | Qualified auxiliary roots | Pre-898 bytes | Legacy mode six | Production full | Production retained |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 512 headers, distinct arguments | 2,048 | 21,594,620 | 55,972,057 | 41,673,169 | 41,674,456 |
+| 64 headers, duplicate arguments | 0 | 14,473,218 | Refused | 19,813,640 | 19,814,927 |
+| 64 headers, warm statement calls | 2,048 | 13,031,816 | Refused | 19,359,355 | 19,360,642 |
+| 64 headers, balanced warm calls | 2,176 | 12,733,712 | 34,601,680 | 16,583,051 | 16,584,338 |
+
+The legacy refused rows reconcile to 134,970,511 and 135,223,686 bytes using
+the independent auxiliary and local-callee fee and identity credit. The
+balanced production row still exceeds the pre-898 estimate by 3,849,339
+bytes. Admission of the production module estimates does not establish the
+strict reduction or the historical 64 MiB application acceptance. The direct
+probe log SHA-256 is
+`cc23ab149a6932ef9706e746bd71337cf6b7a1c96f83b091998c36ab9da4c79e`.

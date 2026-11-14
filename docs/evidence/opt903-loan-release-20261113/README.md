@@ -659,3 +659,35 @@ observes a 240-byte allocation high-water during replacement and a total of
 the zero-unit retry preserves the first refusal. The historical 64 MiB
 application ledger observations remain recorded in the
 [workspace contract](../../WORKSPACE-SEMANTIC-GRAPH-V1.md#resolver-path-arena-opt778-representation-tranche).
+
+### Two checked callee loans in the paired forecast
+
+An SSD-local experiment kept two checked target loans within a single paired
+certificate. A primary miss paid for probing the alternate loan. A double miss
+ran the full target authentication and paid for publishing the replacement.
+Each observed call still checked its reached arity. The independent
+standalone certificate was the same across all runs.
+
+| Mode-six workspace fixture | Main pre-charge forecast | Staged publication only | Two checked targets |
+| --- | ---: | ---: | ---: |
+| 512 headers, wide | 40,803,469 | 41,068,933 | 42,259,368 |
+| 64 headers, duplicate | 19,314,238 | 19,290,348 | 19,291,058 |
+| 64 headers, shadow names | 18,859,947 | 18,530,306 | 16,426,335 |
+| 64 headers, balanced | 16,082,639 | 15,752,998 | 13,649,027 |
+
+All four live pre-charge fixtures finished. In the balanced fixture, the
+candidate's full paired clone-and-HIR forecast was 14,149,439 bytes, still
+1,415,727 bytes above the independent pre-898 value of 12,733,712 bytes.
+The strict comparison still failed at the standalone mode-six duplicate-header
+row. The five reuse controls and six paired controls passed, including the
+alternating-loan arity, foreign-source and one-byte-short checks. This candidate
+stays off main because the wide fixture increased by 1,455,899 bytes and the
+strict comparison remains open. The application owners were outside this run.
+
+The focused build used production base `776d76d01`, whose later observer fixes
+affect the diagnostic output only. Baseline, candidate and strict test log
+SHA-256 values, respectively:
+
+- `95ba3d3fe036e954468e2e75d67bb69b7cfb9c4b6150b4671f6add22ccc7b639`
+- `2355b7e7c956056a2245160c955fbdf4d77202bc4c4ec00f2ddaa46500e8b611`
+- `5ecbc1a599424ae789cc6ed00477de3c78482286acba89c625e66377a33a4216`

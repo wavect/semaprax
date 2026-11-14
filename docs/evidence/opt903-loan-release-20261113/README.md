@@ -41,4 +41,17 @@ An instrumented library test at `59f58e375` printed the per-module results befor
 
 The current census covered one function and 291 expressions per module, at 74 bytes of scratch per expression. The resulting construction bound is 6,571,459 bytes, using three retained modules and one full estimate with its receiving allowance. The later validation bound is 6,573,050 bytes, using all four retained modules, one 21,534-byte scratch allowance, and a 304-byte directory term. Later validation determines the peak. The saved peak is 6,418,504 bytes and is determined by four retained modules.
 
-The observed 154,546-byte increase reconciles to four 53,783-byte increases in the retained estimate, four 928-byte receiving allowances, four 21,534-byte scratch removals, and 21,838 bytes for later validation. This comparison keeps every current estimate and reservation intact. The initial estimate increase needs a separate breakdown before assigning it to a particular census or invoice. The original strict reduction assertion still fails.
+The observed 154,546-byte increase reconciles to four 53,783-byte increases in the retained estimate, four 928-byte receiving allowances, four 21,534-byte scratch removals, and 21,838 bytes for later validation. This comparison keeps every current estimate and reservation intact. The original strict reduction assertion still fails.
+
+A second instrumented library build at `59f58e375`, using the same four-module fixture, split the first module's estimate into the following components. The remaining modules produced identical totals. The four current and saved producer files used for this comparison are byte-identical at `138edb9a0`.
+
+| Component in bytes | Saved full | Current full | Saved retained | Current retained |
+| --- | ---: | ---: | ---: | ---: |
+| Fixed HIR expansion | 1,301,390 | 1,301,390 | 1,301,390 | 1,301,390 |
+| Call census | 77,238 | 130,093 | 77,238 | 130,093 |
+| Shared local callee accounting | 3,231 | 3,887 | 4,246 | 5,174 |
+| Prelude HIR | 72,480 | 72,480 | 72,480 | 72,480 |
+| Identity carriers | 11,640 | 11,640 | 11,640 | 11,640 |
+| Identity occurrences | 137,632 | 137,632 | 137,632 | 137,632 |
+
+The call census accounts for 52,855 of the 53,783 additional retained forecast bytes per module. The shared local callee accounting supplies the other 928 bytes, separately from the 928-byte receiving allowance applied after the estimate. The fixture contains no authored calls or imports. The census still visits its 291 expressions to establish retention eligibility. The next comparison must price the classifier and its counter by actual role and lifetime against the complete saved producer. These figures are forecast terms. The separate allocator observation above covers requested heap layouts.

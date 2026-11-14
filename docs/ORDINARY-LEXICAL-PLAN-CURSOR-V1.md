@@ -279,6 +279,16 @@ the independently compiled d458 predecessor and the composed current
 receiver. It does not isolate the first-head packet from all later
 changes or establish application savings.
 
+The unchanged 32-row whole-caller test passed on the same image. It refused
+at zero and 4,096 bytes and completed at 67,108,864 bytes. At that cap it
+requested and freed 5,403,313 allocation bytes, reached a 660,282-byte peak
+and left zero live bytes. Both independent reference receivers completed.
+The whole caller reported zero paired comparator invocations and zero
+first-head or suffix admissions. Its successful execution therefore confirms
+the whole-caller gate on this image but provides no application of the
+first-head optimization. The separate 32-item synthetic comparison exercises
+that optimization.
+
 ### Application qualification at 64 MiB
 
 A profiling build of [`1997379a8`](https://github.com/wavect/semaprax/commit/1997379a8)

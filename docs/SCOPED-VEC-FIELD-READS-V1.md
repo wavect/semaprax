@@ -143,3 +143,11 @@ Rust 1.97.1 macOS arm64 test image at `6f1db7ec4`, including stale generation,
 exact index refusal, repeated reads without owned-leaf materialization, and
 legacy two-Bytes carrier settlement. The backend and harness sources match
 `154fddcf3`.
+
+The same image passed all 18 owned-record traversal controls across the
+interpreter, native C11, and Core Wasm. They cover the previous-row index
+refusal, UTF-8 and NUL views, late storage refusal, early exits, and owner
+settlement. All 24 matching library controls for scoped Vec fields and
+projected String views passed, including the graph and cache controls that
+distinguish explicit indices from row-derived reads. These checks exercise
+the existing artifacts. Fresh matched agent trials remain outstanding.

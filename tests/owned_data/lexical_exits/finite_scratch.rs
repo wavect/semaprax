@@ -71,6 +71,57 @@ return seen;
             .iter()
             .any(|diagnostic| diagnostic.code == "SPX-T267"));
     }
+
+    // A zero-sized allocation in either contract still consumes an event.
+    let exact = source(16, 0, false);
+    for contract in ["requires", "ensures"] {
+        let hidden = exact.replace(
+            "@id(\"app.main\") fn main()->i64 {",
+            &format!(
+                r#"@id("app.check") fn allocation_check() -> bool {{
+    let hidden = bytes_zeroed(0usize);
+    byte_len(bytes_as_slice(hidden)) == 0usize
+}}
+@id("app.main") fn main()->i64 {contract} allocation_check() {{"#
+            ),
+        );
+        let diagnostics =
+            semaprax::check(&hidden, "finite-scratch-contract-limit.spx").unwrap_err();
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T267"
+                && diagnostic.message.contains("33 sites")));
+    }
+}
+
+#[test]
+fn finite_scratch_refuses_return_allocation_outer_storage_and_recursive_helpers() {
+    let outer = SOURCE
+        .replace(
+            " let mut count=0;",
+            " let mut saved=vec_with_capacity<Bytes>(2usize); let mut count=0;",
+        )
+        .replace(
+            "  if byte_len(bytes_as_slice(scratch))!=3usize {return 0;};",
+            "  saved=vec_push<Bytes>(saved,scratch);",
+        );
+    let returned = SOURCE.replace(
+        "{return 0;};",
+        "{return {let hidden=bytes_zeroed(1usize); 0};};",
+    );
+    let recursive = SOURCE.replace(
+        " return count;",
+        " return if count==4 {count} else {main()};",
+    );
+    for source in [outer, returned, recursive] {
+        let diagnostics = semaprax::check(&source, "finite-scratch-hostile.spx").unwrap_err();
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-T267"),
+            "{diagnostics:?}"
+        );
+    }
 }
 
 #[test]

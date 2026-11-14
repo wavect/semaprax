@@ -287,8 +287,17 @@ fn provider_preserves_both_continue_sites_in_the_original_finite_iterator() {
 #[test]
 fn provider_settles_finite_iterator_on_return_and_failure_before_reentry() {
     let helper = r#"
+@id("provider.staged-push")
+fn staged_push() -> i64 {
+    let first = vec_push<Bytes>(vec_with_capacity<Bytes>(1usize), bytes_zeroed(1usize));
+    let outer = bytes_zeroed(2usize);
+    let refused = vec_push<Bytes>(first, bytes_zeroed(3usize));
+    4
+}
+
 @id("provider.owning-return")
 fn owning_return(mode: usize) -> i64 ensures result == 4 {
+    if mode == 6usize { return staged_push(); };
     let a = vec_push<Bytes>(vec_with_capacity<Bytes>(2usize), bytes_zeroed(1usize));
     let values = vec_push<Bytes>(a, bytes_zeroed(2usize));
     for own item in vec_into_iter<Bytes>(values) {
@@ -495,6 +504,7 @@ fn run_compiled_provider(
         for (filename, left) in [
             ("arithmetic-input.bin", b"div".as_slice()),
             ("contract-input.bin", b"false".as_slice()),
+            ("staged-input.bin", b"staged".as_slice()),
         ] {
             fs::write(
                 root.join(filename),
@@ -533,6 +543,7 @@ const callInputs = [input, input, input, input];
 if (mode === 'return') {
   callInputs.splice(1, 0, readFileSync('arithmetic-input.bin'));
   callInputs.splice(3, 0, readFileSync('contract-input.bin'));
+  callInputs.splice(5, 0, readFileSync('staged-input.bin'));
 }
 // The standalone layout reserves two carrier windows, aligned to 64 KiB,
 // followed by the two maximum input payloads and then the token table.
@@ -543,13 +554,17 @@ for (const callInput of callInputs) {
   memory.set(callInput, 393216);
   const prepared = lane(instance.exports.spx_pg_v1_input_prepare(opened.value, 393216, callInput.length));
   if (prepared.status !== 0 || !prepared.value) throw new Error('prepare:' + JSON.stringify(prepared));
-  const heap = new DataView(instance.exports.memory.buffer);
+  const invocationMemory = instance.exports.memory.buffer;
+  const heap = new DataView(invocationMemory);
   if (mode) {
     for (let index = 0; index < 32; index++) {
       heap.setUint32(heapTable + 8 * (index + 3) + 4, 0xffffffff, true);
     }
   }
   const called = lane(instance.exports.spx_pg_v1_call(opened.value, prepared.value));
+  if (mode && instance.exports.memory.buffer !== invocationMemory) {
+    throw new Error('finite iterator invocation changed memory size');
+  }
   // Owned input tokens are 1 and 2. Every new Bytes allocation issues the
   // next token. Its drop zeros the backing pointer and retains the length.
   for (let index = 0; index < lengths.length; index++) {

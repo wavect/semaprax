@@ -131,7 +131,11 @@ They cover the original two-continue loop (eight issued and eight retired),
 normal/continue/break (seven), and early return with the current item and
 untransferred suffix live (three). The early-return cases include division
 by zero in the return operand, a false postcondition and successful reentry.
-The provider's public status represents both failure domains as code 11.
+The provider also checks a full Vec push after staging a new Bytes owner.
+The refused push leaves the staged owner, the previous Vec and its contents,
+and the outer Bytes owner for canonical cleanup. The probe observes all three
+payload tokens retired and successfully re-enters the same instance. The
+provider returns public status 11 for contract, arithmetic and Vec failures.
 A returned-item case checks that the selected owner reaches the output
 carrier while scratch and suffix tokens retire. The same ownership
 transfer passes the interpreter, native O0/O2 and strict Core Wasm, including

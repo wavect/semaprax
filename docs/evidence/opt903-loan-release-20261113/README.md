@@ -762,3 +762,28 @@ forecast excess gives no estimate of what the subsequent live build needs.
 The unchanged starter test and stage-isolation log SHA-256 values are
 `386d999164e285b51b46a65525e9d3fa1e4d6068995bf3868b2f616c98c3d32a`
 and `8ff41f510b25fd093e6d3a1b3d66311432e28e7d323fb50aa2a05bc2e59c467b`.
+
+### Native codec and generated key controls at 64 MiB
+
+On the historical-default build above, both native primitive String codec
+tests passed. The unchanged Catalog23 functional test refused during the
+combined codec derivation, before it ran the corpus. The live HIR
+expression/type lowering charge requested 40 bytes with 8 remaining and a
+zero-byte floor. The 18-module static precharge was 64,840,010 bytes.
+The largest module was `src/request.spx` at 20,875,498 bytes. The published
+Catalog Project check passed earlier at the same default. The functional
+test passed separately at the shipping 128 MiB default.
+
+A local ShiftSim experiment emitted multi-byte collection-response keys as
+borrowed UTF-8 literals feeding the existing byte writer. The unchanged
+fresh-starter test still refused during `new` at 64 MiB. The six earlier
+modules retained the same 60,265,703 bytes. The full response forecast
+rose from 13,130,193 to 13,143,255 bytes, an increase of 13,062 bytes.
+The shipping generator remains unchanged.
+
+The native codec and Catalog23 historical-default logs have SHA-256
+`771da0d7a862f8c6294bcbbd5cff765ce18a6e8d8a5ef039ab2b6a5cd90f1880`
+and `549771e290664eee0356f841f9843111b3ba766c54d02f7db5da7afe7f6c21b8`.
+The borrowed-literal patch and starter-test log have SHA-256
+`547657069f9c4e249eac0d176b427b2b34dc56fd1dcaa356b052ff6e93c5b9eb`
+and `12bf64d7bcfd4492f910af3dd42660a6cb77cc75f4b0690b85d8c447fecd36c9`.

@@ -68,6 +68,18 @@ fn seed(
     Ok(paths)
 }
 
+// The minimum-capacity controls exercise the complete receiver that owns
+// the original first-output frontier, before completed-fork publication.
+fn sequence_with_minimum(
+    prefixes: Vec<ExprSkeletonPath>,
+    suffixes: &[ExprSkeletonPath],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    ordinary_plan_history::completed_fork::emission::with_before(|| {
+        sequence_skeleton_paths(prefixes, suffixes, work)
+    })
+}
+
 fn assert_expr_paths_equal(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
     assert_eq!(actual.len(), expected.len());
     for (actual, expected) in actual.iter().zip(expected) {
@@ -156,7 +168,7 @@ fn staged_header_preserves_complete_fields_work_growth_and_drop() {
                         let materializations = skeleton_materializations() - before;
                         let before = skeleton_materializations();
                         let mut actual =
-                            sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
+                            sequence_with_minimum(inputs, &suffixes, &mut work).unwrap();
                         assert_eq!(skeleton_materializations() - before, materializations);
                         assert_expr_paths_equal(&actual, &expected);
                         assert_eq!(actual.capacity(), expected.capacity());
@@ -200,7 +212,7 @@ fn staged_header_preserves_complete_fields_work_growth_and_drop() {
                 before::sequence_skeleton_paths(old_inputs, &old_suffixes, &mut old_work).unwrap();
             let materializations = skeleton_materializations() - before;
             let before = skeleton_materializations();
-            let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
+            let actual = sequence_with_minimum(inputs, &suffixes, &mut work).unwrap();
             assert_eq!(skeleton_materializations() - before, materializations);
             assert_eq!(actual.len(), expected.len());
             assert_eq!(actual.capacity(), expected.capacity());
@@ -232,7 +244,7 @@ fn staged_header_preserves_complete_fields_work_growth_and_drop() {
             before::sequence_skeleton_paths(old_inputs, &old_suffixes, &mut old_work).unwrap();
         let materializations = skeleton_materializations() - before;
         let before = skeleton_materializations();
-        let actual = sequence_skeleton_paths(inputs, &suffixes, &mut work).unwrap();
+        let actual = sequence_with_minimum(inputs, &suffixes, &mut work).unwrap();
         assert_eq!(skeleton_materializations() - before, materializations);
         assert_expr_paths_equal(&actual, &expected);
         assert_eq!(actual.capacity(), expected.capacity());
@@ -262,17 +274,18 @@ fn staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts() {
             let probe = || {
                 with_limit_usage_refusal_site(limit, || {
                     measure(|| {
-                        let mut budget = ReplayBudget::new();
+                        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
                         let result = (|| {
-                            budget.prepare_builder(function)?;
-                            budget.reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)?;
-                            let mut work = SkeletonWork::new(&program, function, &mut budget);
+                            let mut work =
+                                SkeletonWork::with_index(&program, function, &mut budget, None)?;
                             let inputs = seed(count, 0, &mut work)?;
                             let suffixes = seed(2, 0, &mut work)?;
                             let result = if old {
                                 before::sequence_skeleton_paths(inputs, &suffixes, &mut work)
-                            } else {
+                            } else if inplace {
                                 sequence_skeleton_paths(inputs, &suffixes, &mut work)
+                            } else {
+                                sequence_with_minimum(inputs, &suffixes, &mut work)
                             };
                             result.map(|paths| {
                                 let shape = (paths.len(), paths.capacity());
@@ -438,21 +451,17 @@ fn original_first_work_still_wins_before_paid_header_at_real_floor() {
     let program = path_array_main8a::fixture_program();
     let function = &program.functions[0];
     let run = |old, work_limit, floor_offset: Option<usize>| {
-        let mut budget = ReplayBudget::unobserved();
-        budget
-            .reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)
-            .unwrap();
-        let mut work = SkeletonWork::new(&program, function, &mut budget);
-        // The newer in-place route owns up to 256 prefixes. Exercise the
-        // original multi-suffix frontier above that closed selection range.
-        let inputs = seed(257, 0, &mut work).unwrap();
-        let suffixes = seed(2, 0, &mut work).unwrap();
-        let observed = with_limit_usage_refusal_site(usize::MAX, || {
+        with_limit_usage_refusal_site(usize::MAX, || {
             measure(|| {
-                *work.budget = ReplayBudget::new();
+                let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                let mut work = SkeletonWork::new(&program, function, &mut budget);
+                // Use the same ledger for input construction and sequencing.
+                // The in-place route only owns up to 256 prefixes.
+                let inputs = seed(257, 0, &mut work).unwrap();
+                let suffixes = seed(2, 0, &mut work).unwrap();
                 let outcome = (|| {
-                    work.budget.prepare_builder(function)?;
                     work.budget.reserve_skeleton(function, work_limit)?;
+                    work.budget.skeleton_spent = 0;
                     FIRST_WORK.with(|slot| slot.set(None));
                     if let Some(offset) = floor_offset {
                         assert!(set_active_floor(usize::MAX - offset));
@@ -460,7 +469,7 @@ fn original_first_work_still_wins_before_paid_header_at_real_floor() {
                     let result = if old {
                         before::sequence_skeleton_paths(inputs, &suffixes, &mut work)
                     } else {
-                        sequence_skeleton_paths(inputs, &suffixes, &mut work)
+                        sequence_with_minimum(inputs, &suffixes, &mut work)
                     };
                     result.map(|paths| {
                         let count = paths.len();
@@ -471,14 +480,11 @@ fn original_first_work_still_wins_before_paid_header_at_real_floor() {
                 .map_err(failure);
                 let frontier = FIRST_WORK.with(|slot| slot.get());
                 let remaining = work.budget.skeleton_remaining;
-                *work.budget = ReplayBudget::unobserved();
+                drop((suffixes, work));
+                drop(budget);
                 (outcome, frontier, remaining)
             })
-        });
-        drop(suffixes);
-        drop(work);
-        drop(budget);
-        observed
+        })
     };
     let (((result, frontier, _), allocation), refused, _, first, site) =
         run(false, MAX_REPLAY_WORK_UNITS, None);

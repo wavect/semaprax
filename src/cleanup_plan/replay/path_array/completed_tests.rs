@@ -39,6 +39,34 @@ fn program() -> ResolvedProgram {
     crate::hir::resolve(&parsed).unwrap()
 }
 
+// Compare the live producer against the same independently enumerated paths.
+// The live fork may share prefixes and pays its own classification work.
+pub(super) fn assert_live_paths(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expected: &[SkeletonPath],
+    paid: bool,
+    spent: usize,
+) {
+    let mut budget = if paid {
+        ReplayBudget::new()
+    } else {
+        ReplayBudget::unobserved()
+    };
+    reserve_program_skeleton_work(program, std::iter::once(function), &mut budget).unwrap();
+    let actual = hir_skeleton_paths(program, function, &mut budget).unwrap();
+    assert_eq!(budget.skeleton_spent, spent);
+    let mut comparison = if paid {
+        ReplayBudget::new()
+    } else {
+        ReplayBudget::unobserved()
+    };
+    assert!(
+        skeleton_work::enumerated_prefix::equal(&actual, expected, function, &mut comparison)
+            .unwrap()
+    );
+}
+
 #[test]
 fn lexical_completed_capacity_keeps_full_hir_outputs_work_and_drop() {
     let program = program();
@@ -56,7 +84,10 @@ fn lexical_completed_capacity_keeps_full_hir_outputs_work_and_drop() {
                     super::main696::hir_skeleton_paths(&program, function, &mut old).unwrap();
                 let old_materializations = skeleton_materializations() - materializations;
                 let materializations = skeleton_materializations();
-                let actual = hir_skeleton_paths(&program, function, &mut current).unwrap();
+                let actual = ordinary_plan_history::completed_fork::emission::with_before(|| {
+                    hir_skeleton_paths(&program, function, &mut current)
+                })
+                .unwrap();
                 assert_eq!(actual, expected);
                 assert_eq!(
                     skeleton_materializations() - materializations,
@@ -65,6 +96,7 @@ fn lexical_completed_capacity_keeps_full_hir_outputs_work_and_drop() {
                 assert_eq!(current.skeleton_spent, old.skeleton_spent);
                 assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
                 assert_eq!(current.remaining, old.remaining);
+                assert_live_paths(&program, function, &expected, true, old.skeleton_spent);
                 drop((actual, expected, old, current));
             })
         });

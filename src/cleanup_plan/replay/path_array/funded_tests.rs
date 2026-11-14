@@ -73,12 +73,23 @@ fn funded_capacity_preserves_complete_main_hir_work_and_drop() {
                                 .unwrap();
                         let old_materializations = skeleton_materializations() - before;
                         let before = skeleton_materializations();
-                        let actual = hir_skeleton_paths(&program, function, &mut current).unwrap();
+                        let actual =
+                            ordinary_plan_history::completed_fork::emission::with_before(|| {
+                                hir_skeleton_paths(&program, function, &mut current)
+                            })
+                            .unwrap();
                         assert_eq!(actual, expected);
                         assert_eq!(skeleton_materializations() - before, old_materializations);
                         assert_eq!(current.remaining, old.remaining);
                         assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
                         assert_eq!(current.skeleton_spent, old.skeleton_spent);
+                        super::completed_tests::assert_live_paths(
+                            &program,
+                            function,
+                            &expected,
+                            paid,
+                            old.skeleton_spent,
+                        );
                         drop((actual, expected, current, old));
                     }
                 })

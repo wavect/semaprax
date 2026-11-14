@@ -111,8 +111,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
-        133106,
-        "657006ebebf1f98e9596c70ce34cc81d13c860947db46f434808ea5028c143f7",
+        134468,
+        "c3452a915d14db46d279549d9e49e1344ba0996b3b808bb4313e4eecc9cfc906",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -451,6 +451,7 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs", "47d6effa8b6b3b2f7596e7dc596af03723c5a83a76708052041ea5186ec74c0f") => Some((10,1)),
 ("src/cli_driver/source_execution.rs", "9cae813b1bc2c083231074c4e1bf7c1b9c733c05013dc0e83a20dd69ed2e8567") => Some((45,228)),
 ("src/cleanup_plan/replay/expression_facts/receiving.rs", "a179fa71398494ef6f96fdf14713d17a563c0649c883197dbc9c1840eb2cadde") => Some((45,222)),
 ("src/cleanup_plan/replay.rs", "1ee09bd6f221d0eb3e272016f243a00c67815d56fcc246b794975c9ee00a5220") => Some((45,223)),

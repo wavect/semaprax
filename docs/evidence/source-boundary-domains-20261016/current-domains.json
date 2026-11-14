@@ -3237,7 +3237,7 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "5d0961bf115775f56eee993e6f8567eda560a77bea265859adc928c2d7bbcfe8",
+      "full_manifest_sha256": "9d2be6c0fc5eee75bbd7574ca774a2064660dc64f8f847c7f53fc8ac1ea3de8c",
       "full_raw_sha256": "73b765c036d1fddfa8877a80b11bb1d955a92c40fd2d6aca6d286e3633aecc5a",
       "full_authenticated_production_sha256": "55699c5d07c3790175a37d37cbccaa738a68c791da89c6ff933a9c3454e4ada5"
     },
@@ -4522,7 +4522,7 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "5673e43bc6ff7832db5c1a56e28b5ea4ff50ade08210f5148ad8cd973b63872a",
+      "full_manifest_sha256": "ad4f2fb68c77013f97a76eeac9a26b0a438a7ad573b331e6171865200d83fd66",
       "full_raw_sha256": "08bf7ca5a2cbe42716b7dd81048edd018d702b258d4578b1a529410038e4a2d6",
       "full_authenticated_production_sha256": "dfc462a3f2ee0fa8bedc1aa00403cf431e47d5809e6208bcc03697c4b583d889"
     }

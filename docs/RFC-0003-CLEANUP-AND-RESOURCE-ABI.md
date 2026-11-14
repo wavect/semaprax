@@ -807,3 +807,31 @@ complete caller controls cover current net and cold loss, later malformed and
 duplicate shapes, alternating depths, exact/short/zero/sticky refusal and Drop.
 All new controls are source-authored and unexecuted; application admission and
 resource-limit recovery remain separate qualification requirements.
+
+### Borrowed match result witnesses
+
+The focused [OPT #904](https://github.com/wavect/semaprax/issues/904)
+recheck ran on the Rust 1.97.1 macOS arm64 library test image at
+`6f1db7ec4`. The HIR validator and its owning tests match `1fe13fc79`
+byte for byte. Eleven of thirteen tests passed, including the whole-source
+inverse, guarded and generic arm checks, malformed cached types, late-arm
+errors, and unwind and Drop checks. The current frame measured 144 bytes
+with 8-byte alignment.
+
+The cold literal and single-call fixtures completed within 64 MiB and
+incurred no match witness charges. Eight sequential matches requested
+capacity for 22 frames across the observed replacements. Eight nested
+matches requested capacity for 114 frames. Both paid 30,672 bytes in
+witness roles and returned with zero live requested heap bytes. The
+complete literal, call, and sequential and nested match measurements are
+from the current validator.
+
+Both failing tests reached the unchanged 64-call fixture's second
+`hir::validate` pass. The first sticky refusal requested 128 bytes with
+95 remaining and a zero floor, after cumulative reservations of
+67,108,769 bytes. The diagnostic was `SPX-H006` during enumerated HIR
+root-items frame receivers. The observer recorded zero match witness
+joins, variant views, arm views, and finishes. Requested and freed heap
+bytes both totaled 11,532,108, with a peak of 618,316 and zero live
+bytes at Drop. Full old/current invoice comparison and unchanged
+application admission at 64 MiB remain open.

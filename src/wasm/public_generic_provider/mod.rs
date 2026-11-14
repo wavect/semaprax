@@ -60,7 +60,6 @@ pub(super) struct ProviderLayout {
     /// Invocation-local owned-byte heap: token table, then payload bytes.
     pub(super) heap_table: u32,
     pub(super) heap_data: u32,
-    pub(super) heap_end: u32,
     pub(super) workspace_end: u32,
 }
 
@@ -94,7 +93,6 @@ const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     result_carrier_capacity: MAX_SCRATCH_BYTES,
     heap_table: STANDALONE_HEAP_TABLE,
     heap_data: STANDALONE_HEAP_DATA,
-    heap_end: STANDALONE_HEAP_END,
     workspace_end: align_up(STANDALONE_HEAP_END, 65_536),
 };
 
@@ -127,7 +125,6 @@ pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     result_carrier_capacity: carrier_codec::MAX_FRAME_WIRE_BYTES,
     heap_table: COMPONENT_HEAP_TABLE,
     heap_data: COMPONENT_HEAP_DATA,
-    heap_end: COMPONENT_HEAP_END,
     workspace_end: COMPONENT_PROVIDER_WORKSPACE_END,
 };
 
@@ -627,7 +624,6 @@ fn assemble(
     let heap = byte_runtime::Heap {
         table: layout.heap_table,
         data: layout.heap_data,
-        end: layout.heap_end,
         resolve: codec_function_base + input_codec.function_count() + result_codec.function_count(),
     };
     let mut code = Vec::new();

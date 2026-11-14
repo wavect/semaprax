@@ -13,16 +13,15 @@
 //! checked Bytes-only endpoint: the host additionally admits a 256 KiB owned
 //! String literal window (196608..262144) only in its String profile, and the
 //! provider admits no String; the host caps 16 live owned entries and reuses
-//! freed tokens, while the provider issues up to `HEAP_ENTRIES - 1` tokens per
-//! invocation without reuse, so it never refuses where the host succeeds on a
-//! checked program's bounded allocation sites.
+//! freed tokens. The provider issues at most 32 allocation tokens per
+//! invocation, plus two prepared input tokens, without reuse.
 //!
 //! Storage is invocation-local: `spx_pg_v1_call` resets the heap, registers
 //! the two input leaves as tokens 1 and 2, and resolves the result leaves
 //! back to `(ptr, len)` rows before encoding. Capacity is bounded by the
 //! checked language limits (`MAX_OWNED_BYTE_PAYLOAD_BYTES` cumulative owned
-//! payload and a bounded number of allocation sites), so exhaustion of this
-//! reservation is an invariant defect, as on the native reserved profile.
+//! payload and `MAX_BYTES_COPY_SITES` allocation events). Exceeding either
+//! limit traps before issuing a token or advancing the heap cursor.
 
 use super::{global_get, global_set, i32_const, i64_const_imm, local_get, local_set, u32_leb};
 
@@ -32,8 +31,8 @@ pub(super) const GLOBAL_HEAP_NEXT: u32 = 13;
 /// Token 0 is never issued; tokens 1 and 2 are the invocation's input leaves.
 pub(super) const HEAP_ENTRIES: u32 = 1_024;
 pub(super) const HEAP_TABLE_BYTES: u32 = HEAP_ENTRIES * 8;
-/// Twice the checked cumulative owned-payload limit, so a checked program
-/// can never reach it; reaching it anyway is an invariant defect.
+/// Retained physical heap reservation. Allocation enforces the smaller
+/// cumulative language limit independently of this layout.
 pub(super) const HEAP_DATA_BYTES: u32 =
     2 * crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES as u32;
 /// Host `FIXED_MEMORY_BYTES`: fixed views and range descriptors end below it.
@@ -44,7 +43,10 @@ const FIXED_ROOT_MAX_BYTES: i32 = 65_536;
 const MAX_OWNED_BYTES: i64 = 131_072;
 // Every checked invocation holds two input tokens plus at most one token per
 // bounded allocation site, and at most the checked cumulative owned payload.
-const _: () = assert!(2 + crate::byte_data_capacity::MAX_BYTES_COPY_SITES < HEAP_ENTRIES);
+const FIRST_ALLOCATION_TOKEN: u32 = 3;
+const ALLOCATION_TOKEN_END: u32 =
+    FIRST_ALLOCATION_TOKEN + crate::byte_data_capacity::MAX_BYTES_COPY_SITES;
+const _: () = assert!(ALLOCATION_TOKEN_END <= HEAP_ENTRIES);
 const _: () =
     assert!(crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES <= HEAP_DATA_BYTES as u64);
 const OWNED_TAG: i32 = i32::MIN; // 0x8000_0000
@@ -65,7 +67,6 @@ pub(super) const FUNCTION_COUNT: u32 = 2;
 pub(super) struct Heap {
     pub(super) table: u32,
     pub(super) data: u32,
-    pub(super) end: u32,
     /// Absolute index of `resolve`; `alloc` follows it.
     pub(super) resolve: u32,
 }
@@ -247,11 +248,13 @@ pub(super) fn helper_bodies(code: &mut Vec<u8>, heap: Heap) {
     body.extend(global_get(GLOBAL_HEAP_NEXT));
     body.push(0x22);
     u32_leb(&mut body, token);
-    body.extend(i32_const(HEAP_ENTRIES as i32));
+    body.extend(i32_const(ALLOCATION_TOKEN_END as i32));
     body.push(0x4f);
     trap_if(&mut body);
     body.extend(local_get(0));
-    body.extend(i32_const(heap.end as i32));
+    body.extend(i32_const(
+        (heap.data + crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES as u32) as i32,
+    ));
     body.extend(global_get(GLOBAL_HEAP_CURSOR));
     body.push(0x22);
     u32_leb(&mut body, ptr);
@@ -395,7 +398,7 @@ pub(super) fn emit_register_inputs(body: &mut Vec<u8>, heap: Heap, table: u32, a
         body.extend(i32_const((table + leaf * 8 + 4) as i32));
         body.extend([0x28, 2, 0, 0xad, 0x84, 0x37, 3, 0]);
     }
-    body.extend(i32_const(3));
+    body.extend(i32_const(FIRST_ALLOCATION_TOKEN as i32));
     body.extend(global_set(GLOBAL_HEAP_NEXT));
 }
 
@@ -413,3 +416,6 @@ pub(super) fn emit_resolve_results(body: &mut Vec<u8>, heap: Heap, aggregate: u3
         body.extend([0x29, 3, 0, 0xa7, 0x36, 2, 0]);
     }
 }
+
+#[cfg(test)]
+mod tests;

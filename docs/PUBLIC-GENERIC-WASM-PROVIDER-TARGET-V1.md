@@ -123,12 +123,14 @@ most 64 KiB inside the first 128 KiB), trapping where the host import would
 throw. It differs from the browser host only where a checked Bytes-only
 endpoint cannot reach: the host also admits a String-profile literal window
 the provider has no use for, and it caps 16 live owned entries with token
-reuse where the provider issues up to 1023 per invocation without reuse.
-Storage is invocation-local: each `spx_pg_v1_call` resets the heap, presents
-the two prepared input leaves as owned tokens, and resolves result carriers
-before encoding. The heap covers two input tokens plus every bounded
-allocation site and twice the checked cumulative owned-payload limit, so
-exhausting it is an invariant defect.
+reuse where the provider issues tokens monotonically within each invocation.
+Each `spx_pg_v1_call` resets the heap, presents the two prepared input leaves
+as owned tokens, and resolves result carriers before encoding. Allocation
+enforces 32 events and 2,097,152 cumulative payload bytes in addition to the
+two prepared inputs. A drop retires its token without returning event or
+payload capacity. The physical reservation retains its original size.
+Exceeding either language limit traps before issuing a token or advancing
+the heap cursor.
 
 The exact reachable endpoint closure currently refuses Vec operations and
 owned Bytes iterators with `SPX-W110` before emitting provider functions.

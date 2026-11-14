@@ -219,8 +219,29 @@ byte for byte. The normalizer progressed one step further. Seven earlier
 modules retained 66,869,729 bytes before the full 290,366-byte
 `std.io.lines` estimate refused, at 67,160,095 bytes. That is 51,231 bytes
 over the cap at the new first refusal. The normalizer again made no live
-core attempt. A complete mode-six observation is still needed to measure
-the peak over all twelve modules and their subsequent validation.
+core attempt.
+
+A separate profiling build captured the returned full and retained terms for
+all twelve modules in the actual mode-six order before the original check
+could refuse. Its application receipt was byte-identical to the uninstrumented
+combined run after removing only the observer lines. Replaying the recorded
+order and arithmetic reproduced these totals:
+
+| Mode-six forecast component | Bytes |
+| --- | ---: |
+| Peak through the final module's retained publication | 74,701,378 |
+| Later validation scratch | 10,582 |
+| Later validation directory | 1,024 |
+| Complete peak at later validation | 74,712,984 |
+| Complete peak above the historical cap | 7,604,120 |
+
+The largest retained rows were `src/app.spx` (25,398,534 bytes),
+`src/record.spx` (11,794,188), `src/batch.spx` (9,611,847),
+`std.data.json.dec` (9,030,737), and `src/tests.spx` (8,587,569).
+These are static forecast values. The regular 64 MiB application route kept
+its original refusal, and the observer executed no live construction for
+this input. The log SHA-256 is
+`7f11977fcd4f044b3486a2dff96d7c4a9b06da380b56a936ef84ec424e284523`.
 
 The existing whole-normalizer library owner passed at the default 128 MiB
 cap on the retained `6f1db7ec4` test image. All twelve authored and dependency

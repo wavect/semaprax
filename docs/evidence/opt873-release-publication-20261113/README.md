@@ -1,5 +1,9 @@
 # OPT #873 release publication audit
 
+Status: The release tree merged. Dependency-ordered GitHub review remains open.
+
+Audience: release maintainers and reviewers.
+
 [PR #840](https://github.com/wavect/semaprax/pull/840) merged with base
 `6d101efd8c255330a3fe5fb0c06e058c6f8c085f` and head
 `4201f657d68f59794693089f451184d655ac8fa0`. Its merge

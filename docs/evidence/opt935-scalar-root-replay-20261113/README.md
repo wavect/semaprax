@@ -1,5 +1,9 @@
 # OPT #935 secondary byte-traversal replay
 
+Status: Focused validator and cross-backend traversal checks passed locally. Full qualification is pending.
+
+Audience: compiler contributors and performance reviewers.
+
 The focused Rust library tests ran on macOS arm64 with Rust 1.97.1 from compiler source `0a68f5420260999ef7e57a1a3641e41a69a95a4a`. The secondary receiver and its test source are byte-identical at `b2e7b5aaf`. All ten tests under `hir::validation::byte_traversal::tests` passed, including the complete predecessor source inverse, hostile region and receiver cases, depth and late error order, and exact, short, zero, positive-floor, sticky, and Drop controls.
 
 The mixed fixture resolves and validates a program containing a partial byte receiver, scalar and fallback roots, contracts, and a generic instance. The allocation observer then runs the saved and current secondary receivers over the same resolved functions and instance.

@@ -1,5 +1,9 @@
 # OPT #903 paid loan reachability release
 
+Status: Focused local planner observations. The workspace forecast gate remains open.
+
+Audience: compiler contributors and performance reviewers.
+
 The focused paid-plan observer compared the complete saved planner against the current retained planner using 1, 3, and 17 overlapping loan uses. It used a library test build from `0a68f5420` with Rust 1.97.1 on macOS arm64. Each fixture ran with both its ordinary attached plan and a deliberately modified attached plan. The observed allocation tuples matched across those two variants.
 
 | Loan uses | Requested bytes, both planners | Cumulative reservation, both planners | Peak live requested bytes, old → current |

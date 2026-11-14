@@ -1,5 +1,9 @@
 # OPT #785 historical Project preparation
 
+Status: Matched local allocation observations through refusal and separate current Project admission checks.
+
+Audience: compiler contributors and performance reviewers.
+
 Three fresh processes per arm called the production `project::with_authenticated_project` entry point against the same on-disk manifests. The before arm is `bd0d131cbcb3e0528804a16b1d3e5c952a16051e`, the parent of the shared-backing change. The after arm is `a3d51efe842285213f69b90f186721c0a031ad35` with the two scoped-task lookup dereferences from `8c7c67968` applied. Without those dereferences the after arm fails to compile because the new borrowed declaration key makes the lookup type ambiguous. Both revisions have identical application trees, Cargo manifests, and lockfile.
 
 | Application | Reserved at first refusal | Requested allocation bytes, before → after | Peak live requested bytes, before → after |

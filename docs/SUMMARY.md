@@ -1903,6 +1903,10 @@ Audience: all documentation readers.
 
 - [Exact hosted calculator graph invoice update](evidence/browser-capture-a281-20261025/README.md)
 - [Calculator Project graph and Web build subjects](evidence/browser-capture-6b66-20261113/README.md)
+- [OPT #785 Project preparation observations](evidence/opt785-application-preparation-20261113/README.md)
+- [OPT #873 release publication audit](evidence/opt873-release-publication-20261113/README.md)
+- [OPT #903 paid loan reachability release](evidence/opt903-loan-release-20261113/README.md)
+- [OPT #935 secondary byte-traversal replay](evidence/opt935-scalar-root-replay-20261113/README.md)
 
 - [Valid alias success subjects with original rejection witnesses](evidence/alias-valid-subjects-20261025/README.md)
 

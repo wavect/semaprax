@@ -109,9 +109,22 @@ impl PartitionModule {
             })
             .collect::<Vec<_>>()
             .join(",");
-        include_str!("partition/entry.mjs")
-            .replace("$MODULE_HEX", &module_hex)
+        let mut entry = include_str!("partition/entry.mjs").to_owned();
+        for (placeholder, status) in [
+            ("$ADD_OVERFLOW", guest::STATUS_ADD_OVERFLOW),
+            ("$SUB_OVERFLOW", guest::STATUS_SUB_OVERFLOW),
+            ("$MUL_OVERFLOW", guest::STATUS_MUL_OVERFLOW),
+            ("$DIV_ZERO", guest::STATUS_DIV_ZERO),
+            ("$DIV_OVERFLOW", guest::STATUS_DIV_OVERFLOW),
+            ("$REM_ZERO", guest::STATUS_REM_ZERO),
+            ("$REM_OVERFLOW", guest::STATUS_REM_OVERFLOW),
+            ("$NEG_OVERFLOW", guest::STATUS_NEG_OVERFLOW),
+        ] {
+            entry = entry.replace(placeholder, &status.to_string());
+        }
+        entry
             .replace("$STATUS_TABLE", &format!("[{table}]"))
+            .replace("$MODULE_HEX", &module_hex)
     }
     pub(in crate::wasm) fn bytes(&self) -> &[u8] {
         &self.closure.module

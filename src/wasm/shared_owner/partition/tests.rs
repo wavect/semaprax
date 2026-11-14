@@ -176,6 +176,34 @@ fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_re
             ));
         }
     }
+    for (operand, case) in [
+        ("max+1", crate::cleanup_plan::StatusCase::AddOverflow),
+        ("min-1", crate::cleanup_plan::StatusCase::SubOverflow),
+        ("max*2", crate::cleanup_plan::StatusCase::MulOverflow),
+        ("1/zero", crate::cleanup_plan::StatusCase::DivisionByZero),
+        (
+            "min/negative",
+            crate::cleanup_plan::StatusCase::DivisionOverflow,
+        ),
+        ("1%zero", crate::cleanup_plan::StatusCase::RemainderByZero),
+        (
+            "min%negative",
+            crate::cleanup_plan::StatusCase::RemainderOverflow,
+        ),
+    ] {
+        let source = CLONE_SOURCE.replace(
+            "if mutated && isolated && nul { 1 } else { 0 }",
+            &format!(
+                "let max=9223372036854775807; let min=-9223372036854775807-1; let zero=0; let negative=-1; {operand}"
+            ),
+        );
+        cases.push((
+            source,
+            crate::conformance::ARITHMETIC_STATUS_DOMAIN_V1,
+            case.code(),
+            "8",
+        ));
+    }
     for (source, domain, code, payload) in cases {
         let module = emitted(&source);
         if node_available() {

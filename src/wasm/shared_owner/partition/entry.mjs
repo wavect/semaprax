@@ -8,11 +8,29 @@ export async function install(managedBytes) {
   }
   const host = createPrivateOrdinaryByteHost({ managedBytes });
   const module = Uint8Array.from(moduleHex.match(/../g), byte => parseInt(byte, 16));
+  const min = -(1n << 63n);
+  const max = (1n << 63n) - 1n;
+  const fail = status => { throw new Error(`status:${status}`); };
+  const checked = (value, status) => {
+    if (value < min || value > max) fail(status);
+    return value;
+  };
   const env = {
-    spx_add: (a, b) => a + b, spx_sub: (a, b) => a - b,
-    spx_mul: (a, b) => a * b, spx_div: (a, b) => a / b,
-    spx_rem: (a, b) => a % b, spx_neg: a => -a,
-    spx_contract_fail: status => { throw new Error(`status:${status}`); },
+    spx_add: (a, b) => checked(a + b, $ADD_OVERFLOW),
+    spx_sub: (a, b) => checked(a - b, $SUB_OVERFLOW),
+    spx_mul: (a, b) => checked(a * b, $MUL_OVERFLOW),
+    spx_div: (a, b) => {
+      if (b === 0n) fail($DIV_ZERO);
+      if (a === min && b === -1n) fail($DIV_OVERFLOW);
+      return a / b;
+    },
+    spx_rem: (a, b) => {
+      if (b === 0n) fail($REM_ZERO);
+      if (a === min && b === -1n) fail($REM_OVERFLOW);
+      return a % b;
+    },
+    spx_neg: a => checked(-a, $NEG_OVERFLOW),
+    spx_contract_fail: fail,
     ...host.imports,
   };
   const { instance } = await WebAssembly.instantiate(module, { env });

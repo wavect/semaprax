@@ -188,3 +188,16 @@ The identical inventory has 11,568 tests and zero benchmarks, with SHA-256
 The default build passed all 18 selected traversal and source-custody checks.
 The allocator experiment leaves the build configuration unchanged and
 establishes no compiler memory reduction or live-agent efficiency gain.
+
+### Serial LLVM comparison
+
+The same Rust 1.97.1 checkout and one-worker profile also linked with
+`-Zno-parallel-backend` and the default allocator. The primary compiler
+arguments differed in that flag and Cargo's output suffix. The compiler
+took 415.35 seconds and reached 7,926,366,208 bytes of peak RSS and
+16,947,181,176 bytes of peak physical footprint. The footprint was within
+0.04% of the default, with 677,855,232 bytes more peak RSS and 94.77 seconds
+more compiler time. A stack sample during LLVM code generation recorded
+15.8 GiB of peak physical footprint. The complete test inventory was
+byte-identical to the baseline. This experiment leaves the default build
+profile in place.

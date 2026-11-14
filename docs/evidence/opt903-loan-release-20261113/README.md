@@ -691,3 +691,52 @@ SHA-256 values, respectively:
 - `95ba3d3fe036e954468e2e75d67bb69b7cfb9c4b6150b4671f6add22ccc7b639`
 - `2355b7e7c956056a2245160c955fbdf4d77202bc4c4ec00f2ddaa46500e8b611`
 - `5ecbc1a599424ae789cc6ed00477de3c78482286acba89c625e66377a33a4216`
+
+### Historical default budget and retry comparison
+
+The earlier 64 MiB Project reporting checks used an explicit lower limit
+on a compiler whose default was 128 MiB. The ordinary core retries only at
+the default limit and with no enclosing builder ledger. To exercise that
+original path, a private production build of `dfe57743b` set the default
+to 67,108,864 bytes and updated its matching static fallback diagnostic.
+No forecast, replay limit, debit rule, retry policy or application input
+was edited.
+
+| Published project | Explicit 64 MiB limit | 64 MiB as the default |
+| --- | --- | --- |
+| Catalog | Passed in mode 1 at 48,615,173 bytes | Passed in mode 1 at 48,615,173 bytes |
+| ShiftSim | Refused in mode 1 after 67,104,702 bytes | Passed in mode 5 at 66,822,056 bytes after four failed attempts |
+| Catalog Normalizer | Refused in static precharge | Same static refusal before a live attempt |
+| Selected-file LogLens | Passed in mode 1 at 21,430,497 bytes in the earlier reporting run | Passed in mode 1 at 21,430,497 bytes |
+
+ShiftSim's first attempt matched the explicit-limit trace at the same
+forecast and cumulative debit. The first failed request was 8,576 bytes
+with 4,162 remaining. The phase census attributes 66,704,189 bytes to
+precharge and 357,581 bytes to expected workspace edges before that
+refusal. It records the generic reservation caller, so it does not
+identify the more specific compiler operation.
+
+| ShiftSim mode | Prebound bytes | Cumulative charged bytes | Outcome |
+| --- | ---: | ---: | --- |
+| 1 | 66,704,189 | 67,104,702 | Refused |
+| 2 | 57,320,193 | 67,106,424 | Refused |
+| 3 | 57,103,327 | 67,015,297 | Refused |
+| 4 | 56,862,800 | 67,088,999 | Refused |
+| 5 | 56,063,583 | 66,822,056 | Passed |
+
+The profiling capture counted 193 completed PLAN comparison owners and
+28,732 certified right-hand-side admissions across the successful ShiftSim
+Project check. The per-owner detail buffer retained its first 128 rows.
+Normalizer still stopped at 66,248,903 bytes of retained output plus the
+873,483-byte NDJSON module forecast. The first-step excess is 13,522 bytes.
+Later modules and live validation still need independent qualification.
+These are production Project check observations. They do not establish
+that the complete starter, native suite or an immediate predecessor passes
+at this limit.
+
+The local patch and linked probe SHA-256 values are
+`8e9febcd9ce34480687337862ae3c7784cec7aceb96da2636a1786e41ad096ac`
+and `60756fb6a5cbdc728f1df5d1d7cf305ec46542edfc24bd819341fb9cfc0c4941`.
+The ShiftSim and Normalizer log SHA-256 values are
+`8bc404db12443d6cc72d5379275e078b4a4ca09998e9759680710f253803785a`
+and `ef9e21cea364c55de47d31a272dd14ebec72d7f74742d91e99f64ad0422e4dc4`.

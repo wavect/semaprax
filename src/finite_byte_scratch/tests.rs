@@ -170,6 +170,40 @@ fn finite_count_and_payload_limits_are_cumulative_and_inclusive() {
     assert_eq!(zero.function("f").unwrap().bytes_copy_sites, 0);
 }
 #[test]
+fn nested_capacity_products_refuse_instead_of_wrapping() {
+    use byte_data_capacity::{CapacityDiagnostic, CapacityFlow, FunctionCapacityInput};
+    let nested = |levels, payload| {
+        (0..levels).fold(
+            CapacityFlow::BytesCopy {
+                site: "scratch".into(),
+                conservative_payload_bytes: payload,
+            },
+            |body, _| CapacityFlow::FiniteOwnedLoop {
+                iterations: 32,
+                condition: Box::new(CapacityFlow::Empty),
+                body: Box::new(body),
+            },
+        )
+    };
+    for (execution, detail) in [
+        (nested(7, 1), "finite iterator allocation count overflowed"),
+        (
+            nested(2, crate::byte_ops::MAX_OWNED_BYTE_VALUE_BYTES),
+            "bytes_copy path reaches 1024 sites; limit is 32",
+        ),
+    ] {
+        let input = FunctionCapacityInput {
+            function: "nested".into(),
+            array_slots: vec![],
+            execution,
+        };
+        let error = byte_data_capacity::analyze(&[input]).unwrap_err();
+        assert_eq!(error.diagnostic, CapacityDiagnostic::Allocation);
+        assert!(error.detail.contains(detail), "{}", error.detail);
+    }
+}
+
+#[test]
 fn arbitrary_while_condition_allocation_and_stdin_stay_refused() {
     use byte_data_capacity::{CapacityFlow as F, FunctionCapacityInput as Input};
     let copy = || F::BytesCopy {

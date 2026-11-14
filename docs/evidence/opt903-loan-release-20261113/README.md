@@ -254,6 +254,17 @@ its original refusal, and the observer executed no live construction for
 this input. The log SHA-256 is
 `7f11977fcd4f044b3486a2dff96d7c4a9b06da380b56a936ef84ec424e284523`.
 
+The same cap and observer on the same source baseline, with only the two
+census changes reversed, recorded a 74,938,824-byte peak. The combined
+census lowered the complete forecast by 225,840 bytes, with identical
+later scratch and directory terms. Nine modules reduced their retained
+forecast and three increased it, by 48, 96 and 408 bytes respectively.
+The matched baseline log SHA-256 is
+`d4ca4df0fe85b1108fb002aa8e76200e8fa470cdd0762b6a1b818213873bfd0b`.
+Scoped production Clippy with the workflow-profiling feature passed for
+the joint-only census. The combined application run still refuses at
+the historical cap.
+
 The existing whole-normalizer library owner passed at the default 128 MiB
 cap on the retained `6f1db7ec4` test image. All twelve authored and dependency
 inputs matched the current files by length and SHA-256. The actual mode-one

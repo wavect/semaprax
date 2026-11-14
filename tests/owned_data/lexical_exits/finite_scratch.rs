@@ -220,7 +220,7 @@ fn frozen_native_owned_data_and_stream_profiles_refuse_finite_scratch() {
         &descriptor.canonical_bytes(),
         &descriptor.digest(),
     );
-    let error = native.err().expect("frozen native provider must refuse");
+    let error = native.expect_err("frozen native provider must refuse");
     assert_eq!(error.code, "SPX-B103");
     assert!(error.message.contains("finite owned-iterator scratch"));
 

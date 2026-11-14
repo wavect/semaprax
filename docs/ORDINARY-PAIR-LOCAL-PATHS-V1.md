@@ -2,10 +2,10 @@
 
 Audience: compiler contributors and reviewers.
 
-Status: OPT886 source candidate only; uncompiled and unexecuted. No application
-admission, efficiency, production Clippy or shipping qualification is claimed.
-This is a successor to ORDINARY-LEXICAL-PLAN-CURSOR-V1, not a reinterpretation
-of that predecessor's owner-state lifetime restriction.
+Status: focused comparator and external application checks executed.
+The original 64 MiB application gate remains open. This contract extends
+[Ordinary lexical PLAN cursor v1](ORDINARY-LEXICAL-PLAN-CURSOR-V1.md)
+with pair-local path loans.
 
 After both original left/right Cursor::prepare calls and resets succeed, the
 first original observation-comparison work charge runs. One pair-scope request
@@ -53,11 +53,17 @@ mutating a reset invocation. Overflow, truncation, loss, unfinished guards and
 unwind cannot claim a complete comparison.
 Snapshots allocate only after observed owners/results/budgets have dropped.
 
-The codec03 library-unit trace includes preserved cfg(test) UnoptedCrosscheck
-work and is not shipping cost. External native codec owners23/24, original
-catalog/ShiftSim/LogLens applications, strict arena/210 owners and full1024
-callable gate remain affected qualification inputs at unchanged64MiB. Complete
-same-fixture immediate883/current shipping results are pending; unit census and
-shipping evidence must be reported separately. A later refusal is not success.
-All new source descendants require complete source-inventory integration before
-qualification. No final binding or metadata authority is created by this file.
+The codec03 library-unit trace includes the preserved cfg(test)
+UnoptedCrosscheck. Shipping qualification uses the separate external
+native and Project owners linked against the production library.
+
+The original 140-test comparator and retained lookup selection passed on
+`a9cec46db`. The six expression-fact arena controls and the callable
+boundary at 64 MiB also passed on its retained local test image. The
+matched external comparison used the immediate predecessor `4624d6b6a`
+and the pair-local-only successor `3f3f211de`. Both arms refused all
+four external owners at the original cap. At the current 64 MiB diagnostic
+limit both native codec tests passed, while Catalog23 and ShiftSim15
+refused. Both applications passed at the shipping 128 MiB limit.
+See the [external test receipts](evidence/opt903-loan-release-20261113/README.md#external-application-checks-for-opt-886)
+for the refusal stages and the exact source and test bindings.

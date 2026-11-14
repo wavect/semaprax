@@ -104,3 +104,18 @@ the sealed predecessor before and after replay. The source custody check
 reported no drift. All 54 overlay tests and 10 refresh-script tests passed.
 The owning Rust test and the complete quality gate still require a rerun
 with the corrected source.
+
+
+A second serial recheck sampled the first reported failure from each of
+twelve replay, HIR, workspace and source-audit groups. The default-feature
+`a9feaa138` library executable listed the same 11,568 tests under both Rust
+symbol-mangling modes. The legacy executable passed the pair-scope and
+call-carrier source checks. Nine selected tests failed, including the
+compact frontier source audit, scratch funding, and complete replay
+observations. The remaining test printed a historical-input assertion
+before the 35-second observation timeout. This sample identifies which
+failures warrant individual investigation. It is not a full-suite
+failure count or evidence of a failure in the scalar traversal selector.
+
+The classification receipt SHA-256 is
+`e39b71a53be27186310a547b5f1383ad2e5cb31a981a197cf138608e3cd60cdc`.

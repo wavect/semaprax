@@ -201,3 +201,33 @@ more compiler time. A stack sample during LLVM code generation recorded
 15.8 GiB of peak physical footprint. The complete test inventory was
 byte-identical to the baseline. This experiment leaves the default build
 profile in place.
+
+
+### Completed symbol-mangling comparison at `a9feaa138`
+
+The matching default-feature libtest builds used Rust 1.97.1 on the same
+18 GiB macOS arm64 host. Each ran one Cargo job with the test profile at
+O0, 256 codegen units, debug info disabled and no incremental compilation.
+The two primary compiler commands differed only in their output suffix
+and symbol-mangling mode. Both built a fresh primary crate. Cargo reused
+the dependency artifacts for the second arm.
+
+| Mangling | rustc wall seconds | Kernel peak RSS (bytes) | Kernel peak footprint (bytes) | Distinct-symbol partition seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Legacy | 410.19 | 6,580,273,152 | 16,860,902,960 | 14.77 |
+| v0 | 425.08 | 5,461,114,880 | 16,955,602,576 | 14.28 |
+
+Legacy increased peak RSS by 1,119,158,272 bytes and reduced peak physical
+footprint by 94,699,616 bytes (0.56%). Both reached macOS memory pressure
+level 2, and the measured distinct-symbol partition pass took slightly
+longer under legacy. These readings do not establish a lower-memory
+build profile. The phase timings do not locate the kernel footprint peak.
+
+Both binaries listed the same 11,568 tests and zero benchmarks, with
+identical inventory SHA-256
+`5f0ad5bed4bb78352e4d6b8bc43018750aae4e57e235373b917fe0d8b89a98e4`.
+Each passed the same ten secondary byte-traversal tests. The legacy and
+v0 binary hashes are
+`64b022c058ad4e212ac4f4995b0ae7daa86797e74bbb52f78aecae392cb4d099`
+and `29572840b1f946a158f9477c4929db0556e8be1b7fd95fe0d933df12290e7831`.
+The experiment did not change the build profile.

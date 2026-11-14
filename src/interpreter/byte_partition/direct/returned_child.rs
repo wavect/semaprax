@@ -9,6 +9,7 @@ use crate::{
 
 pub(super) struct Producer<'a> {
     function: &'a hir::ResolvedFunction,
+    precondition: bool,
     seed: &'a [u8],
     count: u64,
     width: u64,
@@ -72,7 +73,6 @@ impl<'a> Producer<'a> {
     ) -> Result<Self, Refusal> {
         if function.return_type != ResolvedType::Bytes
             || !function.params.is_empty()
-            || !function.requires.is_empty()
             || !function.ensures.is_empty()
         {
             return Err(Refusal::Identity);
@@ -168,6 +168,7 @@ impl<'a> Producer<'a> {
         verify_empty_return(&function.cleanup_plan, work)?;
         Ok(Self {
             function,
+            precondition: prove_precondition(function, work)?,
             seed,
             count: literal(operands.count)?,
             width: literal(operands.width)?,
@@ -182,6 +183,9 @@ impl<'a> Producer<'a> {
         invocation: &mut Invocation<'a>,
         work: &mut usize,
     ) -> Result<Result<OwnedBytesValue, Outcome>, Refusal> {
+        if !self.precondition {
+            return Ok(Err(Outcome::PreconditionFailed));
+        }
         let capacity = LoanCapacity::from_source(source, self.function, work)?;
         invocation.loans.enter_frame(capacity)?;
         let result = self.run(invocation);

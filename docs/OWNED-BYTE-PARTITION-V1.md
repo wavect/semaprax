@@ -894,6 +894,13 @@ the checked body root before creating backing owners. A false precondition selec
 The same clone fixture checks precondition and postcondition status precedence
 in the interpreter, native executable and paired Wasm runner.
 
+The helper that returns a partition child also accepts a single literal
+precondition. Its failed guard has an empty finalization inventory and
+propagates the original contract status to the caller before any backing,
+partition, or copy operation.
+The clone fixture with a false helper guard and zero-width partition exercises
+this failure precedence in the interpreter, native C11 at O0/O2 and paired Wasm.
+
 The returned-child receiver checks a scalar `ensures result == <i64>` against
 the provisional result. A false postcondition selects its own authenticated
 cleanup order for the original child and the copy. A failed store selects its

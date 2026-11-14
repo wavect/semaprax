@@ -226,6 +226,18 @@ fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup
         CLONE_SOURCE.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
     let mut cases = vec![
         (
+            CLONE_SOURCE
+                .replace(
+                    "fn take_child() -> Bytes",
+                    "fn take_child() -> Bytes requires false",
+                )
+                .replace("3usize, 2usize", "3usize, 0usize"),
+            crate::conformance::CONTRACT_STATUS_DOMAIN_V1,
+            crate::conformance::CONTRACT_REQUIRES_FALSE_CODE,
+            0,
+            0,
+        ),
+        (
             clone_contract.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize"),
             crate::byte_ops::SET_STATUS_DOMAIN,
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,

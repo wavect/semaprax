@@ -539,6 +539,13 @@ move/store/finalizer adapters reject view carriers. Reads after the actual end
 edge fail for both Bytes and Slice aliases. This receiving adapter remains
 private and needs the joined installer to bind the actual source owner root.
 
+The typed interpreter iterator retains the whole producer's logical allocation
+identity in each transferred Bytes child. Its staged one-byte store checks the
+authenticated child's own extent and maps bounds failure to the existing
+byte-buffer status. The staged owner remains available for canonical cleanup.
+A successful store renews the child lease without allocating a backing or
+changing any sibling range.
+
 ### Flat container receiver checkpoint
 
 The private affine container retains the original paid Vec<Owner> output; it

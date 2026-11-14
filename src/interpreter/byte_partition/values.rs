@@ -1,7 +1,7 @@
 //! Exact private Value receivers. Their caller must hold the validated current
 //! partition program plus actual owner-root/edge binding; no default installer.
-use super::{flat::PartitionVec, loans::Loans, InvocationRuntime};
-use crate::interpreter::{construction_fusion::Backing, Flow, Value};
+use super::{flat::PartitionVec, loans::Loans, InvocationRuntime, StoreError};
+use crate::interpreter::{construction_fusion::Backing, Flow, OwnedBytesValue, Value};
 
 fn refused(_: crate::construction_fusion::domain::Refusal) -> Flow {
     Flow::Guard("ordinary partition receiving authority refused")
@@ -23,6 +23,27 @@ pub(super) fn settle<R: InvocationRuntime>(
         )),
     }
 }
+/// Apply the one-byte source store to the staged owner in place. On failure,
+/// the caller still owns this slot and settles it at its exact cleanup action.
+pub(super) fn store_byte<R: InvocationRuntime>(
+    value: &mut OwnedBytesValue,
+    receiver: &mut Loans<'_, R>,
+    index: u64,
+    byte: u8,
+) -> Result<(), Flow> {
+    let Backing::Partition(owner) = &mut value.bytes else {
+        return Err(Flow::Guard("partition store requires its affine owner"));
+    };
+    receiver
+        .checked_store(owner, index, &[byte])
+        .map_err(|error| match error {
+            StoreError::Bounds => Flow::Failure(super::super::owned_buffer::normalize_byte_buffer(
+                crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+            )),
+            StoreError::Authority(error) => refused(error),
+        })
+}
+
 /// Move the already paid affine container. No legacy Arc alias is substituted.
 pub(super) fn into_iterator<R: InvocationRuntime>(
     value: Value,
@@ -75,7 +96,11 @@ pub(super) fn partition_whole(
             crate::interpreter::OwnedBytesValue { allocation, bytes },
         ));
     };
-    if owner.account != receiver.account_identity() {
+    let allocation_id =
+        std::num::NonZeroU32::new(allocation).filter(|id| id.get() <= receiver.allocation_count());
+    let Some(allocation_id) =
+        allocation_id.filter(|_| owner.account == receiver.account_identity())
+    else {
         let error = receiver.preparation_failure(
             crate::construction_fusion::partition::Preparation::Authority(
                 crate::construction_fusion::domain::Refusal::Identity,
@@ -88,10 +113,10 @@ pub(super) fn partition_whole(
                 bytes: Backing::Whole(owner),
             },
         ));
-    }
+    };
     let account = owner.account;
-    match partition(receiver, owner.bytes, count, width) {
-        Ok(value) => Ok(value),
+    match PartitionVec::partition(receiver, owner.bytes, count, width) {
+        Ok(vector) => Ok(Value::PartitionVec(vector.with_allocation(allocation_id))),
         Err((error, owner)) => Err((
             error,
             crate::interpreter::OwnedBytesValue {

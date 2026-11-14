@@ -1,6 +1,7 @@
 //! Receiving controls only; these do not claim complete source execution.
 use super::*;
 use crate::interpreter::byte_partition::{funding::Account, invocation::Invocation};
+use crate::interpreter::Value;
 use std::{alloc::Layout, collections::BTreeMap};
 
 fn headers() -> usize {
@@ -165,9 +166,51 @@ fn evaluator_account_reads_ignore_legacy_fields_and_whole_handoff_keeps_pointer(
             crate::construction_fusion::partition::Preparation::Fault(_)
         ));
         assert_eq!(whole.bytes.as_ref().as_ptr(), pointer);
-        let mut value = super::super::values::partition_whole(receiver, whole, 2, 3).unwrap();
-        assert_eq!(account.borrowed().counters(), original_count);
-        super::super::values::settle(&mut value, receiver).unwrap();
+        use super::super::values;
+        let value = values::partition_whole(receiver, whole, 2, 3).unwrap();
+        let Value::PartitionIter(mut iter) = values::into_iterator(value, receiver).unwrap() else {
+            panic!("partition iterator");
+        };
+        let mut child = iter.next_bytes(receiver).unwrap().unwrap();
+        let sibling = iter.next_bytes(receiver).unwrap().unwrap();
+        assert_eq!((child.allocation, sibling.allocation), (1, 1));
+        iter.settle(receiver).unwrap();
+        for index in [3, u64::MAX] {
+            let fault = values::store_byte(&mut child, receiver, index, 99).unwrap_err();
+            assert!(matches!(fault, Flow::Failure(status)
+                if status == crate::interpreter::owned_buffer::normalize_byte_buffer(
+                    crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE)));
+        }
+        let Backing::Partition(unchanged) = &child.bytes else {
+            panic!("staged owner");
+        };
+        assert_eq!(receiver.extent(unchanged).unwrap(), 3);
+        let (_, measured) = crate::test_allocation_observer::measure(|| {
+            values::store_byte(&mut child, receiver, 2, 99).unwrap();
+        });
+        assert_eq!(
+            measured,
+            crate::test_allocation_observer::Metrics::default()
+        );
+        let Backing::Partition(updated) = &child.bytes else {
+            panic!("renewed owner");
+        };
+        assert_eq!(receiver.deep_clone(updated).unwrap().as_ref(), &[0, 0, 99]);
+        let Backing::Partition(sibling_owner) = &sibling.bytes else {
+            panic!("sibling owner");
+        };
+        assert_eq!(
+            receiver.deep_clone(sibling_owner).unwrap().as_ref(),
+            &[0, 0, 0]
+        );
+        let mut sibling = Value::Bytes(sibling);
+        values::settle(&mut sibling, receiver).unwrap();
+        let mut child = Value::Bytes(child);
+        values::settle(&mut child, receiver).unwrap();
+        assert_eq!(
+            account.borrowed().counters(),
+            (original_count.0 + 2, original_count.1 + 6)
+        );
         drop(clone);
         // A logical ID alone cannot authorize a whole from another account.
         let (mut foreign_events, mut foreign_payload) = (0, 0);
@@ -189,5 +232,5 @@ fn evaluator_account_reads_ignore_legacy_fields_and_whole_handoff_keeps_pointer(
         )
         .is_err());
     }
-    assert_eq!((events, payload), (3, 15));
+    assert_eq!((events, payload), (5, 21));
 }

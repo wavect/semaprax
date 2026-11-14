@@ -41,6 +41,11 @@ pub(crate) struct Owner {
     child: usize,
     receipt: Receipt,
 }
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum StoreError {
+    Bounds,
+    Authority(Refusal),
+}
 pub(crate) struct View {
     invocation: u64,
     context: usize,
@@ -293,6 +298,32 @@ impl<R: InvocationRuntime> Registry<R> {
             core.store_range(child, index, bytes)?;
             Ok(child.receipt())
         })?;
+        Ok(())
+    }
+    /// A source bounds fault leaves the exact staged owner and receipt intact.
+    /// Authority failures remain sticky and take precedence over index checks.
+    fn checked_store(
+        &mut self,
+        owner: &mut Owner,
+        index: u64,
+        bytes: &[u8],
+    ) -> Result<(), StoreError> {
+        let receipt = self
+            .apply(owner, false, |core, child| {
+                core.check_move(child)?;
+                let len = core.authenticate_receipt(child, owner.receipt)?;
+                let Some(index) = usize::try_from(index).ok().filter(|index| {
+                    len.checked_sub(*index)
+                        .is_some_and(|left| left >= bytes.len())
+                }) else {
+                    return Ok(None);
+                };
+                core.store_range(child, index, bytes)?;
+                Ok(Some(child.receipt()))
+            })
+            .map_err(StoreError::Authority)?
+            .ok_or(StoreError::Bounds)?;
+        owner.receipt = receipt;
         Ok(())
     }
     pub(crate) fn extent(&mut self, owner: &Owner) -> Result<usize, Refusal> {

@@ -2,16 +2,18 @@
 //! Actual language result/iterator installation remains sealed and closed.
 use super::{loans::Loans, InvocationRuntime, Owner};
 use crate::construction_fusion::{domain::Refusal, partition::Preparation};
-use std::{alloc::Layout, vec::IntoIter};
+use std::{alloc::Layout, num::NonZeroU32, vec::IntoIter};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct PartitionVec {
     owners: Vec<Owner>,
     capacity: usize,
+    allocation: Option<NonZeroU32>,
 }
 #[derive(Debug)]
 pub(crate) struct PartitionIterator {
     owners: IntoIter<Owner>,
+    allocation: Option<NonZeroU32>,
 }
 impl PartitionVec {
     /// Numeric faults precede all reservations. The header and original output
@@ -30,7 +32,15 @@ impl PartitionVec {
         }
         let owners = receiver.partition(owner, count, width)?;
         let capacity = owners.len();
-        Ok(Self { owners, capacity })
+        Ok(Self {
+            owners,
+            capacity,
+            allocation: None,
+        })
+    }
+    pub(super) fn with_allocation(mut self, allocation: NonZeroU32) -> Self {
+        self.allocation = Some(allocation);
+        self
     }
     pub(crate) fn len(&self) -> usize {
         self.owners.len()
@@ -92,12 +102,25 @@ impl PartitionVec {
         }
         Ok(PartitionIterator {
             owners: self.owners.into_iter(),
+            allocation: self.allocation,
         })
     }
 }
 impl PartitionIterator {
     pub(crate) fn remaining(&self) -> usize {
         self.owners.len()
+    }
+    /// Typed child transfer retains the whole producer's logical allocation.
+    pub(super) fn next_bytes<R: InvocationRuntime>(
+        &mut self,
+        receiver: &mut Loans<'_, R>,
+    ) -> Result<Option<crate::interpreter::OwnedBytesValue>, Refusal> {
+        let allocation = self.allocation.ok_or(Refusal::Identity)?;
+        self.next(receiver).map(|child| {
+            child.map(|owner| {
+                crate::interpreter::OwnedBytesValue::partition(allocation.get(), owner)
+            })
+        })
     }
     /// The actual language IterStep constructor remains a separate checked
     /// receiving boundary. This method returns only the internal affine leaf.
@@ -133,6 +156,6 @@ mod tests;
 
 impl PartialEq for PartitionIterator {
     fn eq(&self, other: &Self) -> bool {
-        self.owners.as_slice() == other.owners.as_slice()
+        self.allocation == other.allocation && self.owners.as_slice() == other.owners.as_slice()
     }
 }

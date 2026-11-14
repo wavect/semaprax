@@ -242,6 +242,14 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
     ) -> Result<(), Refusal> {
         self.registry.store(owner, index, bytes)
     }
+    pub(super) fn checked_store(
+        &mut self,
+        owner: &mut Owner,
+        index: u64,
+        bytes: &[u8],
+    ) -> Result<(), super::StoreError> {
+        self.registry.checked_store(owner, index, bytes)
+    }
     pub(super) fn preflight_settlement(&mut self, owner: &Owner) -> Result<(), Refusal> {
         self.registry.preflight_settlement(owner)
     }
@@ -285,6 +293,9 @@ mod frames;
 impl Loans<'_, super::funding::BorrowedAccount<'_>> {
     pub(super) fn account_identity(&self) -> u64 {
         self.registry.runtime.identity()
+    }
+    pub(super) fn allocation_count(&self) -> u32 {
+        self.registry.runtime.counters().0
     }
 }
 

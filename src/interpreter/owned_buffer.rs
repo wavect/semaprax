@@ -16,7 +16,7 @@ use super::{Evaluator, Flow, OwnedBytesValue, Value};
 /// The single Owned Bounded Byte Buffer v1 runtime failure. A computed
 /// `bytes_set` index at or above the transferred buffer's length selects this
 /// status before the store, so the buffer is never partially written.
-fn normalize_byte_buffer(code: u32) -> NormalizedStatus {
+pub(super) fn normalize_byte_buffer(code: u32) -> NormalizedStatus {
     NormalizedStatus::try_new(
         crate::byte_ops::SET_STATUS_DOMAIN,
         code,

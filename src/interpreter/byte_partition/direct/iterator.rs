@@ -272,7 +272,7 @@ fn execute_step(
     iter: &mut super::super::flat::PartitionIterator,
     loans: &mut super::super::loans::Loans<'_, super::super::funding::BorrowedAccount<'_>>,
 ) -> Result<i64, Refusal> {
-    let next = match iter.next(loans) {
+    let next = match iter.next_bytes(loans) {
         Ok(next) => next,
         Err(error) => {
             let _ = iter.settle(loans);
@@ -285,20 +285,23 @@ fn execute_step(
         loans.advance_straight_to(step.match_after)?;
         return Ok(step.empty_result);
     };
+    let Backing::Partition(owner) = &mut child.bytes else {
+        unreachable!("typed iterator published a non-partition child");
+    };
     let len = (|| {
         let read = step.read;
         loans.advance(read.arm_before)?;
         loans.advance_straight_to(read.view_before)?;
-        let view = loans.borrow(&child, read.loan)?;
+        let view = loans.borrow(owner, read.loan)?;
         loans.advance_straight_to(read.operand_after)?;
         let len = loans.read(view, <[u8]>::len)?;
         loans.advance_straight_to(read.arm_after)?;
         i64::try_from(len).map_err(|_| Refusal::Identity)
     })();
     let (first, second) = if step.rest_first {
-        (iter.settle(loans), loans.settle(&mut child))
+        (iter.settle(loans), loans.settle(owner))
     } else {
-        (loans.settle(&mut child), iter.settle(loans))
+        (loans.settle(owner), iter.settle(loans))
     };
     let len = len?;
     first?;
@@ -310,7 +313,7 @@ fn execute_step(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::byte_partition::{flat::PartitionVec, values};
+    use crate::interpreter::byte_partition::values;
 
     #[test]
     fn refused_iterator_step_settles_the_untransferred_suffix() {
@@ -329,13 +332,19 @@ mod tests {
             account.borrowed(),
         )
         .unwrap();
-        let mut vector = PartitionVec::partition(
-            &mut invocation.loans,
-            vec![1, 2, 3].into_boxed_slice(),
-            3,
-            1,
-        )
-        .unwrap();
+        let (allocation, bytes) = invocation.account.copy(&[1, 2, 3]).unwrap();
+        let whole = OwnedBytesValue {
+            allocation,
+            bytes: Backing::Whole(WholeBacking {
+                account: invocation.account.identity(),
+                bytes,
+            }),
+        };
+        let Value::PartitionVec(mut vector) =
+            values::partition_whole(&mut invocation.loans, whole, 3, 1).unwrap()
+        else {
+            panic!("partition vector");
+        };
         let mut retired = vector.take_last(&mut invocation.loans).unwrap().unwrap();
         let Value::PartitionIter(mut iter) =
             values::into_iterator(Value::PartitionVec(vector), &mut invocation.loans).unwrap()

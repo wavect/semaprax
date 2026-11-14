@@ -54,4 +54,19 @@ A second instrumented library build at `59f58e375`, using the same four-module f
 | Identity carriers | 11,640 | 11,640 | 11,640 | 11,640 |
 | Identity occurrences | 137,632 | 137,632 | 137,632 | 137,632 |
 
-The call census accounts for 52,855 of the 53,783 additional retained forecast bytes per module. The shared local callee accounting supplies the other 928 bytes, separately from the 928-byte receiving allowance applied after the estimate. The fixture contains no authored calls or imports. The census still visits its 291 expressions to establish retention eligibility. The next comparison must price the classifier and its counter by actual role and lifetime against the complete saved producer. These figures are forecast terms. The separate allocator observation above covers requested heap layouts.
+The call census accounts for 52,855 of the 53,783 additional retained forecast bytes per module. The shared local callee accounting supplies the other 928 bytes, separately from the 928-byte receiving allowance applied after the estimate. The fixture contains no authored calls or imports. The census still visits its 291 expressions to establish retention eligibility. These figures are forecast terms. The separate allocator observation above covers requested heap layouts.
+
+
+### Call census components
+
+On Rust 1.97.1 for macOS arm64, the actual tuple in `Names::insert` adds 432 bytes per insertion to maintain the packed byte-length filter. The current binding scan calls it once for the `let` and once for each of the 96 assignments, although this fixture has no call lookup that reads the filter. The saved scan still pays its original insertion charge. The retention visit adds a 32-byte counter tuple, two classifier booleans, and one retention predicate per expression. These two components explain 52,089 of the 52,855 additional census bytes per module.
+
+| Additional component | Reached count | Bytes per module |
+| --- | ---: | ---: |
+| Name-filter updates | 97 | 41,904 |
+| Retention classifier, predicate and counter | 291 | 10,185 |
+| Remaining census difference | | 766 |
+
+The all-features library test image at `98b1aee91` passed seven of the eight retained-scratch tests, including generic and imported-default fallback, exact/short/zero, and real CFG point counts. The four-module reduction assertion was the failure. The same image passed the existing name-filter equivalence, direct-cost, and whole mode-six tests. On the 64-call fixture, the filter reduced each full and retained forecast by 524,352 bytes in both the local and imported variants, with identical requested heap layouts and complete Drop. On the direct fixtures, its charge increased by 6,624 bytes for the empty table and by 8,720 bytes for hits. It fell by 9,312 bytes for negative lookups.
+
+Building the filter only when a lookup needs it is a candidate for the binding-heavy, call-free case. If the current fixture omitted all 41,904 bytes per module, the later peak would be 6,405,434 bytes before any replacement cost, leaving 13,070 bytes below the predecessor across four modules. That arithmetic only defines the available margin. A replacement must execute the original bounded name scan, keep insertion capacity and refusal order, and pay its own setup, controls and lookup before any forecast change is accepted.

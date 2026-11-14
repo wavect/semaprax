@@ -861,6 +861,53 @@ The focused lookup log SHA-256 is
 The original combined log SHA-256 is
 `31597a6f3a26cfe417644e6b024623a05ec9e0670344e5805ad91d2668cbfeda`.
 
+#### External application checks for OPT #886
+
+The immediate comparator at `4624d6b6a` and the pair-local-only successor
+at `3f3f211de` were built separately with Rust 1.97.1 on macOS arm64.
+The two commits have identical owning test sources, application inputs,
+corpora and dependency locks. The external `native` and `project`
+test executables linked the ordinary production library with default
+features. Both revisions used their original 64 MiB builder limit.
+
+All four selections refused with `SPX-G171` during HIR final validation
+in both arms. These are the first refused requests and remaining bytes.
+
+| External selection | Immediate comparator | Pair-local successor |
+| --- | ---: | ---: |
+| Native String codec allocation and exact/+1 preflight, both tests | 258 / 130 | 304 / 49 |
+| Catalog23 typed records | 132 / 106 | 132 / 84 |
+| ShiftSim15 typed records | 98,304 / 6,385 | 98,304 / 11,761 |
+
+The two native tests and both application tests passed their static
+forecast in both arms. The first-refusal pairs describe the observed
+prefixes. They do not measure savings or the complete debit.
+
+A separate build from `a9cec46db` passed Catalog23 and ShiftSim15 at
+the current shipping builder limit of 128 MiB. A diagnostic checkout
+of the same revision restored the original 64 MiB builder ceiling
+and its matching diagnostic text. Both native codec tests passed
+there. Catalog23 refused in HIR expression and type lowering with
+a 40-byte request and 8 remaining. ShiftSim15 refused during the
+static forecast after retaining 60,265,703 bytes and forecasting
+13,130,193 more for `src/response.spx`. This diagnostic keeps the
+current separate replay ledger. The historical two-arm comparison
+above isolates the pair-local change and keeps the historical accounting
+in both arms. The original-cap application gate remains open.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Immediate native test log | `3626da672dab85f9c3f65c547540f43ca3b016e8fcec856befe60894041a2fa6` |
+| Immediate project test log | `33f160b16e6e300b80695ce29a81975b941f1f7e77e8398309bb678c49ddb0ec` |
+| Pair-local native test log | `6b2eee228a859723da03b2d9a70acdd997c8f630d449cc3f212acb296aade2c0` |
+| Pair-local project test log | `abb797ea47da21a3e4d39c0a83f8e0662e93153389e00e2f23b4578143eb327a` |
+| Current shipping project test log | `a029410def8c83f1bb3e8839f1274baef5daa921f0f8417f6f1faedc84d4b234` |
+| Current original-cap diagnostic patch | `8e9febcd9ce34480687337862ae3c7784cec7aceb96da2636a1786e41ad096ac` |
+| Current original-cap native test log | `5132515e07435b7df56dfab780555585700364595cc9a7b1948474d7f4fcc299` |
+| Current original-cap project test log | `2f774b5dd98fd51d449580262ceb2b68d2b0554cb6a8b24e2460f5d86a20bf1b` |
+
+Production library Clippy with `-D warnings` passed at `a9cec46db`.
+
 #### Phase attribution for the 64-call control
 
 A test-only build from `da36ffb03` ran the exact 392-byte fixture and

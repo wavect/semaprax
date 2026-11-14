@@ -132,7 +132,7 @@ fn ordinary_inner_graph_json(
         selected_functions,
         selected_types,
         view,
-        false,
+        GraphProjection::Legacy,
     )
 }
 
@@ -176,7 +176,7 @@ pub(super) fn pre_filesystem_graph_json(
                 selected_functions,
                 selected_types,
                 view,
-                false,
+                GraphProjection::Legacy,
             );
         }
         return ordinary_inner_graph_json(
@@ -194,7 +194,7 @@ pub(super) fn pre_filesystem_graph_json(
         selected_functions,
         selected_types,
         view,
-        true,
+        GraphProjection::Concrete,
     )?;
     graph = graph.replacen(
         &quote_json(base),

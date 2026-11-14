@@ -28,6 +28,8 @@ mod agent_execution;
 mod agent_instances;
 mod agent_query;
 mod byte_buffer_renewal;
+mod byte_partition;
+pub use byte_partition::{to_partition_json, verify_partition_json};
 mod environment;
 mod expression;
 mod lexical_exit;
@@ -3897,12 +3899,13 @@ fn render_graph_json(
     selected_functions: &BTreeSet<DeclarationId>,
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
-    concrete_ownership: bool,
+    projection: GraphProjection,
 ) -> Result<String, Diagnostic> {
+    let concrete_ownership = !matches!(projection, GraphProjection::Legacy);
     let mut selected_types = selected_types.clone();
     // Borrowed-text removals: the set is keyed by identity bytes, so no
     // temporary lookup identity is constructed.
-    if !prelude_binding::uses_vec(program) {
+    if !matches!(projection, GraphProjection::Partition) && !prelude_binding::uses_vec(program) {
         selected_types.remove(crate::prelude::VEC_ID);
     }
     if !prelude_binding::uses_box(program) {
@@ -3968,7 +3971,9 @@ fn render_graph_json(
         }
     }
     close_type_declarations(program, &mut selected_types)?;
-    let schema = if concrete_ownership {
+    let schema = if matches!(projection, GraphProjection::Partition) {
+        byte_partition::SCHEMA
+    } else if concrete_ownership {
         nested_owned::generic_payload_schema(program)?
     } else {
         // Row loans exist only in Graph v82; no legacy projection admits them.
@@ -4623,8 +4628,21 @@ fn render_graph_json(
             output.push('}');
         }
     }
-    output.push_str("]}");
+    if matches!(projection, GraphProjection::Partition) {
+        output.push(']');
+        byte_partition::append_contract(&mut output);
+        output.push('}');
+    } else {
+        output.push_str("]}");
+    }
     Ok(output.into_string())
+}
+
+#[derive(Clone, Copy)]
+enum GraphProjection {
+    Legacy,
+    Concrete,
+    Partition,
 }
 
 fn result_ownership(

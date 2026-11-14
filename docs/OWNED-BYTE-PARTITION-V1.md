@@ -1,7 +1,8 @@
 # Owned Bytes consume-and-partition v1
 
-Status: Private source receivers have passed focused execution for OPT #746.
-Ordinary source, graph/cache and public target activation remain pending.
+Status: Private source receivers, selected graph/cache replay and the explicit
+native copy-out bridge have passed focused local checks for OPT #746. Ordinary
+source and additional public target activation remain pending.
 
 Audience: language, ownership, runtime and backend contributors and reviewers.
 
@@ -243,6 +244,13 @@ transported HIR, including one with a current revision and stale operands,
 cannot supply partition authority. Ordinary graph and public target entry
 points continue to refuse partition source.
 
+The explicit `graph::to_partition_json` and `graph::verify_partition_json`
+APIs select Graph v86 from held source. The graph retains the checked
+operation and its ordered operands, cleanup and loan plans, and the partition
+status table and allocation limits. Verification regenerates the complete
+bounded graph and compares exact bytes. Existing graph and frozen evidence
+entry points continue to refuse this profile.
+
 Implementation scopes can be disjoint: frontend owns registry/source/HIR/loan/
 cleanup and graph/cache replay; interpreter owns backing-versus-range identity;
 native owns the selected carrier/domain and complete producer/consumer closure;
@@ -349,8 +357,8 @@ reentry.
 The [hosted run at `ab2dec272`](https://github.com/wavect/semaprax/actions/runs/43526593692)
 passed all 43 selected tests and scoped production Clippy.
 
-The full shared ownership matrix, ordinary graph/cache replay and the public
-copy-out bridge remain qualification requirements.
+The full shared ownership matrix and activation through ordinary source,
+workspace and public target routes remain qualification requirements.
 
 ## Separate construction-fusion obligation
 

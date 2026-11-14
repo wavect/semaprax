@@ -81,6 +81,13 @@ fn original_source_resolves_only_through_the_private_current_owner() {
         ValidatedPartitionProgram::compile_source(&restored_ast, &mut { usize::MAX }).unwrap();
     let selected_cache = canonical_owner.cache_projection().unwrap();
     assert_eq!(restored_owner.cache_projection().unwrap(), selected_cache);
+    super::super::super::graph::verify_partition_json(
+        &restored_ast,
+        &crate::graph::to_partition_json(&canonical_ast, &mut { usize::MAX }, 8_388_608).unwrap(),
+        &mut { usize::MAX },
+        8_388_608,
+    )
+    .unwrap();
     let mut remaining = usize::MAX;
     let replayed =
         ValidatedPartitionProgram::replay_cache(&restored_ast, &selected_cache, &mut remaining)

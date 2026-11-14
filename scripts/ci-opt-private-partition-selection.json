@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 7,
-  "expected_tests": 43,
+  "filters": 8,
+  "expected_tests": 44,
   "commands": [
     {
       "owner": "OPT746 independent partition geometry and source/HIR operand proof",
@@ -16,6 +16,13 @@
       "filter": "hir::byte_partition::tests::",
       "exact": false,
       "expected_tests": 2
+    },
+    {
+      "owner": "OPT746 exact selected graph and frozen evidence refusal",
+      "binary": "lib",
+      "filter": "graph::byte_partition::tests::",
+      "exact": false,
+      "expected_tests": 1
     },
     {
       "owner": "OPT746 interpreter partition entry, registry, loans and owned settlement",

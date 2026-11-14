@@ -719,6 +719,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v83"
             | "semaprax.graph.v84"
             | "semaprax.graph.v85"
+            | super::byte_partition::SCHEMA
             | "semaprax.graph.v77"
             | "semaprax.graph.v75"
     )
@@ -768,6 +769,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v83"
             | "semaprax.graph.v84"
             | "semaprax.graph.v85"
+            | super::byte_partition::SCHEMA
             | "semaprax.graph.v77"
             | "semaprax.graph.v75"
     )
@@ -815,6 +817,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v83"
             | "semaprax.graph.v84"
             | "semaprax.graph.v85"
+            | super::byte_partition::SCHEMA
             | "semaprax.graph.v77"
             | "semaprax.graph.v75"
     )
@@ -822,6 +825,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        super::byte_partition::SCHEMA => "byte partition graph is outside this evidence flow's admission",
         "semaprax.graph.v85" => { "scoped Vec field source forms select `semaprax.graph.v85`, which is outside this evidence flow's admission" }
         "semaprax.graph.v75" => {
             "scoped Vec field reads select `semaprax.graph.v75`, which is outside this evidence flow's admission"

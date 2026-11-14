@@ -300,6 +300,26 @@ fn emit_hir_c_with_validated_kind(
     } else {
         program
     };
+    if (output_profile.is_stdin_stream()
+        || matches!(
+            output_profile,
+            NativeOutputProfile::OwnedDataProvider | NativeOutputProfile::OwnedUtf8Provider
+        ))
+        && program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .any(crate::finite_byte_scratch::function_requires)
+    {
+        return Err(backend_error(
+            "finite owned-iterator scratch requires a qualified native provider or stream profile",
+        ));
+    }
     if !output_profile.is_stdin_stream() && crate::stdin_stream_ops::resolved_program_uses(program)
     {
         return Err(backend_error(

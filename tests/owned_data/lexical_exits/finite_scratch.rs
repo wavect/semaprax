@@ -130,3 +130,76 @@ fn finite_scratch_returns_the_current_owner_after_settling_its_suffix() {
     run_native(&failed, "semaprax.contract.v1", 2, 0, "none");
     run_wasm_expected(&failed, 10, 3, "none", 0);
 }
+
+#[test]
+fn frozen_native_owned_data_and_stream_profiles_refuse_finite_scratch() {
+    use semaprax::{codegen, hir, project, wasm};
+
+    let source = r#"module lexical.finite.profile;
+@id("app.scratch") fn scratch() -> Bytes {
+    let values = vec_push<Bytes>(vec_with_capacity<Bytes>(1usize), bytes_zeroed(1usize));
+    for own item in vec_into_iter<Bytes>(values) {
+        let scratch = bytes_zeroed(3usize);
+        if byte_len(bytes_as_slice(scratch)) == 3usize { return item; };
+        0
+    }
+    bytes_zeroed(0usize)
+}
+@id("app.main") fn main() -> i64 {
+    let owner = scratch();
+    i64_from_usize(byte_len(bytes_as_slice(owner)))
+}
+"#;
+    let ast = semaprax::check(source, "finite-scratch-profile.spx").unwrap();
+    let program = hir::resolve(&ast).unwrap();
+    codegen::emit_hir_c(&program).unwrap();
+    let digest = format!("sha256:{}", "0".repeat(64));
+    let subject = project::PublicApiSubject {
+        project_schema: project::PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+        project_revision: &digest,
+        workspace_revision: &digest,
+        project_graph_digest: &digest,
+    };
+    let selected = ["app.scratch".to_owned()];
+    let descriptor = project::derive_public_api_descriptor(&program, &selected, subject).unwrap();
+    let native = codegen::emit_native_owned_data_provider(
+        &program,
+        &selected,
+        subject,
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    );
+    let error = native.err().expect("frozen native provider must refuse");
+    assert_eq!(error.code, "SPX-B103");
+    assert!(error.message.contains("finite owned-iterator scratch"));
+
+    let stream_source = source.replace(
+        "module lexical.finite.profile;",
+        "module lexical.finite.profile;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }",
+    ) + r#"
+@id("app.command") fn command() -> i64 uses { process.stdin.read } {
+    let reader = stdin_stream_open();
+    let owner = scratch();
+    i64_from_usize(byte_len(bytes_as_slice(owner)))
+}
+"#;
+    let without_scratch = stream_source
+        .replace("        let scratch = bytes_zeroed(3usize);\n", "")
+        .replace("byte_len(bytes_as_slice(scratch)) == 3usize", "true");
+    let control = semaprax::check(&without_scratch, "finite-scratch-stream-control.spx").unwrap();
+    codegen::emit_hir_c_with_stdin_stream_owned_data(
+        &hir::resolve(&control).unwrap(),
+        "app.command",
+    )
+    .expect("the stream profile still admits the ordinary nonallocating loop");
+    let stream = semaprax::check(&stream_source, "finite-scratch-stream.spx").unwrap();
+    let stream = hir::resolve(&stream).unwrap();
+    let error =
+        codegen::emit_hir_c_with_stdin_stream_owned_data(&stream, "app.command").unwrap_err();
+    assert_eq!(error.code, "SPX-B103");
+    assert!(error.message.contains("finite owned-iterator scratch"));
+    let error =
+        wasm::emit_resolved_module_with_owned_data_exports(&program, &descriptor).unwrap_err();
+    assert_eq!(error.code, "SPX-W115");
+}

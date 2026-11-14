@@ -140,6 +140,11 @@ test observed sixteen empty owners and sixteen 131,072-byte scratch owners,
 all retired before publishing the result. An empty iterator produced zero
 allocation events.
 
+The frozen native owned-data and owned-UTF8 provider emitters and native
+stdin stream emitters refuse finite scratch with `SPX-B103`. The public
+owned-data Wasm route keeps its existing `SPX-W115` refusal. The explicit
+import-free public generic route uses the qualified table described above.
+
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation
 remain separate OPT724 obligations.

@@ -132,6 +132,17 @@ closed-root invoice comparison: its old-to-current delta omits the candidate's
 48-byte lazy-filter initialization. The existing comparison still asserts the
 original invoice, and the candidate remains outside the shipping compiler.
 
+A subsequent focused rebuild separates the immediate eager invoice from the
+lazy successor's cold overhead. The unchanged historical equation passed
+against the eager receiver. The new lazy control derives the layout and the
+per-function reset charge and compares both against the live joint receiver.
+Both lazy controls and all eight workspace-scratch owners passed. The wider
+group passed 33 of 37 tests before refreshing the modified test file's
+historical inverse. After the refresh, the complete affected Rust source
+reader and inverse test passed in a standalone build. The other three
+failures also occur in the baseline, including two whole-forecast allocation
+checks and the pre-898 directory comparison.
+
 A standalone allocator probe executed the unchanged local generic-instance
 cost body with the same non-generic function fixtures as the closed-root test.
 The measured table row is 48 bytes. Each of the full and retained estimates

@@ -901,8 +901,8 @@
     },
     "src/workspace_graph/expected_projection/call_carriers/closed_roots_tests.rs": {
       "current": {
-        "length": 14301,
-        "sha256": "bddad19b8a386797f457b3593363c745fb071d90d7d444e557a947383aaa657b"
+        "length": 15092,
+        "sha256": "209d9b84281cca8166e117b60f738135563864910e6becf2be7dc8a330984b21"
       },
       "edits": [
         {
@@ -930,50 +930,86 @@
           "before": "        let programs = vec![parse(&fixture(n, complex))];\n"
         },
         {
-          "start": 5842,
-          "end": 5864,
-          "after": "                    (\n",
-          "before": "                    let result = (\n"
+          "start": 5394,
+          "end": 5433,
+          "after": "        let run = |old, eager_names| {\n",
+          "before": "        let run = |old| {\n"
         },
         {
-          "start": 6254,
-          "end": 6276,
-          "after": "                    )\n",
-          "before": "                    );\n                    drop((full, retained));\n                    result\n"
+          "start": 5506,
+          "end": 6399,
+          "after": "            let observe = || {\n                crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {\n                    crate::test_allocation_observer::measure(|| {\n                        let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();\n                        (\n                            [\n                                full.retained_hir,\n                                retained.retained_hir,\n                                full.synthetic_ast,\n                                retained.synthetic_ast,\n                                full.runtime,\n                                retained.runtime,\n                            ],\n                            retained.retained_scratch,\n                        )\n                    })\n",
+          "before": "            crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {\n                crate::test_allocation_observer::measure(|| {\n                    let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();\n                    let result = (\n                        [\n                            full.retained_hir,\n                            retained.retained_hir,\n                            full.synthetic_ast,\n                            retained.synthetic_ast,\n                            full.runtime,\n                            retained.runtime,\n                        ],\n                        retained.retained_scratch,\n                    );\n                    drop((full, retained));\n                    result\n"
         },
         {
-          "start": 9168,
-          "end": 10338,
+          "start": 6418,
+          "end": 6586,
+          "after": "            };\n            if eager_names {\n                super::super::joint::with_eager_names(observe)\n            } else {\n                observe()\n            }\n",
+          "before": "            })\n"
+        },
+        {
+          "start": 6597,
+          "end": 7193,
+          "after": "        // Compare the closed-root selection on the same eager name receiver.\n        // Independently keep the shipping deferred-name arm in every heap\n        // and storage assertion, so its invoice has a distinct attribution.\n        let old = run(true, true);\n        let closed = run(false, true);\n        let current = run(false, false);\n        for row in [&closed, &current] {\n            assert_eq!(&old.0 .0 .0[2..], &row.0 .0 .0[2..]);\n            assert_eq!(old.0 .0 .1, row.0 .0 .1);\n        }\n        assert_eq!(closed.0 .1, current.0 .1);\n        assert_eq!(closed.2, current.2);\n",
+          "before": "        let old = run(true);\n        let current = run(false);\n        assert_eq!(&old.0 .0 .0[2..], &current.0 .0 .0[2..]);\n        assert_eq!(old.0 .0 .1, current.0 .0 .1);\n"
+        },
+        {
+          "start": 7224,
+          "end": 7319,
+          "after": "            assert!(closed.0 .0 .0[0] < old.0 .0 .0[0] && closed.0 .0 .0[1] < old.0 .0 .0[1]);\n",
+          "before": "            assert!(current.0 .0 .0[0] < old.0 .0 .0[0] && current.0 .0 .0[1] < old.0 .0 .0[1]);\n"
+        },
+        {
+          "start": 7350,
+          "end": 7580,
+          "after": "            assert!(closed.0 .0 .0[0] >= old.0 .0 .0[0] && closed.0 .0 .0[1] >= old.0 .0 .0[1]);\n            assert!(\n                current.0 .0 .0[0] < closed.0 .0 .0[0] && current.0 .0 .0[1] < closed.0 .0 .0[1]\n            );\n",
+          "before": "            assert!(current.0 .0 .0[0] >= old.0 .0 .0[0] && current.0 .0 .0[1] >= old.0 .0 .0[1]);\n"
+        },
+        {
+          "start": 7590,
+          "end": 7637,
+          "after": "        for row in [&old, &closed, &current] {\n",
+          "before": "        for row in [&old, &current] {\n"
+        },
+        {
+          "start": 7886,
+          "end": 8001,
+          "after": "            \"CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} closed={closed:?} old={old:?}\"\n",
+          "before": "            \"CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} old={old:?}; no application fit or measured result until owning execution\"\n"
+        },
+        {
+          "start": 9959,
+          "end": 11129,
           "after": "fn restore_source(\n    root: &std::path::Path,\n    data: &serde_json::Value,\n    source: &str,\n    expected: &serde_json::Value,\n) -> String {\n    let read = |pin: &serde_json::Value| {\n        reader::read(\n            &root.join(source),\n            pin[\"length\"].as_u64().unwrap().try_into().unwrap(),\n            pin[\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap()\n    };\n    let Some(row) = data[\"successor_sources\"].get(source) else {\n        return read(expected);\n    };\n    let mut restored = read(&row[\"current\"]);\n    for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[\"start\"].as_u64().unwrap().try_into().unwrap();\n        let end = edit[\"end\"].as_u64().unwrap().try_into().unwrap();\n        assert_eq!(&restored[start..end], edit[\"after\"].as_str().unwrap());\n        restored.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n    }\n    assert_eq!(restored.len() as u64, expected[\"length\"]);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))\n        ),\n        expected[\"sha256\"]\n    );\n    restored\n}\n",
           "before": ""
         },
         {
-          "start": 11067,
-          "end": 11143,
+          "start": 11858,
+          "end": 11934,
           "after": "        let current = restore_source(root, &data, source, &row[\"current\"]);\n",
           "before": "        let current = reader::read(\n            &root.join(source),\n            row[\"current\"][\"length\"]\n                .as_u64()\n                .unwrap()\n                .try_into()\n                .unwrap(),\n            row[\"current\"][\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap();\n"
         },
         {
-          "start": 11855,
-          "end": 11921,
+          "start": 12646,
+          "end": 12712,
           "after": "            restore_source(root, &data, source, &row[\"current\"]),\n",
           "before": "            reader::read(\n                &root.join(source),\n                current.len(),\n                &hash(current.as_bytes()),\n                2 << 20\n            )\n            .unwrap(),\n"
         },
         {
-          "start": 11958,
-          "end": 12009,
+          "start": 12749,
+          "end": 12800,
           "after": "    let extraction = &data[\"boundary_extraction\"];\n",
           "before": "    let current = concat!(\n        include_str!(\"closed_roots.rs\"),\n        include_str!(\"closed_roots_tests.rs\")\n    );\n    assert_eq!(\n        current.len() as u64,\n        data[\"new_child\"][\"length\"].as_u64().unwrap()\n    );\n    assert_eq!(\n        hash(current.as_bytes()),\n        data[\"new_child\"][\"sha256\"].as_str().unwrap()\n    );\n"
         },
         {
-          "start": 12628,
-          "end": 12795,
+          "start": 13419,
+          "end": 13586,
           "after": "        acquired.push_str(&restore_source(\n            root,\n            &data,\n            source,\n            &extraction[\"current_components\"][source],\n        ));\n",
           "before": "        acquired.push_str(&physical);\n"
         },
         {
-          "start": 12801,
-          "end": 12974,
+          "start": 13592,
+          "end": 13765,
           "after": "    assert_eq!(acquired.len() as u64, data[\"new_child\"][\"length\"]);\n    assert_eq!(hash(acquired.as_bytes()), data[\"new_child\"][\"sha256\"]);\n    let mut original = acquired;\n",
           "before": "    assert_eq!(acquired, current);\n    let extraction = &data[\"boundary_extraction\"];\n    let mut original = current.to_owned();\n"
         }

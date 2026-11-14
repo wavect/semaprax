@@ -503,3 +503,23 @@ describe generic/default expansions or another retained backing class.
 The source lengths and SHA-256 hashes match the prior normalizer observation.
 Census log SHA-256
 `050177b3b4fa66b7c81031162d19e3210605fa00e170e52dd38cc04d493c78a1`.
+
+The first integrated identity receiver passed all eight retained-scratch
+tests, all seventeen paired and modular census tests, and the whole mode-six
+name-census allocation test. The call-free 64-function fixture allocated no
+heap during either estimate. The closed-root test reached its separate
+fallback-invoice assertion, where the shipping comparison included both the
+closed-root selector and deferred names. The follow-up preserves that
+assertion on matching eager-name inputs and checks the shipping arm alongside
+them for forecast parity of retained structures and complete teardown. The
+earlier pre-898 dense directory comparison still fails on the same
+64-header duplicate fixture in mode six.
+
+The preflight receiver now uses its local checked counter where no builder
+ledger is active. A standalone probe compiled the repository's real ledger
+and reservation decision alongside the preflight candidate. Exact, one-short,
+zero, positive floor, first refusal and complete Drop matched its expectations
+on all ten fixture/import combinations. At the exact bound, the largest row
+requested and freed 327,600 bytes without changing the old discount. The probe
+log SHA-256 is `39c7b9efd16ed97f0c91b46cb9fb45487c9d7085756ad8c1a657032e146bd822`. The new in-crate preflight and three-arm whole
+forecast checks still require their own executable results.

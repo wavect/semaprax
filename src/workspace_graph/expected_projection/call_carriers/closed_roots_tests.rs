@@ -132,43 +132,61 @@ fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
             &programs,
         )
         .unwrap();
-        let run = |old| {
+        let run = |old, eager_names| {
             let _before = if old { Some(Before::hold()) } else { None };
-            crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
-                crate::test_allocation_observer::measure(|| {
-                    let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();
-                    (
-                        [
-                            full.retained_hir,
-                            retained.retained_hir,
-                            full.synthetic_ast,
-                            retained.synthetic_ast,
-                            full.runtime,
-                            retained.runtime,
-                        ],
-                        retained.retained_scratch,
-                    )
+            let observe = || {
+                crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+                    crate::test_allocation_observer::measure(|| {
+                        let (full,retained)=crate::workspace_graph::expected_projection::shared_local_callees::modular_pair::selected_estimates(&programs[0],&authored,&programs,Some(maximum),6,true,None).unwrap();
+                        (
+                            [
+                                full.retained_hir,
+                                retained.retained_hir,
+                                full.synthetic_ast,
+                                retained.synthetic_ast,
+                                full.runtime,
+                                retained.runtime,
+                            ],
+                            retained.retained_scratch,
+                        )
+                    })
                 })
-            })
+            };
+            if eager_names {
+                super::super::joint::with_eager_names(observe)
+            } else {
+                observe()
+            }
         };
-        let old = run(true);
-        let current = run(false);
-        assert_eq!(&old.0 .0 .0[2..], &current.0 .0 .0[2..]);
-        assert_eq!(old.0 .0 .1, current.0 .0 .1);
+        // Compare the closed-root selection on the same eager name receiver.
+        // Independently keep the shipping deferred-name arm in every heap
+        // and storage assertion, so its invoice has a distinct attribution.
+        let old = run(true, true);
+        let closed = run(false, true);
+        let current = run(false, false);
+        for row in [&closed, &current] {
+            assert_eq!(&old.0 .0 .0[2..], &row.0 .0 .0[2..]);
+            assert_eq!(old.0 .0 .1, row.0 .0 .1);
+        }
+        assert_eq!(closed.0 .1, current.0 .1);
+        assert_eq!(closed.2, current.2);
         if n > 0 && !complex {
-            assert!(current.0 .0 .0[0] < old.0 .0 .0[0] && current.0 .0 .0[1] < old.0 .0 .0[1]);
+            assert!(closed.0 .0 .0[0] < old.0 .0 .0[0] && closed.0 .0 .0[1] < old.0 .0 .0[1]);
         }
         if complex {
-            assert!(current.0 .0 .0[0] >= old.0 .0 .0[0] && current.0 .0 .0[1] >= old.0 .0 .0[1]);
+            assert!(closed.0 .0 .0[0] >= old.0 .0 .0[0] && closed.0 .0 .0[1] >= old.0 .0 .0[1]);
+            assert!(
+                current.0 .0 .0[0] < closed.0 .0 .0[0] && current.0 .0 .0[1] < closed.0 .0 .0[1]
+            );
         }
-        for row in [&old, &current] {
+        for row in [&old, &closed, &current] {
             assert!(!row.1 && row.3.is_none());
             assert!(!row.0 .1.invalid && row.0 .1.live == 0);
             assert_eq!(row.0 .1.allocated, row.0 .1.freed);
             assert!(row.0 .1.allocated <= row.2);
         }
         eprintln!(
-            "CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} old={old:?}; no application fit or measured result until owning execution"
+            "CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} closed={closed:?} old={old:?}"
         );
     }
 }

@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 mod locals;
 mod names;
-use names::{reserve_exact, Names};
+use names::{reserve_exact, Names, Scratch};
 
 const MAX_NAMES: usize = 4096;
 
@@ -20,10 +20,15 @@ pub(super) fn discount(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     include_imports: bool,
 ) -> Result<usize, Vec<Diagnostic>> {
+    if crate::bounded_output::active_refused() {
+        return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+    }
+    let scratch = Scratch::new(active_builder_limit());
     let declared = Declared {
         program,
         authored,
         include_imports,
+        scratch: &scratch,
         backing: std::cell::OnceCell::new(),
     };
     discount_functions(program, &declared)
@@ -32,18 +37,24 @@ pub(super) fn discount(
 
 type Declaration<'a> = (&'a str, Option<usize>);
 
-struct Declared<'a, 'b> {
+struct Declared<'a, 'b, 's> {
     program: &'a Program,
     authored: &'b BTreeMap<&'a str, AuthoredDeclaration<'a>>,
     include_imports: bool,
+    scratch: &'s Scratch,
     backing: std::cell::OnceCell<Option<Vec<Declaration<'a>>>>,
 }
 
-impl<'a> Declared<'a, '_> {
+impl<'a> Declared<'a, '_, '_> {
     fn directory(&self) -> Option<&[Declaration<'a>]> {
         self.backing
             .get_or_init(|| {
-                declaration_directory(self.program, self.authored, self.include_imports)
+                declaration_directory(
+                    self.program,
+                    self.authored,
+                    self.include_imports,
+                    self.scratch,
+                )
             })
             .as_deref()
     }
@@ -53,6 +64,7 @@ fn declaration_directory<'a>(
     program: &'a Program,
     authored: &BTreeMap<&'a str, AuthoredDeclaration<'a>>,
     include_imports: bool,
+    scratch: &Scratch,
 ) -> Option<Vec<Declaration<'a>>> {
     let imports = program.module_uses.iter().filter_map(|item| {
         if !include_imports || item.kind != ModuleUseKind::Function {
@@ -69,7 +81,7 @@ fn declaration_directory<'a>(
         .len()
         .checked_add(imports.clone().count())?;
     let mut declared = Vec::new();
-    reserve_exact(&mut declared, rows)?;
+    reserve_exact(&mut declared, rows, scratch)?;
     declared.extend(
         program
             .functions
@@ -87,11 +99,12 @@ fn declaration_directory<'a>(
     Some(declared)
 }
 
-fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<usize> {
+fn discount_functions(program: &Program, declared: &Declared<'_, '_, '_>) -> Option<usize> {
     program
         .functions
         .iter()
         .try_fold(0usize, |total, function| {
+            let scratch = declared.scratch;
             let mut shadowed = Names::<()>::default();
             let mut refused = false;
             let mut complete = true;
@@ -112,13 +125,13 @@ fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<
                                     index: Some(index), ..
                                 } = statement
                                 {
-                                    if shadowed.entry(&index.name).is_none() {
+                                    if shadowed.entry(&index.name, scratch).is_none() {
                                         refused = true;
                                         return false;
                                     }
                                 }
                                 if let Some(name) = name {
-                                    if shadowed.entry(name).is_none() {
+                                    if shadowed.entry(name, scratch).is_none() {
                                         refused = true;
                                         return false;
                                     }
@@ -127,7 +140,7 @@ fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<
                         }
                         ExprKind::Closure { params, .. } => {
                             for param in params {
-                                if shadowed.entry(&param.name).is_none() {
+                                if shadowed.entry(&param.name, scratch).is_none() {
                                     refused = true;
                                     return false;
                                 }
@@ -135,7 +148,7 @@ fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<
                         }
                         ExprKind::Match { arms, .. } => {
                             for arm in arms {
-                                match complete_pattern(&arm.pattern, &mut shadowed, 0) {
+                                match complete_pattern(&arm.pattern, &mut shadowed, 0, scratch) {
                                     Some(true) => {}
                                     Some(false) => return false,
                                     None => {
@@ -171,10 +184,10 @@ fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<
                         .count()
                         == 1
             }) {
-                scalar_parameters.entry(&parameter.name)?;
+                scalar_parameters.entry(&parameter.name, scratch)?;
             }
             for parameter in &function.params {
-                shadowed.entry(&parameter.name)?;
+                shadowed.entry(&parameter.name, scratch)?;
             }
             let mut count =
                 locals::discount(function, program, &scalar_parameters, declared, &shadowed)?;
@@ -227,7 +240,7 @@ fn discount_functions(program: &Program, declared: &Declared<'_, '_>) -> Option<
         })
 }
 
-fn scalar_callee(name: &str, arity: usize, declared: &Declared<'_, '_>) -> Option<bool> {
+fn scalar_callee(name: &str, arity: usize, declared: &Declared<'_, '_, '_>) -> Option<bool> {
     // Resolver priority is binding, native import, frozen compiler operations,
     // then ordinary declaration. Keep every other compiler operation closed.
     if let Some(op) = crate::byte_ops::by_name(name) {
@@ -257,17 +270,18 @@ fn complete_pattern<'a>(
     pattern: &'a MatchPattern,
     names: &mut Names<'a, ()>,
     depth: usize,
+    scratch: &Scratch,
 ) -> Option<bool> {
     if depth >= 128 {
         return Some(false);
     }
     match pattern {
         MatchPattern::Binding { name, .. } => {
-            names.entry(name)?;
+            names.entry(name, scratch)?;
         }
         MatchPattern::Variant { fields, .. } => {
             for field in fields {
-                names.entry(&field.binding)?;
+                names.entry(&field.binding, scratch)?;
                 if names.len() > MAX_NAMES {
                     return Some(false);
                 }
@@ -275,14 +289,14 @@ fn complete_pattern<'a>(
         }
         MatchPattern::Record { fields, .. } => {
             for field in fields {
-                if !record_pattern(&field.pattern, names, depth + 1)? {
+                if !record_pattern(&field.pattern, names, depth + 1, scratch)? {
                     return Some(false);
                 }
             }
         }
         MatchPattern::Or { alternatives, .. } => {
             for pattern in alternatives {
-                if !complete_pattern(pattern, names, depth + 1)? {
+                if !complete_pattern(pattern, names, depth + 1, scratch)? {
                     return Some(false);
                 }
             }
@@ -296,17 +310,18 @@ fn record_pattern<'a>(
     pattern: &'a RecordMatchFieldPattern,
     names: &mut Names<'a, ()>,
     depth: usize,
+    scratch: &Scratch,
 ) -> Option<bool> {
     if depth >= 128 {
         return Some(false);
     }
     match pattern {
         RecordMatchFieldPattern::Binding { name, .. } => {
-            names.entry(name)?;
+            names.entry(name, scratch)?;
         }
         RecordMatchFieldPattern::Record { fields, .. } => {
             for field in fields {
-                if !record_pattern(&field.pattern, names, depth + 1)? {
+                if !record_pattern(&field.pattern, names, depth + 1, scratch)? {
                     return Some(false);
                 }
             }
@@ -383,5 +398,71 @@ mod tests {
                 }
             }
         }
+    }
+    #[test]
+    fn whole_mode6_identity_preflight_preserves_bounds_and_the_live_floor() {
+        use crate::bounded_output::{active_remaining, set_active_floor};
+        use crate::workspace_graph::ACTIVE_BUILDER_LIMIT;
+
+        struct RestoreLimit(usize);
+        impl Drop for RestoreLimit {
+            fn drop(&mut self) {
+                ACTIVE_BUILDER_LIMIT.with(|limit| limit.set(self.0));
+            }
+        }
+
+        let programs = [crate::parse(
+            "module app; @id(\"app.leaf\") fn leaf()->i64{1} @id(\"app.main\") fn main()->i64{leaf()+leaf()}",
+            "app.spx",
+        )
+        .unwrap()];
+        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+        let run = || discount(&programs[0], &authored, true);
+        let expected = 2 * std::mem::size_of::<Declaration<'_>>();
+        let previous = ACTIVE_BUILDER_LIMIT.with(|limit| limit.replace(expected));
+        let _restore = RestoreLimit(previous);
+        assert_eq!(active_remaining(), None);
+        let (result, allocation) = measure(|| run().unwrap());
+        assert_eq!(result, 4);
+        assert_eq!(allocation.allocated, expected);
+        assert_eq!(allocation.allocated, allocation.freed);
+        assert_eq!(allocation.live, 0);
+        for limit in [expected - 1, 0] {
+            ACTIVE_BUILDER_LIMIT.with(|value| value.set(limit));
+            assert_eq!(run().unwrap_err()[0].code, "SPX-G171");
+            assert_eq!(active_remaining(), None);
+        }
+        ACTIVE_BUILDER_LIMIT.with(|value| value.set(expected));
+        for (limit, succeeds) in [(expected + 1, true), (expected, false)] {
+            let (result, refused, paid, first) = with_limit_usage_refusal(limit, || {
+                assert!(set_active_floor(1));
+                let result = run();
+                if result.is_err() {
+                    assert!(!reserve_active_required(0));
+                }
+                result
+            });
+            assert_eq!(result.is_ok(), succeeds);
+            assert_eq!(refused, !succeeds);
+            if succeeds {
+                assert_eq!(paid, expected);
+                assert!(first.is_none());
+            } else {
+                let first = first.unwrap();
+                assert_eq!(
+                    (first.requested, first.remaining, first.floor),
+                    (expected, expected, 1)
+                );
+                assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+            }
+        }
+
+        let (result, refused, _, first) = with_limit_usage_refusal(0, || {
+            assert!(!reserve_active_required(7));
+            run()
+        });
+        assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+        assert!(refused);
+        assert_eq!(first.unwrap().requested, 7);
     }
 }

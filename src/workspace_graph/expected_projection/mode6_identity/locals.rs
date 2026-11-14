@@ -8,13 +8,14 @@ pub(super) fn discount(
     function: &Function,
     program: &Program,
     parameters: &Names<'_, ()>,
-    declared: &Declared<'_, '_>,
+    declared: &Declared<'_, '_, '_>,
     shadowed: &Names<'_, ()>,
 ) -> Option<usize> {
+    let scratch = declared.scratch;
     let mut counts = Names::<Binding>::default();
     let mut blocked = Names::<()>::default();
     for parameter in &function.params {
-        blocked.entry(&parameter.name)?;
+        blocked.entry(&parameter.name, scratch)?;
     }
     let mut refused = false;
     for root in roots(function) {
@@ -24,7 +25,7 @@ pub(super) fn discount(
                     for statement in statements {
                         match statement {
                             Statement::Let { name, .. } => {
-                                let Some(count) = counts.entry(name) else {
+                                let Some(count) = counts.entry(name, scratch) else {
                                     refused = true;
                                     return false;
                                 };
@@ -33,7 +34,7 @@ pub(super) fn discount(
                             Statement::For { item, .. }
                             | Statement::ForBorrow { item, .. }
                             | Statement::ForOwn { item, .. } => {
-                                if blocked.entry(item).is_none() {
+                                if blocked.entry(item, scratch).is_none() {
                                     refused = true;
                                     return false;
                                 }
@@ -41,7 +42,7 @@ pub(super) fn discount(
                                     index: Some(index), ..
                                 } = statement
                                 {
-                                    if blocked.entry(&index.name).is_none() {
+                                    if blocked.entry(&index.name, scratch).is_none() {
                                         refused = true;
                                         return false;
                                     }
@@ -53,7 +54,7 @@ pub(super) fn discount(
                 }
                 ExprKind::Closure { params, .. } => {
                     for param in params {
-                        if blocked.entry(&param.name).is_none() {
+                        if blocked.entry(&param.name, scratch).is_none() {
                             refused = true;
                             return false;
                         }
@@ -61,7 +62,7 @@ pub(super) fn discount(
                 }
                 ExprKind::Match { arms, .. } => {
                     for arm in arms {
-                        match complete_pattern(&arm.pattern, &mut blocked, 0) {
+                        match complete_pattern(&arm.pattern, &mut blocked, 0, scratch) {
                             Some(true) => {}
                             Some(false) => return false,
                             None => {
@@ -107,7 +108,7 @@ struct Context<'a, 'b, 'program, 'index> {
     blocked: Names<'a, ()>,
     program: &'b Program,
     parameters: &'b Names<'b, ()>,
-    declared: &'b Declared<'program, 'index>,
+    declared: &'b Declared<'program, 'index, 'b>,
     shadowed: &'b Names<'b, ()>,
 }
 

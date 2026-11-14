@@ -63,6 +63,30 @@ fn repeated_source_partitions_settle_on_one_account_before_publication() {
 }
 
 #[test]
+fn literal_precondition_selects_whether_partition_geometry_runs() {
+    for (guard, outcome, allocations, payload) in [
+        (false, Outcome::PreconditionFailed, 0, 0),
+        (true, Outcome::PartitionFault(Fault::WidthZero), 1, 3),
+    ] {
+        let text = source(3, 1, 0).replace("->i64", &format!("->i64 requires {guard}"));
+        let ast = crate::parse(&text, "partition-requires.spx").unwrap();
+        let owner = ValidatedPartitionProgram::compile_source(&ast, &mut { usize::MAX }).unwrap();
+        let (mut charged_allocations, mut charged_payload) = (0, 0);
+        let account =
+            Account::funded(&mut charged_allocations, &mut charged_payload, 8_388_608).unwrap();
+        for invocation in 1..=2 {
+            let report = execute(&owner, &account, &mut { usize::MAX });
+            assert_eq!(report.outcome, outcome);
+            assert!(report.cleanup_complete);
+            assert_eq!(
+                (report.allocations, report.payload),
+                (allocations * invocation, payload * u64::from(invocation))
+            );
+        }
+    }
+}
+
+#[test]
 fn postcondition_selects_failure_before_partition_result_publication() {
     for (fixture, expected, counters) in [
         (SHARED_SOURCE, 4096, (1, 65536)),

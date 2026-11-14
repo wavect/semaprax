@@ -94,6 +94,10 @@ fn run_on_current_thread(
                     crate::byte_ops::SET_STATUS_DOMAIN,
                     crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
                 )),
+                Outcome::PreconditionFailed => Some((
+                    conformance::CONTRACT_STATUS_DOMAIN_V1,
+                    conformance::CONTRACT_REQUIRES_FALSE_CODE,
+                )),
                 Outcome::PostconditionFailed => Some((
                     conformance::CONTRACT_STATUS_DOMAIN_V1,
                     conformance::CONTRACT_ENSURES_FALSE_CODE,

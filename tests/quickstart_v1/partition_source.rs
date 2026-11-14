@@ -1,5 +1,11 @@
 use super::*;
 
+fn precondition_before_bad_store(source: &str) -> String {
+    source
+        .replace("fn main() -> i64", "fn main() -> i64 requires false")
+        .replace("bytes_set(item, 1usize", "bytes_set(item, 2usize")
+}
+
 #[test]
 fn explicit_partition_source_run_publishes_scalar_and_failure_after_cleanup() {
     let fixture = Fixture::new("partition-source");
@@ -66,6 +72,27 @@ fn explicit_partition_source_run_publishes_scalar_and_failure_after_cleanup() {
     let short = packet(&short);
     assert_eq!(short["outcome"], "administrative_refusal");
     assert!(short.get("result").is_none());
+
+    let allowed = source.replace("fn main() -> i64", "fn main() -> i64 requires true");
+    std::fs::write(&path, allowed).unwrap();
+    let output = invoke("8388608");
+    assert!(output.status.success(), "{output:?}");
+    let report = packet(&output);
+    assert_eq!(report["result"], "1");
+    assert_eq!(report["backing_allocations"], 2);
+
+    std::fs::write(&path, precondition_before_bad_store(source)).unwrap();
+    let output = invoke("8388608");
+    assert_eq!(output.status.code(), Some(1));
+    let report = packet(&output);
+    assert_eq!(
+        report["status"],
+        serde_json::json!({"domain": "semaprax.contract.v1", "code": 1})
+    );
+    assert_eq!(report["backing_allocations"], 0);
+    assert_eq!(report["payload_bytes"], 0);
+    assert_eq!(report["cleanup_complete"], true);
+    assert!(report.get("result").is_none());
 
     let postcondition = source.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
     std::fs::write(&path, &postcondition).unwrap();
@@ -144,7 +171,26 @@ fn explicit_partition_source_build_runs_native_and_refuses_other_targets() {
     assert_eq!(output.stdout, b"1\n");
     assert_eq!(std::fs::read_to_string(&path).unwrap(), source);
 
-    let failure = source.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
+    std::fs::write(&path, precondition_before_bad_store(source)).unwrap();
+    let output = build("precondition");
+    assert!(output.status.success(), "{output:?}");
+    let output = run("precondition");
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(output.stderr, b"semaprax.contract.v1:1\n");
+    assert!(output.stdout.is_empty());
+
+    let postcondition = source.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
+    std::fs::write(&path, &postcondition).unwrap();
+    let output = build("postcondition");
+    assert!(output.status.success(), "{output:?}");
+    for _ in 0..2 {
+        let output = run("postcondition");
+        assert_eq!(output.status.code(), Some(1));
+        assert_eq!(output.stderr, b"semaprax.contract.v1:2\n");
+        assert!(output.stdout.is_empty());
+    }
+
+    let failure = postcondition.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
     std::fs::write(&path, &failure).unwrap();
     let output = build("failure");
     assert!(output.status.success(), "{output:?}");
@@ -192,7 +238,12 @@ fn explicit_partition_source_build_publishes_paired_wasm_runner() {
     }
     assert!(!build("first").status.success());
     assert_eq!(std::fs::read_to_string(&path).unwrap(), source);
-    let failure = source.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
+    std::fs::write(&path, precondition_before_bad_store(source)).unwrap();
+    assert!(build("precondition").status.success());
+    let postcondition = source.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
+    std::fs::write(&path, &postcondition).unwrap();
+    assert!(build("postcondition").status.success());
+    let failure = postcondition.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
     std::fs::write(&path, &failure).unwrap();
     assert!(build("failure").status.success());
 
@@ -201,7 +252,7 @@ fn explicit_partition_source_build_publishes_paired_wasm_runner() {
         .output()
         .is_ok_and(|r| r.status.success())
     {
-        for package in ["first", "failure"] {
+        for package in ["first", "precondition", "postcondition", "failure"] {
             let output = Command::new("node")
                 .current_dir(&fixture.root)
                 .args([
@@ -212,13 +263,17 @@ import assert from 'node:assert/strict';
 const packageName = process.argv[1];
 const { install } = await import(`./${packageName}/entry.mjs`);
 const runner = await install(8388608);
-const baseline = runner.account().reserved;
-const expected = packageName === 'first'
-  ? {outcome:'returned', result:'1'}
-  : {outcome:'language_failure', status:{domain:'semaprax.byte-buffer.v1', code:1}};
+const baseline = runner.account();
+const expected = {
+  first: {outcome:'returned', result:'1'},
+  precondition: {outcome:'language_failure', status:{domain:'semaprax.contract.v1', code:1}},
+  postcondition: {outcome:'language_failure', status:{domain:'semaprax.contract.v1', code:2}},
+  failure: {outcome:'language_failure', status:{domain:'semaprax.byte-buffer.v1', code:1}},
+}[packageName];
 for (let n = 0; n < 2; n++) {
   assert.deepEqual(runner.invoke(), expected);
-  assert.equal(runner.account().reserved, baseline);
+  assert.equal(runner.account().reserved, baseline.reserved);
+  if (packageName === "precondition") assert.equal(runner.account().peak, baseline.peak);
 }
 "#,
                     package,

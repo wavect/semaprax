@@ -1,6 +1,6 @@
 //! Closed current-source direct construction receiver; no default admission.
 use super::{
-    funding::{Account, AllocationError},
+    funding::{Account, AllocationError, BorrowedAccount},
     invocation::Invocation,
 };
 use crate::{
@@ -30,6 +30,7 @@ pub(crate) enum Outcome {
     PartitionFault(partition::Fault),
     BufferBoundExceeded,
     ByteStoreOutOfBounds,
+    PreconditionFailed,
     PostconditionFailed,
     AllocationFailure,
     Refused,
@@ -332,7 +333,57 @@ fn prove_postcondition<'a>(
         return Err(Refusal::Identity);
     };
 
-    let plan = &entry.cleanup_plan;
+    let failure = contract_failure(&entry.cleanup_plan, contract, ContractPhase::Ensures, work)?;
+    Ok(Some((expected, failure)))
+}
+
+fn prove_precondition(entry: &hir::ResolvedFunction, work: &mut usize) -> Result<bool, Refusal> {
+    let contract = match entry.requires.as_slice() {
+        [] => return Ok(true),
+        [contract] => contract,
+        _ => return Err(Refusal::Identity),
+    };
+    let K::Bool(passes) = contract.kind else {
+        return Err(Refusal::Identity);
+    };
+    let failure = contract_failure(&entry.cleanup_plan, contract, ContractPhase::Requires, work)?;
+    if !failure.finalize_in_order.is_empty() {
+        return Err(Refusal::Identity);
+    }
+    Ok(passes)
+}
+
+fn prepare_body<'a>(
+    owner: &'a hir::byte_partition::ValidatedPartitionProgram<'_>,
+    entry: &'a hir::ResolvedFunction,
+    work: &mut usize,
+    account: BorrowedAccount<'a>,
+) -> Result<Invocation<'a>, Refusal> {
+    use crate::loan_plan::LoanPointPhase::{After, Before};
+
+    let mut invocation = Invocation::prepare(owner, entry, work, account)?;
+    let plan = &entry.loan_plan;
+    if let Some(guard) = entry
+        .requires
+        .first()
+        .filter(|_| !plan.endpoints.is_empty())
+    {
+        let before = iterator::endpoint(plan, guard, Before, work)?;
+        let after = iterator::endpoint(plan, guard, After, work)?;
+        let body = iterator::endpoint(plan, &entry.body, Before, work)?;
+        invocation
+            .loans
+            .enter_body_after_literal_guard(before, after, body)?;
+    }
+    Ok(invocation)
+}
+
+fn contract_failure<'a>(
+    plan: &'a CleanupPlan,
+    contract: &ResolvedExpr,
+    phase: ContractPhase,
+    work: &mut usize,
+) -> Result<&'a ExitTarget, Refusal> {
     let mut checked = false;
     for status in &plan.status_sources {
         pay(work, status.id.expression.as_str().len().saturating_add(1))?;
@@ -343,9 +394,9 @@ fn prove_postcondition<'a>(
             || !matches!(
                 status.producer,
                 StatusProducer::ContractFalse {
-                    phase: ContractPhase::Ensures,
+                    phase: actual,
                     ordinal: 0,
-                }
+                } if actual == phase
             )
         {
             return Err(Refusal::Identity);
@@ -369,7 +420,7 @@ fn prove_postcondition<'a>(
     if !checked {
         return Err(Refusal::Identity);
     }
-    Ok(Some((expected, failure.ok_or(Refusal::Identity)?)))
+    failure.ok_or(Refusal::Identity)
 }
 
 fn execute_step(
@@ -472,7 +523,6 @@ pub(crate) fn execute(
         let entry = entries.next().ok_or(Refusal::Identity)?;
         if entries.next().is_some()
             || !entry.params.is_empty()
-            || !entry.requires.is_empty()
             || !entry.effects.is_empty()
             || entry.return_type != hir::ResolvedType::I64
         {
@@ -499,6 +549,7 @@ pub(crate) fn execute(
         if exits.next().is_some() {
             return Err(Refusal::Identity);
         }
+        let precondition = prove_precondition(entry, work)?;
         let mut handle = account.borrowed();
         use crate::construction_fusion::domain::owner_core::Runtime;
         handle.reserve_metadata(Layout::new::<Report>())?;
@@ -506,7 +557,7 @@ pub(crate) fn execute(
             if matches!(&value.kind, K::Call { callee, .. }
                 if program.functions.iter().any(|f| &f.id == callee)))
         {
-            report.outcome = copy_store::execute(owner, entry, exit, work, handle)?;
+            report.outcome = copy_store::execute(owner, entry, exit, precondition, work, handle)?;
             report.cleanup_complete = !matches!(
                 report.outcome,
                 Outcome::Refused | Outcome::AllocationFailure
@@ -561,9 +612,14 @@ pub(crate) fn execute(
             }
             None => None,
         };
+        if !precondition {
+            report.outcome = Outcome::PreconditionFailed;
+            report.cleanup_complete = true;
+            return Ok(());
+        }
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;
         handle.reserve_metadata(Layout::new::<Value>())?;
-        let mut invocation = Invocation::prepare(owner, entry, work, handle)?;
+        let mut invocation = prepare_body(owner, entry, work, handle)?;
         report.outcome = match first {
             None => execute_step(last, postcondition, 0, &mut invocation)?,
             Some(step) => match execute_step(step, None, 0, &mut invocation)? {

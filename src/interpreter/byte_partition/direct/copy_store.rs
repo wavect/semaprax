@@ -4,10 +4,7 @@ use crate::{
     ast::BinaryOp,
     construction_fusion::domain::owner_core::Runtime,
     hir::{ResolvedMatchMode, ResolvedMatchPattern},
-    interpreter::{
-        byte_partition::{funding::BorrowedAccount, values},
-        Flow,
-    },
+    interpreter::{byte_partition::values, Flow},
     loan_plan::{
         LoanId,
         LoanPointPhase::{After, Before},
@@ -457,12 +454,16 @@ pub(super) fn execute<'a>(
     source: &'a hir::byte_partition::ValidatedPartitionProgram<'_>,
     function: &'a hir::ResolvedFunction,
     success: &ExitTarget,
+    precondition: bool,
     work: &mut usize,
     mut account: BorrowedAccount<'a>,
 ) -> Result<Outcome, Refusal> {
     account.reserve_metadata(Layout::new::<Caller<'_>>())?;
     let caller = Caller::prove(source, function, success, work)?;
-    let mut invocation = Invocation::prepare(source, function, work, account)?;
+    if !precondition {
+        return Ok(Outcome::PreconditionFailed);
+    }
+    let mut invocation = prepare_body(source, function, work, account)?;
     let child = match caller.producer.execute(source, &mut invocation, work)? {
         Ok(child) => child,
         Err(outcome) => return Ok(outcome),

@@ -886,6 +886,14 @@ refuses the copy, it retires the operand loan and settles the exact child
 before the invocation ends. This administrative path retains the original
 refusal. An unpublished copy is released if its registry installation refuses.
 
+The private interpreter accepts one literal boolean entry precondition on the
+direct and returned-child paths. It checks the exact contract failure exit
+and requires an empty finalization inventory. On success, the receiver enters
+the checked body root before creating backing owners. A false precondition selects
+`semaprax.contract.v1` code 1 before any backing allocation or body operation.
+The same clone fixture checks precondition and postcondition status precedence
+in the interpreter, native executable and paired Wasm runner.
+
 The returned-child receiver checks a scalar `ensures result == <i64>` against
 the provisional result. A false postcondition selects its own authenticated
 cleanup order for the original child and the copy. A failed store selects its

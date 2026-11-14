@@ -215,6 +215,24 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
         })();
         self.registry.select(result)
     }
+    /// A checked literal guard and the function body are separate CFG roots.
+    /// Enter the body only after traversing the guard edge with no live loans.
+    pub(super) fn enter_body_after_literal_guard(
+        &mut self,
+        before: u16,
+        after: u16,
+        body: u16,
+    ) -> Result<(), Refusal> {
+        if self.point != before {
+            return self.registry.select(Err(Refusal::Identity));
+        }
+        self.advance(after)?;
+        if self.slots.iter().any(|slot| slot.view.is_some()) {
+            return self.registry.select(Err(Refusal::Borrowed));
+        }
+        self.point = body;
+        Ok(())
+    }
     /// Only the direct receiver uses this, across a source-proven straight-line
     /// interval. A branch needs an explicit destination from the actual result.
     pub(super) fn advance_straight_to(&mut self, target: u16) -> Result<(), Refusal> {

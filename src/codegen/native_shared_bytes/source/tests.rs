@@ -222,7 +222,23 @@ int main(void) {{
 #[test]
 fn native_partition_failure_keeps_exact_status_and_poison_result_through_cleanup_and_reentry() {
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
+    let clone_contract =
+        CLONE_SOURCE.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
     let mut cases = vec![
+        (
+            clone_contract.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize"),
+            crate::byte_ops::SET_STATUS_DOMAIN,
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+            2,
+            8,
+        ),
+        (
+            clone_contract,
+            crate::conformance::CONTRACT_STATUS_DOMAIN_V1,
+            crate::conformance::CONTRACT_ENSURES_FALSE_CODE,
+            2,
+            8,
+        ),
         (
             SHARED_SOURCE.replace("-> i64", "-> i64 ensures result == 4095"),
             crate::conformance::CONTRACT_STATUS_DOMAIN_V1,

@@ -165,6 +165,7 @@ struct Caller<'a> {
     copy_view: View,
     reads: [Read; 3],
     result: ResultBranch,
+    postcondition: Option<(i64, bool)>,
     success_copy_first: bool,
     failure_copy_first: bool,
 }
@@ -275,9 +276,6 @@ impl<'a> Caller<'a> {
         success: &ExitTarget,
         work: &mut usize,
     ) -> Result<Self, Refusal> {
-        if !function.ensures.is_empty() {
-            return Err(Refusal::Identity);
-        }
         let K::Block { statements, tail } = &function.body.kind else {
             return Err(Refusal::Identity);
         };
@@ -443,6 +441,12 @@ impl<'a> Caller<'a> {
                 body_after: iterator::endpoint(plan, &function.body, After, work)?,
                 values: [no, yes],
             },
+            postcondition: prove_postcondition(function, work)?
+                .map(|(expected, failure)| {
+                    cleanup_order(failure, &item.id, &copied.id, None, work)
+                        .map(|copy_first| (expected, copy_first))
+                })
+                .transpose()?,
             success_copy_first: cleanup_order(success, &item.id, &copied.id, None, work)?,
             failure_copy_first: failure_copy_first.ok_or(Refusal::Identity)?,
         })
@@ -519,10 +523,13 @@ fn run_caller(
                 let first = caller.reads[0].execute(loans, original)?;
                 let second = caller.reads[1].execute(loans, copied)?;
                 let third = caller.reads[2].execute(loans, copied)?;
-                Ok((
-                    Outcome::Returned(caller.result.execute(loans, first, second, third)?),
-                    caller.success_copy_first,
-                ))
+                let result = caller.result.execute(loans, first, second, third)?;
+                match caller.postcondition {
+                    Some((expected, copy_first)) if result != expected => {
+                        Ok((Outcome::PostconditionFailed, copy_first))
+                    }
+                    _ => Ok((Outcome::Returned(result), caller.success_copy_first)),
+                }
             }
             Err(Flow::Failure(status))
                 if status.domain_id() == crate::byte_ops::SET_STATUS_DOMAIN
@@ -626,6 +633,20 @@ mod tests {
         for (text, expected) in [
             (fixture.to_owned(), Outcome::Returned(1)),
             (fixture.replace("77u8);", "76u8);"), Outcome::Returned(0)),
+            (
+                fixture.replace("fn main() -> i64", "fn main() -> i64 ensures result == 1"),
+                Outcome::Returned(1),
+            ),
+            (
+                fixture.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0"),
+                Outcome::PostconditionFailed,
+            ),
+            (
+                fixture
+                    .replace("fn main() -> i64", "fn main() -> i64 ensures result == 0")
+                    .replace("bytes_set(item, 1usize", "bytes_set(item, 2usize"),
+                Outcome::ByteStoreOutOfBounds,
+            ),
             (
                 fixture.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize"),
                 Outcome::ByteStoreOutOfBounds,

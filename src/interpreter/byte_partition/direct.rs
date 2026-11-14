@@ -308,13 +308,12 @@ fn prove_step(
     })
 }
 
-/// The direct scalar receiver admits one pure comparison against the staged
-/// result. Both exits must settle the same live owners in canonical order.
-fn prove_postcondition(
-    entry: &hir::ResolvedFunction,
-    success: &ExitTarget,
+/// Authenticate one pure comparison against the staged scalar and identify
+/// its exact failure contour. The receiver validates the contour's owners.
+fn prove_postcondition<'a>(
+    entry: &'a hir::ResolvedFunction,
     work: &mut usize,
-) -> Result<Option<i64>, Refusal> {
+) -> Result<Option<(i64, &'a ExitTarget)>, Refusal> {
     let contract = match entry.ensures.as_slice() {
         [] => return Ok(None),
         [contract] => contract,
@@ -353,26 +352,24 @@ fn prove_postcondition(
         }
         checked = true;
     }
-    let mut matched = false;
+    let mut failure = None;
     for exit in &plan.exits {
         pay(work, 1)?;
         let ExitContinuation::ReturnFailure { source } = &exit.continuation else {
             continue;
         };
         pay(work, source.expression.as_str().len().saturating_add(1))?;
-        if source.lane == StatusLane::ContractFalse && source.expression == contract.id {
-            // prove_step already authenticated the success inventory and paid
-            // for the matching identity comparisons on this receiving ledger.
-            if matched || exit.finalize_in_order != success.finalize_in_order {
-                return Err(Refusal::Identity);
-            }
-            matched = true;
+        if source.lane == StatusLane::ContractFalse
+            && source.expression == contract.id
+            && failure.replace(exit).is_some()
+        {
+            return Err(Refusal::Identity);
         }
     }
-    if !checked || !matched {
+    if !checked {
         return Err(Refusal::Identity);
     }
-    Ok(Some(expected))
+    Ok(Some((expected, failure.ok_or(Refusal::Identity)?)))
 }
 
 fn execute_step(
@@ -553,7 +550,17 @@ pub(crate) fn execute(
             }
             _ => (None, prove_step(entry, statements, tail, Some(exit), work)?),
         };
-        let postcondition = prove_postcondition(entry, exit, work)?;
+        let postcondition = match prove_postcondition(entry, work)? {
+            Some((expected, failure)) => {
+                // prove_step authenticated the success inventory and prepaid
+                // the matching identity comparisons on this receiving ledger.
+                if failure.finalize_in_order != exit.finalize_in_order {
+                    return Err(Refusal::Identity);
+                }
+                Some(expected)
+            }
+            None => None,
+        };
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;
         handle.reserve_metadata(Layout::new::<Value>())?;
         let mut invocation = Invocation::prepare(owner, entry, work, handle)?;

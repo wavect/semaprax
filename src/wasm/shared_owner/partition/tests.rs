@@ -97,11 +97,25 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
 #[test]
 fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_reentry() {
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
+    let clone_contract =
+        CLONE_SOURCE.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
     let mut cases = vec![
         (
             CLONE_SOURCE.replace("item, 1usize, 77u8", "item, 2usize, 77u8"),
             crate::byte_ops::SET_STATUS_DOMAIN,
             crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+            "8",
+        ),
+        (
+            clone_contract.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize"),
+            crate::byte_ops::SET_STATUS_DOMAIN,
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+            "8",
+        ),
+        (
+            clone_contract,
+            crate::conformance::CONTRACT_STATUS_DOMAIN_V1,
+            crate::conformance::CONTRACT_ENSURES_FALSE_CODE,
             "8",
         ),
         (

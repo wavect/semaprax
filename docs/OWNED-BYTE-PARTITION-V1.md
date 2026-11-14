@@ -886,6 +886,11 @@ refuses the copy, it retires the operand loan and settles the exact child
 before the invocation ends. This administrative path retains the original
 refusal. An unpublished copy is released if its registry installation refuses.
 
+The returned-child receiver checks a scalar `ensures result == <i64>` against
+the provisional result. A false postcondition selects its own authenticated
+cleanup order for the original child and the copy. A failed store selects its
+operation status before the postcondition can run.
+
 The direct interpreter receiver also accepts literal requested and bound
 operands to `bytes_zeroed_bounded`. It verifies the producer's exact
 operation-failure exit has no owners to settle. An over-bound request selects

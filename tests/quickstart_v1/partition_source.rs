@@ -67,7 +67,19 @@ fn explicit_partition_source_run_publishes_scalar_and_failure_after_cleanup() {
     assert_eq!(short["outcome"], "administrative_refusal");
     assert!(short.get("result").is_none());
 
-    let failure = source.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
+    let postcondition = source.replace("fn main() -> i64", "fn main() -> i64 ensures result == 0");
+    std::fs::write(&path, &postcondition).unwrap();
+    let output = invoke("8388608");
+    assert_eq!(output.status.code(), Some(1));
+    let report = packet(&output);
+    assert_eq!(
+        report["status"],
+        serde_json::json!({"domain": "semaprax.contract.v1", "code": 2})
+    );
+    assert_eq!(report["cleanup_complete"], true);
+    assert!(report.get("result").is_none());
+
+    let failure = postcondition.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
     std::fs::write(&path, &failure).unwrap();
     let output = invoke("8388608");
     assert_eq!(output.status.code(), Some(1));

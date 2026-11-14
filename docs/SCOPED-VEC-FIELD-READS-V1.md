@@ -137,3 +137,9 @@ The source-only successor
 ordinary checked indices inside a record traversal while independently binding
 row-derived reads to that traversal's exact row index. Graph v85 and checked
 module cache v11 retain the distinction; qualification is pending.
+
+All four `owned_data::scoped_vec_field_native` controls passed on the retained
+Rust 1.97.1 macOS arm64 test image at `6f1db7ec4`, including stale generation,
+exact index refusal, repeated reads without owned-leaf materialization, and
+legacy two-Bytes carrier settlement. The backend and harness sources match
+`154fddcf3`.

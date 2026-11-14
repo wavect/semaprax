@@ -107,3 +107,7 @@ in the original `ReportParts` parameter and have recorded end edges.
 The repository-wide quality run stopped on the existing rustfmt drift in
 `src/source_reflows/ci_inputs/successor_fronts.rs`. Fresh matched live trials
 remain required to measure authored tokens, turns and accepted-task cost.
+
+Both projected String view regressions also passed on the retained Rust
+1.97.1 macOS arm64 test image at `6f1db7ec4`. The HIR, code generator,
+interpreter, graph, codec, and owning harness sources match `154fddcf3`.

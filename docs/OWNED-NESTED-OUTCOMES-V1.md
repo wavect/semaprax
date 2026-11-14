@@ -104,3 +104,7 @@ or opaque executable type: it stores ordinary existing record/variant HIR.
 
 Full arbitrary nested JSON, optional/nullable schemas, user-defined variants,
 and new collection element layouts remain separate obligations of #724.
+
+All six nested-outcome backend tests passed on the retained Rust 1.97.1
+macOS arm64 test image at `6f1db7ec4`. Their HIR, code generator, interpreter,
+graph, codec, and owning harness sources match `154fddcf3`.

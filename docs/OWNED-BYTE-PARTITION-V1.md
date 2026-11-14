@@ -881,6 +881,11 @@ allocating. Preparation returns that same whole backing for finalization.
 The geometry fault remains the selected status and publishes no scalar.
 Administrative refusal keeps `cleanup_complete=false`.
 
+If the returned-child receiver hits the backing limit or its managed account
+refuses the copy, it retires the operand loan and settles the exact child
+before the invocation ends. This administrative path retains the original
+refusal. An unpublished copy is released if its registry installation refuses.
+
 The direct interpreter receiver also accepts literal requested and bound
 operands to `bytes_zeroed_bounded`. It verifies the producer's exact
 operation-failure exit has no owners to settle. An over-bound request selects

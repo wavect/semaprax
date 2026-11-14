@@ -478,39 +478,60 @@ fn run_caller(
         Backing::Whole(whole) => loans.hold_whole(whole.bytes).map_err(|(error, _)| error)?,
         _ => return Err(Refusal::Identity),
     };
-    loans.advance_straight_to(caller.before_copy.point)?;
-    let view = loans.borrow(&child, caller.before_copy.loan)?;
-    loans.advance_straight_to(caller.copy_operand_after)?;
-    let copied = loans.read(view, |bytes| account.copy(bytes))?;
-    let (_, copied) = match copied {
-        Ok(copied) => copied,
-        Err(AllocationError::Logical) => return Ok(Outcome::AllocationFailure),
-        Err(AllocationError::Authority(error)) => return Err(error),
+    let copy = (|| {
+        loans
+            .advance_straight_to(caller.before_copy.point)
+            .map_err(AllocationError::Authority)?;
+        let view = loans
+            .borrow(&child, caller.before_copy.loan)
+            .map_err(AllocationError::Authority)?;
+        loans
+            .advance_straight_to(caller.copy_operand_after)
+            .map_err(AllocationError::Authority)?;
+        let (_, copied) = loans
+            .read(view, |bytes| account.copy(bytes))
+            .map_err(AllocationError::Authority)??;
+        loans
+            .hold_whole(copied)
+            .map_err(|(error, _)| AllocationError::Authority(error))
+    })();
+    let mut copy = match copy {
+        Ok(copy) => copy,
+        Err(error) => {
+            // No copy owner was published. Retire the operand view and settle
+            // the exact received owner even after the account refuses.
+            let _ = loans.abandon_views();
+            let _ = loans.settle(&mut child);
+            return match error {
+                AllocationError::Logical => Ok(Outcome::AllocationFailure),
+                AllocationError::Authority(error) => Err(error),
+            };
+        }
     };
-    let mut copy = loans.hold_whole(copied).map_err(|(error, _)| error)?;
-    loans.advance_straight_to(caller.store_before)?;
-    let stored = values::store_owner_byte(&mut child, loans, caller.store_index, caller.store_byte);
-    let selected = (|| match stored {
-        Ok(()) => {
-            loans.advance_straight_to(caller.after_store.point)?;
-            let original = loans.borrow(&child, caller.after_store.loan)?;
-            loans.advance_straight_to(caller.copy_view.point)?;
-            let copied = loans.borrow(&copy, caller.copy_view.loan)?;
-            let first = caller.reads[0].execute(loans, original)?;
-            let second = caller.reads[1].execute(loans, copied)?;
-            let third = caller.reads[2].execute(loans, copied)?;
-            Ok((
-                Outcome::Returned(caller.result.execute(loans, first, second, third)?),
-                caller.success_copy_first,
-            ))
+    let selected = (|| {
+        loans.advance_straight_to(caller.store_before)?;
+        match values::store_owner_byte(&mut child, loans, caller.store_index, caller.store_byte) {
+            Ok(()) => {
+                loans.advance_straight_to(caller.after_store.point)?;
+                let original = loans.borrow(&child, caller.after_store.loan)?;
+                loans.advance_straight_to(caller.copy_view.point)?;
+                let copied = loans.borrow(&copy, caller.copy_view.loan)?;
+                let first = caller.reads[0].execute(loans, original)?;
+                let second = caller.reads[1].execute(loans, copied)?;
+                let third = caller.reads[2].execute(loans, copied)?;
+                Ok((
+                    Outcome::Returned(caller.result.execute(loans, first, second, third)?),
+                    caller.success_copy_first,
+                ))
+            }
+            Err(Flow::Failure(status))
+                if status.domain_id() == crate::byte_ops::SET_STATUS_DOMAIN
+                    && status.code() == crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE =>
+            {
+                Ok((Outcome::ByteStoreOutOfBounds, caller.failure_copy_first))
+            }
+            Err(_) => Err(Refusal::Identity),
         }
-        Err(Flow::Failure(status))
-            if status.domain_id() == crate::byte_ops::SET_STATUS_DOMAIN
-                && status.code() == crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE =>
-        {
-            Ok((Outcome::ByteStoreOutOfBounds, caller.failure_copy_first))
-        }
-        Err(_) => Err(Refusal::Identity),
     })();
     if selected.is_err() {
         // Administrative refusal has no language contour. End all frame-local
@@ -534,6 +555,70 @@ fn run_caller(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refused_copy_settles_received_child_before_invocation_drop() {
+        let fixture = include_str!("../../../../tests/fixtures/byte-partition-private-clone.spx");
+        let ast = crate::parse(fixture, "partition-clone.spx").unwrap();
+        let mut work = usize::MAX;
+        let owner = hir::byte_partition::ValidatedPartitionProgram::compile_source(&ast, &mut work)
+            .unwrap();
+        let entry = owner
+            .program()
+            .functions
+            .iter()
+            .find(|function| function.id == owner.program().entrypoint)
+            .unwrap();
+        let exit = entry
+            .cleanup_plan
+            .exits
+            .iter()
+            .find(|exit| {
+                matches!(&exit.continuation, ExitContinuation::CommitResult {
+                    source: CleanupResultSource::Scalar { expression },
+                } if expression == &entry.body.id)
+            })
+            .unwrap();
+        let caller = Caller::prove(&owner, entry, exit, &mut work).unwrap();
+        let execute = |account: &Account<'_>| {
+            let mut work = usize::MAX;
+            let mut invocation =
+                Invocation::prepare(&owner, entry, &mut work, account.borrowed()).unwrap();
+            let child = caller
+                .producer
+                .execute(&owner, &mut invocation, &mut work)
+                .unwrap()
+                .unwrap();
+            let before_copy = account.charged();
+            assert!(!invocation.loans.all_owners_settled());
+            let outcome = run_caller(&caller, &mut invocation, child);
+            assert!(invocation.loans.all_owners_settled());
+            (before_copy, outcome)
+        };
+        let (mut events, mut payload) = (0, 0);
+        let baseline = Account::funded(&mut events, &mut payload, 8_388_608).unwrap();
+        let (prefix, outcome) = execute(&baseline);
+        assert_eq!(outcome, Ok(Outcome::Returned(1)));
+
+        let last_event = crate::byte_data_capacity::MAX_BYTES_COPY_SITES - 1;
+        for (initial_events, funding, expected, final_events, final_payload) in [
+            (
+                last_event,
+                8_388_608,
+                Ok(Outcome::AllocationFailure),
+                last_event + 1,
+                6,
+            ),
+            (0, prefix + 1, Err(Refusal::Metadata), 1, 6),
+            (0, prefix + 2, Err(Refusal::Metadata), 2, 8),
+        ] {
+            let (mut events, mut payload) = (initial_events, 0);
+            let account = Account::funded(&mut events, &mut payload, funding).unwrap();
+            assert_eq!(execute(&account), (prefix, expected));
+            assert_eq!(account.borrowed().counters(), (final_events, final_payload));
+            assert!(!account.borrowed().active());
+        }
+    }
 
     #[test]
     fn shared_source_returns_copies_and_mutates_partition_child() {

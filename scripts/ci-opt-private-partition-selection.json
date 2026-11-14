@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
   "filters": 9,
-  "expected_tests": 50,
+  "expected_tests": 51,
   "commands": [
     {
       "owner": "OPT746 independent partition geometry and source/HIR operand proof",
@@ -29,7 +29,7 @@
       "binary": "lib",
       "filter": "interpreter::byte_partition::",
       "exact": false,
-      "expected_tests": 30
+      "expected_tests": 31
     },
     {
       "owner": "OPT746 generated C11 partition at O0 and O2",

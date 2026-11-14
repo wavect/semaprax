@@ -60,6 +60,14 @@ controls. The public CLI independently checked the canonical manifest, ran the
 declared native Project test and built the checked-in launcher fixture, which
 also passed CLI49.
 
+A later local rerun of the 13 selected-file Project tests passed on macOS
+arm64 using the retained harness with SHA-256
+`1b58fb4d3dc3f84d430e430dd8c728a008dff52881aa5b46b25dc8e9cb74f79b`.
+It includes the original CLI49 on native O0 and O2, the held-descriptor and
+exact-file-bound checks, legacy symlink refusals, graph and profile checks,
+and the expanded argument and output bounds. The matched live campaign is
+still pending.
+
 The optional Codex setup flag `--selected-file-resource-v1` authenticates
 compiler help and snapshots the setup source and note hashes. Its tests cover
 exact capability binding, drift refusal and preservation of the default setup

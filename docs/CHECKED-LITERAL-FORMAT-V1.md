@@ -86,6 +86,10 @@ The standalone Core Wasm and aggregate Wasm tests exercised allocation refusal
 and reentry. `scripts/quality.sh full` stopped at `fmt-check` on existing
 formatting differences in `src/source_reflows/ci_inputs/successor_fronts.rs`.
 
+The eight language tests also passed in a later local rerun on macOS arm64.
+The retained language test executable had SHA-256
+`4ffaa4cf9604ba758510f5bba1bcb5d7c91a4e23982e42b581ab5950c90dc165`.
+
 OPT-719 calls for an independently authenticated private monomorphic helper
 expressed using ordinary typed HIR. The dedicated HIR node and backend worker
 described above still need that replacement and the corresponding

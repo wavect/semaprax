@@ -96,3 +96,14 @@ The shipping CLI built from `138edb9a04f66c1509673c14589bd4bb87a13ffe` returned 
 | `examples/catalog-normalizer-project/semaprax.toml` | `1c76cc13569dac44ac364bf5840962e35792deedf886227a0e51339c00758cbb` |
 
 These are baseline checks at the shipping 128 MiB construction limit. The 64 MiB route, the CLI application gate and the scoped candidate remain pending.
+
+### Scope of the four-module forecast
+
+`uncached_output_layout_with_registry` calls `modular_pair::selected_estimates`.
+The four scalar modules have empty import lists, so the selector reaches
+`paired::estimates` and its `count_joint` receiver. The scoped prototype
+changes `count_modular`, which is the separate route for modules with imports.
+A joint receiver change is required to reproduce the earlier shared-table
+reduction on the unchanged four-module control. The joint directory also
+serves other callers, so that change must retain its independent eager
+controls and cover both the linear and indexed directory paths.

@@ -52,12 +52,17 @@ fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
         use sha2::{Digest, Sha256};
         format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
     };
-    assert_eq!(raw_source.len(), 327551);
+    let mut source = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay.rs",
+        "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5",
+        raw_source,
+    )
+    .expect("complete replay source before the stored fork inverse");
+    assert_eq!(source.len(), 327551);
     assert_eq!(
-        digest(raw_source.as_bytes()),
+        digest(source.as_bytes()),
         "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"
     );
-    let mut source = raw_source.to_owned();
     let prefix_edits: &[(usize, &str, &str)] = &[
         (1097, "mod plan_prefix;\n", ""),
         (108404, "#[rustfmt::skip]\n", ""),

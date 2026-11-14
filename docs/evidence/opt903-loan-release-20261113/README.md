@@ -113,3 +113,52 @@ passed seven of eight retained-scratch tests and left the four-module forecast
 at 6,573,050 bytes against the saved 6,418,504 bytes. The separate joint
 prototype preserves the historical controls and has started its owning Rust
 projection tests. Its source-pin regeneration and all 54 overlay tests passed.
+
+### Scoped joint forecast and historical 64 MiB reference
+
+The joint-only candidate passed all eight retained workspace-scratch tests in
+a default-feature Rust 1.97.1 library build from `07d83c1c4` plus the candidate.
+The unchanged four-module fixture reproduced the **6,405,786-byte** forecast
+against the **6,418,504-byte** saved forecast. Its warm requested-layout peak
+was **824,395 bytes**, with zero live bytes after Drop. In a fresh process the
+peak was **830,815 bytes** and the authenticated static prelude retained 6,420
+bytes. The direct census control passed all six cases across the linear and
+indexed directories and preserved roots, retained counts, complete callee
+costs, and requested-layout tuples.
+
+The wider call-carrier group passed 32 of 36 tests. Three failures already
+occur in the baseline. The candidate adds one failure in the historical
+closed-root invoice comparison: its old-to-current delta omits the candidate's
+48-byte lazy-filter initialization. The existing comparison still asserts the
+original invoice, and the candidate remains outside the shipping compiler.
+
+A standalone allocator probe executed the unchanged local generic-instance
+cost body with the same non-generic function fixtures as the closed-root test.
+The measured table row is 48 bytes. Each of the full and retained estimates
+requested and freed 48 bytes for one function and 3,072 bytes for 64 functions.
+Both 64-function fixtures therefore allocate and free 6,144 bytes for empty
+template tables across the two estimates. This is one measured component of
+the baseline allocation mismatch. The probe isolates the local template
+estimator. It does not exercise generic templates, the other forecast
+allocations, or a production fix.
+
+A separate production profiling build from
+`0a68f5420260999ef7e57a1a3641e41a69a95a4a` applied only the
+[64 MiB Project reporting patch](../opt785-application-preparation-20261113/current-builder-limit.patch)
+and ran the existing [Project check probe](../opt785-application-preparation-20261113/current-project-probe.rs.txt)
+on the unchanged application manifests. This comparison establishes the
+historical reference for a subsequent candidate run at the same cap.
+
+| Application | Check at 64 MiB | Mode-one cumulative reservation |
+| --- | --- | ---: |
+| Catalog | Succeeded | 48,615,173 |
+| ShiftSim | Live construction refused after the 66,704,189-byte static forecast fit | 67,104,702 |
+| Catalog normalizer | Static admission refused at 67,122,386 bytes | No core attempt |
+| LogLens | Succeeded | 21,430,497 |
+
+ShiftSim's first sticky live refusal requested 8,576 bytes with 4,162 remaining.
+The normalizer's static refusal combined 66,248,903 retained bytes and an
+873,483-byte module forecast. LogLens completed all 159 profiled comparisons.
+The bounded detail buffer retained 128 rows and reported incomplete detail.
+The shipping application test image independently passed the unchanged Catalog
+23-case and ShiftSim 15-case functional owners at its 128 MiB limit.

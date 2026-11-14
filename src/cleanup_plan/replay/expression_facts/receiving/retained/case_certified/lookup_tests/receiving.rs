@@ -216,8 +216,7 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
                     Option<&Option<CallFact<'_>>>,
                     crate::cleanup_plan::replay::physical_budget::ByteFailure,
                 >,
-            >() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()
-                - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;
+            >() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();
         let transition_expected = transition_census.reached[0] as i128
             * (old_setup_invoice() as i128 - skeleton_work::receiving::acquisition_bytes() as i128)
             + transition_census.reached[2] as i128

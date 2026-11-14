@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.receiving-full-merge-parents.v1",
-  "current_length": 34848,
-  "current_sha256": "0a516b5440b4cc2d09f93bff8747bc60a4cba287a700845a57c3639a21d3fcc3",
+  "current_length": 34753,
+  "current_sha256": "37ddc1407b6ddae60ead62ffd7ed981025011d2fa3e6f7fdeed3c59746008438",
   "parents": [
     {
       "head": "8caff6ada4d0b65bb0875ab49a874797e9f653d4",
@@ -535,69 +535,27 @@
     },
     "current_to_before": [
       {
-        "start": 9215,
-        "end": 9937,
-        "current": "// BeforeReceiving's transition helpers still call Arena::fact. Its\n        // ActiveBuilder/nonempty route is prefix::compact::find_receiving:\n        // TWO narrow returned/received Results plus ONE outer Diagnostic\n        // Result survive, alongside the ENTIRE old receiving scratch. Status\n        // and initial-edge Session calls above retain their own original ABI.\n        let transition_old_results =\n            2 * std::mem::size_of::<\n                Result<\n                    Option<&Option<CallFact<'_>>>,\n                    crate::cleanup_plan::replay::physical_budget::ByteFailure,\n                >,\n            >() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();\n        ",
+        "start": 9207,
+        "end": 9929,
+        "current": "        // BeforeReceiving's transition helpers still call Arena::fact. Its\n        // ActiveBuilder/nonempty route is prefix::compact::find_receiving:\n        // TWO narrow returned/received Results plus ONE outer Diagnostic\n        // Result survive, alongside the ENTIRE old receiving scratch. Status\n        // and initial-edge Session calls above retain their own original ABI.\n        let transition_old_results =\n            2 * std::mem::size_of::<\n                Result<\n                    Option<&Option<CallFact<'_>>>,\n                    crate::cleanup_plan::replay::physical_budget::ByteFailure,\n                >,\n            >() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();\n",
         "before": ""
       },
       {
-        "start": 10655,
-        "end": 10655,
-        "current": "",
-        "before": "\n                   "
+        "start": 10615,
+        "end": 10690,
+        "current": "                * ((Session::OLD_SCRATCH + transition_old_results) as i128\n",
+        "before": "                * ((Session::OLD_SCRATCH\n                    + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>())\n                    as i128\n"
       },
       {
-        "start": 10658,
-        "end": 10658,
-        "current": "",
-        "before": "2 * s"
-      },
-      {
-        "start": 10659,
-        "end": 10662,
-        "current": "ran",
-        "before": "d::mem::"
-      },
-      {
-        "start": 10664,
-        "end": 10668,
-        "current": "tion",
-        "before": "ze"
-      },
-      {
-        "start": 10670,
-        "end": 10674,
-        "current": "ld_r",
-        "before": "f::<R"
-      },
-      {
-        "start": 10679,
-        "end": 10679,
-        "current": "",
-        "before": "<Option<&Option<CallFact<'_>>>, Diagno"
-      },
-      {
-        "start": 10680,
-        "end": 10680,
-        "current": "",
-        "before": "tic>>("
-      },
-      {
-        "start": 10681,
-        "end": 10681,
-        "current": "",
-        "before": ")\n                   "
-      },
-      {
-        "start": 26660,
-        "end": 26860,
-        "current": "Reuse the existing bounded no-follow regular-file/full-digest reader.\n#[path = \"../../../../../../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"]\nmod history_reader;\n\n// ",
+        "start": 26657,
+        "end": 26857,
+        "current": "// Reuse the existing bounded no-follow regular-file/full-digest reader.\n#[path = \"../../../../../../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"]\nmod history_reader;\n\n",
         "before": ""
       },
       {
-        "start": 27942,
-        "end": 30309,
-        "current": ";\n    let history = &packet[\"retained_before_compact_transition_invoice\"];\n    let read_history = |descriptor: &serde_json::Value| {\n        let length = descriptor[\"length\"].as_u64().unwrap() as usize;\n        assert!(length <= 2 * 1024 * 1024);\n        history_reader::read(\n            &root.join(descriptor[\"path\"].as_str().unwrap()),\n            length,\n            descriptor[\"sha256\"].as_str().unwrap(),\n            2 * 1024 * 1024,\n        )\n        .unwrap()\n        .into_bytes()\n    };\n    let previous_raw = read_history(&history[\"source\"]);\n    let previous_packet_raw = read_history(&history[\"packet\"]);\n    let previous_packet: serde_json::Value = serde_json::from_slice(&previous_packet_raw).unwrap();\n    assert_eq!(\n        previous_packet[\"current_length\"].as_u64().unwrap() as usize,\n        previous_raw.len()\n    );\n    assert_eq!(\n        previous_packet[\"current_sha256\"].as_str().unwrap(),\n        hash(&previous_raw)\n    );\n    let mut restored = raw.clone();\n    for edit in history[\"current_to_before\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .rev()\n    {\n        let start = edit[\"start\"].as_u64().unwrap() as usize;\n        let end = edit[\"end\"].as_u64().unwrap() as usize;\n        assert!(start <= end && end <= restored.len());\n        assert_eq!(\n            &restored[start..end],\n            edit[\"current\"].as_str().unwrap().as_bytes()\n        );\n        drop(restored.splice(start..end, edit[\"before\"].as_str().unwrap().bytes()));\n    }\n    assert_eq!(\n        restored, previous_raw,\n        \"entire immediate source including the old equation\"\n    );\n    let mut metadata = packet.clone();\n    metadata\n        .as_object_mut()\n        .unwrap()\n        .remove(\"retained_before_compact_transition_invoice\");\n    metadata[\"current_length\"] = previous_packet[\"current_length\"].clone();\n    metadata[\"current_sha256\"] = previous_packet[\"current_sha256\"].clone();\n    assert_eq!(\n        metadata, previous_packet,\n        \"all old unknowns and both executable parent inverses\"\n    );\n    // Reacquire actual current bytes before evaluating the complete old grammar.\n    assert_eq!(\n        history_reader::read(&root.join(path), raw.len(), &hash(&raw), 2 * 1024 * 1024)\n            .unwrap()\n            .as_bytes(),\n        raw.as_slice(),\n    );\n    let raw = previous_raw;\n    let packet = previous_packet",
+        "start": 27944,
+        "end": 30311,
+        "current": "    let history = &packet[\"retained_before_compact_transition_invoice\"];\n    let read_history = |descriptor: &serde_json::Value| {\n        let length = descriptor[\"length\"].as_u64().unwrap() as usize;\n        assert!(length <= 2 * 1024 * 1024);\n        history_reader::read(\n            &root.join(descriptor[\"path\"].as_str().unwrap()),\n            length,\n            descriptor[\"sha256\"].as_str().unwrap(),\n            2 * 1024 * 1024,\n        )\n        .unwrap()\n        .into_bytes()\n    };\n    let previous_raw = read_history(&history[\"source\"]);\n    let previous_packet_raw = read_history(&history[\"packet\"]);\n    let previous_packet: serde_json::Value = serde_json::from_slice(&previous_packet_raw).unwrap();\n    assert_eq!(\n        previous_packet[\"current_length\"].as_u64().unwrap() as usize,\n        previous_raw.len()\n    );\n    assert_eq!(\n        previous_packet[\"current_sha256\"].as_str().unwrap(),\n        hash(&previous_raw)\n    );\n    let mut restored = raw.clone();\n    for edit in history[\"current_to_before\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .rev()\n    {\n        let start = edit[\"start\"].as_u64().unwrap() as usize;\n        let end = edit[\"end\"].as_u64().unwrap() as usize;\n        assert!(start <= end && end <= restored.len());\n        assert_eq!(\n            &restored[start..end],\n            edit[\"current\"].as_str().unwrap().as_bytes()\n        );\n        drop(restored.splice(start..end, edit[\"before\"].as_str().unwrap().bytes()));\n    }\n    assert_eq!(\n        restored, previous_raw,\n        \"entire immediate source including the old equation\"\n    );\n    let mut metadata = packet.clone();\n    metadata\n        .as_object_mut()\n        .unwrap()\n        .remove(\"retained_before_compact_transition_invoice\");\n    metadata[\"current_length\"] = previous_packet[\"current_length\"].clone();\n    metadata[\"current_sha256\"] = previous_packet[\"current_sha256\"].clone();\n    assert_eq!(\n        metadata, previous_packet,\n        \"all old unknowns and both executable parent inverses\"\n    );\n    // Reacquire actual current bytes before evaluating the complete old grammar.\n    assert_eq!(\n        history_reader::read(&root.join(path), raw.len(), &hash(&raw), 2 * 1024 * 1024)\n            .unwrap()\n            .as_bytes(),\n        raw.as_slice(),\n    );\n    let raw = previous_raw;\n    let packet = previous_packet;\n",
         "before": ""
       },
       {
@@ -605,12 +563,6 @@
         "end": 34751,
         "current": "    // The historical grammar above never grants current-source authority.\n    let compiled_current = include_bytes!(\"receiving.rs\").as_slice();\n    assert_eq!(\n        history_reader::read(\n            &root.join(path),\n            compiled_current.len(),\n            &hash(compiled_current),\n            2 * 1024 * 1024\n        )\n        .unwrap()\n        .as_bytes(),\n        compiled_current,\n    );\n",
         "before": ""
-      },
-      {
-        "start": 9849,
-        "end": 10023,
-        "current": ">() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()\n                - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;",
-        "before": ">() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();"
       }
     ],
     "retained_before_narrowed_tariff": {
@@ -623,6 +575,18 @@
         "path": "e/ccb545948cf40ecafbfa1c4b0acdb46acb50b20d8d8e367b2182b87fad867563",
         "length": 419874,
         "sha256": "ccb545948cf40ecafbfa1c4b0acdb46acb50b20d8d8e367b2182b87fad867563"
+      }
+    },
+    "retained_before_equation_repair": {
+      "source": {
+        "path": "e/0a516b5440b4cc2d09f93bff8747bc60a4cba287a700845a57c3639a21d3fcc3",
+        "length": 34848,
+        "sha256": "0a516b5440b4cc2d09f93bff8747bc60a4cba287a700845a57c3639a21d3fcc3"
+      },
+      "packet": {
+        "path": "e/3dc09fc9f5b9e61f6fbbac0ec2023f8e831b1a5d816f8b06acde1be38676c90b",
+        "length": 420728,
+        "sha256": "3dc09fc9f5b9e61f6fbbac0ec2023f8e831b1a5d816f8b06acde1be38676c90b"
       }
     }
   }

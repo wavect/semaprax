@@ -26,6 +26,7 @@ struct Record {
     include_imports: bool,
     legacy_components: bool,
     authority_request: bool,
+    proof_bytes: [usize; 2],
     values: [usize; VALUES],
 }
 // A dedicated latest-live-pass buffer prevents the diagnostic ring's bounded
@@ -104,7 +105,7 @@ pub(crate) fn record(path: &str, mode: u8, semantic: bool, old: [usize; 17]) {
     }
     let mut values = [0; VALUES];
     values[..17].copy_from_slice(&old);
-    capture(path, mode, semantic, false, Kind::Legacy, values);
+    capture(path, mode, semantic, false, Kind::Legacy, values, [0; 2]);
 }
 pub(crate) fn record_components(
     path: &str,
@@ -112,6 +113,16 @@ pub(crate) fn record_components(
     semantic: bool,
     include_imports: bool,
     values: [usize; VALUES],
+) {
+    record_components_with_proofs(path, mode, semantic, include_imports, values, [0; 2]);
+}
+pub(crate) fn record_components_with_proofs(
+    path: &str,
+    mode: u8,
+    semantic: bool,
+    include_imports: bool,
+    values: [usize; VALUES],
+    proof_bytes: [usize; 2],
 ) {
     if !matches!(mode, 4..=7) || !ACTIVE.with(Cell::get) {
         return;
@@ -123,6 +134,7 @@ pub(crate) fn record_components(
         include_imports,
         Kind::Component,
         values,
+        proof_bytes,
     );
 }
 pub(crate) fn authority_index(
@@ -143,7 +155,7 @@ pub(crate) fn authority_index(
         remaining.unwrap_or(usize::MAX),
         usize::from(remaining.is_some()),
     ]);
-    capture(path, 0, false, false, Kind::Authority, values);
+    capture(path, 0, false, false, Kind::Authority, values, [0; 2]);
 }
 /// Exact current selected HIR terms, supplementing the historical 19 fields.
 pub(crate) fn record_live_hir_terms(path: &str, include_imports: bool, terms: [usize; 7]) {
@@ -170,6 +182,7 @@ pub(crate) fn record_live_hir_terms(path: &str, include_imports: bool, terms: [u
             include_imports,
             legacy_components: false,
             authority_request: false,
+            proof_bytes: [0; 2],
             values: [0; VALUES],
         };
         row.path[..path.len()].copy_from_slice(path.as_bytes());
@@ -190,6 +203,7 @@ fn capture(
     include_imports: bool,
     kind: Kind,
     values: [usize; VALUES],
+    proof_bytes: [usize; 2],
 ) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -209,6 +223,7 @@ fn capture(
             include_imports,
             legacy_components: matches!(kind, Kind::Legacy),
             authority_request: matches!(kind, Kind::Authority),
+            proof_bytes,
             values,
         };
         stored.path[..path.len()].copy_from_slice(path.as_bytes());
@@ -336,7 +351,7 @@ impl Pass {
             retained,
             self.winner.unwrap_or(usize::MAX),
         ]);
-        capture(path, self.mode, false, false, Kind::Step, values);
+        capture(path, self.mode, false, false, Kind::Step, values, [0; 2]);
     }
     pub(crate) fn complete(&mut self, peak: usize, retained: usize, transient: usize) {
         if self.active {
@@ -355,7 +370,7 @@ impl Pass {
                 winner.unwrap_or(usize::MAX),
                 usize::from(retained_wins),
             ]);
-            capture("", self.mode, false, false, Kind::Global, values);
+            capture("", self.mode, false, false, Kind::Global, values, [0; 2]);
         }
         self.completed = true;
     }
@@ -364,7 +379,15 @@ impl Drop for Pass {
     fn drop(&mut self) {
         if self.active {
             if !self.completed {
-                capture("", self.mode, false, false, Kind::Global, [0; VALUES]);
+                capture(
+                    "",
+                    self.mode,
+                    false,
+                    false,
+                    Kind::Global,
+                    [0; VALUES],
+                    [0; 2],
+                );
             }
             STATE.with(|state| {
                 let mut state = state.borrow_mut();
@@ -429,24 +452,26 @@ impl Drop for Report {
         write_observation(&mut stderr, self.application, false);
     }
 }
-fn hir_sum(v: &[usize; VALUES]) -> Option<usize> {
+fn hir_sum(v: &[usize; VALUES], [call_proof, shared_callee_proof]: [usize; 2]) -> Option<usize> {
     v[10]
-        .checked_add(v[17])
+        .checked_add(call_proof)
+        .and_then(|n| n.checked_add(shared_callee_proof))
+        .and_then(|n| n.checked_add(v[17]))
         .and_then(|n| n.checked_add(v[12]))
         .and_then(|n| n.checked_add(v[11]))
 }
-fn reconciles(v: &[usize; VALUES]) -> bool {
-    hir_sum(v) == Some(v[18]) && v[0].checked_add(v[18]) == Some(v[13])
-}
 fn legacy_hir_sum(v: &[usize; VALUES]) -> Option<usize> {
     v[10].checked_add(v[11]).and_then(|n| n.checked_add(v[12]))
+}
+fn reconciles(v: &[usize; VALUES], proof_bytes: [usize; 2]) -> bool {
+    hir_sum(v, proof_bytes) == Some(v[18]) && v[0].checked_add(v[18]) == Some(v[13])
 }
 fn record_reconciles(item: &Record) -> bool {
     if item.legacy_components {
         legacy_hir_sum(&item.values).and_then(|n| n.checked_add(item.values[0]))
             == Some(item.values[13])
     } else {
-        reconciles(&item.values)
+        reconciles(&item.values, item.proof_bytes)
     }
 }
 fn write_row(output: &mut impl Write, value: serde_json::Value) {
@@ -558,7 +583,11 @@ fn write_live_precharge(
             "paths_match_actual_module":path.is_some() && path==full_path && path==retained_path,
             "actual_full_components":module.full.map(|row|row.values),
             "actual_retained_components":module.retained.map(|row|row.values),
-            "historical_component_equations_valid":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),
+            "proof_byte_order":"call_proof,shared_callee_proof",
+            "actual_full_proof_bytes":module.full.map(|row|row.proof_bytes),
+            "actual_retained_proof_bytes":module.retained.map(|row|row.proof_bytes),
+            "historical_component_equations_valid":module.full.is_some_and(|row|reconciles(&row.values, [0; 2])) && module.retained.is_some_and(|row|reconciles(&row.values, [0; 2])),
+            "component_equations_valid":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),
             "hir_term_order":"fixed_upper,call_proof,shared_callee_proof,prelude_hir,identity_carrier,identity_occurrence,hir_upper",
             "actual_full_hir_terms":module.full_terms.map(|row|row.values[..7].to_vec()),
             "actual_retained_hir_terms":module.retained_terms.map(|row|row.values[..7].to_vec()),
@@ -622,7 +651,7 @@ fn write_observation(output: &mut impl Write, application: &str, strict: bool) {
                     if item.legacy_components {
                         assert_eq!(legacy_hir_sum(&v).and_then(|n| n.checked_add(v[0])), Some(v[13]), "complete original legacy formula");
                     } else {
-                        assert_eq!(hir_sum(&v), Some(v[18]), "complete HIR bound includes prelude");
+                        assert_eq!(hir_sum(&v, item.proof_bytes), Some(v[18]), "complete HIR bound includes proof charges and prelude");
                         assert_eq!(v[0].checked_add(v[18]), Some(v[13]), "complete raw clone plus HIR bound");
                     }
                 }
@@ -635,6 +664,8 @@ fn write_observation(output: &mut impl Write, application: &str, strict: bool) {
                     "raw_total":v[0],"raw_strings":v[1],"raw_exact_expressions":v[2],"raw_literal_absence_bytes":v[3],
                     "runtime_total":v[4],"runtime_strings":v[5],"runtime_exact_expressions":v[6],"structure_input":v[7],"string_input":v[8],
                     "fixed_upper_before_layout_adjustment":v[9],"fixed_upper_after_layout_adjustment":v[10],"identity_occurrence_upper":v[11],"identity_carrier_upper":v[12],
+                    "call_proof_bytes":(!item.legacy_components).then_some(item.proof_bytes[0]),
+                    "shared_callee_proof_bytes":(!item.legacy_components).then_some(item.proof_bytes[1]),
                     "prelude_hir_upper":(!item.legacy_components).then_some(v[17]),"hir_upper":(!item.legacy_components).then_some(v[18]),"retained_clone_and_hir":v[13],"generic_instances":v[14],"transient_import_clone":v[15],
                     "original_mode7_fixed_upper":(item.mode==7 && v[16]!=usize::MAX).then_some(v[16]),"original_formula_overflow":(item.mode==7).then_some(v[16]==usize::MAX)}));
             }
@@ -749,12 +780,16 @@ mod tests {
     fn actual_mode6_steps_include_prelude_full_retained_and_winner_without_collection_allocations()
     {
         let report = Report::prepare("mode6-components");
+        let proofs = [23, 29];
+        let mut current = components();
+        current[18] += 52;
+        current[13] += 52;
         let ((), metrics) = crate::test_allocation_observer::measure(|| {
             let _capture = report.capture();
             let mut pass = begin_pass(6);
             pass.module(0);
-            record_components("first", 5, false, true, components());
-            record_components("first", 5, false, false, components());
+            record_components_with_proofs("first", 6, false, true, current, proofs);
+            record_components_with_proofs("first", 6, false, false, current, proofs);
             pass.step("first", 0, 0, (0, 100, 30), (100, 30));
             pass.module(1);
             record_components("second", 5, false, true, components());
@@ -764,17 +799,21 @@ mod tests {
         });
         assert!(!metrics.invalid);
         assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));
-        assert_eq!(hir_sum(&components()), Some(60));
-        assert!(reconciles(&components()));
+        assert_eq!(hir_sum(&components(), [0; 2]), Some(60));
+        assert!(reconciles(&components(), [0; 2]));
+        assert!(reconciles(&current, proofs));
+        assert!(!reconciles(&current, [23, 0]));
+        assert!(!reconciles(&current, [0, 29]));
+        assert!(!reconciles(&current, [usize::MAX, 29]));
         let mut missing_prelude = components();
         missing_prelude[17] = 0;
         assert!(
-            !reconciles(&missing_prelude),
+            !reconciles(&missing_prelude, [0; 2]),
             "the old omitted summand cannot pass"
         );
         let mut bad_clone = components();
         bad_clone[13] -= 1;
-        assert!(!reconciles(&bad_clone));
+        assert!(!reconciles(&bad_clone, [0; 2]));
         let mut bytes = Vec::new();
         write_observation(&mut bytes, "mode6-components", true);
         let rows = bytes
@@ -788,7 +827,9 @@ mod tests {
         assert_eq!(rows[2]["include_imports"], false);
         assert_eq!(rows[2]["mode6_role"], "retained");
         assert_eq!(rows[1]["prelude_hir_upper"], 19);
-        assert_eq!(rows[1]["hir_upper"], 60);
+        assert_eq!(rows[1]["hir_upper"], 112);
+        assert_eq!(rows[1]["call_proof_bytes"], 23);
+        assert_eq!(rows[1]["shared_callee_proof_bytes"], 29);
         assert_eq!(rows[1]["pass_id"], rows[5]["pass_id"]);
         assert_eq!(rows[6]["sorted_step"], 1);
         assert_eq!(rows[6]["retained_before"], 30);
@@ -821,6 +862,8 @@ mod tests {
         assert_eq!(rows[0]["complete_records"], false);
         assert!(rows[1]["include_imports"].is_null());
         assert!(rows[1]["prelude_hir_upper"].is_null() && rows[1]["hir_upper"].is_null());
+        assert!(rows[1]["call_proof_bytes"].is_null());
+        assert!(rows[1]["shared_callee_proof_bytes"].is_null());
         assert_eq!(
             rows[1]["reconciliation_status"],
             "legacy_formula_only_new_fields_unknown"
@@ -931,7 +974,14 @@ mod tests {
             components[13] = 21;
             for imports in [true, false] {
                 record_live_hir_terms("actual/doc.spx", imports, [1, 2, 3, 4, 5, 6, 21]);
-                record_components("actual/doc.spx", 6, false, imports, components);
+                record_components_with_proofs(
+                    "actual/doc.spx",
+                    6,
+                    false,
+                    imports,
+                    components,
+                    [2, 3],
+                );
             }
             pass.live_formula(0, "actual/doc.spx", [31, 26, 21, 21, 5, 1, 1, 1, 10]);
             pass.live_attempt([0, 9, 62_580_563, 6_125_249, 5_000_000, 1 << 26, 1]);
@@ -971,6 +1021,16 @@ mod tests {
         assert_eq!(rows[1]["paths_match_actual_module"], true);
         assert_eq!(rows[1]["hir_term_paths_match"], true);
         assert_eq!(rows[1]["hir_term_equations_valid"], true);
+        assert_eq!(rows[1]["historical_component_equations_valid"], false);
+        assert_eq!(rows[1]["component_equations_valid"], true);
+        assert_eq!(
+            rows[1]["actual_full_proof_bytes"],
+            serde_json::json!([2, 3])
+        );
+        assert_eq!(
+            rows[1]["actual_retained_proof_bytes"],
+            serde_json::json!([2, 3])
+        );
         assert_eq!(rows[1]["hir_terms_match_returned_costs"], true);
         assert_eq!(rows[1]["full_reconciles"], true);
         assert_eq!(rows[1]["retained_reconciles"], true);

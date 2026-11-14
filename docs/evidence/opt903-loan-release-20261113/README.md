@@ -625,6 +625,16 @@ clone-plus-HIR result was 16,253,410 bytes versus the complete pre-898 result
 of 12,733,712. The original strict comparison still fails. The prototype log
 SHA-256 is `cdbd285ce6c20f948c5f1bb9081bb227bfecd395b43bef108926afb8899c4da2`.
 
+The test forecast observer now records both proof charges alongside the
+existing component fields. The summary checks the full HIR equation and the
+raw-clone-plus-HIR equation. Live mode-six receipts also report the charges
+for each full and retained component row, with the original formula result
+available as `historical_component_equations_valid`. The compiled writer
+replayed all four captured dense fixtures using the separately captured
+proof charges. It reconciled all eight component rows and reported no
+reconciliation errors. Replay log SHA-256
+`2fed3b18896a45a003d49c558e8739d7db0a4988099873437a817cb07b525c1e`.
+
 ### Resolver path arena qualification (#778)
 
 The `776d76d01` macOS arm64 build passed 15 path-arena tests, four

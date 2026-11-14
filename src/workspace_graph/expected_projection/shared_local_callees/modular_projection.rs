@@ -306,7 +306,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
         })
         .unwrap_or(usize::MAX);
     #[cfg(test)]
-    super::super::super::forecast_observation::record_components(
+    super::super::super::forecast_observation::record_components_with_proofs(
         &program.path,
         layout_mode,
         retention == cached_exact::Retention::Semantic,
@@ -332,6 +332,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
             prelude_hir_upper,
             hir_upper,
         ],
+        [call_proof, shared_callees.bytes],
     );
     let result = SyntheticBuilderCosts {
         raw_clone_and_hir: checked_usage(

@@ -951,6 +951,23 @@ synthetic AST peak, respectively. Both installed commands therefore
 still refuse at the original cap. The live attempts pay their unchanged
 reservations after the static phase.
 
+A live module trace pinned those two refusals. The shared-Row arm
+completed `src/app.spx` and the JSON scanner, then refused during
+`src/tests.spx` with the loan vector diagnostic. The compact-response arm
+also completed `src/tests.spx`. In `src/schedule.spx`, the live synthetic
+AST peak targeted 519,343 bytes against the previously charged 143,118
+bytes, yielding the observed 376,225-byte request. The static estimate
+and the complete diagnostic were byte-identical after removing the new
+observer lines. Neither live run reached the request module in its
+sequential resolution pass.
+
+The compact installed decode-only command passed both declared tests and
+all 15 retained cases at 128 MiB. Its native result matched the original
+full-request and compact full-request commands on exit status and exact
+stdout and stderr for all 15 cases and the two checked-in fixtures.
+A second decode-only derivation at 128 MiB reproduced the complete
+paired bundle byte for byte.
+
 | Artifact | SHA-256 |
 | --- | --- |
 | Full forecast observer patch | `85faeb9ee10607e838848b2603cb6a77488ef79b0859ec85e56c64d70ef5bd70` |
@@ -959,6 +976,10 @@ reservations after the static phase.
 | Decode-only paired derivation refusal at 64 MiB | `8cfa643f23ef44ff481a52c8f21f17c12a80beadccfa778971ee268955e3e212` |
 | Decode-only command with shared Row bodies | `af3a8cd6e8917d52020b23b2bd6518b3743fe06bcd0e4c648b24404d40db00b2` |
 | Decode-only command with compact response | `84248289d7947708d22f64149beda7ebf43ef4f34244d6f4eaaf6961178d2a6a` |
+| Live module observer patch | `0dd2fb9939da16055d1b59f11071a61915ad4c3cc0b8c2165b8858539f99fb9c` |
+| Live shared-Row module trace | `e4f3e47bae336e880beda071ca01f93d90a4498b7437d9d5226c3b8f3f8624e8` |
+| Live compact-response module trace | `19186c050ea4daacc590af9188e3d281a0ec9ceb6ce3242bbedb6c11fe2c1f45` |
+| Native wire comparison | `c09436ca33a6d2d42a061d2595b9466c4cc4289dbdc0487eec1af1f16cc09e75` |
 
 ### Native codec and generated key controls at 64 MiB
 

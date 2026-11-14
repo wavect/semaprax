@@ -523,3 +523,38 @@ on all ten fixture/import combinations. At the exact bound, the largest row
 requested and freed 327,600 bytes without changing the old discount. The probe
 log SHA-256 is `39c7b9efd16ed97f0c91b46cb9fb45487c9d7085756ad8c1a657032e146bd822`. The new in-crate preflight and three-arm whole
 forecast checks still require their own executable results.
+
+### Published preflight and matched application receipts
+
+The external-SSD library test build from `776d76d01` passed all eight retained
+workspace-scratch tests and all seventeen paired and modular census tests. Its
+four-module mode-six construction and later-validation forecast was 6,405,786
+bytes versus 6,418,504 bytes from the independent saved forecast. The current
+bound includes 6,383,948 retained bytes, 21,534 bytes of later validation
+scratch and a 304-byte validation directory. The warm public resolve,
+validation and Drop observation peaked at 824,395 bytes and freed all
+44,093,332 requested bytes. The two new identity tests covered checked
+preflight, one-byte-short and zero refusal, and an active ledger's floor.
+The Rust 1.97.1 macOS arm64 retained-scratch log SHA-256 is
+`9ee41c6430c7573c240de21b947f6afc7e0755d3078737a0688a8e5ca691b2d1`.
+
+The same build passed 36 of the 37 call-carrier tests, including the 64-call
+whole public resolve, validation and Drop test. The separate complete pre-898
+comparison still failed on the dense duplicate-header case. In the legacy
+mode-six forecast, the 128 call groups and 64 duplicate-bearing headers
+produce 500,330 AST bytes and 134,470,181 HIR bytes, including a 118,148,794-byte
+standalone local-callee certificate. The combined total is 752,783 bytes above
+the 134,217,728-byte limit. The production paired forecast uses its own joint
+census, whose dense receipt requires a separate comparison.
+
+The [Linux run on `776d76d01`](https://github.com/wavect/semaprax/actions/runs/43596298515)
+passed production Clippy and all six unchanged Project check captures. An
+independent comparison verified the receipts and each log hash, then compared
+the complete source lists, products and log hashes with the
+[`b0a2e6248` baseline](https://github.com/wavect/semaprax/actions/runs/43592009022).
+Each observed and plain project log was identical, including the normalizer's
+first refusal and successful mode-two retry. The six checks reached modes one
+and two at the shipping 128 MiB cap. These receipts do not exercise the
+mode-six fallback or the historical 64 MiB acceptance. The current artifact's
+provenance SHA-256 is
+`c1ed0b95ff324bf722c95cbe0f32d6028b2505c7ecfa68fa479e31980273188e`.

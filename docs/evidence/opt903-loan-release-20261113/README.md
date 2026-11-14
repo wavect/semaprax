@@ -912,6 +912,54 @@ original-cap paired codec gate or the behavior of arbitrary schemas.
 | Descriptor experiment, shared render log | `161eb2697f62a90fc6ac22276f509c64b31cc125f06510c4ce653707273afedb` |
 | Descriptor experiment, shared length and render log | `b08d42defc06c60a5d23c20e37df0c1cc4249d7fd07acbb5768cc163b85b6fcd` |
 
+### Complete ShiftSim forecast and decode-only request control
+
+A local observer recomputed every mode-six step from the same 16 module
+costs before the ordinary sequential limit check. It also included the
+later validation scratch and directory. Each scenario kept the
+previous descriptor forecast experiment. The installed command used
+the already generated request and response modules.
+
+| Installed ShiftSim source | Retained sum | Complete static peak | Complete excess over 64 MiB |
+| --- | ---: | ---: | ---: |
+| Full request and original response | 70,916,028 | 70,923,834 | 3,814,970 |
+| Full request and shared Row bodies | 69,575,835 | 69,583,641 | 2,474,777 |
+| Full request, shared Row bodies and compact digit and escape expressions | 69,154,620 | 69,162,394 | 2,053,530 |
+| Decode-only request and shared Row bodies | 62,498,087 | 62,505,893 | Fits |
+| Decode-only request, shared Row bodies and compact digit and escape expressions | 62,076,872 | 62,084,646 | Fits |
+
+The full-request experiments retain the complete original codec shape.
+The compact response variant uses bounded arithmetic for decimal and
+hexadecimal digits and one scalar match for the existing short escapes.
+A reference compiler at 128 MiB passed both declared tests and all 15
+native acceptance cases with that response. Its receipt is identical to
+the original response receipt above.
+
+The existing, explicitly selected `stream-owned-request-decode-only.v1`
+profile generated a 35,206-byte request at 128 MiB. The original full
+request is 48,385 bytes. The experiment installed that generated request
+into both response variants. The published ShiftSim plan still uses its
+full request profile.
+
+The decode-only paired codec derivation with the original response fit
+static admission at 62,915,242 bytes in the experimental compiler. It
+then refused a 104-byte request with 8 bytes remaining during live
+synthetic module construction. On the two installed command variants,
+the live builder refused 7,392 bytes with 3,056 remaining for loan vector
+backing, and 376,225 bytes with 33,115 remaining for the uncached
+synthetic AST peak, respectively. Both installed commands therefore
+still refuse at the original cap. The live attempts pay their unchanged
+reservations after the static phase.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Full forecast observer patch | `85faeb9ee10607e838848b2603cb6a77488ef79b0859ec85e56c64d70ef5bd70` |
+| Reconciled original and compact-response forecasts | `9b181d2bf10a0c5f11eb0af9770319f517287605e6e9be7f13688e03102df9dc` |
+| Decode-only paired bundle at 128 MiB | `5cb46580c7cac679929e57372a8628d93f6349eb9e2631e0f524e980ac95198b` |
+| Decode-only paired derivation refusal at 64 MiB | `8cfa643f23ef44ff481a52c8f21f17c12a80beadccfa778971ee268955e3e212` |
+| Decode-only command with shared Row bodies | `af3a8cd6e8917d52020b23b2bd6518b3743fe06bcd0e4c648b24404d40db00b2` |
+| Decode-only command with compact response | `84248289d7947708d22f64149beda7ebf43ef4f34244d6f4eaaf6961178d2a6a` |
+
 ### Native codec and generated key controls at 64 MiB
 
 On the historical-default build above, both native primitive String codec

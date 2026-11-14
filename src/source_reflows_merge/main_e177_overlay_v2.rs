@@ -281,8 +281,12 @@ fn load_before_page_data() -> Result<(Value, Value), &'static str> {
 }
 fn edges(packet: &Value) -> Result<Vec<(String, String)>, &'static str> {
     let rows = packet["rows"].as_array().ok_or("rows")?;
+    row_edges(&rows.iter().collect::<Vec<_>>())
+}
+fn row_edges(rows: &[&Value]) -> Result<Vec<(String, String)>, &'static str> {
     let by: BTreeMap<_, _> = rows
         .iter()
+        .copied()
         .map(|r| (r["source"].as_str().unwrap_or(""), r))
         .collect();
     require!(
@@ -291,7 +295,7 @@ fn edges(packet: &Value) -> Result<Vec<(String, String)>, &'static str> {
     );
     let mut result = Vec::new();
     let mut seen = BTreeSet::new();
-    for row in rows {
+    for &row in rows {
         if let Some(children) = row.get("fragments") {
             for child in children.as_array().ok_or("fragments")? {
                 let source = child["source"].as_str().ok_or("fragment source")?;
@@ -420,8 +424,7 @@ fn compose_values_v2(before: Value, policy: &Value, page: &Value) -> Result<Valu
         before["source_cap"].as_u64() == Some(SOURCE_CAP as u64),
         "unchanged source cap domain"
     );
-    let mut result = before.clone();
-    let rows = result["rows"].as_array_mut().ok_or("rows")?;
+    let mut rows: Vec<_> = old.iter().collect();
     let positions: BTreeMap<_, _> = old
         .iter()
         .enumerate()
@@ -470,19 +473,12 @@ fn compose_values_v2(before: Value, policy: &Value, page: &Value) -> Result<Valu
                 "old current descriptor lost"
             );
         }
-        let mut restored = row.clone();
-        restored["current"] = prior["current"].clone();
-        restored["views"] = prior["views"].clone();
-        if let Some(children) = prior.get("fragments") {
-            restored["fragments"] = children.clone();
-        } else {
-            restored.as_object_mut().ok_or("row")?.remove("fragments");
-        }
         require!(
-            &restored == prior,
+            prior.get("current").is_some()
+                && same_fields_except(row, prior, &["current", "views", "fragments"]),
             "whole replacement row inverse/unknown fields"
         );
-        rows[index] = row.clone();
+        rows[index] = row;
     }
     let additions = page["additions"].as_array().ok_or("addition rows")?;
     let bindings = policy["additions"].as_array().ok_or("addition bindings")?;
@@ -506,7 +502,7 @@ fn compose_values_v2(before: Value, policy: &Value, page: &Value) -> Result<Valu
         for view in row["views"].as_array().ok_or("addition views")? {
             pin(view)?;
         }
-        rows.push(row.clone());
+        rows.push(row);
     }
     require!(
         rows.len()
@@ -517,7 +513,7 @@ fn compose_values_v2(before: Value, policy: &Value, page: &Value) -> Result<Valu
         "count"
     );
     let prior_edges = edges(&before)?;
-    let current_edges = edges(&result)?;
+    let current_edges = row_edges(&rows)?;
     require!(
         current_edges
             .iter()
@@ -536,10 +532,24 @@ fn compose_values_v2(before: Value, policy: &Value, page: &Value) -> Result<Valu
         policy["new_fragment_edges"] == Value::Array(additions),
         "undeclared fragment edges"
     );
-    let mut restored = result.clone();
-    restored["rows"] = before["rows"].clone();
-    require!(restored == before, "ENTIRE predecessor object inverse");
+    // Replace only the rows field of the original object. All other fields
+    // keep their original bytes and values by construction.
+    let rows = rows.into_iter().cloned().collect();
+    let mut result = before;
+    result["rows"] = Value::Array(rows);
     Ok(result)
+}
+
+fn same_fields_except(left: &Value, right: &Value, excluded: &[&str]) -> bool {
+    let (Some(left), Some(right)) = (left.as_object(), right.as_object()) else {
+        return false;
+    };
+    let tracked = |key: &str| !excluded.contains(&key);
+    left.keys().filter(|key| tracked(key)).count()
+        == right.keys().filter(|key| tracked(key)).count()
+        && left
+            .iter()
+            .all(|(key, value)| !tracked(key) || right.get(key) == Some(value))
 }
 pub(super) fn compose(before: Value) -> Value {
     static EXPANDED: std::sync::OnceLock<(Value, Arc<Value>)> = std::sync::OnceLock::new();

@@ -47,3 +47,40 @@ reported test failures can pass on this host with the current source.
 A separate older full run, recorded against base `fb61b90c` and its working
 tree diff, finished with 11,323 passing, 206 failing and 36 ignored library
 tests. The current full gate remains outstanding.
+
+### Historical audit row composition
+
+A five-second sample of the running workspace library suite again found the
+complete historical-view audit active. It reached overlay composition,
+metadata cloning and teardown, pin validation, and held source reads.
+The row composer now validates candidate rows and their fragment edges
+through borrowed values, then copies the accepted rows once into the
+result. It compares all fields outside the three restored row fields.
+The original root object supplies all non-row fields. The live source,
+compiled-source, archive, and outer predecessor checks keep their existing
+call paths.
+
+A Rust 1.97.1 O0 probe at `db8176f81` ran the previous and candidate
+composers against the expanded current page. Both returned the same
+complete result as the independent Python composition of 1,088 rows,
+5,233 historical views, and 268 replacement rows. Both rejected the
+same extra replacement field, dropped replacement, undeclared fragment
+edges, and modified inherited nested field. A separate inherited field
+with unchanged Unicode and NUL content passed in both arms.
+
+Each timed arm made 100 complete compositions, including cloning the
+input and dropping each result. The previous arm took 6.910 and 6.967
+seconds. The borrowed arm took 5.379 and 5.408 seconds. The canonical
+expanded-page SHA-256 is
+`564894c451675b3d648cc007ce772def5686974745601ef91d08571df8bdf85a`.
+The timings cover composition only. The full source audit also performs
+live held reads, checks source and archive identity, and tests refusal
+paths independently.
+
+The current Rust library binary passed all 35 selected tests, including
+the ten secondary traversal checks, overlay refusal and cache checks,
+and the V12, V20, and 064 source inverses. All 54 Python overlay tests
+passed. The read-only source custody check reported zero drift.
+Workspace formatting and scoped library-test Clippy with warnings denied
+also passed. The unmodified complete historical-view audit is running on
+the candidate binary.

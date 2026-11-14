@@ -3,7 +3,10 @@
 
 Run from a checkout whose edited sources are final:
 
-    python3 scripts/refresh-source-custody.py --label <short-change-label>
+    uv run --no-project --with zopfli==0.4.3 python scripts/refresh-source-custody.py --label <short-change-label>
+
+An unchanged `--check` and all overlay readers use only the standard library.
+Repacking a V22 page uses pinned Zopfli to fit the existing physical cap.
 
 The script never edits the sources you changed.  It rebinds only the custody
 records that authenticate *current* bytes, in this order:
@@ -41,7 +44,7 @@ reported, not admitted: add it by hand as in d70e4af22 (policy/page additions,
 both ADDITIONS constants and a `main_e177_overlay_compiled.rs` arm), then rerun.
 """
 from pathlib import Path
-import argparse, copy, hashlib, json, re, subprocess, sys
+import argparse, base64, copy, hashlib, json, re, subprocess, sys
 
 OVERLAY_DIR = 'docs/evidence/finite-source-overlay-v2-20261018'
 POLICY = OVERLAY_DIR + '/policy.json'
@@ -501,6 +504,30 @@ def refresh_strict_module_pins(repo, guard, updates):
     return repo.write(GUARD, raw)
 
 
+def encode_overlay_page(overlay, page, schema):
+    if schema != overlay['V22_SCHEMA']:
+        return overlay['encode_compressed_page'](page, schema)
+    from importlib.metadata import PackageNotFoundError, version
+
+    required = ('V22 repacking requires zopfli==0.4.3; run with '
+                'uv run --no-project --with zopfli==0.4.3 python')
+    try:
+        installed = version('zopfli')
+        from zopfli.zlib import compress
+    except (PackageNotFoundError, ImportError) as error:
+        raise RuntimeError(required) from error
+    if installed != '0.4.3':
+        raise RuntimeError(required)
+
+    assert page.get('schema') == overlay['V20_SCHEMA']
+    raw = overlay['canonical'](page)
+    assert len(raw) <= overlay['V21_OUTPUT_CAP']
+    payload = base64.b85encode(compress(raw, numiterations=20)).decode('ascii')
+    wire = dict(schema=schema, length=len(raw), sha256=sha(raw), payload=payload)
+    assert overlay['expand_compressed_page'](wire) == page
+    return wire
+
+
 def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
     """Refresh the V21 transport while keeping both historical input sets."""
     ov = guard['_OVERLAY_NS']
@@ -615,7 +642,7 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     # page below still enforce their own decoded and physical transport caps.
     v12 = ov['encode_v12_view_labels'](v11, ov['SOURCE_CAP'])
     v20 = ov['encode_v20'](ov['encode_v20_compact_inner'](v12, cap), successor, cap)
-    page = ov['canonical'](ov['encode_compressed_page'](v20))
+    page = ov['canonical'](encode_overlay_page(ov, v20, ov['V22_SCHEMA']))
     policy['page'] = dict(path=PAGE, length=len(page), sha256=sha(page))
     policy_bytes = ov['canonical'](policy)
     assert len(policy_bytes) <= ov['PAGE_CAP']

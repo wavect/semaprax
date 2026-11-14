@@ -1,4 +1,8 @@
-"""Lossless V12 transport controls; no source admission or runtime claims."""
+"""Lossless overlay transport controls.
+
+Run the complete suite from the repository root with:
+    uv run --no-project --with zopfli==0.4.3 python docs/evidence/finite-source-overlay-v2-20261018/test_v12_view_labels.py
+"""
 import copy
 import hashlib
 import json
@@ -807,7 +811,8 @@ class TypedFragmentReferences(unittest.TestCase):
         current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
         if current['schema'] in codec.COMPRESSED_SCHEMAS:
             logical=codec.expand_compressed_page(current)
-            self.assertEqual(codec.encode_compressed_page(logical,current['schema']),current)
+            writer = runpy.run_path(str(ROOT / 'scripts/refresh-source-custody.py'))
+            self.assertEqual(writer['encode_overlay_page'](vars(codec), logical, current['schema']), current)
             cap=codec.V21_OUTPUT_CAP
             codec._v20_successor(logical,cap)
             compact=logical['page']

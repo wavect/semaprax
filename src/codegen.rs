@@ -7,6 +7,7 @@ mod native_adapter_abi;
 pub(crate) mod native_aggregate;
 mod native_box;
 mod native_byte_data;
+pub use native_byte_data::emit_native_partition_copy_out;
 mod native_bytes;
 mod native_callable_abi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -118,14 +119,13 @@ pub use native_emit::{
     emit_hir_c_with_network_io,
 };
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
-use native_scalar_runtime::NATIVE_SCALAR_RUNTIME_C;
-
 pub use native_owned_data_provider::{
     emit_native_owned_data_provider, emit_project_v10_native_owned_utf8_provider,
     emit_project_v11_native_nested_owned_record_provider,
     emit_project_v8_native_owned_data_provider, emit_project_v9_native_flat_owned_record_provider,
     NativeOwnedDataProviderArtifact,
 };
+use native_scalar_runtime::NATIVE_SCALAR_RUNTIME_C;
 #[doc(hidden)]
 pub fn native_owned_data_provider_symbol(rust_method: &str) -> String {
     native_owned_data_provider::public_provider_call_symbol(rust_method)

@@ -20,6 +20,30 @@ const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-repeated.spx");
+const COPY_OUT_SOURCE: &str = r#"module partition_provider;
+@id("partition_provider.bytes") fn exported()->Bytes {
+ let whole=bytes_zeroed(6usize);
+ let children=bytes_partition(whole,3usize,2usize);
+ for own item in vec_into_iter<Bytes>(children) { if true { return item; }; 0 }
+ bytes_zeroed(0usize)
+}
+@id("partition_provider.main") fn main()->i64{0}
+"#;
+const PROVIDER_CENSUS: &str = r#"
+static bool refuse_provider;
+static size_t provider_allocations, provider_frees;
+static void *provider_allocate(size_t size) {
+    if (refuse_provider) return NULL;
+    ++provider_allocations;
+    return malloc(size);
+}
+static void provider_free(void *value) {
+    ++provider_frees;
+    free(value);
+}
+#define SPX_SHB_PROVIDER_MALLOC provider_allocate
+#define SPX_SHB_PROVIDER_FREE provider_free
+"#;
 const PAYLOAD_CENSUS: &str = r#"
 #include <stdlib.h>
 static size_t payload_allocations;
@@ -101,6 +125,66 @@ int main(void) {{
         if (payload_allocations != runs * {allocations}u || payload_frees != payload_allocations
             || payload_bytes != runs * {bytes}u) return 3;
     }}
+    return 0;
+}}
+"#
+            ),
+            &[],
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    copy_out_settles_the_selected_source_child();
+}
+
+fn copy_out_settles_the_selected_source_child() {
+    const ID: &str = "partition_provider.bytes";
+    let ast = crate::parse(COPY_OUT_SOURCE, "partition-provider.spx").unwrap();
+    assert!(crate::codegen::emit_c(&ast).is_err());
+    for id in ["partition_provider.main", "foreign.bytes"] {
+        let mut work = usize::MAX;
+        assert!(crate::codegen::emit_native_partition_copy_out(&ast, id, &mut work).is_err());
+        assert_eq!(work, 0);
+    }
+    for (text, invalid) in [
+        (COPY_OUT_SOURCE.to_owned(), false),
+        (
+            COPY_OUT_SOURCE.replace("3usize,2usize", "3usize,0usize"),
+            true,
+        ),
+    ] {
+        let ast = crate::parse(&text, "partition-provider.spx").unwrap();
+        let unit =
+            crate::codegen::emit_native_partition_copy_out(&ast, ID, &mut { usize::MAX }).unwrap();
+        assert!(unit.contains("uint32_t spx_partition_copy_out_v1("));
+        let root = scratch("partition-provider-copy-out");
+        let invalid = u8::from(invalid);
+        compile_and_run(
+            &root,
+            &format!(
+                r#"
+{PAYLOAD_CENSUS}#include <stdbool.h>
+{PROVIDER_CENSUS}{unit}
+int main(void) {{
+    uint8_t sentinel = 37u;
+    spx_partition_provider_bytes_v1 result = {{ &sentinel, 1u }};
+    spx_partition_status_domain domain = "unpublished";
+    uint32_t code = 99u;
+    refuse_provider = true;
+    uint32_t status = spx_partition_copy_out_v1(&result, &domain, &code);
+    if (result.ptr != &sentinel || result.len != 1u || sentinel != 37u) return 1;
+    if (payload_allocations != 1u || payload_frees != 1u || provider_allocations != 0u) return 2;
+    if ({invalid}u) {{
+        if (status != 1u || code != 1u || strcmp(domain, "semaprax.byte-partition.v1") != 0) return 3;
+        return 0;
+    }}
+    if (status != 2u || code != 99u || strcmp(domain, "unpublished") != 0) return 4;
+    refuse_provider = false;
+    if (spx_partition_copy_out_v1(&result, &domain, &code) != 0u) return 5;
+    if (result.len != 2u || result.ptr == NULL || result.ptr[0] != 0u || result.ptr[1] != 0u) return 6;
+    if (payload_allocations != 2u || payload_frees != 2u || payload_bytes != 12u) return 7;
+    if (provider_allocations != 1u || provider_frees != 0u || code != 99u) return 8;
+    spx_partition_provider_drop_v1(&result);
+    if (provider_frees != 1u || result.ptr != NULL || result.len != 0u) return 9;
     return 0;
 }}
 "#

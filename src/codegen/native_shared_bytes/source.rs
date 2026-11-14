@@ -6,17 +6,57 @@ use crate::codegen::COutput;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedType};
 
+/// Emit the opt-in C11 partition provider for an explicitly identified
+/// source function with no arguments and an owned Bytes result.
+///
+/// The generated `spx_partition_copy_out_v1` returns 0 for a fresh
+/// provider-owned buffer, 1 for a language status, or 2 if the provider copy
+/// allocation fails. Release successful results with
+/// `spx_partition_provider_drop_v1` from the same generated provider.
+pub fn emit_native_partition_copy_out(
+    program: &crate::ast::Program,
+    function_id: &str,
+    work: &mut usize,
+) -> Result<String, Diagnostic> {
+    let result = (|| {
+        let owner = hir::byte_partition::ValidatedPartitionProgram::compile_source(program, work)?;
+        Projection::receive_copy_out(&owner, function_id, work)?.emit()
+    })();
+    if result.is_err() {
+        *work = 0;
+    }
+    result
+}
+
 pub(in crate::codegen) struct Projection<'owner, 'source> {
     owner: &'owner hir::byte_partition::ValidatedPartitionProgram<'source>,
     selection: closure::Selection,
+    copy_out: Option<&'owner hir::ResolvedFunction>,
 }
 impl<'owner, 'source> Projection<'owner, 'source> {
     pub(in crate::codegen) fn receive(
         owner: &'owner hir::byte_partition::ValidatedPartitionProgram<'source>,
         work: &mut usize,
     ) -> Result<Self, Diagnostic> {
+        Self::receive_selected(owner, None, work)
+    }
+
+    pub(in crate::codegen) fn receive_copy_out(
+        owner: &'owner hir::byte_partition::ValidatedPartitionProgram<'source>,
+        function_id: &str,
+        work: &mut usize,
+    ) -> Result<Self, Diagnostic> {
+        Self::receive_selected(owner, Some(function_id), work)
+    }
+
+    fn receive_selected(
+        owner: &'owner hir::byte_partition::ValidatedPartitionProgram<'source>,
+        function_id: Option<&str>,
+        work: &mut usize,
+    ) -> Result<Self, Diagnostic> {
         let result = (|| {
             let mut entry = None;
+            let mut copy_out = None;
             for function in &owner.program().functions {
                 if equal(
                     function.id.as_str(),
@@ -26,9 +66,41 @@ impl<'owner, 'source> Projection<'owner, 'source> {
                 {
                     return Err(error("partition native entry is duplicated"));
                 }
+                if let Some(id) = function_id {
+                    if equal(function.id.as_str(), id, work)?
+                        && copy_out.replace(function).is_some()
+                    {
+                        return Err(error("partition copy-out entry is duplicated"));
+                    }
+                }
             }
             let entry = entry.ok_or_else(|| error("partition native entry is absent"))?;
-            owner.simultaneous_view_bound(entry, work)?;
+            if function_id.is_some()
+                && !copy_out.is_some_and(|root| {
+                    root.params.is_empty()
+                        && root.return_type == ResolvedType::Bytes
+                        && root.id != entry.id
+                })
+            {
+                return Err(error(
+                    "partition copy-out requires a current named fn() -> Bytes",
+                ));
+            }
+            if let Some(root) = copy_out {
+                let mut explicit = false;
+                for source in &owner.source().functions {
+                    if equal(&source.stable_id, root.id.as_str(), work)? {
+                        explicit = source.explicit_id;
+                        break;
+                    }
+                }
+                if !explicit {
+                    return Err(error(
+                        "partition copy-out requires an explicit source identity",
+                    ));
+                }
+            }
+            owner.simultaneous_view_bound(copy_out.unwrap_or(entry), work)?;
             for function in &owner.program().functions {
                 take(work, 1)?;
                 admitted_type(&function.return_type, work)?;
@@ -47,7 +119,7 @@ impl<'owner, 'source> Projection<'owner, 'source> {
                     .chain(std::iter::once(&function.body))
                     .chain(&function.ensures)
                 {
-                    walk(root, work)?;
+                    walk(root, copy_out.is_some(), work)?;
                 }
             }
             // This first receiving closure has exactly these physical owner
@@ -67,7 +139,11 @@ impl<'owner, 'source> Projection<'owner, 'source> {
                 closure::Consumer::IterNext,
                 closure::Consumer::IterDrop,
             ])?;
-            Ok(Self { owner, selection })
+            Ok(Self {
+                owner,
+                selection,
+                copy_out,
+            })
         })();
         if result.is_err() {
             *work = 0;
@@ -84,13 +160,25 @@ impl<'owner, 'source> Projection<'owner, 'source> {
     }
     pub(in crate::codegen) fn emit_bindings(&self, output: &mut impl COutput) {
         super::emit_selected_runtime(output, &self.selection);
+        if self.copy_out.is_some() {
+            output.push_str("typedef spx_bytes_v1 spx_partition_provider_bytes_v1;\n");
+        }
         // Deliberate C profile bindings, not a rewrite of generated cleanup.
         // Ordinary runtime definitions above retain their original public ABI.
         output.push_str(include_str!("source/bindings.c"));
         crate::codegen::native_emit::emit_partition_iterator_bindings(output);
     }
     pub(in crate::codegen) fn emit_entry(&self, output: &mut impl COutput, symbol: &str) {
-        output.push_str(&include_str!("source/entry.c").replace("$ENTRY", symbol));
+        let wrapper = if self.copy_out.is_some() {
+            include_str!("source/copy_out.c")
+        } else {
+            include_str!("source/entry.c")
+        };
+        output.push_str(&wrapper.replace("$ENTRY", symbol));
+    }
+
+    pub(in crate::codegen) fn copy_out(&self) -> Option<&hir::ResolvedFunction> {
+        self.copy_out
     }
 }
 fn take(work: &mut usize, units: usize) -> Result<(), Diagnostic> {
@@ -139,12 +227,12 @@ fn admitted_type(ty: &ResolvedType, work: &mut usize) -> Result<(), Diagnostic> 
         )),
     }
 }
-fn walk(root: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
+fn walk(root: &ResolvedExpr, lexical_return: bool, work: &mut usize) -> Result<(), Diagnostic> {
     take(work, 514)?;
     let mut cursors = [None; 514];
     let mut depth = 0;
     cursors[0] = Some(hir::lexical_exit::ChildCursor::new(root));
-    check(root, work)?;
+    check(root, lexical_return, work)?;
     loop {
         take(work, 1)?;
         let child = cursors[depth].as_mut().expect("retained cursor").next();
@@ -152,7 +240,7 @@ fn walk(root: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
             if depth + 1 == cursors.len() {
                 return Err(error("native partition receiving depth"));
             }
-            check(child, work)?;
+            check(child, lexical_return, work)?;
             depth += 1;
             cursors[depth] = Some(hir::lexical_exit::ChildCursor::new(child));
         } else if depth == 0 {
@@ -164,7 +252,11 @@ fn walk(root: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
     }
     Ok(())
 }
-fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
+fn check(
+    expression: &ResolvedExpr,
+    lexical_return: bool,
+    work: &mut usize,
+) -> Result<(), Diagnostic> {
     take(work, 1)?;
     admitted_type(&expression.ty, work)?;
     match &expression.kind {
@@ -210,7 +302,16 @@ fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> 
         ResolvedExprKind::Block { statements, .. } => {
             for statement in statements {
                 take(work, 1)?;
-                if !matches!(statement, hir::ResolvedStatement::Let { .. }) {
+                if !matches!(statement, hir::ResolvedStatement::Let { .. })
+                    && !(lexical_return
+                        && matches!(
+                            statement,
+                            hir::ResolvedStatement::LexicalWhile { .. }
+                                | hir::ResolvedStatement::While { .. }
+                                | hir::ResolvedStatement::Assign { .. }
+                                | hir::ResolvedStatement::CopyDiscard { .. }
+                        ))
+                {
                     return Err(error("native partition statement binding is not complete"));
                 }
             }
@@ -221,6 +322,11 @@ fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> 
         {
             Ok(())
         }
+        ResolvedExprKind::LexicalExit {
+            kind: crate::ast::LexicalExitKind::Return,
+            ..
+        } if lexical_return => Ok(()),
+        ResolvedExprKind::ConstructVariant { .. } if lexical_return => Ok(()),
         ResolvedExprKind::Match { .. }
         | ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)

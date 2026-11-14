@@ -97,6 +97,8 @@ host likewise acquires a successor handle before changing its Vec. The
 exhaustion controls check that the current Vec and child leases remain live,
 that native output slots stay untouched, and that the original owners can
 still settle. Capacity and index failures retain their existing precedence.
+The [hosted run at `81650ead3`](https://github.com/wavect/semaprax/actions/runs/43527506209)
+passed all 43 selected tests and scoped production Clippy.
 
 The paired Core-Wasm registry binds each preparation to the live invocation
 and claims the exact buffer for the ticket's lifetime. A second array view of
@@ -201,6 +203,22 @@ publishes it after the private lease settles. Provider allocation failure
 preserves both the private owner and the caller's output slot. The C11
 O0/O2 probe checks failure, retry, provider drop and the backing's exact-once
 release. Public adapter selection still requires its own contract and gates.
+
+The explicit C11 emission API `codegen::emit_native_partition_copy_out`
+selects a current source function by its authored `@id`. The function must
+take no arguments and return owned `Bytes`. The source still has a normal
+scalar `main` for compiler validation. The generated
+`spx_partition_copy_out_v1` uses the two-word provider carrier. It returns 0
+and writes the copied result after private settlement, 1 and writes the
+selected language domain and code, or 2 when provider allocation refuses.
+On allocation refusal the bridge settles the child and leaves all caller
+outputs untouched. The matching `spx_partition_provider_drop_v1` frees the
+provider allocation. This API is separate from the existing Project-v8
+provider and the Core-Wasm host profile.
+The generated native test returns an actual partition child through an owning
+iterator. It checks that language failure and injected provider allocation
+refusal preserve the caller result, and that a subsequent invocation can
+publish a fresh copy which the provider drops exactly once.
 
 ## Independent frontend and target proof obligations
 

@@ -556,6 +556,14 @@ fn emit_hir_c_with_validated_kind(
             .ok_or_else(|| backend_error("native entry point is not indexed"))?
             .symbol;
         if let Some(projection) = partition {
+            let symbol = if let Some(root) = projection.copy_out() {
+                &functions
+                    .get(&FunctionExecutionId::Monomorphic(root.id.clone()))
+                    .ok_or_else(|| backend_error("partition copy-out entry point is not indexed"))?
+                    .symbol
+            } else {
+                symbol
+            };
             projection.emit_entry(&mut output, symbol);
             return Ok(output.into_string());
         }

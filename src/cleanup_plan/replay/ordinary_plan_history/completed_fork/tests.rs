@@ -141,7 +141,8 @@ fn independently_built_real_hir_and_plan_keep_full_lexicographic_content_and_mul
     with_limit_usage_refusal(usize::MAX, || {
         for function in &program.functions {
             let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
-            let hir = hir_skeleton_paths(&program, function, &mut budget).unwrap();
+            let hir = emission::with_before(|| hir_skeleton_paths(&program, function, &mut budget))
+                .unwrap();
             let plan = super::super::before::produce(function, &mut budget).unwrap();
             let mut work = SkeletonWork::new(&program, function, &mut budget);
             let left = complete(call(flat_paths(hir), &[], &mut work).unwrap());
@@ -194,10 +195,10 @@ fn original_payer_exact_short_zero_floor_and_full_partial_drop_are_retained() {
             measure(|| {
                 assert!(set_active_floor(floor));
                 let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
-                let mut work = SkeletonWork::new(&program, function, &mut budget);
                 // All input construction, candidate and final Drop remain
                 // inside the same original payer and allocation observer.
                 let result = (|| {
+                    let mut work = SkeletonWork::with_index(&program, function, &mut budget, None)?;
                     let mut prefix = skeleton_work::empty_expr_path();
                     work.push_observation(
                         &mut prefix,
@@ -217,7 +218,10 @@ fn original_payer_exact_short_zero_floor_and_full_partial_drop_are_retained() {
                     drop(result);
                     Ok::<(), Diagnostic>(())
                 })();
-                drop(work);
+                if result.is_err() {
+                    let retry = budget.reserve_bytes(function, 0, "completed history sticky zero");
+                    assert_eq!(retry.unwrap_err().code, "SPX-H006");
+                }
                 drop(budget);
                 // Drop every actual failure Diagnostic inside the same observer.
                 result.map_err(|error| {

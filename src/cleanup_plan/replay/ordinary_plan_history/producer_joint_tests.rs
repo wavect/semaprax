@@ -12,8 +12,11 @@ fn budget(program: &ResolvedProgram, function: &ResolvedFunction) -> ReplayBudge
 
 fn shared_expected(program: &ResolvedProgram, function: &ResolvedFunction) -> Vec<SkeletonPath> {
     let mut budget = budget(program, function);
-    // This is the actual HIR finalizer, not a projection of the new PLAN arena.
-    let mut paths = hir_skeleton_paths(program, function, &mut budget).unwrap();
+    // Build the fixture with the original flat HIR emitter and finalizer.
+    let mut paths = completed_fork::emission::with_before(|| {
+        hir_skeleton_paths(program, function, &mut budget)
+    })
+    .unwrap();
     let mut work = SkeletonWork::new(program, function, &mut budget);
     for path in &mut paths {
         assert!(path.observations.prefix.is_none(), "closed flat fixture");
@@ -99,19 +102,34 @@ fn public_and_funded_joint_loans_consume_complete_seq_cat_hir() {
         let mut old_budget = budget(&program, function);
         let mut old_plan = before::produce(function, &mut old_budget).unwrap();
         let mut hir_budget = budget(&program, function);
-        let mut old_hir = hir_skeleton_paths(&program, function, &mut hir_budget).unwrap();
+        let mut old_hir = completed_fork::emission::with_before(|| {
+            hir_skeleton_paths(&program, function, &mut hir_budget)
+        })
+        .unwrap();
         old_plan.sort();
         old_hir.sort();
         assert_eq!(old_plan, old_hir);
-        let mut old_budget = budget(&program, function);
-        let produced = produce(function, &mut old_budget).unwrap();
-        super::super::super::before_comparison::compare(
-            function,
-            &mut old_budget,
-            produced.set,
-            &old_hir,
-        )
-        .unwrap();
+        // The frozen comparator reserves its cursor backing from an active builder.
+        let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+            let mut old_budget = budget(&program, function);
+            assert_eq!(old_budget.payer, AllocationPayer::ActiveBuilder);
+            old_budget
+                .reserve_bytes(
+                    function,
+                    PRODUCE_CALL_CONTROLS + COMPARE_CALL_CONTROLS,
+                    "joint original PLAN producer and comparator receivers",
+                )
+                .unwrap();
+            let produced = super::super::super::produce(function, &mut old_budget).unwrap();
+            super::super::super::before_comparison::compare(
+                function,
+                &mut old_budget,
+                produced,
+                &old_hir,
+            )
+            .unwrap();
+        });
+        assert!(!refused && first.is_none());
         let mut public = ReplayBudget::new();
         assert_eq!(public.payer, AllocationPayer::LegacyUnobserved);
         joint(&program, function, &expected, &mut public).unwrap();

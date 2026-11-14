@@ -224,7 +224,15 @@ fn complete_hir_enumeration_keeps_paths_work_materializations_and_legacy() {
                         let before = skeleton_materializations();
                         let actual = hir_skeleton_paths(&program, function, &mut current).unwrap();
                         assert_eq!(skeleton_materializations() - before, old_count);
-                        assert_eq!(actual, expected);
+                        // Compare complete ordered observations across independent arenas.
+                        let mut comparison = ReplayBudget::new();
+                        assert!(skeleton_work::enumerated_prefix::equal(
+                            &actual,
+                            &expected,
+                            function,
+                            &mut comparison,
+                        )
+                        .unwrap());
                         assert_eq!(current.remaining, old.remaining);
                         assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
                         drop(actual);

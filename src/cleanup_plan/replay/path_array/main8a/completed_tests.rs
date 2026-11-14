@@ -32,7 +32,15 @@ fn complete_finished_receiver_preserves_paths_capacity_work_and_legacy() {
                         )
                         .unwrap();
                         assert_eq!(skeleton_materializations() - before, old_materializations);
-                        assert_eq!(actual, expected);
+                        // Compare complete ordered observations across independent arenas.
+                        let mut comparison = ReplayBudget::new();
+                        assert!(skeleton_work::enumerated_prefix::equal(
+                            &actual,
+                            &expected,
+                            function,
+                            &mut comparison,
+                        )
+                        .unwrap());
                         assert_eq!(actual.capacity(), expected.capacity());
                         assert_eq!(current.remaining, old.remaining);
                         assert_eq!(current.skeleton_remaining, old.skeleton_remaining);

@@ -316,3 +316,22 @@ bytes. Its complete second attempt succeeded with 26,869,696 bytes remaining.
 The hosted run used the default cap and reached no mode-six attempt. The
 unchanged 64 MiB comparison above still refuses. This run performed Project
 checks; CLI49 and application execution require separate owning runs.
+
+### Dense-call allocation and mode-six follow-up
+
+The retained Rust 1.97.1 macOS arm64 test image at `6f1db7ec4` passed the
+unchanged #898 dense 64-call public resolve, validation and Drop test. The
+owning test and production source match the `1fe13fc79` checkout. The observed
+requested-layout peak was **283,482 bytes** against a **553,732-byte** mode-five
+retained-HIR forecast. The complete window requested and freed 13,345,964 bytes,
+with zero live bytes after Drop. The log SHA-256 is
+`5df04e963b282796b4bb1aa3e724a4668d380c769f7d00c75668d6a7a9f18496`.
+
+Fourteen of the fifteen main call-carrier tests passed on that image. The
+mode-six reuse test failed the assertion that its complete requested heap
+bytes fit the explicit reservation. The separate closed-root whole-mode-six
+owner failed the same assertion. The #903 cold public overlap test passed,
+and its four-module mode-six owner reproduced the 6,573,050-byte forecast
+against the saved 6,418,504 bytes. These measure different validation and
+forecast routes. Both #898 and #903 still require their remaining owning
+checks and application qualification.

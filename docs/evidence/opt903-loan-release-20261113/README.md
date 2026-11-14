@@ -806,3 +806,26 @@ The lexical-exit test log SHA-256 is
 `76340e5cfc0c618336081190d0c508dcc359b76ef6498c0a74e34c1dfc96db2a`.
 The owning Rust library executable SHA-256 is
 `5dde6fc17f18a42d88534d6a89c7f8d63bf976e105cd519384f2740f588de9d5`.
+
+### OPT #889 current singleton controls
+
+All 24 inline-singleton and ordinary-label tests passed on the
+`fcc9ae0ad` Rust 1.97.1 macOS arm64 test image. The measured old and
+current canonical frame layouts are both 40 bytes with alignment 8.
+The outer result layout fell from 32 to 24 bytes. The 64-singleton
+chain reduced cumulative reservations from 292,990 to 292,176 bytes
+and total requested heap from 54,101 to 52,565 bytes. Both versions
+peaked at 34,661 requested heap bytes and left zero live bytes.
+The empty cached control instead rose from 1,068 to 2,508 reserved
+bytes, and the tested many-label cases also incurred additional fees.
+
+The two complete old/current HIR and PLAN comparison fixtures, WHILE
+and GENERATED, paid 746,312 versus 696,716 bytes and 1,308,916 versus
+1,189,052 bytes respectively. Both preserved their observed work
+counters and returned the same verdict. The shipping comparator was
+also exercised as a separate arm on those fixtures, at 785,967 and
+1,363,315 paid bytes. These are owning fixture results. The original
+64 MiB application gates remain outstanding.
+
+The focused log SHA-256 is
+`e9b65ad834af943a11a30c3c92b7fee2c6edc99001f99cdb405510f5e8e736c0`.

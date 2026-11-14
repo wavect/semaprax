@@ -134,30 +134,31 @@ fn public_solver_version_refuses_empty_nonzero_malformed_and_missing_fixtures() 
 #[cfg(unix)]
 #[test]
 fn proof_version_failure_is_inconclusive_and_timeout_skips_the_probe() {
+    const PROBE: &str = "if [ \"$1\" = --version ]; then : > \"$0.attempt\"; exec sleep 30; fi";
     let (path, provisioning) = fake_solver(
         "broken-proof-version",
-        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf unsat",
+        &format!("{PROBE}\ncat >/dev/null\nprintf unsat"),
     );
+    let attempt = path.with_extension("attempt");
     let f =
         function("module app.t; @id(\"app.t.f\") fn f(a: i64) -> i64 ensures result == a { a }");
-    let start = std::time::Instant::now();
     let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
     assert!(
         matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("version probe unavailable"))
     );
-    assert!(start.elapsed() < Duration::from_secs(2));
+    assert!(attempt.is_file());
+    std::fs::remove_file(attempt).unwrap();
     std::fs::remove_file(path).unwrap();
 
     let (path, provisioning) = fake_solver(
         "timeout-skips-version",
-        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf timeout",
+        &format!("{PROBE}\ncat >/dev/null\nprintf timeout"),
     );
-    let start = std::time::Instant::now();
     let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
     assert!(
         matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("bounded timeout"))
     );
-    assert!(start.elapsed() < Duration::from_millis(500));
+    assert!(!path.with_extension("attempt").exists());
     std::fs::remove_file(path).unwrap();
 }
 

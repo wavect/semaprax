@@ -1,7 +1,6 @@
 //! Complete immutable7760 versus the shipping lexical empty selector.
 use super::certified_head_tests::heads_run_generation;
 use super::*;
-use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 const SELECT: &str = "ordinary plan certified suffix empty selector";
 fn observe(
     f: &ResolvedFunction,
@@ -111,14 +110,11 @@ fn report(old: &Run, current: &Run, label: &str) {
         old.row.identity_empty_probes,
         current.row.empty_selector_skips + current.row.shared_publishes
     );
-    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
     assert_eq!(
         current.observed.2
             + probe * old.row.identity_empty_probes
-            + right_rest * current.row.shared_boundaries
-            + final_affine::delta(&current.row).1 + loaded_removed,
-        old.observed.2 + header + selector * current.row.empty_selectors
-            + final_affine::delta(&current.row).0 + loaded_added,
+            + right_rest * current.row.shared_boundaries,
+        old.observed.2 + header + selector * current.row.empty_selectors,
         "complete real old/new bills: independent selector/header plus removed actual right-rest transport"
     );
     eprintln!(
@@ -158,7 +154,23 @@ fn lexical_empty_selector_complete_bills_keep_cold_losses_and_real_dense_net_for
                 (6, true),
             ] {
                 let old = full(f, true, length, shape, shared, hir);
-                let current = full(f, false, length, shape, shared, hir);
+                // Generation 9 preserves the whole successor before later
+                // receiving and final-affine changes. Shipping composition
+                // has its own independently priced comparisons.
+                let current = heads_run_generation(
+                    f,
+                    length,
+                    3,
+                    shared,
+                    0,
+                    9,
+                    MAX_REPLAY_WORK_UNITS,
+                    usize::MAX,
+                    0,
+                    hir,
+                    true,
+                    shape,
+                );
                 assert!(
                     current.observed.0 .0.result.is_ok(),
                     "length={length} shape={shape} shared={shared} hir={hir} result={:?}",
@@ -657,7 +669,11 @@ fn lexical_empty_selector_whole_immediate_caller_four_macros_and_actual_site_exp
         assert_ne!(sha(&outside), digest);
     }
     let old = include_str!("certified_heads_before_empty.rs");
-    let current = include_str!("certified_heads.rs");
+    let current = include_str!("certified_heads_before_final_affine.rs");
+    assert_eq!(
+        sha(current.as_bytes()),
+        "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6"
+    );
     let marker = "macro_rules! certified_boundary {";
     let current_boundary = current.split_once(marker).unwrap().1;
     let anchor = "                                    $right_links = right_links_rest;\n                                    $owner.right_loaded = true;";
@@ -679,12 +695,16 @@ fn lexical_empty_selector_whole_immediate_caller_four_macros_and_actual_site_exp
     assert_eq!(certified_heads::BOUNDARY_BODY + right_rest, body_before);
     // Both conservative remembered slots still occur in the eight scalar slots.
     assert!(include_str!("certified_heads.rs").contains("+ size_of::<[usize; 8]>()"));
-    let root = include_str!("../comparison_owner.rs");
-    assert_eq!(
-        root.matches("certified_suffix!(").count(),
-        1,
-        "single actual lexical expansion receives both certificate exits"
-    );
+    for root in [
+        include_str!("before_final_affine.rs"),
+        include_str!("../comparison_owner.rs"),
+    ] {
+        assert_eq!(
+            root.matches("certified_suffix!(").count(),
+            1,
+            "single actual lexical expansion receives both certificate exits"
+        );
+    }
     let suffix = current
         .split_once("macro_rules! certified_suffix {")
         .unwrap()

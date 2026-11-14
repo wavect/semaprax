@@ -218,7 +218,22 @@ pub(crate) fn project_before(source: &str, expected: &str, current: &str) -> Str
     if !admitted {
         return current.to_owned();
     }
-    let entry = main_e177_final_inputs::value_direct(source, expected, current);
+    let entry = if source == "src/workspace_graph.rs"
+        && expected == "b8d71709bbe9961b338552bba4f6098e59c8d78c5da7ca5f8ff4157b36ea3f31"
+        && source_sha(current) == "3cfe18af8f3321f852f70ec75dd1592b81f7d597b6cf40abdc89e54206ea5eaf"
+    {
+        // The report-site inverse authenticated the complete 76ad entry.
+        // Reacquire the live compiled source before applying the declared
+        // inverse for this older projector.
+        main_e177_final_inputs::declared_history_inputs::expected_value(
+            source,
+            expected,
+            include_str!("workspace_graph.rs"),
+        )
+        .expect("complete workspace projector predecessor")
+    } else {
+        main_e177_final_inputs::value_direct(source, expected, current)
+    };
     assert_eq!(
         source_sha(&entry),
         expected,

@@ -119,3 +119,21 @@ failure count or evidence of a failure in the scalar traversal selector.
 
 The classification receipt SHA-256 is
 `e39b71a53be27186310a547b5f1383ad2e5cb31a981a197cf138608e3cd60cdc`.
+
+
+### Constructor projector handoff
+
+The fresh `8c911c070` Rust test build passed the authenticated report
+ingress and declared-history owners. The complete typed constructor
+test advanced beyond the repaired inverse and then refused an older
+workspace projector entry. The report inverse had restored the exact
+76ad input. The subsequent projector expected the separately declared
+217,060-byte workspace source.
+
+The new handoff accepts that exact 76ad digest for this one source and
+predecessor pair. It reauthenticates the live compiled owner and its
+physical source and archive through the declared inverse before
+returning the older view. Standalone Rust replay returned every byte of
+the old archive and declined appended and truncated versions of the
+handoff input. All 18 report-site inverses also restored their original
+sealed inputs. The complete constructor owner still needs a fresh run.

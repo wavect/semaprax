@@ -82,3 +82,17 @@ The prototype has not been adopted. The wider call-carrier run passed 27 of 36 t
 
 
 The broader prototype run passed 365 of 390 projection tests. The baseline all-features image passed 381 of the 389 corresponding registered tests. Seven failures appeared in both runs, 18 appeared only in the prototype run, and the four-module test failed only in the baseline. The builds used different feature sets, so this comparison identifies candidates for follow-up. In the narrower call-carrier group, five tests that passed in the baseline failed in the prototype. Those failures included source authentication and independent invoice checks for the old name-table layout.
+
+### Rebuilt prototype and shipping application baseline
+
+The regenerated shared-table prototype passed 28 of 36 call-carrier tests. The previously failing closed-root source binding passed. Three failures also appeared in the 35-test all-features baseline: the two allocation-versus-reservation checks and the pre-898 comparison. The other five cover independent tariffs or exact source ancestry. This result leaves the shared-table prototype unqualified. The separate scoped candidate keeps the original name-table representation on the other routes, including the old controls.
+
+The shipping CLI built from `138edb9a04f66c1509673c14589bd4bb87a13ffe` returned exit 0 and `status: verified` for each command below. Its SHA-256 is `33cd423478fd9b752b72daa8eebdd45d27d49fd640bc314656c5021e25e370ef`. All three authored application directories match that source revision byte for byte.
+
+| Manifest passed to `semaprax check <manifest> --json` | Reported revision (SHA-256) |
+| --- | --- |
+| `examples/catalog-scoped-record-successor/semaprax.toml` | `59f773a25c160e58cfb19f7afe0b9a1093124068fb8889eefe4433f2b5cad422` |
+| `examples/shiftsim-typed-record-successor/semaprax.toml` | `59de9eaf9bdf3d945b2eb10c64eb4b1b4a9e1b11204c3c74b1703681c463ec0a` |
+| `examples/catalog-normalizer-project/semaprax.toml` | `1c76cc13569dac44ac364bf5840962e35792deedf886227a0e51339c00758cbb` |
+
+These are baseline checks at the shipping 128 MiB construction limit. The 64 MiB route, the CLI application gate and the scoped candidate remain pending.

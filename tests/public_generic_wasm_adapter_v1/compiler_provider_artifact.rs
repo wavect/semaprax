@@ -315,6 +315,34 @@ fn owning_return(mode: usize) -> i64 ensures result == 4 {
 }
 
 #[test]
+fn provider_returns_the_current_owner_from_a_finite_iterator() {
+    let helper = r#"
+@id("provider.return-owner")
+fn return_owner() -> Bytes
+    ensures byte_len(bytes_as_slice(result)) == 4usize {
+    let first = vec_push<Bytes>(
+        vec_with_capacity<Bytes>(2usize),
+        bytes_set(bytes_zeroed(4usize), 0usize, 114u8)
+    );
+    let values = vec_push<Bytes>(first, bytes_zeroed(2usize));
+    for own item in vec_into_iter<Bytes>(values) {
+        let scratch = bytes_zeroed(3usize);
+        if byte_len(bytes_as_slice(scratch)) == 3usize { return item; };
+        0
+    }
+    bytes_zeroed(8usize)
+}
+"#;
+    let source =
+        format!("{SOURCE}{helper}").replace("left: value.payload.right", "left: return_owner()");
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("the finite iterator can return its current Bytes owner");
+    run_compiled_provider(&artifact, &endpoint, Some(("owner", &[4, 2, 3])));
+}
+
+#[test]
 fn provider_executes_finite_scratch_at_both_cumulative_limits() {
     let mut helper = String::from(
         r#"
@@ -356,6 +384,31 @@ fn owning_limit() -> i64 {
         .expect("the exact cumulative byte limits fit the provider");
     let lengths = std::array::from_fn::<_, 32, _>(|index| if index < 16 { 0 } else { 131_072 });
     run_compiled_provider(&artifact, &endpoint, Some(("limit", &lengths)));
+}
+
+#[test]
+fn provider_zero_iteration_does_not_allocate_a_scratch_owner() {
+    let helper = r#"
+@id("provider.owning-empty")
+fn owning_empty() -> i64 {
+    let values = vec_with_capacity<Bytes>(0usize);
+    for own item in vec_into_iter<Bytes>(values) {
+        let scratch = bytes_zeroed(131072usize);
+        if byte_len(bytes_as_slice(scratch)) != 0usize { return -1; };
+        0
+    }
+    9
+}
+"#;
+    let source = format!("{SOURCE}{helper}").replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let seen = owning_empty();\n    if seen != 9 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let artifact = semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint)
+        .expect("the empty iterator has zero scratch demand");
+    run_compiled_provider(&artifact, &endpoint, Some(("empty", &[])));
 }
 
 #[test]
@@ -427,7 +480,14 @@ fn run_compiled_provider(
         frame_for(
             endpoint,
             semaprax::public_generic_abi::carrier::trace::Direction::Result,
-            &[b"right", b"left"],
+            &[
+                if iterator.is_some_and(|(mode, _)| mode == "owner") {
+                    b"r\0\0\0".as_slice()
+                } else {
+                    b"right".as_slice()
+                },
+                b"left",
+            ],
         ),
     )
     .unwrap();
@@ -494,7 +554,9 @@ for (const callInput of callInputs) {
   // next token. Its drop zeros the backing pointer and retains the length.
   for (let index = 0; index < lengths.length; index++) {
     const entry = heapTable + 8 * (index + 3);
-    if (heap.getUint32(entry, true) !== 0 || heap.getUint32(entry + 4, true) !== Number(lengths[index])) {
+    const live = heap.getUint32(entry, true) !== 0;
+    if (live !== (mode === 'owner' && index === 0) ||
+        heap.getUint32(entry + 4, true) !== Number(lengths[index])) {
       throw new Error('incorrect allocation or unsettled Bytes at index ' + index);
     }
   }

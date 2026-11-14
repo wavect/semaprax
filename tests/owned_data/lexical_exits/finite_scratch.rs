@@ -99,3 +99,34 @@ fn finite_scratch_return_settles_live_item_and_suffix_with_sticky_failure() {
         run_wasm_expected(&source, wasm_status, 3, "none", 4);
     }
 }
+
+#[test]
+fn finite_scratch_returns_the_current_owner_after_settling_its_suffix() {
+    use super::interpret_status;
+    use crate::owned_vec_bytes_runtime::{run_native, run_wasm_expected};
+
+    let source = r#"module lexical.finite.returned;
+@id("app.take") fn take() -> Bytes
+    ensures byte_len(bytes_as_slice(result)) == 1usize {
+    let first = vec_push<Bytes>(vec_with_capacity<Bytes>(2usize), bytes_zeroed(1usize));
+    let values = vec_push<Bytes>(first, bytes_zeroed(2usize));
+    for own item in vec_into_iter<Bytes>(values) {
+        let scratch = bytes_zeroed(3usize);
+        if byte_len(bytes_as_slice(scratch)) == 3usize { return item; };
+        0
+    }
+    bytes_zeroed(4usize)
+}
+@id("app.main") fn main() -> i64 {
+    let chosen = take();
+    i64_from_usize(byte_len(bytes_as_slice(chosen)))
+}"#;
+    interpret(source, 1, false);
+    run_native(source, "", 0, 1, "none");
+    run_wasm_expected(source, 0, 3, "none", 1);
+
+    let failed = source.replace("== 1usize", "== 2usize");
+    interpret_status(&failed, 0, Some(("semaprax.contract.v1", 2)));
+    run_native(&failed, "semaprax.contract.v1", 2, 0, "none");
+    run_wasm_expected(&failed, 10, 3, "none", 0);
+}

@@ -70,6 +70,13 @@ canonical graph replay refuses missing, stale, reordered or forged fields.
 Frozen graph/from-parts/evidence routes refuse this profile. Legacy programs
 keep their old graph/cache bytes. HIR/cache nodes are unchanged and every cache
 consumer replays the new capacity proof from actual nodes before execution.
+The authenticated cache lifecycle restored and refreshed a three-module
+Project that imports a finite-scratch function. Both stages reused all three
+checked HIR modules and ran full HIR validation. Cold open and rebuild each
+resolved three modules and produced identical frontend work and revisions.
+Direct codec controls retained exact bytes across decode and re-encode,
+re-derived the same four-event, nine-byte bound, and refused a forged latch
+after decoding.
 
 The focused source/HIR and backend gates passed, including the original
 `lexical_exits::iterator_resume::` eight-copy/eight-drop oracle and hostile
@@ -125,8 +132,13 @@ normal/continue/break (seven), and early return with the current item and
 untransferred suffix live (three). The early-return cases include division
 by zero in the return operand, a false postcondition and successful reentry.
 The provider's public status represents both failure domains as code 11.
-The exact limit test observed sixteen empty owners and sixteen
-131,072-byte scratch owners, all retired before publishing the result.
+A returned-item case checks that the selected owner reaches the output
+carrier while scratch and suffix tokens retire. The same ownership
+transfer passes the interpreter, native O0/O2 and strict Core Wasm, including
+a false postcondition that discards the provisional result. The exact limit
+test observed sixteen empty owners and sixteen 131,072-byte scratch owners,
+all retired before publishing the result. An empty iterator produced zero
+allocation events.
 
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation

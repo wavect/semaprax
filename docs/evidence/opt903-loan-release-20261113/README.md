@@ -740,3 +740,25 @@ and `60756fb6a5cbdc728f1df5d1d7cf305ec46542edfc24bd819341fb9cfc0c4941`.
 The ShiftSim and Normalizer log SHA-256 values are
 `8bc404db12443d6cc72d5379275e078b4a4ca09998e9759680710f253803785a`
 and `ef9e21cea364c55de47d31a272dd14ebec72d7f74742d91e99f64ad0422e4dc4`.
+
+### Fresh starter at the historical default
+
+The full-toolchain CLI on the same 64 MiB build passed four of the five
+unchanged starter tests, including native execution of the fresh LogLens
+starter against CLI49. The fresh ShiftSim starter failed during `new`,
+before its output tree was published. Six earlier modules retained
+60,265,703 forecast bytes and the full generated response module added
+13,130,193 bytes. The rejecting step totals 73,395,896 bytes.
+
+A separate probe called the public codec-plan derivation on the exact
+published ShiftSim revision. The authored Project passed. The codec-only
+candidate and the complete starter with command activation produced the same
+six-field diagnostic, including the same response module forecast. The
+starter checks the codec bundle before advancing to command activation.
+This locates the failing admission in the generated codec candidate.
+The checked-in ShiftSim Project still passes at this limit. The early
+forecast excess gives no estimate of what the subsequent live build needs.
+
+The unchanged starter test and stage-isolation log SHA-256 values are
+`386d999164e285b51b46a65525e9d3fa1e4d6068995bf3868b2f616c98c3d32a`
+and `8ff41f510b25fd093e6d3a1b3d66311432e28e7d323fb50aa2a05bc2e59c467b`.

@@ -861,3 +861,37 @@ The focused lookup log SHA-256 is
 `7d03fabec6854079d75fe6d4c2d9ab67e9fee4371f88be048e55bd5655dd4389`.
 The combined log SHA-256 is
 `31597a6f3a26cfe417644e6b024623a05ec9e0670344e5805ad91d2668cbfeda`.
+
+#### Phase attribution for the 64-call control
+
+A test-only build from `da36ffb03` ran the exact 392-byte fixture and
+both original HIR calls with one shared 64 MiB account. The source
+SHA-256 was
+`5c73ba5f6ff61f92bca916bf88899327b9bd86bf601ca481ef858447b62b2ace`.
+The observer used the existing stage and operation counters for debits.
+It ran the original independently financed validation references.
+
+| Observed debit | Bytes |
+| --- | ---: |
+| HIR resolution, including its internal validation | 178,548 |
+| Second HIR validation through refusal | 66,930,221 |
+| Cleanup replay across both calls | 66,845,514 |
+| Total | 67,108,769 |
+
+The first refusal was attributed to cleanup replay at
+`src/cleanup_plan/validate/scratch_ledger.rs:65`. It was the same
+128-byte request with 95 remaining. The independent reference
+completed all eight allotted calls and charged 9,763,044 bytes on its
+own ledger.
+
+The second validation phase census saw 88,866 common-frame renewal
+requests for 40,522,896 bytes and 73,243 root-items requests for
+9,375,104 bytes. Those figures count requests, including refused
+requests and any independently financed observer calls seen by the
+phase census. Only the reconciled debit table above measures charges
+to the fixture's 64 MiB ledger. The diagnostic run also reached a
+refusal at 128 MiB. Its assertion stopped before printing the larger
+receipt, so the complete successful debit is still unknown.
+
+The diagnostic log SHA-256 is
+`5ecd5553c7a8f6473adf016b3c78b7404dab5ec036007c8503d61bd13560c34f`.

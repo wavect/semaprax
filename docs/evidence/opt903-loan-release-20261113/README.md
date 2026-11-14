@@ -799,8 +799,8 @@ remaining and a zero floor. Both used a 144-byte frame, with 494
 cumulative capacity slots across 14 requests, charged zero match-witness
 roles, and released all observed allocations. The failure came from
 the enumerated HIR content sort while receiving a root-items frame.
-The remaining capacity describes that individual request. A complete
-successful debit for the fixture remains unmeasured.
+The remaining capacity describes that individual request. The higher-budget
+diagnostic below measures the complete debit for the same fixture.
 
 The lexical-exit test log SHA-256 is
 `76340e5cfc0c618336081190d0c508dcc359b76ef6498c0a74e34c1dfc96db2a`.
@@ -889,9 +889,38 @@ requests for 40,522,896 bytes and 73,243 root-items requests for
 9,375,104 bytes. Those figures count requests, including refused
 requests and any independently financed observer calls seen by the
 phase census. Only the reconciled debit table above measures charges
-to the fixture's 64 MiB ledger. The diagnostic run also reached a
-refusal at 128 MiB. Its assertion stopped before printing the larger
-receipt, so the complete successful debit is still unknown.
+to the fixture's 64 MiB ledger.
 
 The diagnostic log SHA-256 is
 `5ecd5553c7a8f6473adf016b3c78b7404dab5ec036007c8503d61bd13560c34f`.
+
+A follow-up test-only run kept the exact source, both original HIR
+calls, and all eight independently financed reference calls. It
+varied only the primary ledger bound and emitted a receipt for
+every outcome.
+
+| Diagnostic bound | HIR resolution | Second HIR validation | Cleanup replay across both calls | Total debit | Outcome |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 64 MiB | 178,548 | 66,930,221 | 66,845,514 | 67,108,769 | `SPX-H006` |
+| 128 MiB | 178,548 | 134,038,078 | 133,953,371 | 134,216,626 | `SPX-H006` |
+| 256 MiB | 178,548 | 150,642,517 | 150,557,810 | 150,821,065 | Both calls passed |
+
+At 128 MiB the first refused request was 1,216 bytes with 1,102
+remaining. This time it reached the ordinary PLAN shared HIR cursor
+next receivers. At 256 MiB the primary ledger had no recorded
+refusal. Cleanup replay accounted for 150,557,810 of the 150,821,065
+bytes charged. The separately financed reference ledger charged
+9,763,044 bytes in all three runs.
+
+In the successful second validation, the largest observation bucket
+was the enumerated HIR common-frame renewal, with 151,849 requests
+totalling 69,243,144 bytes. The next two buckets were the ordinary
+PLAN shared HIR cursor next receivers at 15,325,248 requested bytes
+and the enumerated HIR root-items frame at 14,974,464 requested bytes.
+The observer counts requests across both ledgers. The original 64 MiB
+application gate remains open.
+
+The follow-up diagnostic log SHA-256 is
+`e7878e4669d5fe0b472a4185395dad62eb7b08c06de945a09115e03529ab0f86`.
+The observer source diff SHA-256 is
+`cad5654303abf1ec3979b4fcb2d9d7b8e881de1cdd76194f5ae83584109d5855`.

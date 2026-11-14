@@ -787,3 +787,22 @@ and `549771e290664eee0356f841f9843111b3ba766c54d02f7db5da7afe7f6c21b8`.
 The borrowed-literal patch and starter-test log have SHA-256
 `547657069f9c4e249eac0d176b427b2b34dc56fd1dcaa356b052ff6e93c5b9eb`
 and `12bf64d7bcfd4492f910af3dd42660a6cb77cc75f4b0690b85d8c447fecd36c9`.
+
+### OPT #904 current lexical-exit controls
+
+At `fcc9ae0ad`, 14 of 17 lexical-exit tests passed on macOS arm64
+with Rust 1.97.1. The three failures reached the unchanged 64-call
+fixture in its second HIR validation pass. The old helper and current
+inline arms returned identical first-refusal receipts. Both had paid
+67,108,769 bytes and refused the same 128-byte request with 95 bytes
+remaining and a zero floor. Both used a 144-byte frame, with 494
+cumulative capacity slots across 14 requests, charged zero match-witness
+roles, and released all observed allocations. The failure came from
+the enumerated HIR content sort while receiving a root-items frame.
+The remaining capacity describes that individual request. A complete
+successful debit for the fixture remains unmeasured.
+
+The lexical-exit test log SHA-256 is
+`76340e5cfc0c618336081190d0c508dcc359b76ef6498c0a74e34c1dfc96db2a`.
+The owning Rust library executable SHA-256 is
+`5dde6fc17f18a42d88534d6a89c7f8d63bf976e105cd519384f2740f588de9d5`.

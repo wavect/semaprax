@@ -639,11 +639,11 @@ pub(crate) fn parse_with_capabilities(
     }
     if profile.as_deref() == Some(semaprax::interpreter::partition_source::PROFILE)
         && (!matches!(input, BuildInput::Source(_))
-            || target != "native"
+            || !matches!(target.as_str(), "native" | "wasm")
             || function.is_some()
             || !exports.is_empty())
     {
-        eprintln!("byte-partition-v1 build requires one source file and a native target");
+        eprintln!("byte-partition-v1 build requires one source file and a native or wasm target");
         return Err(2);
     }
     let available_targets = target_catalog(&input, private_toolchain);

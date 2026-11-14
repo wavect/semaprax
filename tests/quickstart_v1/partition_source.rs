@@ -111,7 +111,7 @@ fn explicit_partition_source_build_runs_native_and_refuses_other_targets() {
             "--profile",
             "byte-partition-v1",
             "--target",
-            "wasm",
+            "web",
             "--output",
             "unsupported",
         ],
@@ -141,4 +141,79 @@ fn explicit_partition_source_build_runs_native_and_refuses_other_targets() {
     assert_eq!(output.stderr, b"semaprax.byte-buffer.v1:1\n");
     assert!(output.stdout.is_empty());
     assert_eq!(std::fs::read_to_string(path).unwrap(), failure);
+}
+
+#[test]
+fn explicit_partition_source_build_publishes_paired_wasm_runner() {
+    let fixture = Fixture::new("partition-wasm");
+    let source = include_str!("../fixtures/byte-partition-private-clone.spx");
+    let path = fixture.root.join("input.spx");
+    std::fs::write(&path, source).unwrap();
+    let build = |destination: &str| {
+        cli(
+            &fixture.root,
+            &[
+                "build",
+                "input.spx",
+                "--profile",
+                "byte-partition-v1",
+                "--target",
+                "wasm",
+                "--output",
+                destination,
+            ],
+        )
+    };
+    assert!(build("first").status.success());
+    assert!(build("second").status.success());
+    for leaf in [
+        "byte-partition-v1.json",
+        "entry.mjs",
+        "host.mjs",
+        "registry.mjs",
+    ] {
+        let first = std::fs::read(fixture.root.join("first").join(leaf)).unwrap();
+        assert_eq!(
+            first,
+            std::fs::read(fixture.root.join("second").join(leaf)).unwrap()
+        );
+    }
+    assert!(!build("first").status.success());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), source);
+    let failure = source.replace("bytes_set(item, 1usize", "bytes_set(item, 2usize");
+    std::fs::write(&path, &failure).unwrap();
+    assert!(build("failure").status.success());
+
+    if Command::new("node")
+        .arg("--version")
+        .output()
+        .is_ok_and(|r| r.status.success())
+    {
+        for package in ["first", "failure"] {
+            let output = Command::new("node")
+                .current_dir(&fixture.root)
+                .args([
+                    "--input-type=module",
+                    "-e",
+                    r#"
+import assert from 'node:assert/strict';
+const packageName = process.argv[1];
+const { install } = await import(`./${packageName}/entry.mjs`);
+const runner = await install(8388608);
+const baseline = runner.account().reserved;
+const expected = packageName === 'first'
+  ? {outcome:'returned', result:'1'}
+  : {outcome:'language_failure', status:{domain:'semaprax.byte-buffer.v1', code:1}};
+for (let n = 0; n < 2; n++) {
+  assert.deepEqual(runner.invoke(), expected);
+  assert.equal(runner.account().reserved, baseline);
+}
+"#,
+                    package,
+                ])
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{package}: {output:?}");
+        }
+    }
 }

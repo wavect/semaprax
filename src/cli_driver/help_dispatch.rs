@@ -13,7 +13,7 @@ pub(super) fn print_scoped_help(command: &str, has_private_host: bool) -> Result
         print!("{scoped}");
         match command {
             "run" => println!("  semaprax run <file> --profile byte-partition-v1 --managed-bytes N [--json]"),
-            "build" => println!("  semaprax build <file> --profile byte-partition-v1 --target native [-o|--output path] [--json]"),
+            "build" => println!("  semaprax build <file> --profile byte-partition-v1 --target native|wasm [-o|--output path] [--json]"),
             _ => {}
         }
         Ok(())

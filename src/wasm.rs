@@ -47,6 +47,7 @@ pub mod output_parent;
 mod owned;
 mod owned_data_exports;
 mod owned_data_public;
+pub(crate) mod partition_package;
 pub(crate) mod process_io;
 mod public_generic_provider;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]

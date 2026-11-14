@@ -840,6 +840,22 @@ prints the scalar after settlement or reports the normalized failure domain
 and code on stderr. Native uses its existing allocation policy. The explicit
 managed-byte account belongs to the interpreter route.
 
+### Explicit single-file Core Wasm package
+
+```sh
+semaprax build tests/fixtures/byte-partition-private-clone.spx --profile byte-partition-v1 --target wasm --output partition-wasm
+node --input-type=module -e 'import { install } from "./partition-wasm/entry.mjs"; console.log((await install(8388608)).invoke())'
+```
+
+Publication writes the compiler-paired entry, host and registry together to a
+fresh directory. The manifest binds the source revision, the embedded Core
+Wasm module digest and the exact emitted JavaScript files. The entry accepts
+an explicit positive managed-byte account at installation and exposes scalar
+and normalized failure outcomes after settlement. The account covers the
+managed host storage described above. Run each separately built package in
+its own trusted JavaScript realm. The host allows one installation per realm
+to keep owner token identities unique.
+
 ### Private direct source entry checkpoint
 
 The interpreter now has a source-held direct receiver for an immutable main

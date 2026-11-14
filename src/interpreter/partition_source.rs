@@ -132,6 +132,17 @@ pub fn emit_native(path: &Path) -> Result<String, Vec<Diagnostic>> {
     .map(|(c, _)| c)
 }
 
+pub use crate::wasm::partition_package::PartitionPackage;
+
+/// Build the sealed Core Wasm runner from the exact held source snapshot.
+pub fn emit_wasm(path: &Path) -> Result<PartitionPackage, Vec<Diagnostic>> {
+    with_held_source(path, |source| {
+        crate::wasm::partition_package::emit(source, &mut { MAX_GRAPH_WORK })
+            .map_err(|error| vec![error])
+    })
+    .map(|(package, _)| package)
+}
+
 fn with_held_source<T>(
     path: &Path,
     operation: impl FnOnce(&crate::ast::Program) -> Result<T, Vec<Diagnostic>>,

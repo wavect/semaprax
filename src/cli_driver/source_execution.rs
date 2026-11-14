@@ -58,6 +58,20 @@ pub(super) fn build_source(options: &cli::build::BuildOptions, input: &Path) -> 
         .as_deref()
         .expect("source build options always have an output");
     if options.profile.as_deref() == Some(interpreter::partition_source::PROFILE) {
+        if options.target == "wasm" {
+            let package = interpreter::partition_source::emit_wasm(input)
+                .map_err(|errors| report(&errors, options.json))?;
+            package
+                .publish(output)
+                .map_err(|error| report(&[error], options.json))?;
+            report_source_build_success(
+                options,
+                "paired Core Wasm byte partition package",
+                output,
+                None,
+            );
+            return Ok(());
+        }
         let c_source = interpreter::partition_source::emit_native(input)
             .map_err(|errors| report(&errors, options.json))?;
         let destination = cli::build::SourceNativeOutput::prepare(output)

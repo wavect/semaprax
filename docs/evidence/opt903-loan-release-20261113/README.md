@@ -191,3 +191,23 @@ The shipping application test image independently passed the unchanged Catalog
 23-case and ShiftSim 15-case functional owners at its 128 MiB limit. The
 same shipping test image passed all 13 Catalog normalizer owners, including
 the interpreter/native/core-Wasm comparison and the frozen framing oracle.
+
+The joint-only candidate was rebuilt with the same Rust profile, Project cap
+patch, and probe. Its joint census patch SHA-256 is
+`d666ed26e7d6f61b71f04bf8fb35d606db2ee007bdbb188fd61af3f2c0c7afe7`.
+The linked probe SHA-256 is
+`469b8853c41961b8ff3c269354fa27d21d301fd13bc9a4723ce0aa45bda01f6c`.
+All four receipts agreed byte for byte after replacing the checkout path.
+This includes each outcome, the full refusal diagnostic, the mode-one debit,
+and every emitted comparison count.
+
+The Project reporting wrapper selects a single live attempt at this
+explicit cap. A static forecast that fits enters mode one, and the retry
+gate admits only the default builder limit. Consequently the joint mode-six
+reduction cannot address ShiftSim's measured live refusal at 64 MiB.
+The normalizer reaches the mode-six static forecast and still exceeds the
+cap by 13,522 bytes at its first refusing step. Earlier retained modules
+account for 66,248,903 bytes at that step. That first-step gap does not
+bound the reduction required for the remaining modules or later validation.
+The combined joint and imported-module census candidate is being checked
+through the same Project entry point at the same cap.

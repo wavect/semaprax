@@ -180,17 +180,82 @@ pub(super) fn execute(
     else {
         return Err(Refusal::Identity);
     };
-    let Some(mut child) = iter.next(loans)? else {
+    execute_step(step, &mut iter, loans)
+}
+
+fn execute_step(
+    step: FirstChild,
+    iter: &mut super::super::flat::PartitionIterator,
+    loans: &mut super::super::loans::Loans<'_, super::super::funding::BorrowedAccount<'_>>,
+) -> Result<i64, Refusal> {
+    let next = match iter.next(loans) {
+        Ok(next) => next,
+        Err(error) => {
+            let _ = iter.settle(loans);
+            return Err(error);
+        }
+    };
+    let Some(mut child) = next else {
         iter.settle(loans)?;
         return Ok(step.empty_result);
     };
-    let len = i64::try_from(loans.extent(&child)?).map_err(|_| Refusal::Identity)?;
-    if step.rest_first {
-        iter.settle(loans)?;
-        loans.settle(&mut child)?;
+    let len = loans
+        .extent(&child)
+        .and_then(|len| i64::try_from(len).map_err(|_| Refusal::Identity));
+    let (first, second) = if step.rest_first {
+        (iter.settle(loans), loans.settle(&mut child))
     } else {
-        loans.settle(&mut child)?;
-        iter.settle(loans)?;
-    }
+        (loans.settle(&mut child), iter.settle(loans))
+    };
+    let len = len?;
+    first?;
+    second?;
     Ok(len)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::interpreter::byte_partition::{flat::PartitionVec, values};
+
+    #[test]
+    fn refused_iterator_step_settles_the_untransferred_suffix() {
+        let source = include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
+        let ast = crate::parse(source, "partition-iterator.spx").unwrap();
+        let mut work = usize::MAX;
+        let owner = hir::byte_partition::ValidatedPartitionProgram::compile_source(&ast, &mut work)
+            .unwrap();
+        let mut events = 0;
+        let mut payload = 0;
+        let account = Account::funded(&mut events, &mut payload, 8_388_608).unwrap();
+        let mut invocation = Invocation::prepare(
+            &owner,
+            &owner.program().functions[0],
+            &mut work,
+            account.borrowed(),
+        )
+        .unwrap();
+        let mut vector = PartitionVec::partition(
+            &mut invocation.loans,
+            vec![1, 2, 3].into_boxed_slice(),
+            3,
+            1,
+        )
+        .unwrap();
+        let mut retired = vector.take_last(&mut invocation.loans).unwrap().unwrap();
+        let Value::PartitionIter(mut iter) =
+            values::into_iterator(Value::PartitionVec(vector), &mut invocation.loans).unwrap()
+        else {
+            panic!("partition iterator");
+        };
+        invocation.loans.settle(&mut retired).unwrap();
+        assert!(invocation.loans.extent(&retired).is_err());
+        assert_eq!(iter.remaining(), 2);
+        let step = FirstChild {
+            empty_result: 0,
+            rest_first: true,
+        };
+        assert!(execute_step(step, &mut iter, &mut invocation.loans).is_err());
+        assert_eq!(iter.remaining(), 0);
+    }
 }

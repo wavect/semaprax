@@ -370,6 +370,10 @@ Done arm. The local 43-test partition selection passed, including the
 generated native C11 O0/O2 and paired Core-Wasm runs of the shared fixture.
 Both runs verify one payload backing per invocation and settlement before
 reentry.
+If the interpreter's iterator step refuses before transferring a child, it
+settles the untransferred suffix while preserving the selected refusal. After
+a transfer, it attempts both finalizers in the checked arm order, including
+when the scalar read refuses.
 The [hosted run at `ab2dec272`](https://github.com/wavect/semaprax/actions/runs/43526593692)
 passed all 43 selected tests and scoped production Clippy.
 

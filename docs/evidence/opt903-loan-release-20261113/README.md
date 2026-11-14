@@ -410,3 +410,12 @@ This isolated probe covered ordinary callee resolution. The resulting patch
 still needs a paid production receiver and complete mode-six execution.
 The wide-boundary log SHA-256 is
 `9f4fe3cabd37d3dfd33701a15630d0e494015894fee64d85634930c90ab78ce2`.
+
+The Rust 1.97.1 library test build containing `193f746db` passed the new
+monomorphic zero-allocation regression, both existing generic/default cost
+controls, the closed-root source inverse, the dense whole-allocation control,
+and the exact/short/zero closed-root forecast control. The four-module peak
+still reports 6,573,050 bytes against the saved 6,418,504. The two separate
+mode-six whole-forecast tests still request more heap bytes than their
+explicit reservations, so the generic-template change alone leaves these
+three owning assertions open.

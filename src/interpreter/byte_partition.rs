@@ -233,11 +233,15 @@ impl<R: InvocationRuntime> Registry<R> {
             });
         }
         self.child_table_slots += geometry.count;
-        self.contexts.push(Some(Box::new(State {
-            core,
-            children,
-            table_slots: geometry.count,
-        })));
+        // The Core has already released an empty partition's backing.
+        // Keep the context ordinal, without retaining a dead context or its views.
+        self.contexts.push(core.has_live_owners().then(|| {
+            Box::new(State {
+                core,
+                children,
+                table_slots: geometry.count,
+            })
+        }));
         Ok(output)
     }
     fn apply<T>(

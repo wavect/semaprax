@@ -82,7 +82,11 @@ impl<R: InvocationRuntime> Registry<R> {
         })
     }
     pub(crate) fn take_whole(&mut self, owner: &mut Owner) -> Result<R::Owner, Refusal> {
-        self.apply(owner, false, |core, child| core.take_whole(child))
+        let backing = self.apply(owner, false, |core, child| core.take_whole(child))?;
+        // A successful transfer invalidates the sole receipt. Retire its tables
+        // now, retaining the vacant ordinal so no stale receipt can be revived.
+        drop(self.contexts[owner.context].take());
+        Ok(backing)
     }
 }
 

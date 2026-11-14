@@ -98,9 +98,16 @@ fn whole_metadata_has_independent_exact_short_and_children_cannot_mint_whole() {
     let mut registry = Registry::new(probe.clone()).unwrap();
     let original = vec![7, 0].into_boxed_slice();
     let pointer = original.as_ptr();
-    let mut owner = registry.hold_whole(original, &capacity).unwrap();
+    let (original, observed) = crate::test_allocation_observer::measure(|| {
+        let mut owner = registry.hold_whole(original, &capacity).unwrap();
+        assert_eq!(probe.charged(), required);
+        let original = registry.take_whole(&mut owner).unwrap();
+        assert!(registry.contexts[owner.context].is_none());
+        original
+    });
+    assert!(!observed.invalid);
+    assert_eq!(observed.live, Layout::new::<ContextSlot<R>>().size());
     assert_eq!(probe.charged(), required);
-    let original = registry.take_whole(&mut owner).unwrap();
     assert_eq!(original.as_ptr(), pointer);
     drop(original);
     drop(registry);

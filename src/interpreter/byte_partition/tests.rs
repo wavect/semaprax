@@ -387,8 +387,18 @@ fn foreign_stale_live_loan_and_clone_exhaustion_refuse_without_publication() {
     let probe = account(usize::MAX);
     probe.0.borrow_mut().payload = 0;
     let mut registry = Registry::new(probe.clone()).unwrap();
-    assert!(registry
-        .partition(Vec::<u8>::new().into_boxed_slice(), 0, u64::MAX)
-        .unwrap()
-        .is_empty());
+    let (children, observed) = crate::test_allocation_observer::measure(|| {
+        registry
+            .partition(Vec::<u8>::new().into_boxed_slice(), 0, u64::MAX)
+            .unwrap()
+    });
+    assert!(children.is_empty());
+    assert_eq!(probe.0.borrow().releases, 1);
+    assert_eq!(registry.child_table_slots, 0);
+    assert!(registry.contexts[0].is_none());
+    assert!(!observed.invalid);
+    assert_eq!(
+        observed.live,
+        Layout::new::<super::ContextSlot<Probe>>().size()
+    );
 }

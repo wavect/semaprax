@@ -1,5 +1,6 @@
 use super::super::*;
 use super::before_transfer_current as before;
+use super::tests::same_paths;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 use std::rc::Rc;
@@ -101,17 +102,6 @@ fn sequence(
         super::super::sequence_skeleton_paths(prefixes, suffixes, work)
     }
 }
-fn same_paths(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
-    assert_eq!(actual.len(), expected.len());
-    for (actual, expected) in actual.iter().zip(expected) {
-        assert_eq!(actual.observations, expected.observations);
-        assert_eq!(actual.owned_source, expected.owned_source);
-        assert_eq!(actual.failed, expected.failed);
-        assert_eq!(actual.residual, expected.residual);
-        assert_eq!(actual.continuation, expected.continuation);
-    }
-}
-
 #[test]
 fn final_output_keeps_complete_hir_plan_multiplicity_work_and_failures() {
     let program = program();

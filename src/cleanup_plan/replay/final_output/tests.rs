@@ -102,10 +102,59 @@ fn sequence(
         super::super::sequence_skeleton_paths(prefixes, suffixes, work)
     }
 }
-fn same_paths(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
+// Saved small DAG expansion: sequence order and duplicate alternatives are
+// semantic content, not Rc-address equality or Debug output.
+fn observation_sequences(
+    observations: &Observations,
+) -> Vec<Vec<std::rc::Rc<SkeletonObservation>>> {
+    fn expand(dag: &skeleton_work::ObservationDag) -> Vec<Vec<std::rc::Rc<SkeletonObservation>>> {
+        match &dag.kind {
+            skeleton_work::ObservationDagKind::Seq(prefix, items) => {
+                let mut paths = prefix
+                    .as_ref()
+                    .map_or_else(|| vec![vec![]], |prefix| expand(prefix));
+                for path in &mut paths {
+                    path.extend_from_slice(items);
+                }
+                paths
+            }
+            skeleton_work::ObservationDagKind::Alt(parts) => {
+                parts.iter().flat_map(|part| expand(part)).collect()
+            }
+            skeleton_work::ObservationDagKind::Cat(parts) => {
+                let mut paths = vec![vec![]];
+                for part in parts {
+                    let suffixes = expand(part);
+                    paths = paths
+                        .into_iter()
+                        .flat_map(|prefix| {
+                            suffixes.iter().map(move |suffix| {
+                                let mut path = prefix.clone();
+                                path.extend_from_slice(suffix);
+                                path
+                            })
+                        })
+                        .collect();
+                }
+                paths
+            }
+        }
+    }
+    let (prefix, items) = observations.parts();
+    let mut paths = prefix.map_or_else(|| vec![vec![]], |prefix| expand(prefix));
+    for path in &mut paths {
+        path.extend_from_slice(items);
+    }
+    paths
+}
+
+pub(super) fn same_paths(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
     assert_eq!(actual.len(), expected.len());
     for (actual, expected) in actual.iter().zip(expected) {
-        assert_eq!(actual.observations, expected.observations);
+        assert_eq!(
+            observation_sequences(&actual.observations),
+            observation_sequences(&expected.observations)
+        );
         assert_eq!(actual.owned_source, expected.owned_source);
         assert_eq!(actual.failed, expected.failed);
         assert_eq!(actual.residual, expected.residual);

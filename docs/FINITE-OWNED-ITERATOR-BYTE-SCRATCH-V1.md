@@ -142,6 +142,8 @@ The import-free public generic Core Wasm provider reserves 8,960 bytes for
 the provider bounds table demand from the selected endpoint's exact reachable
 closure. It charges all reachable literal Vec constructions, including
 multiple calls to the same helper and constructors on different branches.
+The compiler charges the memo table to the active budget before reserving one
+entry per monomorphic function and concrete instance.
 Recursion, unknown calls, loop-local Vec construction and unsupported Vec
 operations fail closed. The table occupies the existing reserved space
 between the byte token table and its payload arena.

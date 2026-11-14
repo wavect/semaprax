@@ -94,7 +94,7 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
             .map(|function| used || crate::iterator_ops::function_uses_owned_iterator(function))
     })?;
     let source_function_index_base = if uses_iterator {
-        iterator_capacity::prove(program, &FunctionExecutionId::Monomorphic(selected.clone()))?;
+        iterator_capacity::prove(program, selected)?;
         if super::vec_import_base(program) != PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN
             || super::iterator_ops::owned_import_base(program)
                 != PUBLIC_GENERIC_PROVIDER_SOURCE_INDEX_MIN + super::VEC_IMPORT_COUNT

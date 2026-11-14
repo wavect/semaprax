@@ -1,13 +1,11 @@
 //! Conservative table demand for the import-free Bytes iterator runtime.
 //! Count every reachable construction, including repeated helper calls.
 //! Iterator conversion, push and next reuse a row and never add a live row.
-use std::collections::HashMap;
-
-use super::{error, function_for_execution};
+use super::error;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    FunctionExecutionId, ResolvedExpr, ResolvedExprKind as K, ResolvedProgram,
-    ResolvedStatement as S, ResolvedType,
+    DeclarationId, ResolvedExpr, ResolvedExprKind as K, ResolvedProgram, ResolvedStatement as S,
+    ResolvedType,
 };
 use crate::vec_ops::VecOp;
 
@@ -15,24 +13,51 @@ const ROWS: u32 = 32;
 const CAPACITY: u64 = 32;
 const WORK: usize = 100_000;
 
-pub(super) fn prove(
-    program: &ResolvedProgram,
-    entry: &FunctionExecutionId,
-) -> Result<u32, Diagnostic> {
-    Demand {
+#[derive(Clone, Copy)]
+enum Count {
+    Unseen,
+    Active,
+    Complete(u32),
+}
+
+pub(super) fn prove(program: &ResolvedProgram, entry: &DeclarationId) -> Result<u32, Diagnostic> {
+    prove_demand(program, entry)
+        .ok_or_else(|| error("public-generic Wasm cannot prove bounded Bytes Vec table demand"))
+}
+
+fn prove_demand(program: &ResolvedProgram, entry: &DeclarationId) -> Option<u32> {
+    let size = program
+        .functions
+        .len()
+        .checked_add(program.function_instances.len())?;
+    let bytes = std::alloc::Layout::array::<Count>(size).ok()?.size();
+    let mut counts = Vec::new();
+    if size >= WORK || !crate::bounded_output::reserve_active_required(bytes) {
+        return None;
+    }
+    if counts.try_reserve_exact(size).is_err() || counts.capacity() != size {
+        crate::bounded_output::refuse_active_required(bytes);
+        return None;
+    }
+    counts.resize(size, Count::Unseen);
+    let mut demand = Demand {
         program,
         remaining: WORK,
-        counts: HashMap::new(),
-    }
-    .execution(entry, 0)
-    .ok_or_else(|| error("public-generic Wasm cannot prove bounded Bytes Vec table demand"))
+        counts,
+    };
+    demand.pay(size)?;
+    let entry = program
+        .functions
+        .iter()
+        .position(|function| function.id == *entry)?;
+    demand.execution(entry, 0)
 }
 
 struct Demand<'a> {
     program: &'a ResolvedProgram,
     remaining: usize,
-    // A present None marks a call on the active path.
-    counts: HashMap<FunctionExecutionId, Option<u32>>,
+    // Monomorphic functions precede materialized instances, in HIR order.
+    counts: Vec<Count>,
 }
 
 impl Demand<'_> {
@@ -41,17 +66,22 @@ impl Demand<'_> {
         Some(())
     }
 
-    fn execution(&mut self, id: &FunctionExecutionId, depth: usize) -> Option<u32> {
+    fn execution(&mut self, index: usize, depth: usize) -> Option<u32> {
         self.pay(1)?;
-        if let Some(count) = self.counts.get(id) {
-            return *count;
+        match self.counts[index] {
+            Count::Active => return None,
+            Count::Complete(count) => return Some(count),
+            Count::Unseen => {}
         }
         if depth >= crate::cache_codec::MAX_DEPTH {
             return None;
         }
-        self.pay(self.program.functions.len() + self.program.function_instances.len())?;
-        let function = function_for_execution(self.program, id).ok()?;
-        self.counts.insert(id.clone(), None);
+        let function = if index < self.program.functions.len() {
+            &self.program.functions[index]
+        } else {
+            &self.program.function_instances[index - self.program.functions.len()].function
+        };
+        self.counts[index] = Count::Active;
         let mut count = 0;
         for root in function
             .requires
@@ -61,7 +91,7 @@ impl Demand<'_> {
         {
             count = add(count, self.expression(root, depth + 1)?)?;
         }
-        self.counts.insert(id.clone(), Some(count));
+        self.counts[index] = Count::Complete(count);
         Some(count)
     }
 
@@ -150,17 +180,24 @@ impl Demand<'_> {
                     .then_some(count);
                 }
             }
-            self.pay(self.program.functions.len() + self.program.function_instances.len())?;
-            if self
-                .program
-                .resolve_call_target(callee, instance.as_ref())
-                .is_some()
-            {
-                let target = instance.as_ref().map_or_else(
-                    || FunctionExecutionId::Monomorphic(callee.clone()),
-                    |instance| FunctionExecutionId::Generic(instance.clone()),
-                );
-                return add(count, self.execution(&target, depth)?);
+            self.pay(self.counts.len())?;
+            let index = match instance {
+                None => self
+                    .program
+                    .functions
+                    .iter()
+                    .position(|function| function.id == *callee),
+                Some(instance) => self
+                    .program
+                    .function_instances
+                    .iter()
+                    .position(|candidate| {
+                        candidate.id == *instance && candidate.template == *callee
+                    })
+                    .map(|index| self.program.functions.len() + index),
+            };
+            if let Some(index) = index {
+                return add(count, self.execution(index, depth)?);
             }
             if instance.is_none()
                 && crate::string_ops::by_id(callee.as_str())

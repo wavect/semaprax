@@ -438,3 +438,27 @@ workflow profiling enabled and warnings denied. The retained provenance
 SHA-256 is
 `8a351dc33aa498d80731852159cf65771dd3d4a8354b24d008699d789d11117e`.
 Both runs used the shipping 128 MiB limit and reached no mode-six attempt.
+
+The joint change at `7e2c0e343` passed both deferred-filter controls and
+all eight retained-scratch owners in the combined library build. The
+four-module test reported a 6,405,786-byte forecast against the original
+6,418,504 bytes, a warm allocation peak of 824,395 bytes, and zero live bytes
+after Drop. In a fresh process it observed an 830,815-byte peak including
+6,420 bytes of authenticated static prelude storage. Two pre-existing
+mode-six tests still observe cumulative allocation beyond explicit payment.
+The combined executable embedded a closed-root manifest from before its
+final pin refresh. The unchanged custody test body, compiled separately with
+the final manifest and repository reader, passed the complete inverse and
+physical-source checks.
+
+A separate identity-discount prototype used a sorted exact-capacity vector
+for declarations, built at the first ordinary lookup. The six application
+source sets from the Linux census, with their bundled dependency closures,
+gave 112 matching old and new discount results using both import settings.
+The probe requested and freed 1,831,424 bytes in the original and 1,074,944
+bytes in the prototype. The normalizer and its dependency closure accounted
+for 644,592 original bytes and 385,712 prototype bytes. An isolated
+reservation control with a simulated ledger requested 64 bytes at the exact
+bound and allocated nothing at one byte short or at zero. These observations
+cover the identity discount alone. The complete fallback and production
+ledger still need qualification.

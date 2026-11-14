@@ -981,6 +981,46 @@ paired bundle byte for byte.
 | Live compact-response module trace | `19186c050ea4daacc590af9188e3d281a0ec9ceb6ce3242bbedb6c11fe2c1f45` |
 | Native wire comparison | `c09436ca33a6d2d42a061d2595b9466c4cc4289dbdc0487eec1af1f16cc09e75` |
 
+#### Uncached synthetic AST peak for borrowed imports
+
+A local experiment on the same compiler source compared the live
+synthetic AST reservation with and without the authored AST component
+for ordinary borrowed imports. The candidate used the existing import
+eligibility check, excluded reserved Vec and Box wrapper identities,
+subtracted the raw authored AST census, and added the tagged input
+carrier. The static forecast, constructor charges and all live
+resolution and validation charges were the same in both arms.
+
+| Decode-only route at 64 MiB | Original first refusal | Candidate first refusal |
+| --- | --- | --- |
+| Installed command with shared Row bodies | Loan vector backing, requested 7,392 bytes with 3,056 left | Canonical loan directory append, requested 15,840 bytes with 11,876 left in `src/tests.spx` |
+| Installed command with compact response | Synthetic AST peak, requested 376,225 bytes with 33,115 left | Synthetic module construction, requested 96 bytes with 8 left in `src/schedule.spx` |
+| Paired codec derivation with original response | Synthetic module construction, requested 104 bytes with 8 left | Fresh HIR resolution, requested 520 bytes with 480 left in `src/schedule.spx` |
+
+The compact command's original per-module peak estimate for
+`src/schedule.spx` was 519,343 bytes. Its authored component was
+505,753 bytes and the candidate estimate was 13,854 bytes. The
+highest candidate peak charged before refusal was 26,046 bytes
+from `src/app.spx`. The experiment paid 117,072 fewer bytes toward
+that peak before entering `src/schedule.spx` and then reached the
+constructor's own charges. The flag-disabled trace matched the
+previous compact-response trace byte for byte.
+
+The ordinary borrowed constructor references the pre-existing authored
+source and owns its generated overlays. A production bound also needs
+to cover source materialization for record invariants, imported
+generated declarations and directory backing. This experiment qualifies
+only the observed refusal frontiers. The installed command and the
+paired derivation still fail at the original 64 MiB limit.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Local experiment patch | `926101582e815d8ac5f5b37b51676e1871dcb6e58a2af5d41e7ff7fe6b64e651` |
+| Compact installed command candidate trace | `28f3cdfb50400dc59ab57bbe4388c5d076520379841889a0ca401b69e843321a` |
+| Shared-Row installed command candidate trace | `6c639749b6db1472f5d338817f1182a8ab5df35780d4a49463e1afad0d51b339` |
+| Paired derivation control trace | `176cd1e93b022466653150c7b00327f935bca4657c3dc936d8acc5719f7b2f0c` |
+| Paired derivation candidate trace | `97dffc577d2fb7e0dab066d0c08999f8ccb6d2253388fa586a07f61d6f58e1d8` |
+
 ### Native codec and generated key controls at 64 MiB
 
 On the historical-default build above, both native primitive String codec

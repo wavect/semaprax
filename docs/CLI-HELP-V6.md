@@ -181,3 +181,21 @@ The exhaustive catalog and all scoped help spellings now derive those forms
 from the same entries. The owning historical catalog comparison passed with
 both older snapshots preserved. The local CLI was relinked against the
 retained compiler library for this CLI-only change.
+
+A subsequent offline replay used the task index, first task page and exact
+cards to locate selected-file invocation for LogLens and typed request/response
+composition for ShiftSim. The three LogLens queries returned 3,545 stdout
+bytes. The five ShiftSim queries returned 6,869 bytes. Every response fit
+within 2,048 bytes, and both explicit full references remained available at
+341,131 bytes combined. These were manually chosen discovery paths on the
+current CLI, with deterministic, identical standalone and full-host output
+and no files created. They measure captured command output.
+
+The replay also found that the selected-file task linked a card search for
+`file_read_text` where it promised an exact built-in signature. The task now
+shows the argument and file-read signatures and their effects directly.
+The complete corrected selected-file sequence returns 5,326 bytes over
+three pages. The CLI-only rebuilds left the working directory empty and
+returned byte-identical pages. Matched live task acceptance and actual
+delivered tool output remain unmeasured.
+The standalone and full-host harnesses passed all 13 and seven checks, respectively.

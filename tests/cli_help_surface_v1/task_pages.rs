@@ -228,6 +228,16 @@ fn selected_file_resource_task_pages_keep_exact_profile_limits_and_zero_side_eff
     }
     assert!(pages.contains(route["manifest"].as_str().unwrap()));
     assert!(pages.contains("NOT a new template"));
+    for signature in [
+        "args_len() -> usize",
+        "arg_utf8(index: usize) -> borrow str (process.args.read)",
+        "file_read_text(path: borrow str) -> string (fs.read)",
+    ] {
+        assert!(
+            pages.contains(signature),
+            "missing built-in signature: {signature}"
+        );
+    }
     assert!(pages.contains("./app-bin --spx-selected-file-v1 0 -- <file> <your-options>"));
     for forbidden in [
         "LogLens",

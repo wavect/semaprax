@@ -211,3 +211,13 @@ account for 66,248,903 bytes at that step. That first-step gap does not
 bound the reduction required for the remaining modules or later validation.
 The combined joint and imported-module census candidate is being checked
 through the same Project entry point at the same cap.
+
+The existing whole-normalizer library owner passed at the default 128 MiB
+cap on the retained `6f1db7ec4` test image. All twelve authored and dependency
+inputs matched the current files by length and SHA-256. The actual mode-one
+attempt prebound 117,144,618 bytes and refused after consuming 134,217,649
+bytes. Its first sticky debit requested 160 bytes with 79 remaining during
+HIR loan-plan construction. Mode two prebound 81,369,005 bytes and completed
+at 107,349,690 bytes. The first failed attempt's debit remained in the maximum
+phase receipt. The owner reached no mode-six forecast at this cap. Log SHA-256
+is `16318553222c1ae43c828b93aa7c19450cf90866d2ea57845b4b85a5311c3e51`.

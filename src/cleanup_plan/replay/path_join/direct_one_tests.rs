@@ -109,14 +109,23 @@ fn only_deleted_singleton_iterator_carriers_leave_each_actual_paid_bank() {
     // Constructor, directory backing, held authority, entry/group banks and
     // final Drop keep their full former prices/layouts. No setup credit exists.
     let old = include_str!("direct_one_before/boxed_flow.rs.txt");
-    let now = include_str!("boxed_flow.rs");
+    let now = include_str!("boxed_flow.rs")
+        .strip_prefix(concat!(
+            "#![allow(\n",
+            "    clippy::duplicate_mod,\n",
+            "    reason = \"Compile the complete implementation against independent current and historical replay owners.\"\n",
+            ")]\n",
+        ))
+        .expect("exact lint attribute added for independent historical compilation");
+    let bank = "// Direct lexical producers";
+    let terminal = "// One terminal local Diagnostic";
     assert_eq!(
-        old.split("// Direct lexical producers").next(),
-        now.split("// Direct lexical producers").next()
+        old.split_once(bank).unwrap().0,
+        now.split_once(bank).unwrap().0
     );
     assert_eq!(
-        old.split("// One terminal local Diagnostic").nth(1),
-        now.split("// One terminal local Diagnostic").nth(1)
+        old.split_once(terminal).unwrap().1,
+        now.split_once(terminal).unwrap().1
     );
 }
 // Incremental against immediate8caff only. The unchanged frontier_tests::whole

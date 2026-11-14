@@ -1077,7 +1077,7 @@ fn all_shipping_bodies_and_complete_generation_sources_authenticate_before_every
             first["edits"] = epoch["from_current"].clone();
             first["before_length"] = epoch["length"].clone();
             first["before_sha256"] = epoch["sha256"].clone();
-            let warm = restore_source(&first, &raw);
+            let warm = restore_source(&first, &acquisition_epoch(path, &raw, row));
             let mut second = row.clone();
             second["length"] = epoch["length"].clone();
             second["sha256"] = epoch["sha256"].clone();

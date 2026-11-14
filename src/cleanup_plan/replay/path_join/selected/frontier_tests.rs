@@ -429,7 +429,9 @@ fn promotion_comparison_unwind_drops_both_owners_once_after_prepublication_payme
             COMPARES.with(|n| {
                 let next = n.get() + 1;
                 n.set(next);
-                assert_ne!(next, 2, "injected publication comparison unwind");
+                if next == 2 {
+                    std::panic::resume_unwind(Box::new(()));
+                }
             });
             self.0.cmp(&other.0)
         }
@@ -439,11 +441,10 @@ fn promotion_comparison_unwind_drops_both_owners_once_after_prepublication_payme
             Some(self.cmp(other))
         }
     }
-    // Initialize only the default panic reporter's process-lifetime locks.
-    // No compiler work runs here; the actual default hook and complete unwind
-    // remain inside observation, and every live/Drop assertion stays strict.
-    drop(std::io::stderr().lock());
-    drop(std::backtrace::Backtrace::force_capture());
+    // Warm the unwind runtime before measuring the compiler's owners.
+    let warmup = std::panic::catch_unwind(|| std::panic::resume_unwind(Box::new(())));
+    assert!(warmup.is_err());
+    drop(warmup);
     let f = function();
     DROPS.with(|n| n.set(0));
     COMPARES.with(|n| n.set(0));
@@ -457,8 +458,9 @@ fn promotion_comparison_unwind_drops_both_owners_once_after_prepublication_payme
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 receiver.insert_owned(&f, &mut target, Unwind(scalar(2)), &mut b)
             }));
-            assert!(result.is_err());
-            drop(result);
+            let error = result.unwrap_err();
+            assert!(error.is::<()>());
+            drop(error);
             assert!(target.is_empty());
             assert_eq!(DROPS.with(Cell::get), 2);
             drop(target);

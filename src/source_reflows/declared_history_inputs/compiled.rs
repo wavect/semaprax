@@ -610,5 +610,7 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/storage/atomic_controls.rs")),
 "src/cleanup_plan/replay/path_join/field_local/inverse.json" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/field_local/inverse.json")),
 "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs")),
+"src/cleanup_plan/replay/path_join/frontier_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")),
+"src/cleanup_plan/replay/path_join/fused_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/fused_tests.rs")),
 _ => panic!("unknown declared current source"), }
 }

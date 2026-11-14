@@ -721,7 +721,9 @@ fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owner
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
             PANIC_COMPARES.with(|n| {
                 n.set(n.get() + 1);
-                assert_ne!(n.get(), 2, "injected publication comparison unwind");
+                if n.get() == 2 {
+                    std::panic::resume_unwind(Box::new(()));
+                }
             });
             self.0.cmp(&other.0)
         }
@@ -736,18 +738,10 @@ fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owner
             DROPS.with(|n| n.set(n.get() + 1));
         }
     }
-    // Rust1.97 Darwin's default panic report lazily Box::pins its static
-    // backtrace pthread mutex (8-byte signature +56-byte payload). Initialize
-    // that process-global harness owner before BOTH compiler observations;
-    // measured publication faults still use the unchanged default hook.
-    let report = std::panic::catch_unwind(|| {
-        assert_ne!(
-            2usize, 2usize,
-            "initialize default panic reporting outside observation"
-        );
-    });
-    assert!(report.is_err());
-    drop(report);
+    // Warm the unwind runtime before measuring the compiler's owners.
+    let warmup = std::panic::catch_unwind(|| std::panic::resume_unwind(Box::new(())));
+    assert!(warmup.is_err());
+    drop(warmup);
     for old in [false, true] {
         PANIC_COMPARES.with(|n| n.set(0));
         DROPS.with(|n| n.set(0));
@@ -763,7 +757,8 @@ fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owner
                         let error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                             r.insert_owned(&f, &mut target, Unwind(2), &mut b)
                         }));
-                        assert!(error.is_err());
+                        let error = error.unwrap_err();
+                        assert!(error.is::<()>());
                         drop(error);
                         assert!(target.is_empty());
                         assert_eq!(DROPS.with(Cell::get), 2);
@@ -833,16 +828,18 @@ pub(super) fn before_source(path: &str, supplied: String) -> String {
         supplied
     };
     let physical = field_local::tests::source_before(path, &physical);
-    let physical = if path == "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" {
-        crate::source_reflows::declared_history_inputs::expected_value(
-            path,
-            row["sha256"].as_str().unwrap(),
-            std::str::from_utf8(&physical).unwrap(),
-        )
-        .expect("authenticate the entire compact frontier test before its fused inverse")
-        .into_bytes()
-    } else {
-        physical
+    let physical = match path {
+        "src/cleanup_plan/replay/path_join/compact_failure_tests.rs"
+        | "src/cleanup_plan/replay/path_join/frontier_tests.rs" => {
+            crate::source_reflows::declared_history_inputs::expected_value(
+                path,
+                row["sha256"].as_str().unwrap(),
+                std::str::from_utf8(&physical).unwrap(),
+            )
+            .expect("authenticate the complete frontier test before its fused inverse")
+            .into_bytes()
+        }
+        _ => physical,
     };
     let supplied = if supplied.as_bytes() == compiled {
         String::from_utf8(physical.clone()).unwrap()

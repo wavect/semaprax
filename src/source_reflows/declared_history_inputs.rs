@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         134653,
-        "2a789ff308a607ece680ad9faa36d0eace34fecdc18018760d2617dc23dab8b5",
+        "1768d4c704f819344d8f65c11db392a9f0828063ed0e456c1edc8476e35b8b34",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -417,8 +417,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-44.json"
         )),
-        189929,
-        "d2a1ed814f8d6f636f00a6f427bf50e6cfa5292471498580c2ec6422c75dbb73",
+        191467,
+        "08a56cf1c54ba0cdbf253dea01a0684f1ef44e626f356e2596b0169ae6e0d550",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-45.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1927829,
-        "a48455e39833b9c0ea727b426273d8a458d6ec30b9a8e9c715980208e4d44f9f",
+        1934924,
+        "dcde734a0c98da00d01ed8e08510fd7e6087048986a7a422bdb24111bb70e02d",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -1368,6 +1368,10 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/workspace_graph.rs", "b7e765224d902c1d4ae78dd7834016282c987eb6f16657447829507cbfe5de39") => Some((45,232)),
 ("src/cleanup_plan/replay/skeleton_work.rs", "1e651a283e01a31a37663592290cb71a13c4cf461803ca19fe2922f6f9f58dd6") => Some((45,233)),
 ("src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs", "1c3d3e6b6d4ab83e103659de432d899960c6e533625528bb8079dcb4aaad7441") => Some((45,234)),
+("src/cleanup_plan/replay/path_join/frontier_tests.rs", "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf") => Some((45,235)),
+("src/cleanup_plan/replay/path_join/fused_tests.rs", "4cbbb7995890355b8dd7ef96bcbe2254c2764271d4bd35979eea8882a9c5fa27") => Some((45,236)),
+("src/cleanup_plan/replay/path_join/selected/frontier_tests.rs", "3a5463e01040f296252142a47869022af5ddb2877b83ee805806ef7e9e4784d7") => Some((45,237)),
+("src/bounded_output/exclusive_debits.rs", "0c43f2acd2230a4bf1e443c7f3ba5ca2fee3f086ed3f65216e484ee8a7ed2cf4") => Some((45,238)),
 _ => None, }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

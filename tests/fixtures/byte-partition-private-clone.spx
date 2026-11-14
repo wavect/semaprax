@@ -1,0 +1,39 @@
+module partition_clone;
+
+@id("partition_clone.take_child")
+fn take_child() -> Bytes
+{
+    let seed = [0u8, 255u8, 195u8, 169u8, 128u8, 0u8];
+    let input = array_as_slice(seed);
+    let whole = bytes_copy(input);
+    let children = bytes_partition(whole, 3usize, 2usize);
+    for own item in vec_into_iter<Bytes>(children) {
+        if true { return item; };
+        0
+    }
+    bytes_zeroed(0usize)
+}
+
+@id("partition_clone.main")
+fn main() -> i64
+{
+    let mut item = take_child();
+    let view = bytes_as_slice(item);
+    let copied = bytes_copy(view);
+    item = bytes_set(item, 1usize, 77u8);
+    let original = bytes_as_slice(item);
+    let copy = bytes_as_slice(copied);
+    let mutated = match byte_get(original, 1usize) {
+        Option::Some { value } => value == 77u8,
+        Option::None {} => false,
+    };
+    let isolated = match byte_get(copy, 1usize) {
+        Option::Some { value } => value == 255u8,
+        Option::None {} => false,
+    };
+    let nul = match byte_get(copy, 0usize) {
+        Option::Some { value } => value == 0u8,
+        Option::None {} => false,
+    };
+    if mutated && isolated && nul { 1 } else { 0 }
+}

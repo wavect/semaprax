@@ -17,6 +17,8 @@ const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 const ITERATOR_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
+const CLONE_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-clone.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
@@ -60,6 +62,7 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
         (iterator.as_str(), "4096", "65536", "1", "65536"),
         (SHARED_SOURCE, "4096", "65536", "1", "65536"),
         (ITERATOR_SOURCE, "16", "65536", "1", "65536"),
+        (CLONE_SOURCE, "1", "8", "2", "8"),
         (EMPTY_SOURCE, "0", "0", "1", "0"),
         (CAPACITY_SOURCE, "8192", "8192", "1", "8192"),
         (REPEATED_SOURCE, "8193", "8192", "2", "8193"),
@@ -95,6 +98,12 @@ fn checked_source_partition_emits_real_4096_vec_and_consuming_iterator_with_sett
 fn actual_partition_failure_codes_keep_owner_live_until_canonical_cleanup_and_reentry() {
     use crate::construction_fusion::partition::operation::{STATUS_CODES, STATUS_DOMAIN};
     let mut cases = vec![
+        (
+            CLONE_SOURCE.replace("item, 1usize, 77u8", "item, 2usize, 77u8"),
+            crate::byte_ops::SET_STATUS_DOMAIN,
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+            "8",
+        ),
         (
             SHARED_SOURCE.replace("-> i64", "-> i64 ensures result == 4095"),
             crate::conformance::CONTRACT_STATUS_DOMAIN_V1,

@@ -16,6 +16,8 @@ const EMPTY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-empty.spx");
 const ITERATOR_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-iterator.spx");
+const CLONE_SOURCE: &str =
+    include_str!("../../../../tests/fixtures/byte-partition-private-clone.spx");
 const CAPACITY_SOURCE: &str =
     include_str!("../../../../tests/fixtures/byte-partition-private-capacity.spx");
 const REPEATED_SOURCE: &str =
@@ -108,6 +110,7 @@ fn original_4096_source_reaches_shared_native_carriers_and_canonical_settlement_
         (source(CAPACITY_SOURCE), 8192, 1, 8192),
         (source(REPEATED_SOURCE), 8193, 2, 8193),
         (source(ITERATOR_SOURCE), 16, 1, 65536),
+        (source(CLONE_SOURCE), 1, 2, 8),
     ] {
         let root = scratch("source-partition");
         compile_and_run(

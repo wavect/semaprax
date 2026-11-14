@@ -119,7 +119,7 @@ impl<'owner, 'source> Projection<'owner, 'source> {
                     .chain(std::iter::once(&function.body))
                     .chain(&function.ensures)
                 {
-                    walk(root, copy_out.is_some(), work)?;
+                    walk(root, work)?;
                 }
             }
             // This first receiving closure has exactly these physical owner
@@ -218,6 +218,14 @@ fn admitted_type(ty: &ResolvedType, work: &mut usize) -> Result<(), Diagnostic> 
         ResolvedType::Nominal {
             declaration,
             arguments,
+        } if arguments == &[ResolvedType::U8]
+            && equal(declaration.as_str(), crate::prelude::OPTION_ID, work)? =>
+        {
+            Ok(())
+        }
+        ResolvedType::Nominal {
+            declaration,
+            arguments,
         } if arguments == &[ResolvedType::Bytes]
             && (equal(declaration.as_str(), crate::prelude::VEC_ID, work)?
                 || equal(declaration.as_str(), crate::iterator_ops::ITER_ID, work)?
@@ -230,12 +238,12 @@ fn admitted_type(ty: &ResolvedType, work: &mut usize) -> Result<(), Diagnostic> 
         )),
     }
 }
-fn walk(root: &ResolvedExpr, lexical_return: bool, work: &mut usize) -> Result<(), Diagnostic> {
+fn walk(root: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
     take(work, 514)?;
     let mut cursors = [None; 514];
     let mut depth = 0;
     cursors[0] = Some(hir::lexical_exit::ChildCursor::new(root));
-    check(root, lexical_return, work)?;
+    check(root, work)?;
     loop {
         take(work, 1)?;
         let child = cursors[depth].as_mut().expect("retained cursor").next();
@@ -243,7 +251,7 @@ fn walk(root: &ResolvedExpr, lexical_return: bool, work: &mut usize) -> Result<(
             if depth + 1 == cursors.len() {
                 return Err(error("native partition receiving depth"));
             }
-            check(child, lexical_return, work)?;
+            check(child, work)?;
             depth += 1;
             cursors[depth] = Some(hir::lexical_exit::ChildCursor::new(child));
         } else if depth == 0 {
@@ -255,11 +263,7 @@ fn walk(root: &ResolvedExpr, lexical_return: bool, work: &mut usize) -> Result<(
     }
     Ok(())
 }
-fn check(
-    expression: &ResolvedExpr,
-    lexical_return: bool,
-    work: &mut usize,
-) -> Result<(), Diagnostic> {
+fn check(expression: &ResolvedExpr, work: &mut usize) -> Result<(), Diagnostic> {
     take(work, 1)?;
     admitted_type(&expression.ty, work)?;
     match &expression.kind {
@@ -277,6 +281,7 @@ fn check(
                             | crate::byte_ops::ByteOp::Set
                             | crate::byte_ops::ByteOp::Partition
                             | crate::byte_ops::ByteOp::Len
+                            | crate::byte_ops::ByteOp::Get
                     ) {
                         Ok(())
                     } else {
@@ -307,16 +312,14 @@ fn check(
         ResolvedExprKind::Block { statements, .. } => {
             for statement in statements {
                 take(work, 1)?;
-                if !matches!(statement, hir::ResolvedStatement::Let { .. })
-                    && !(lexical_return
-                        && matches!(
-                            statement,
-                            hir::ResolvedStatement::LexicalWhile { .. }
-                                | hir::ResolvedStatement::While { .. }
-                                | hir::ResolvedStatement::Assign { .. }
-                                | hir::ResolvedStatement::CopyDiscard { .. }
-                        ))
-                {
+                if !matches!(
+                    statement,
+                    hir::ResolvedStatement::Let { .. }
+                        | hir::ResolvedStatement::LexicalWhile { .. }
+                        | hir::ResolvedStatement::While { .. }
+                        | hir::ResolvedStatement::Assign { .. }
+                        | hir::ResolvedStatement::CopyDiscard { .. }
+                ) {
                     return Err(error("native partition statement binding is not complete"));
                 }
             }
@@ -331,9 +334,9 @@ fn check(
         ResolvedExprKind::LexicalExit {
             kind: crate::ast::LexicalExitKind::Return,
             ..
-        } if lexical_return => Ok(()),
-        ResolvedExprKind::ConstructVariant { .. } if lexical_return => Ok(()),
-        ResolvedExprKind::Match { .. }
+        }
+        | ResolvedExprKind::ConstructVariant { .. }
+        | ResolvedExprKind::Match { .. }
         | ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Usize(_)

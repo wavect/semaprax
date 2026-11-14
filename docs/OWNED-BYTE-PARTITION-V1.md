@@ -225,6 +225,13 @@ shared-owner runtime. The generated test copies a child containing NUL and
 non-UTF-8 bytes after its iterator has settled, mutates the original child,
 and verifies the copy retains its bytes. The adjacent out-of-bounds store
 selects the byte-buffer status and settles both backings before returning.
+The shared `byte-partition-private-clone.spx` fixture executes the same
+early iterator return, copy, mutation, and byte reads through native C11
+at O0/O2 and paired Core Wasm. It observes the mutated child and the
+original bytes in the copy, including NUL and 0xFF. Both executions account
+for two backing allocations and eight payload bytes per invocation.
+The paired Core-Wasm failure case also checks the exact byte-buffer status,
+settlement and reentry after a write past the child extent.
 
 ## Independent frontend and target proof obligations
 

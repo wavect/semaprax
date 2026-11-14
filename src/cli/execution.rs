@@ -17,6 +17,7 @@ pub(crate) struct ExecutionOptions {
     pub(crate) max_steps: Option<usize>,
     pub(crate) max_bytes: Option<usize>,
     pub(crate) native: bool,
+    pub(crate) partition_account: Option<semaprax::interpreter::partition_source::RuntimeAccount>,
     pub(crate) fused_account: Option<semaprax::fused_source::RuntimeAccount>,
     pub(crate) native_test: Option<NativeTestLimits>,
     /// Program arguments after `--`, passed to a single-file command-line
@@ -286,28 +287,54 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         },
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
     };
-    let fused_account = match profile.as_deref() {
+    let (fused_account, partition_account) = match profile.as_deref() {
         Some(semaprax::fused_source::PROFILE)
             if matches!(input, ExecutionInput::Source(_))
                 && arguments.is_empty()
                 && max_bytes.is_none() =>
         {
-            Some(managed.ok_or_else(|| {
-                eprintln!(
-                    "fused-construction-v1 requires explicit --managed-bytes <1..=1073741824>"
-                );
-                2
-            })?)
+            (
+                Some(managed.ok_or_else(|| {
+                    eprintln!(
+                        "fused-construction-v1 requires explicit --managed-bytes <1..=1073741824>"
+                    );
+                    2
+                })?),
+                None,
+            )
+        }
+        Some(semaprax::interpreter::partition_source::PROFILE)
+            if matches!(input, ExecutionInput::Source(_))
+                && arguments.is_empty()
+                && max_bytes.is_none()
+                && max_steps.is_none()
+                && !native =>
+        {
+            (
+                None,
+                Some(managed.ok_or_else(|| {
+                    eprintln!(
+                        "byte-partition-v1 requires explicit --managed-bytes <1..=1073741824>"
+                    );
+                    2
+                })?),
+            )
+        }
+        Some(semaprax::interpreter::partition_source::PROFILE) => {
+            eprintln!("byte-partition-v1 requires one source file and accepts only --managed-bytes and --json");
+            return Err(2);
         }
         Some(_) => {
             eprintln!("run profile requires fused-construction-v1, one source file, no arguments and no --max-bytes");
             return Err(2);
         }
         None if managed.is_some() => {
-            eprintln!("--managed-bytes requires --profile fused-construction-v1");
+            eprintln!(
+                "--managed-bytes requires --profile fused-construction-v1 or byte-partition-v1"
+            );
             return Err(2);
         }
-        None => None,
+        None => (None, None),
     };
     if native && !matches!(input, ExecutionInput::Source(_)) {
         eprintln!("run option `--native` requires a single .spx source file");
@@ -367,6 +394,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         max_bytes,
         native,
         fused_account,
+        partition_account,
         native_test,
         arguments,
     })
@@ -441,6 +469,7 @@ mod tests {
                 max_bytes: None,
                 native: false,
                 fused_account: None,
+                partition_account: None,
                 native_test: None,
                 arguments: Vec::new(),
             }
@@ -454,6 +483,7 @@ mod tests {
                 max_bytes: None,
                 native: false,
                 fused_account: None,
+                partition_account: None,
                 native_test: None,
                 arguments: Vec::new(),
             }
@@ -478,6 +508,7 @@ mod tests {
                 max_bytes: Some(65536),
                 native: false,
                 fused_account: None,
+                partition_account: None,
                 native_test: None,
                 arguments: Vec::new(),
             }
@@ -499,6 +530,7 @@ mod tests {
                 max_bytes: Some(65536),
                 native: false,
                 fused_account: None,
+                partition_account: None,
                 native_test: None,
                 arguments: Vec::new(),
             }
@@ -539,6 +571,7 @@ mod tests {
                 max_steps: Some(1),
                 native: false,
                 fused_account: None,
+                partition_account: None,
                 native_test: None,
                 max_bytes: None,
                 arguments: Vec::new(),

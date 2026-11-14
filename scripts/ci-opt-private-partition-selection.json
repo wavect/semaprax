@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 8,
-  "expected_tests": 47,
+  "filters": 9,
+  "expected_tests": 48,
   "commands": [
     {
       "owner": "OPT746 independent partition geometry and source/HIR operand proof",
@@ -56,6 +56,13 @@
       "owner": "OPT746 Core-Wasm shared-owner host lifecycle",
       "binary": "lib",
       "filter": "wasm::shared_owner::tests::shared_owner_hostile_lifecycle_regressions",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT746 explicit CLI source account, execution, failure and refusal",
+      "binary": "quickstart_v1",
+      "filter": "partition_source::explicit_partition_source_run_publishes_scalar_and_failure_after_cleanup",
       "exact": true,
       "expected_tests": 1
     }

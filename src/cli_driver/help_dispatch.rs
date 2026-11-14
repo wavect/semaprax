@@ -11,6 +11,9 @@ pub(super) fn print_scoped_help(command: &str, has_private_host: bool) -> Result
     let help = cli::help::global(has_private_host);
     if let Some(scoped) = cli::help::scoped(command, has_private_host) {
         print!("{scoped}");
+        if command == "run" {
+            println!("  semaprax run <file> --profile byte-partition-v1 --managed-bytes N [--json]");
+        }
         Ok(())
     } else {
         eprint!(

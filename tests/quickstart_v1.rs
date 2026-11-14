@@ -22,6 +22,8 @@ mod build_cli;
 mod fused_profile;
 #[path = "quickstart_v1/fused_source.rs"]
 mod fused_source;
+#[path = "quickstart_v1/partition_source.rs"]
+mod partition_source;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 

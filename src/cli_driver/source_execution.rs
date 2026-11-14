@@ -217,6 +217,12 @@ pub(super) fn run_interpreted_source(
     path: &Path,
     options: &cli::execution::ExecutionOptions,
 ) -> Result<(), u8> {
+    if let Some(account) = options.partition_account {
+        let result = interpreter::partition_source::run(path, account)
+            .map_err(|errors| report(&errors, options.json))?;
+        println!("{}", result.envelope);
+        return result.returned.then_some(()).ok_or(1);
+    }
     let defaults = interpreter::InterpreterOptions::default();
     let interpreter_options = interpreter::InterpreterOptions::new(
         options.max_bytes.unwrap_or(defaults.max_bytes),

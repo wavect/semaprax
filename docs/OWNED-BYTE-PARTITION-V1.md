@@ -808,6 +808,25 @@ refusal. The focused run includes both private controls. Evaluator root binding,
 call/return transitions and all canonical finalizers still must be joined
 before ordinary source installation.
 
+### Explicit single-file interpreter entry
+
+```sh
+semaprax run tests/fixtures/byte-partition-private-clone.spx --profile byte-partition-v1 --managed-bytes 8388608 --json
+```
+
+The profile runs a checked zero-argument scalar entry using the caller's
+explicit finite requested-layout account. The compiler holds and rechecks the
+source snapshot before publishing `semaprax.interpret.byte-partition.v1`.
+The report binds the source revision, outcome, cleanup completion, backing
+events, payload bytes and managed reservation. The account covers partition
+runtime layouts and backing payloads. Compiler validation, diagnostics,
+serialization and the host thread stack are outside that accounting scope.
+
+A returned scalar exits zero. Language failure and administrative refusal exit
+one with no result field. CLI option errors exit two. This entry covers the
+direct receivers documented below. Workspace, native CLI and public target
+admission remain separate qualification requirements.
+
 ### Private direct source entry checkpoint
 
 The interpreter now has a source-held direct receiver for an immutable main

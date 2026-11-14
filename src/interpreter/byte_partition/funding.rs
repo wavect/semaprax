@@ -67,6 +67,9 @@ impl<'c> Account<'c> {
             logical_refused: Cell::new(false),
         })
     }
+    pub(in crate::interpreter) fn charged(&self) -> usize {
+        self.charged.get()
+    }
     pub(crate) fn handle(&self) -> Handle<'_, 'c> {
         Handle(self)
     }

@@ -63,6 +63,7 @@ mod api_admission;
     reason = "ordinary partition receiving closure pending targets and public copy-out; no Value installer"
 )]
 pub(crate) mod byte_partition;
+pub mod partition_source;
 mod call_frame;
 mod checked_allocation;
 mod closures;

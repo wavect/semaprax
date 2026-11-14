@@ -335,3 +335,28 @@ and its four-module mode-six owner reproduced the 6,573,050-byte forecast
 against the saved 6,418,504 bytes. These measure different validation and
 forecast routes. Both #898 and #903 still require their remaining owning
 checks and application qualification.
+
+The [hosted installed-compiler job](https://github.com/wavect/semaprax/actions/runs/43586136369)
+then ran both unchanged native CLI49 references at `1fe13fc79` using the
+Linux x86-64 bundle compiler without workflow profiling. The selected-file
+and adapted matcher projects each passed the 33 historical checks and the
+16 independent boundary checks through their native wrappers. The runner
+kept the checkout and the compiler executable byte-identical through both
+runs. The qualification receipt SHA-256 is
+`eba31b8404d5ea0b3b2d1743670fbd2b02072d21d5919ee8ecb2cf0c096fd8c1`.
+The selected-file and matcher qualification report digests are
+`064916427b10cc5025fe0d58fc9c51fd0d2e2ac31e71e591ec44357e88334071` and
+`90d8fbd3e9694b1e4ff5e9d9bf43309793a1cce28306f63d2b98c7c0fdf087aa`.
+This used the shipping limit. A separate macOS arm64 rerun of the two
+owning application tests at `6f1db7ec4` passed the Catalog 23 cases and the
+ShiftSim 15 cases, using production and fixture sources unchanged in the
+hosted checkout.
+
+A focused allocation probe compiled the complete old and revised local
+`generic_instance_source_cost` bodies with the existing parser. On both
+64-function monomorphic fixtures, the old receiver requested and freed 3,072
+bytes and the revised receiver requested none. Both returned zero for all
+four cost fields. The revised receiver skips this table only when the module
+has no local generic declarations. This probe covers the local estimator;
+the mode-six call-identity and layout allocations still need their own
+complete accounting.

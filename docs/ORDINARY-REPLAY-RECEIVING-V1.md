@@ -1,11 +1,11 @@
 # Ordinary replay receiving ABI v1
 
-Status: private source contract; executable qualification is pending.
+Status: the focused replay controls pass. Application qualification at the original builder limit remains open.
 
 Audience: compiler contributors and reviewers.
 
-This source candidate owns OPT #892. It has not been compiled, run, benchmarked,
-qualified for adoption, or shown to improve an application. The existing
+This private receiver owns OPT #892. The matched replay measurements and
+application checks are recorded below. The existing
 [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) replay contract and
 [workspace graph](WORKSPACE-SEMANTIC-GRAPH-V1.md) limits remain unchanged.
 
@@ -92,7 +92,7 @@ only reached counters and actual paid bytes; it is not a whole-app census or
 future-work saving. Test-only counters mark overflow incomplete and carry no
 authority. No app admission, net saving or token claim follows from source.
 
-## Executable owner controls (authored, unrun)
+## Executable owner controls
 
 The existing unit harness owns the candidate; no top-level binary is added.
 Complete immediate ordinary, HIR caller and certified lookup bodies are
@@ -110,7 +110,7 @@ partial receiver.
   program composition, real setup/owner/query counts, unchanged 64 MiB gate,
   independent 0/1/32/64-row cost observations, exact/short/zero, original-error
   precedence, malformed status cases, foreign helper index and immutability.
-  The dense-success net-gain assertion is a future adoption gate, not evidence.
+  The dense-success assertion checks the complete current caller invoice.
 
 Current source-custody dependency unions must include every new child, both
 complete old caller children, and their owning registrations before any
@@ -196,3 +196,48 @@ The additional controls compare whole ordinary caller invoices, cached work,
 ordered outputs, every work cut, exact/short/floor reservations and full Drop.
 They are unexecuted: this source change does not establish a positive net result
 or application admission, and it removes no completed census tariff.
+
+## Focused replay and application results
+
+On macOS arm64 with Rust 1.97.1, [`dfe57743b`](https://github.com/wavect/semaprax/commit/dfe57743b2960c35756f9cd62e664afc1a014f4c)
+passed all 31 ordinary receiving and transition tests, the two callable-limit
+controls, the primitive-codec control, and scoped production Clippy.
+The matched callers used the original 67,108,864-byte limit.
+
+| Status fixture rows | Before receiving | Immediate receiving | Transition receiving | Current composition |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 428,491 | 429,391 | 429,391 | 431,471 |
+| 1 | 1,354,511 | 1,355,411 | 1,355,411 | 1,357,491 |
+| 32 | 10,770,524 | 10,731,744 | 10,734,566 | 10,738,648 |
+| 64 | 21,284,553 | 21,205,837 | 21,210,995 | 21,212,773 |
+
+These are cumulative reservation bytes. At 64 rows the immediate receiver
+recorded two setup calls, one retained error/output owner, and 385 status
+queries. The separate transition receiver recorded 64 additional edge queries.
+The current composition saved 71,780 bytes at 64 rows and added 2,980 bytes
+in each cold fixture. All reference receivers completed under their independent
+accounts. The same run passed the six-field diagnostic, exact/short/zero and
+full teardown controls.
+
+The unchanged Catalog23 and starter schema controls passed on the main build.
+All five starter tests passed using the shipping 128 MiB limit, including
+declared native tests and the original CLI49 and ShiftSim15 cases.
+
+A separate production build at the same revision used the existing
+[Project reporting probe](evidence/opt785-application-preparation-20261113/current-project-probe.rs.txt)
+and [one-line limit override](evidence/opt785-application-preparation-20261113/current-builder-limit.patch).
+It ran the unchanged published manifests at 67,108,864 bytes.
+Catalog admitted with 48,615,173 bytes charged. ShiftSim's forecast fit at
+66,704,189 bytes and live construction refused a request for 8,576 bytes
+with 4,162 bytes remaining and no reserved floor. Normalizer refused
+during static admission after six earlier modules retained 66,248,903
+bytes and the next module's forecast added 873,483 bytes. [#892](https://github.com/wavect/semaprax/issues/892)
+remains open at the original limit. These are admission observations for
+this revision. The old/current replay fixtures above isolate the receiver.
+
+Log SHA-256 values for the focused replay, starter, and Catalog23/schema runs,
+respectively:
+
+- `ef33897c902387b43c33686288dbdb71a7db83a9b2943b8525dbb962ab905106`
+- `332ce1f75c2f05ec79eb9a6e24f38c7bb305b3a872e2651ad602f52d5a852bb8`
+- `47b1bff4d5b694d680fe01f0b69dfd019250689ae1c6efa4426d8a7f21d6f36e`

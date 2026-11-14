@@ -84,3 +84,23 @@ passed. The read-only source custody check reported zero drift.
 Workspace formatting and scoped library-test Clippy with warnings denied
 also passed. The unmodified complete historical-view audit is running on
 the candidate binary.
+
+
+### Isolated full-run failures
+
+On the same `6f1db7ec4` all-features libtest executable, the active-variant
+native cleanup, cross-backend durable migration, public fuel settlement, and
+SMT version/deadline tests each passed in an isolated invocation. Their
+original timeouts and test inputs were retained. Three other failures
+reproduced individually. On the later 11,568-test default-feature binary,
+the shape-cursor audit and loan-reachability peak test passed, while the
+typed constructor source audit still reproduced an exact-inverse failure.
+
+The constructor audit was applying its old offsets to the current
+`src/workspace_graph.rs`. The updated eight edits restore all 217,695 bytes
+of the same sealed predecessor. A standalone compilation of the original
+reader and inverse verified the current physical source, its archive, and
+the sealed predecessor before and after replay. The source custody check
+reported no drift. All 54 overlay tests and 10 refresh-script tests passed.
+The owning Rust test and the complete quality gate still require a rerun
+with the corrected source.

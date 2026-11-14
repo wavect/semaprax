@@ -139,8 +139,11 @@ requested and freed 48 bytes for one function and 3,072 bytes for 64 functions.
 Both 64-function fixtures therefore allocate and free 6,144 bytes for empty
 template tables across the two estimates. This is one measured component of
 the baseline allocation mismatch. The probe isolates the local template
-estimator. It does not exercise generic templates, the other forecast
-allocations, or a production fix.
+estimator. A paired probe starting with an empty vector preserved all four
+zero result fields and made no allocation on any of these fixtures. It saves
+3,072 requested bytes per estimate on the 64-function fixtures. The experiment
+does not exercise actual generic templates or establish a funded growth
+strategy for them.
 
 A second isolated probe ran the call-identity discount on the call-free
 scalar fixtures, using the same AST child order for their literal and empty
@@ -152,7 +155,19 @@ allocation. The same two owners alone account for 12,960 requested bytes
 across both estimates on the 64-function scalar fixture, above the 5,688-byte
 explicit reservation reported on the smaller fixture. The 64-function
 whole-estimate total and reservation still need to be recorded together.
-These isolated controls exercise no call or binding lookup.
+The scalar fixtures exercise no call or binding lookup. On the 64-function
+fixture with one local binding per function, the same identity discount
+requested and freed 61,264 bytes per estimate. Its 393 allocations consist
+of nine declaration-tree nodes and six allocations per function. The
+local-binding tables and per-block bookkeeping account for 57,856 bytes per
+estimate above the scalar fixture. Per function, the observed requests were
+three 192-byte layouts, one 200-byte layout, and two 64-byte layouts. The
+one-function binding fixture had the same six local requests, alongside its
+368-byte declaration-tree node. Together with the empty template tables,
+these two isolated owners request 128,672 bytes across the full and retained
+estimates on the binding fixture. An allocation-free declaration lookup
+alone would still leave the binding costs. The probe used the repository
+AST child and scalar-initializer classifiers and no call or import route.
 
 A separate production profiling build from
 `0a68f5420260999ef7e57a1a3641e41a69a95a4a` applied only the
@@ -173,4 +188,6 @@ The normalizer's static refusal combined 66,248,903 retained bytes and an
 873,483-byte module forecast. LogLens completed all 159 profiled comparisons.
 The bounded detail buffer retained 128 rows and reported incomplete detail.
 The shipping application test image independently passed the unchanged Catalog
-23-case and ShiftSim 15-case functional owners at its 128 MiB limit.
+23-case and ShiftSim 15-case functional owners at its 128 MiB limit. The
+same shipping test image passed all 13 Catalog normalizer owners, including
+the interpreter/native/core-Wasm comparison and the frozen framing oracle.

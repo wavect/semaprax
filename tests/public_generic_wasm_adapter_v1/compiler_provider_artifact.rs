@@ -265,6 +265,37 @@ fn owning_break() -> i64 {
 }
 
 #[test]
+fn provider_refuses_reachable_vec_operations_before_emitting() {
+    let helper = r#"
+@id("provider.byte-vec")
+fn byte_vec() -> i64 {
+    let values = vec_push<Bytes>(vec_with_capacity<Bytes>(1usize), bytes_zeroed(1usize));
+    if vec_len<Bytes>(values) == 1usize { 9 } else { 0 }
+}
+"#;
+    let source = format!("{SOURCE}{helper}");
+    let program = resolved_program(&source);
+    let unrelated =
+        semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint_for(&source))
+            .expect("an unrelated Vec helper does not enter the endpoint closure");
+    wasmparser::Validator::new()
+        .validate_all(unrelated.wasm())
+        .unwrap();
+
+    let source = source.replace(
+        "    Envelope<LeafPair> { payload:",
+        "    let seen = byte_vec();\n    if seen != 9 { return value; };\n    Envelope<LeafPair> { payload:",
+    );
+    let program = resolved_program(&source);
+    let endpoint = endpoint_for(&source);
+    let error =
+        semaprax::wasm::emit_public_generic_wasm_provider_v1(&program, &endpoint).unwrap_err();
+    assert_eq!(error.code, "SPX-W110");
+    assert!(error.message.contains("Vec operations"));
+    assert!(error.message.contains("provider.byte-vec"));
+}
+
+#[test]
 fn node_loads_exact_closed_provider_inventory_without_fixture_or_host_imports() {
     if !node_available() {
         return;

@@ -130,6 +130,11 @@ before encoding. The heap covers two input tokens plus every bounded
 allocation site and twice the checked cumulative owned-payload limit, so
 exhausting it is an invariant defect.
 
+The exact reachable endpoint closure currently refuses Vec operations and
+owned Bytes iterators with `SPX-W110` before emitting provider functions.
+Their aggregate lowering needs runtime slots that this import-free profile
+does not provide. Unreachable helper definitions are outside that closure.
+
 `spx_pg_v1_open` already refuses with status 7 before scratch reserve, so a
 live provider implies a backed scratch range; `spx_pg_v1_input_prepare`
 nevertheless refuses with status 7 unless the scratch range is backed by

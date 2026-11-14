@@ -100,6 +100,12 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
                 execution.identity_key()
             )));
         }
+        if function_uses_vec_operations(function) {
+            return Err(error(format!(
+                "public-generic Core Wasm provider has no runtime for Vec operations in `{}`",
+                execution.identity_key()
+            )));
+        }
         let mut params = Vec::with_capacity(function.params.len() + 1);
         for param in &function.params {
             params.push(if is_aggregate(program, &param.ty)? {
@@ -161,6 +167,23 @@ pub(in crate::wasm) fn lower_public_generic_provider_closure(
         bodies,
         selected_index,
     })
+}
+
+fn function_uses_vec_operations(function: &ResolvedFunction) -> bool {
+    function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .any(|root| {
+            let mut found = false;
+            crate::hir::visit_resolved_calls(root, &mut |callee, instance, type_arguments| {
+                found |= instance.is_none()
+                    && type_arguments.len() == 1
+                    && crate::vec_ops::by_id(callee.as_str()).is_some();
+            });
+            found
+        })
 }
 
 fn reachable_execution_closure(

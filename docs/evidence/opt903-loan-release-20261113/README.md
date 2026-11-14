@@ -829,3 +829,35 @@ also exercised as a separate arm on those fixtures, at 785,967 and
 
 The focused log SHA-256 is
 `e9b65ad834af943a11a30c3c92b7fee2c6edc99001f99cdb405510f5e8e736c0`.
+
+### Current OPT #885 and #886 receiver checks
+
+At `da36ffb03`, all three focused ordinary lookup caller tests passed.
+The #885 comparison against the immediate original receiver paid
+38,780 fewer bytes at 32 rows and 78,716 fewer at 64 rows. The zero-
+and one-row controls each paid 900 more. The independent reference
+account stayed separate. The broader lookup and PLAN comparator
+selection passed 137 of 140 tests.
+
+For #886, the preserved pair-local-only arm reduced cumulative
+reservations from 583,851 to 553,035 bytes on 115 prepared pairs and
+266 completed rounds, with unchanged observed work and heap tuples.
+The one-pair, two-round fixture rose from 28,926 to 29,406 bytes.
+The single 257-round pair fell from 312,999 to 272,679 bytes, and
+the no-pair control rose from 15,857 to 16,561 bytes. These are
+instrumented library-test observations. Shipping application parity
+at the original budget remains a separate gate.
+
+One failing historical comparator test passed its complete inverse
+in an isolated Rust check after restoring the declared 43,965-byte
+pre-format source before applying the original inverse. The inverse
+still produced the exact 43,884-byte original. The other two failures
+occur in the saved 289 comparator's independent segment tests. Their
+retained observation completed without producing the one census row
+the controls expect. The repository Rust tests still need to verify a
+source acquisition repair, and the two census failures remain open.
+
+The focused lookup log SHA-256 is
+`7d03fabec6854079d75fe6d4c2d9ab67e9fee4371f88be048e55bd5655dd4389`.
+The combined log SHA-256 is
+`31597a6f3a26cfe417644e6b024623a05ec9e0670344e5805ad91d2668cbfeda`.

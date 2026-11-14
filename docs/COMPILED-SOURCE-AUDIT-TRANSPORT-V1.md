@@ -158,3 +158,33 @@ macOS memory pressure level 2. Both stopped before monomorphization and
 symbol mangling. These peaks cover different incomplete front-end
 intervals. Executable inventory parity and a completed memory comparison
 remain unverified.
+
+## Completed library-test allocator comparison at `a9f844ebf`
+
+Both builds linked the complete library-test executable on macOS 26.5.1
+arm64 using Rust 1.97.1, one Cargo worker, 256 codegen units, no debug info
+or incremental compilation, and an external SSD target. They used identical
+primary `rustc` arguments and source bytes. The second primary compiler
+accepted `_RJEM_MALLOC_CONF=narenas:1,tcache:false,confirm_conf:true`. Cargo
+reused dependencies in that arm, so the table compares primary rustc time.
+
+| Allocator | rustc seconds | Kernel peak RSS (bytes) | Kernel peak footprint (bytes) |
+| --- | ---: | ---: | ---: |
+| Default | 320.58 | 7,248,510,976 | 16,940,758,648 |
+| One arena, thread cache disabled | 399.25 | 7,929,528,320 | 16,865,080,880 |
+
+The one-arena configuration raised peak RSS by 681,017,344 bytes and took
+78.67 seconds longer. Its footprint peak differed by less than 0.5%.
+Both runs completed at macOS memory pressure levels 1 and 2. Stack samples
+place the high-footprint interval in LLVM code generation in both arms.
+The structured pass log and a separate stack sample also record HIR type
+checking and MIR borrow checking before code generation. RSS and physical
+footprint are distinct macOS measurements.
+
+The complete executables were byte-identical. Their SHA-256 is
+`cc70443f858dc40d0a41aabaeffadd02e36e63c0a30432d1892da8903bbba953`.
+The identical inventory has 11,568 tests and zero benchmarks, with SHA-256
+`5f0ad5bed4bb78352e4d6b8bc43018750aae4e57e235373b917fe0d8b89a98e4`.
+The default build passed all 18 selected traversal and source-custody checks.
+The allocator experiment leaves the build configuration unchanged and
+establishes no compiler memory reduction or live-agent efficiency gain.

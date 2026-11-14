@@ -33,3 +33,17 @@ A standalone Rust 1.97.1 O0 probe extracted the exact compact digest validation 
 Each timed arm decoded 949,200 texts in the same process. The original loop took 7.995 and 8.319 seconds. The range decoder took 0.860 and 1.104 seconds. This measures one operation sampled in the audit. The full audit also authenticates live files, checks bounds and composes metadata. Its end-to-end time and refusal order still need to be checked before adopting a change.
 
 The implemented decoder keeps the existing JSON digest lookup and error strings. Its Rust regression compares decoded bytes with the independent base64 decoder and exercises inline and indexed refusals. The exact decoder and regression passed in a standalone build against the current decoded page. All 54 Python overlay tests passed, and the read-only source custody check reported no drift after regenerating the V22 page and the two affected V12 historical inverses. The repository Rust build passed all four compact-overlay tests, including the decoder regression, complete inverse, exact bounds, and malformed inputs. End-to-end audit timing remains pending.
+
+### Current focused rechecks
+
+At `a9f844ebf`, both native cleanup tests and all ten secondary byte-traversal
+tests passed in one serial invocation on macOS arm64. That includes the
+ordinary and active-variant physical cleanup probes at both native optimization
+levels, every original hostile mutation, and the complete traversal source
+inverse. The ordinary multi-owner probe also passed in isolation with the
+original two-second deadline. The isolated SMT deadline/version control
+passed with its original limits. These results establish that both previously
+reported test failures can pass on this host with the current source.
+A separate older full run, recorded against base `fb61b90c` and its working
+tree diff, finished with 11,323 passing, 206 failing and 36 ignored library
+tests. The current full gate remains outstanding.

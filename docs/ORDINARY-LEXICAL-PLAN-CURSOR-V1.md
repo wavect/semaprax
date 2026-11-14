@@ -264,6 +264,21 @@ empty Q, cold headers, whole owner widths, both HIR representations and full
 Drop are included. Refused prefixes use only reached successful admissions;
 no complete-input count or future empty probe is credited.
 
+### Focused execution
+
+The complete immediate invoice control ran on the retained Rust 1.97.1
+macOS arm64 test image at `6f1db7ec4`. The ordinary PLAN owner, profiling
+and route-debit sources are byte-identical at `154fddcf3`. All 80 matched
+fixture rows satisfied their complete invoice, semantic and allocation
+assertions. Cumulative reservations fell in 17 rows and rose in 63.
+For the flat and shared HIR representations of the depth-one 128-item
+shared segment, reservations fell from 256,452 to 169,762 bytes and from
+851,284 to 781,202 bytes, respectively. A one-item foreign-segment fixture
+with shared HIR rose from 65,199 to 79,528 bytes. This comparison covers
+the independently compiled d458 predecessor and the composed current
+receiver. It does not isolate the first-head packet from all later
+changes or establish application savings.
+
 ### Application qualification at 64 MiB
 
 A profiling build of [`1997379a8`](https://github.com/wavect/semaprax/commit/1997379a8)

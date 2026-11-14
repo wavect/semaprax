@@ -366,8 +366,10 @@ interpreter, native and paired Wasm postcondition controls.
 
 The shared private iterator fixture, `tests/fixtures/byte-partition-private-iterator.spx`,
 consumes a 4,096-child Vec, takes the first child and returns its 16-byte
-extent. The interpreter checks the owning match and the ordered child and
-iterator finalizers before execution. Its empty-input control takes the
+extent. The interpreter checks the owning match, binds its slice to the
+current child's exact loan origin, and reads through the registry. The chosen
+match edge and canonical loan end edges govern the view's lifetime before the
+ordered child and iterator finalizers run. Its empty-input control takes the
 Done arm. The local 43-test partition selection passed, including the
 generated native C11 O0/O2 and paired Core-Wasm runs of the shared fixture.
 Both runs verify one payload backing per invocation and settlement before

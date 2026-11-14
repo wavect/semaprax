@@ -1,17 +1,81 @@
-//! A checked consuming step with a scalar-only arm and exact suffix cleanup.
+//! A checked consuming step with exact loan edges and suffix cleanup.
 use super::*;
-use crate::iterator_ops;
+use crate::{
+    iterator_ops,
+    loan_plan::{LoanCause, LoanId, LoanPlan, LoanPointPhase},
+};
 use hir::{ResolvedMatchMode, ResolvedMatchPattern};
 
 #[derive(Clone, Copy)]
 pub(super) struct FirstChild {
     empty_result: i64,
+    empty_before: u16,
+    scrutinee_after: u16,
+    match_after: u16,
     rest_first: bool,
+    read: ChildRead,
+}
+
+#[derive(Clone, Copy)]
+struct ChildRead {
+    loan: LoanId,
+    arm_before: u16,
+    view_before: u16,
+    operand_after: u16,
+    arm_after: u16,
+}
+
+fn endpoint(
+    plan: &LoanPlan,
+    expression: &ResolvedExpr,
+    phase: LoanPointPhase,
+    work: &mut usize,
+) -> Result<u16, Refusal> {
+    let mut point = None;
+    for (index, endpoint) in plan.endpoints.iter().enumerate() {
+        pay(
+            work,
+            endpoint.point.expression.as_str().len().saturating_add(1),
+        )?;
+        if endpoint.point.expression == expression.id
+            && endpoint.point.phase == phase
+            && point
+                .replace(u16::try_from(index).map_err(|_| Refusal::Identity)?)
+                .is_some()
+        {
+            return Err(Refusal::Identity);
+        }
+    }
+    point.ok_or(Refusal::Identity)
+}
+
+fn slice_loan(
+    plan: &LoanPlan,
+    view: &ResolvedExpr,
+    place: &hir::Place,
+    work: &mut usize,
+) -> Result<LoanId, Refusal> {
+    let mut id = None;
+    for loan in &plan.loans {
+        pay(work, loan.site.as_str().len().saturating_add(1))?;
+        if loan.site != view.id {
+            continue;
+        }
+        pay(work, loan.origin.root.as_str().len().saturating_add(1))?;
+        if loan.origin != *place
+            || loan.cause != LoanCause::SliceView
+            || loan.parent.is_some()
+            || id.replace(loan.id).is_some()
+        {
+            return Err(Refusal::Identity);
+        }
+    }
+    id.ok_or(Refusal::Identity)
 }
 
 pub(super) fn prove(
-    plan: &CleanupPlan,
-    tail: &ResolvedExpr,
+    function: &hir::ResolvedFunction,
+    tail_match: &ResolvedExpr,
     vector: &hir::ValueId,
     work: &mut usize,
 ) -> Result<FirstChild, Refusal> {
@@ -19,7 +83,7 @@ pub(super) fn prove(
         mode: ResolvedMatchMode::Own,
         scrutinee,
         arms,
-    } = &tail.kind
+    } = &tail_match.kind
     else {
         return Err(Refusal::Identity);
     };
@@ -31,7 +95,8 @@ pub(super) fn prove(
     };
     root(values, vector, work)?;
 
-    let mut empty_result = None;
+    let plan = &function.loan_plan;
+    let mut empty = None;
     let mut yield_cleanup = None;
     for arm in arms {
         let ResolvedMatchPattern::Variant {
@@ -50,11 +115,14 @@ pub(super) fn prove(
         }
         match (case.as_str(), fields.as_slice(), &arm.value.kind) {
             (iterator_ops::DONE_ID, [], K::Int(value))
-                if empty_result.is_none()
+                if empty.is_none()
                     && u64::try_from(*value)
                         .is_ok_and(|value| value <= crate::byte_ops::MAX_BUFFER_CAPACITY_BYTES) =>
             {
-                empty_result = Some(*value);
+                empty = Some((
+                    *value,
+                    endpoint(plan, &arm.value, LoanPointPhase::Before, work)?,
+                ));
             }
             (iterator_ops::YIELD_ID, [first, second], K::Block { statements, tail })
                 if yield_cleanup.is_none() =>
@@ -98,14 +166,28 @@ pub(super) fn prove(
                     return Err(Refusal::Identity);
                 };
                 root(view, &binding.id, work)?;
-                yield_cleanup = Some(prove_cleanup(plan, &item.id, &rest.id, work)?);
+                let read = ChildRead {
+                    loan: slice_loan(plan, value, place, work)?,
+                    arm_before: endpoint(plan, &arm.value, LoanPointPhase::Before, work)?,
+                    view_before: endpoint(plan, value, LoanPointPhase::Before, work)?,
+                    operand_after: endpoint(plan, view, LoanPointPhase::After, work)?,
+                    arm_after: endpoint(plan, &arm.value, LoanPointPhase::After, work)?,
+                };
+                let rest_first = prove_cleanup(&function.cleanup_plan, &item.id, &rest.id, work)?;
+                yield_cleanup = Some((rest_first, read));
             }
             _ => return Err(Refusal::Identity),
         }
     }
+    let (rest_first, read) = yield_cleanup.ok_or(Refusal::Identity)?;
+    let (empty_result, empty_before) = empty.ok_or(Refusal::Identity)?;
     Ok(FirstChild {
-        empty_result: empty_result.ok_or(Refusal::Identity)?,
-        rest_first: yield_cleanup.ok_or(Refusal::Identity)?,
+        empty_result,
+        empty_before,
+        scrutinee_after: endpoint(plan, scrutinee, LoanPointPhase::After, work)?,
+        match_after: endpoint(plan, tail_match, LoanPointPhase::After, work)?,
+        rest_first,
+        read,
     })
 }
 
@@ -170,8 +252,6 @@ pub(super) fn execute(
     invocation: &mut Invocation<'_>,
 ) -> Result<i64, Refusal> {
     let loans = &mut invocation.loans;
-    // This fused read executes the exact checked slice/length expression
-    // without publishing a view. Only the authenticated extent escapes it.
     let Value::PartitionIter(mut iter) = super::super::values::into_iterator(value, loans)
         .map_err(|(_, mut original)| {
             let _ = super::super::values::settle(&mut original, loans);
@@ -180,6 +260,10 @@ pub(super) fn execute(
     else {
         return Err(Refusal::Identity);
     };
+    if let Err(error) = loans.advance_straight_to(step.scrutinee_after) {
+        let _ = iter.settle(loans);
+        return Err(error);
+    }
     execute_step(step, &mut iter, loans)
 }
 
@@ -197,11 +281,20 @@ fn execute_step(
     };
     let Some(mut child) = next else {
         iter.settle(loans)?;
+        loans.advance(step.empty_before)?;
+        loans.advance_straight_to(step.match_after)?;
         return Ok(step.empty_result);
     };
-    let len = loans
-        .extent(&child)
-        .and_then(|len| i64::try_from(len).map_err(|_| Refusal::Identity));
+    let len = (|| {
+        let read = step.read;
+        loans.advance(read.arm_before)?;
+        loans.advance_straight_to(read.view_before)?;
+        let view = loans.borrow(&child, read.loan)?;
+        loans.advance_straight_to(read.operand_after)?;
+        let len = loans.read(view, <[u8]>::len)?;
+        loans.advance_straight_to(read.arm_after)?;
+        i64::try_from(len).map_err(|_| Refusal::Identity)
+    })();
     let (first, second) = if step.rest_first {
         (iter.settle(loans), loans.settle(&mut child))
     } else {
@@ -210,6 +303,7 @@ fn execute_step(
     let len = len?;
     first?;
     second?;
+    loans.advance(step.match_after)?;
     Ok(len)
 }
 
@@ -251,10 +345,14 @@ mod tests {
         invocation.loans.settle(&mut retired).unwrap();
         assert!(invocation.loans.extent(&retired).is_err());
         assert_eq!(iter.remaining(), 2);
-        let step = FirstChild {
-            empty_result: 0,
-            rest_first: true,
+        let function = &owner.program().functions[0];
+        let K::Block { statements, tail } = &function.body.kind else {
+            panic!("partition iterator body");
         };
+        let S::Let { binding, .. } = &statements[1] else {
+            panic!("partition vector");
+        };
+        let step = prove(function, tail, &binding.id, &mut work).unwrap();
         assert!(execute_step(step, &mut iter, &mut invocation.loans).is_err());
         assert_eq!(iter.remaining(), 0);
     }

@@ -164,12 +164,13 @@ struct PartitionStep {
 }
 
 fn prove_step(
-    plan: &CleanupPlan,
+    function: &hir::ResolvedFunction,
     statements: &[S],
     tail: &ResolvedExpr,
     exit: Option<&crate::cleanup_plan::ExitTarget>,
     work: &mut usize,
 ) -> Result<PartitionStep, Refusal> {
+    let plan = &function.cleanup_plan;
     let [S::Let {
         binding: whole_binding,
         mutable: false,
@@ -210,7 +211,7 @@ fn prove_step(
     let operands = partition::operation::typed(operation, work)?.ok_or(Refusal::Identity)?;
     root(operands.owner, &whole_binding.id, work)?;
     let first_child = if matches!(tail.kind, K::Match { .. }) {
-        Some(iterator::prove(plan, tail, &vector_binding.id, work)?)
+        Some(iterator::prove(function, tail, &vector_binding.id, work)?)
     } else {
         let [length] = call(tail, crate::string_ops::I64_FROM_USIZE_ID, work)? else {
             return Err(Refusal::Identity);
@@ -532,20 +533,11 @@ pub(crate) fn execute(
                 };
                 root(left, &binding.id, work)?;
                 (
-                    Some(prove_step(
-                        &entry.cleanup_plan,
-                        statements,
-                        prefix_result,
-                        None,
-                        work,
-                    )?),
-                    prove_step(&entry.cleanup_plan, rest, right, Some(exit), work)?,
+                    Some(prove_step(entry, statements, prefix_result, None, work)?),
+                    prove_step(entry, rest, right, Some(exit), work)?,
                 )
             }
-            _ => (
-                None,
-                prove_step(&entry.cleanup_plan, statements, tail, Some(exit), work)?,
-            ),
+            _ => (None, prove_step(entry, statements, tail, Some(exit), work)?),
         };
         let postcondition = prove_postcondition(entry, exit, work)?;
         handle.reserve_metadata(Layout::new::<OwnedBytesValue>())?;

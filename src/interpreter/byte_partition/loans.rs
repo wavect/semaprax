@@ -185,13 +185,16 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
         let result = (|| {
             self.registry.active()?;
             let plan = &self.capacity.function().loan_plan;
-            let mut matches = plan
+            let key = (self.point, next);
+            let edge_index = plan
                 .edges
-                .iter()
-                .enumerate()
-                .filter(|(_, edge)| edge.from == self.point && edge.to == next);
-            let (edge_index, _) = matches.next().ok_or(Refusal::Identity)?;
-            if matches.next().is_some() {
+                .partition_point(|edge| (edge.from, edge.to) < key);
+            let matches = |index: usize| {
+                plan.edges
+                    .get(index)
+                    .is_some_and(|edge| (edge.from, edge.to) == key)
+            };
+            if !matches(edge_index) || matches(edge_index + 1) {
                 return Err(Refusal::Identity);
             }
             let edge_index = u16::try_from(edge_index).map_err(|_| Refusal::Identity)?;
@@ -207,6 +210,29 @@ impl<'p, R: InvocationRuntime> Loans<'p, R> {
             Ok(())
         })();
         self.registry.select(result)
+    }
+    /// Only the direct receiver uses this, across a source-proven straight-line
+    /// interval. A branch needs an explicit destination from the actual result.
+    pub(super) fn advance_straight_to(&mut self, target: u16) -> Result<(), Refusal> {
+        let plan = &self.capacity.function().loan_plan;
+        for _ in 0..plan.endpoints.len() {
+            if self.point == target {
+                return self.registry.active();
+            }
+            let index = plan.edges.partition_point(|edge| edge.from < self.point);
+            let Some(edge) = plan.edges.get(index).filter(|edge| edge.from == self.point) else {
+                return self.registry.select(Err(Refusal::Identity));
+            };
+            if plan
+                .edges
+                .get(index + 1)
+                .is_some_and(|next| next.from == self.point)
+            {
+                return self.registry.select(Err(Refusal::Identity));
+            }
+            self.advance(edge.to)?;
+        }
+        self.registry.select(Err(Refusal::Identity))
     }
     pub(crate) fn store(
         &mut self,

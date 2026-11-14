@@ -2060,6 +2060,7 @@
         "src/hir/validation/function_scope/backing_saved.rs",
         "src/hir/validation/function_scope/collection_tests.rs",
         "src/hir/validation/function_scope/collection_tests/funded_early.rs",
+        "src/hir/validation/function_scope/collection_tests/funded_early/before_nested_outcome.rs",
         "src/hir/validation/function_scope/empty_ensures.rs",
         "src/hir/validation/function_scope/empty_ensures/before.rs",
         "src/hir/validation/function_scope/empty_ensures/tests.rs",
@@ -3240,8 +3241,8 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "44a3081a1035f6ba5af9e71788e85e380858b4bf5d16350da66a6ecb77f60bd4",
-      "full_raw_sha256": "9e00511855440caf89cc752a040e1d8ee4bd6f478624489139e010f0f6d13f0f",
+      "full_manifest_sha256": "6ab9d423f3cbdebc7adf9ab32e7ce860d251684d479d0379b5e7693e8661a9ec",
+      "full_raw_sha256": "e6dbfbc2dd8d29f442d4c161b483bba7d8b98904016d8d27b33350ad42b8af72",
       "full_authenticated_production_sha256": "6135ce0c41a424f9e572c9a3844660e34f68ebd646ff802a46e2abd6eaa04a09"
     },
     "projection": {
@@ -4532,7 +4533,7 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "7435a912cc35d180c6ede10db561d38177d0ec8db57f38b290630569039677ae",
+      "full_manifest_sha256": "b28d406ba0050da0c3629450864dec2c8e820e09f88b5058bae6beb614defb49",
       "full_raw_sha256": "54551b5c03c900817197ffa60b8f422dfb0d4047612ac117ac114b93c477f8ec",
       "full_authenticated_production_sha256": "4d4a29d0fa841b8db2ff98b26040edee0f76dd8d39cd75491aa9166e6d8a0639"
     }

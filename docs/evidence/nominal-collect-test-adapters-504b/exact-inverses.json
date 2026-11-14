@@ -24,10 +24,20 @@
       "path": "src/hir/validation/function_scope/collection_tests/funded_early.rs",
       "archive": "docs/evidence/nominal-collect-test-adapters-504b/original/src__hir__validation__function_scope__collection_tests__funded_early.rs.before.txt",
       "original_sha256": "304f391011d2bb12acd4d4cd4827f8221d7e330f7bb50f1609865ba5ecf3a264",
-      "current_sha256": "8f53c3cf4ed6244a74d7f13c0055ef5f7fb920bd99ac4884196b87379e736c86",
+      "current_sha256": "99a9511fdecd3dba05aebcba3b7ccc73432ff2ec1649044c2642c8d46ff035e3",
       "splices": [
         {
-          "start": 11505,
+          "start": 189,
+          "before": "",
+          "after": "\n#[allow(dead_code, reason = \"complete saved nested outcome admission tree\")]\n#[rustfmt::skip]\nmod before_nested_outcome;\n"
+        },
+        {
+          "start": 5711,
+          "before": "    let (old_verdict, old) =\n        measure(|| crate::hir::collection_outcome::runtime_admitted(index, &choice));\n",
+          "after": "    let saved = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/e/ad38990eb7f7c65c1a349d900a5ab3436d89c06f447249d0ea844e3e08f4962e\"\n    ));\n    let (admission, _) = saved\n        .split_once(\n            \"\\n/// Every cleanup/layout use must bind the exact active case and payload field.\",\n        )\n        .unwrap();\n    let restored = admission\n        .replace(\n            \"mod profile;\\npub(crate) use profile::{function_requires_profile_by, program_requires_profile};\\n\",\n            \"\",\n        )\n        .replace(\n            \"super::super::owned_collection_record\",\n            \"crate::hir::owned_collection_record\",\n        );\n    assert_eq!(\n        restored,\n        include_str!(\"funded_early/before_nested_outcome.rs\")\n    );\n    let (old_verdict, old) = measure(|| {\n        crate::hir::collection_outcome::admitted(index, &choice)\n            || crate::hir::collection_outcome::owned_admitted(index, &choice)\n            || before_nested_outcome::admitted(index, &choice)\n    });\n"
+        },
+        {
+          "start": 12528,
           "before": "    let fields = types\n",
           "after": "    let fields: Vec<crate::hir::ResolvedFieldDeclaration> = types\n"
         }

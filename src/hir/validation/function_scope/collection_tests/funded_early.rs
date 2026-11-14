@@ -3,6 +3,10 @@ use super::*;
 use crate::hir::declared_collection::funded_early;
 use std::collections::BTreeSet;
 
+#[allow(dead_code, reason = "complete saved nested outcome admission tree")]
+#[rustfmt::skip]
+mod before_nested_outcome;
+
 fn nominal(id: &str) -> ResolvedType {
     ResolvedType::Nominal {
         declaration: DeclarationId::new(id),
@@ -146,8 +150,33 @@ fn early_profile_constructors_are_actually_paid_before_construction() {
         (actual.allocated, actual.allocations, actual.live, paid),
         (0, 0, 0, 0)
     );
-    let (old_verdict, old) =
-        measure(|| crate::hir::collection_outcome::runtime_admitted(index, &choice));
+    let saved = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/ad38990eb7f7c65c1a349d900a5ab3436d89c06f447249d0ea844e3e08f4962e"
+    ));
+    let (admission, _) = saved
+        .split_once(
+            "\n/// Every cleanup/layout use must bind the exact active case and payload field.",
+        )
+        .unwrap();
+    let restored = admission
+        .replace(
+            "mod profile;\npub(crate) use profile::{function_requires_profile_by, program_requires_profile};\n",
+            "",
+        )
+        .replace(
+            "super::super::owned_collection_record",
+            "crate::hir::owned_collection_record",
+        );
+    assert_eq!(
+        restored,
+        include_str!("funded_early/before_nested_outcome.rs")
+    );
+    let (old_verdict, old) = measure(|| {
+        crate::hir::collection_outcome::admitted(index, &choice)
+            || crate::hir::collection_outcome::owned_admitted(index, &choice)
+            || before_nested_outcome::admitted(index, &choice)
+    });
     assert!(!old_verdict && !old.invalid);
     assert!(old.allocated > 0 && old.allocations > 0);
     assert_eq!(old.live, 0);

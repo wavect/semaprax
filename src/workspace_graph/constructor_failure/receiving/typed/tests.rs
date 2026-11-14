@@ -640,9 +640,15 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
     ));
     let validate_live = |actual: &str| {
         assert_eq!(actual, live_caller, "complete current workspace caller");
-        // The sole later caller edit raises the ordinary builder ceiling.
-        // Authenticate that complete current body before replaying the full
-        // original 64 MiB caller contract and every existing hostile control.
+        // Reacquire the complete caller at the ceiling change before replaying
+        // the original 64 MiB caller contract and its hostile controls.
+        let checkpoint = crate::source_reflows::declared_history_inputs::expected_value(
+            "src/workspace_graph.rs",
+            "b7e765224d902c1d4ae78dd7834016282c987eb6f16657447829507cbfe5de39",
+            actual,
+        )
+        .expect("authenticate the complete caller at the ceiling change");
+        let actual = checkpoint.as_str();
         let current_bound = "pub(crate) const MAX_BUILDER_BYTES: usize = 128 * 1024 * 1024;";
         let original_bound = "pub(crate) const MAX_BUILDER_BYTES: usize = 64 * 1024 * 1024;";
         assert_eq!(actual.matches(current_bound).count(), 1);

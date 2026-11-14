@@ -813,16 +813,23 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
     let physical = std::fs::read(root.join(path)).unwrap();
     assert_eq!(physical, compiled);
     assert_eq!(current, compiled);
-    let packet = include_bytes!("../cleanup_plan/replay/path_join/field_local/inverse.json");
+    let packet_path = "src/cleanup_plan/replay/path_join/field_local/inverse.json";
+    let compiled_packet = include_str!("../cleanup_plan/replay/path_join/field_local/inverse.json");
+    let historical_packet = crate::source_reflows::declared_history_inputs::expected_value(
+        packet_path,
+        "5af7d33a5ad21bd35d2218284b913ea16e8c990d9a2c5f0e88b20ee47fd99839",
+        compiled_packet,
+    )
+    .expect("authenticate and restore the complete field-local census packet");
+    let packet = historical_packet.as_bytes();
     assert_eq!(packet.len(), 492196);
     assert_eq!(
         digest(packet),
         "5af7d33a5ad21bd35d2218284b913ea16e8c990d9a2c5f0e88b20ee47fd99839"
     );
     assert_eq!(
-        std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
-            .unwrap(),
-        packet
+        std::fs::read(root.join(packet_path)).unwrap(),
+        compiled_packet.as_bytes()
     );
     let data: serde_json::Value = serde_json::from_slice(packet).unwrap();
     assert_eq!(data["schema"], "semaprax.ordinary-field-local-source.v1");
@@ -868,9 +875,8 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
     assert_eq!(digest(&before), row["before_sha256"].as_str().unwrap());
     assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
     assert_eq!(
-        std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
-            .unwrap(),
-        packet
+        std::fs::read(root.join(packet_path)).unwrap(),
+        compiled_packet.as_bytes()
     );
     before
 }

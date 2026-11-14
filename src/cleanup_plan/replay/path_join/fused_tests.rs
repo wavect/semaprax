@@ -988,8 +988,15 @@ fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_r
         };
         let raw = std::fs::read(root.join(path)).unwrap();
         assert_eq!(raw, compiled);
-        assert_eq!(raw.len() as u64, row["length"].as_u64().unwrap());
-        assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
+        let expected = row["sha256"].as_str().unwrap();
+        let historical = crate::source_reflows::declared_history_inputs::expected_value(
+            path,
+            expected,
+            std::str::from_utf8(&raw).unwrap(),
+        );
+        let original = historical.as_deref().map_or(raw.as_slice(), str::as_bytes);
+        assert_eq!(original.len() as u64, row["length"].as_u64().unwrap());
+        assert_eq!(digest(original), expected);
     }
 }
 const INVERSE_SHA: &str = "b4d8b3b6e9872464620717910299222137204c708c636b68219f19b9890f7f3d";

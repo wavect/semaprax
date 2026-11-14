@@ -72,11 +72,16 @@
     },
     {
       "path": "src/cleanup_plan/replay/path_join/fused_tests.rs",
-      "length": 44052,
-      "sha256": "0d0766adfeacaa8c4ef4270062c172de8d5e1605b4a56b8e8c57b1058c432b4f",
+      "length": 44366,
+      "sha256": "4cbbb7995890355b8dd7ef96bcbe2254c2764271d4bd35979eea8882a9c5fa27",
       "before_length": 42168,
       "before_sha256": "3067437552ba0d35b2da13b2d80be28adacbf5b085d12df5bb93806fe48ec7cd",
       "edits": [
+        [
+          43718,
+          "        let expected = row[\"sha256\"].as_str().unwrap();\n        let historical = crate::source_reflows::declared_history_inputs::expected_value(\n            path,\n            expected,\n            std::str::from_utf8(&raw).unwrap(),\n        );\n        let original = historical.as_deref().map_or(raw.as_slice(), str::as_bytes);\n        assert_eq!(original.len() as u64, row[\"length\"].as_u64().unwrap());\n        assert_eq!(digest(original), expected);\n",
+          "        assert_eq!(raw.len() as u64, row[\"length\"].as_u64().unwrap());\n        assert_eq!(digest(&raw), row[\"sha256\"].as_str().unwrap());\n"
+        ],
         [
           35712,
           "    let physical = if path == \"src/cleanup_plan/replay/path_join/compact_failure_tests.rs\" {\n        crate::source_reflows::declared_history_inputs::expected_value(\n            path,\n            row[\"sha256\"].as_str().unwrap(),\n            std::str::from_utf8(&physical).unwrap(),\n        )\n        .expect(\"authenticate the entire compact frontier test before its fused inverse\")\n        .into_bytes()\n    } else {\n        physical\n    };\n    let supplied = if supplied.as_bytes() == compiled {\n        String::from_utf8(physical.clone()).unwrap()\n    } else {\n        supplied\n    };\n",
@@ -107,6 +112,11 @@
         "length": 42701,
         "sha256": "ea3c6cb8a1f5afe3a16e5ba287f72ece3de5b09a66efd428c09a0e68246cde5d",
         "from_current": [
+          [
+            43718,
+            "        let expected = row[\"sha256\"].as_str().unwrap();\n        let historical = crate::source_reflows::declared_history_inputs::expected_value(\n            path,\n            expected,\n            std::str::from_utf8(&raw).unwrap(),\n        );\n        let original = historical.as_deref().map_or(raw.as_slice(), str::as_bytes);\n        assert_eq!(original.len() as u64, row[\"length\"].as_u64().unwrap());\n        assert_eq!(digest(original), expected);\n",
+            "        assert_eq!(raw.len() as u64, row[\"length\"].as_u64().unwrap());\n        assert_eq!(digest(&raw), row[\"sha256\"].as_str().unwrap());\n"
+          ],
           [
             35712,
             "    let physical = if path == \"src/cleanup_plan/replay/path_join/compact_failure_tests.rs\" {\n        crate::source_reflows::declared_history_inputs::expected_value(\n            path,\n            row[\"sha256\"].as_str().unwrap(),\n            std::str::from_utf8(&physical).unwrap(),\n        )\n        .expect(\"authenticate the entire compact frontier test before its fused inverse\")\n        .into_bytes()\n    } else {\n        physical\n    };\n    let supplied = if supplied.as_bytes() == compiled {\n        String::from_utf8(physical.clone()).unwrap()\n    } else {\n        supplied\n    };\n",

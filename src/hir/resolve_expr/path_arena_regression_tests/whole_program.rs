@@ -113,6 +113,79 @@ fn whole_program_text_receiver_keeps_complete_hir_graph_cache_and_ordered_plans(
 }
 
 #[test]
+fn text_receiver_matches_selected_status_and_lazy_owned_argument_order() {
+    use crate::cleanup_plan::{CleanupTransition, StorageId};
+    use crate::interpreter::{
+        evaluate_resolved_profile_i64_entry, ResolvedEvaluationOutcome, ResolvedFunctionProfile,
+    };
+
+    for (body, returns) in [
+        (
+            r#"if true || string_len(fail("ignored")) == 0 { pair("a", "abc") } else { 0 }"#,
+            true,
+        ),
+        (r#"pair("a", fail("abc"))"#, false),
+    ] {
+        let source = format!(
+            r#"module test.path_arena_execution;
+@id("fail") fn fail(text: string) -> string {{ string_slice(text, 0, 99) }}
+@id("pair") fn pair(left: string, right: string) -> i64 {{
+    string_len(left) * 10 + string_len(right)
+}}
+@id("main") fn main() -> i64 {{ {body} }}
+"#,
+        );
+        let program = crate::parse(&source, Path::new("path-arena-execution.spx")).unwrap();
+        let (current, old) = checked_pair(&program);
+        let evaluate = |program| {
+            evaluate_resolved_profile_i64_entry(
+                program,
+                "main",
+                1000,
+                ResolvedFunctionProfile::StreamText,
+            )
+            .unwrap()
+        };
+        let result = evaluate(&current);
+        assert_eq!(result, evaluate(&old));
+        if returns {
+            assert_eq!(result.outcome, ResolvedEvaluationOutcome::ReturnedI64(13));
+            let main = current
+                .functions
+                .iter()
+                .find(|f| f.id.as_str() == "main")
+                .unwrap();
+            let mut stages = Vec::new();
+            let mut commits = Vec::new();
+            for transition in main.cleanup_plan.blocks.iter().flat_map(|b| &b.transitions) {
+                match transition {
+                    CleanupTransition::Transfer { destination, .. } => {
+                        if let StorageId::CallArgument {
+                            parameter_index, ..
+                        } = &destination.storage
+                        {
+                            stages.push(*parameter_index);
+                        }
+                    }
+                    CleanupTransition::CallCommit { arguments, .. } if arguments.len() == 2 => {
+                        commits.push([arguments[0].parameter_index, arguments[1].parameter_index]);
+                    }
+                    _ => {}
+                }
+            }
+            assert!(stages.windows(2).any(|pair| pair == [0, 1]));
+            assert_eq!(commits, [[0, 1]]);
+        } else {
+            let ResolvedEvaluationOutcome::LanguageFailure(status) = result.outcome else {
+                panic!("expected selected Text failure, got {:?}", result.outcome);
+            };
+            assert_eq!(status.domain_id(), "semaprax.text.v1");
+            assert_eq!(status.code(), 1);
+        }
+    }
+}
+
+#[test]
 fn full_text_receiver_keeps_foreign_identity_and_cached_mutation_refusals() {
     run(|| {
         let program =

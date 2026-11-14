@@ -4532,7 +4532,7 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "b64a93a0c611ee2883baa5fdd8dfe32287db2a652a0206495f5afffc00c9f5e1",
+      "full_manifest_sha256": "2ac78001cab37bac1aedcd8f51863db0305822c7ec841f52bfdb3f3c011e41d4",
       "full_raw_sha256": "e60cc54b847e2506e160950a6faf63b8207b07a0ca91d0f841e35a4d7396b475",
       "full_authenticated_production_sha256": "49dc8842b1f5827c42288677e8097f90e38e1c8e89c3dccf9e3053c53c4e9815"
     }

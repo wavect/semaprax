@@ -593,3 +593,59 @@ bytes. Admission of the production module estimates does not establish the
 strict reduction or the historical 64 MiB application acceptance. The direct
 probe log SHA-256 is
 `cc23ab149a6932ef9706e746bd71337cf6b7a1c96f83b091998c36ab9da4c79e`.
+
+### Dense workspace forecast and repeated-callee experiment
+
+The four dense fixtures also passed the complete production workspace forecast
+at `776d76d01` with the original 134,217,728-byte ceiling. This run used the
+active builder ledger and the ordinary `uncached_output_layout` entry. The
+complete per-module observer reconciled every HIR term with the returned cost.
+The older component summary omitted both proof terms and could not reconcile
+these same rows.
+
+| Fixture | Workspace forecast | Active ledger forecast debit |
+| --- | ---: | ---: |
+| 512 headers, distinct arguments | 40,803,469 | 9,122,529 |
+| 64 headers, duplicate arguments | 19,314,238 | 148,882 |
+| 64 headers, warm statement calls | 18,859,947 | 3,779,457 |
+| 64 headers, balanced warm calls | 16,082,639 | 3,759,137 |
+
+The balanced row's HIR term is 16,081,711 bytes, comprising 7,306,884 fixed
+bytes, 3,824,291 for the auxiliary census, 3,750,360 for the local-callee
+certificate, 72,480 for the prelude, 271,280 for identity carriers and 856,416
+for identity occurrences. The captured observer log SHA-256 is
+`95ba3d3fe036e954468e2e75d67bb69b7cfb9c4b6150b4671f6add22ccc7b639`.
+
+An unpublished prototype paid for a fresh owner or callee publication only
+when the sealed loan changed. The ten paired and repeated-callee tests passed,
+including exact, short, sticky floor, foreign lender and Drop checks. The
+three 64-header forecasts fell by 23,890, 329,641 and 329,641 bytes in the same
+order. The 512-header forecast increased by 265,464 bytes. The balanced
+clone-plus-HIR result was 16,253,410 bytes versus the complete pre-898 result
+of 12,733,712. The original strict comparison still fails. The prototype log
+SHA-256 is `cdbd285ce6c20f948c5f1bb9081bb227bfecd395b43bef108926afb8899c4da2`.
+
+### Resolver path arena qualification (#778)
+
+The `776d76d01` macOS arm64 build passed 15 path-arena tests, four
+streamed-identity tests and ten resolver-attribution and execution checks.
+The saved text receiver agreed on complete HIR, ordered loan and cleanup
+plans, wire bytes, and diagnostics and spans for malformed input. The
+traversal suite also passed on direct and synthesized lowering fixtures.
+The unchanged Catalog23 and ShiftSim15 owners passed at `790a5d3ca`,
+including ShiftSim's maximum-cardinality compact and escaped-key cases.
+
+The additional paired test runs both complete HIR outputs through the
+ordinary selected StreamText interpreter. Both skip the failing right
+operand of a lazy Boolean and return 13. The two owned arguments stage and
+commit in order 0, 1. When the second argument fails, both runs select
+`semaprax.text.v1` status 1. The test log SHA-256 is
+`35e3d248533dffe99abe12daf2015bcf87881b98b06363be2bd1707fff65e8dd`.
+
+The arena growth control requests 80 and 160 bytes of node backing. It
+observes a 240-byte allocation high-water during replacement and a total of
+274 reserved and requested bytes including final path materialization. At
+79 bytes the initial arena allocation refuses before any allocation, and
+the zero-unit retry preserves the first refusal. The historical 64 MiB
+application ledger observations remain recorded in the
+[workspace contract](../../WORKSPACE-SEMANTIC-GRAPH-V1.md#resolver-path-arena-opt778-representation-tranche).

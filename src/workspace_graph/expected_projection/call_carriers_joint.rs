@@ -4,7 +4,7 @@ use super::{
     call_identity, compiler_dispatch, AuthoredDeclaration, BTreeMap, Expr, ExprKind, ModuleUseKind,
     Names, Program, Proof, Statement,
 };
-use crate::ast::{Function, Type};
+use crate::ast::{Function, MatchPattern, RecordMatchFieldPattern, Type};
 use std::mem::size_of;
 type Error = Failure;
 type Index<'a> = BTreeMap<&'a str, AuthoredDeclaration<'a>>;
@@ -576,6 +576,185 @@ macro_rules! before_joint_closed_roots_body {
     }};
 }
 
+// The eager receiver remains the executable control for the saved census
+// bodies. The live joint census uses the original name slots and a lazy
+// negative filter. The name spelling always owns the final comparison.
+trait NameLookup {
+    fn has_name(&self, name: &str, proof: &mut Proof) -> bool;
+}
+
+#[cfg(test)]
+impl NameLookup for Names<'_> {
+    fn has_name(&self, name: &str, proof: &mut Proof) -> bool {
+        self.contains(name, proof)
+    }
+}
+
+struct LazyNames<'a> {
+    entries: [Option<&'a str>; 128],
+    len: usize,
+    filter: std::cell::Cell<usize>,
+}
+
+impl<'a> LazyNames<'a> {
+    const COUNT_BITS: usize = u8::BITS as usize;
+    const COUNT_MASK: usize = u8::MAX as usize;
+    const FILTER_BITS: usize = usize::BITS as usize - Self::COUNT_BITS;
+    const CELL_INITIALIZER: usize = size_of::<([usize; 3], [std::cell::Cell<usize>; 2])>();
+    const CELL_RESET: usize =
+        size_of::<([usize; 2], [&mut std::cell::Cell<usize>; 2], &mut usize)>();
+
+    fn insert(&mut self, name: &'a str, proof: &mut Proof) -> bool {
+        proof.charge(&(&*self, name));
+        if self.len == self.entries.len() {
+            return false;
+        }
+        self.entries[self.len] = Some(name);
+        self.len += 1;
+        true
+    }
+
+    fn pattern(&mut self, pattern: &'a MatchPattern, depth: usize, proof: &mut Proof) -> bool {
+        proof.charge(&(&*self, pattern, depth));
+        if depth == 128 {
+            return false;
+        }
+        match pattern {
+            MatchPattern::Binding { name, .. } => self.insert(name, proof),
+            MatchPattern::Variant { fields, .. } => {
+                fields.iter().all(|f| self.insert(&f.binding, proof))
+            }
+            MatchPattern::Record { fields, .. } => fields
+                .iter()
+                .all(|f| self.record(&f.pattern, depth + 1, proof)),
+            MatchPattern::Or { alternatives, .. } => alternatives
+                .iter()
+                .all(|p| self.pattern(p, depth + 1, proof)),
+            _ => true,
+        }
+    }
+    fn record(
+        &mut self,
+        pattern: &'a RecordMatchFieldPattern,
+        depth: usize,
+        proof: &mut Proof,
+    ) -> bool {
+        proof.charge(&(&*self, pattern, depth));
+        if depth == 128 {
+            return false;
+        }
+        match pattern {
+            RecordMatchFieldPattern::Binding { name, .. } => self.insert(name, proof),
+            RecordMatchFieldPattern::Record { fields, .. } => fields
+                .iter()
+                .all(|f| self.record(&f.pattern, depth + 1, proof)),
+            RecordMatchFieldPattern::Wildcard { .. } => true,
+        }
+    }
+}
+
+impl NameLookup for LazyNames<'_> {
+    fn has_name(&self, name: &str, proof: &mut Proof) -> bool {
+        proof.charge(&(self, name));
+        // The stamp is the exact prefix already indexed. Insertion appends
+        // immutable names, and a new function resets both words.
+        proof.bytes = proof.bytes.saturating_add(size_of::<(
+            [usize; 30],
+            [&std::cell::Cell<usize>; 2],
+            [&str; 2],
+            [bool; 6],
+        )>());
+        let count = self.len;
+        let mut packed = self.filter.get();
+        let stamped = packed & Self::COUNT_MASK;
+        if stamped != count {
+            proof.bytes = proof.bytes.saturating_add(size_of::<(
+                [usize; 12],
+                [&std::cell::Cell<usize>; 2],
+                [bool; 2],
+            )>());
+            packed = (packed & !Self::COUNT_MASK) | count;
+            let mut index = stamped;
+            while index < count {
+                proof.bytes = proof.bytes.saturating_add(size_of::<(
+                    [usize; 22],
+                    [&[Option<&str>; 128]; 2],
+                    &Option<&str>,
+                    &&str,
+                    [&str; 2],
+                    [bool; 2],
+                )>());
+                let Some(item) = &self.entries[index] else {
+                    unreachable!("the active name prefix contains only inserted slots");
+                };
+                packed |= 1usize << (Self::COUNT_BITS + item.len() % Self::FILTER_BITS);
+                index += 1;
+            }
+            self.filter.set(packed);
+        }
+        let residue = name.len() % Self::FILTER_BITS;
+        let bit = 1usize << (Self::COUNT_BITS + residue);
+        if packed & bit == 0 {
+            proof.charge(&false);
+            return false;
+        }
+        // One scalar cursor. No iterator, closure environment, Some(name)
+        // construction or Option equality pipeline is formed by this search.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());
+        let mut index = 0;
+        loop {
+            // Actual cursor/length comparison values and its boolean result,
+            // including the terminal probe on an absent spelling.
+            proof.bytes = proof
+                .bytes
+                .saturating_add(2 * std::mem::size_of::<usize>() + std::mem::size_of::<bool>());
+            if index == count {
+                proof.charge(&false);
+                return false;
+            }
+            // Array Index actual/formal receivers and indices, returned option
+            // loan. Matching a borrowed place forms no Option<&str> value.
+            proof.bytes = proof.bytes.saturating_add(
+                2 * std::mem::size_of::<&[Option<&str>; 128]>()
+                    + 2 * std::mem::size_of::<usize>()
+                    + std::mem::size_of::<&Option<&str>>(),
+            );
+            if let Some(item) = &self.entries[index] {
+                // The &&str pattern binding, str::eq's actual/formal fat loans,
+                // and its returned boolean all belong to this reached probe.
+                proof.bytes = proof.bytes.saturating_add(
+                    std::mem::size_of::<&&str>()
+                        + 4 * std::mem::size_of::<&str>()
+                        + std::mem::size_of::<bool>(),
+                );
+                if str::eq(*item, name) {
+                    proof.charge(&true);
+                    return true;
+                }
+            }
+            proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());
+            index += 1;
+        }
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    static EAGER_NAMES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+pub(super) fn with_eager_names<T>(body: impl FnOnce() -> T) -> T {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            EAGER_NAMES.with(|flag| flag.set(self.0));
+        }
+    }
+    let _restore = Restore(EAGER_NAMES.with(|flag| flag.replace(true)));
+    body()
+}
+
 pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
     context: Context<'p, 'a>,
     imports: bool,
@@ -591,6 +770,197 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
     if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
         return before_scratch_body!(context, imports, proof, lookup);
     }
+    #[cfg(test)]
+    if super::tests::before_names_selected() || EAGER_NAMES.with(std::cell::Cell::get) {
+        return count_with_eager_names(context, imports, proof, lookup);
+    }
+    let program = context.program;
+    proof.charge(&(program, context.authored, imports));
+    proof.bytes = proof.bytes.saturating_add(size_of::<Proof>());
+    proof.charge(&(context, &mut *lookup, Option::<Session<'_, '_>>::None));
+    let mut session = None;
+    // The complete array/aggregate is constructed once in this invocation.
+    // Its immutable Program loans can outlive a function iteration; only the
+    // packed active prefix is read, so stale tail slots grant no name authority.
+    proof.bytes = proof.bytes.saturating_add(
+        std::mem::size_of::<LazyNames<'_>>()
+            + std::mem::size_of::<&mut Proof>()
+            + std::mem::size_of::<&LazyNames<'_>>(),
+    );
+    proof.bytes = proof.bytes.saturating_add(LazyNames::CELL_INITIALIZER);
+    let mut names = LazyNames {
+        entries: [None; 128],
+        len: 0,
+        filter: std::cell::Cell::new(0),
+    };
+    for function in &program.functions {
+        proof.charge(&function);
+        if !function.type_parameters.is_empty() {
+            continue;
+        }
+        // Reset scalar/actual-formal mutable and shared scope loans are paid
+        // before the first write. All existing per-node visit/insert/contains
+        // invoices remain complete; no old aggregate credit survives here.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 4],
+            [&mut LazyNames<'_>; 2],
+            [&LazyNames<'_>; 2],
+            [bool; 2],
+        )>());
+        names.len = 0;
+        proof.bytes = proof.bytes.saturating_add(LazyNames::CELL_RESET);
+        *names.filter.get_mut() = 0;
+        proof.current_retained = 0;
+        proof.retention_closed = match function.yields {
+            Some(_) => false,
+            None => match function.follows {
+                Some(_) => false,
+                None => matches!(
+                    function.return_type,
+                    Type::I64
+                        | Type::I32
+                        | Type::U8
+                        | Type::Usize
+                        | Type::Char
+                        | Type::F32
+                        | Type::F64
+                        | Type::Bool
+                ),
+            },
+        };
+        proof.charge(&(proof.current_retained, proof.retention_closed));
+        let mut complete = function.params.iter().all(|p| {
+            proof.charge(&p);
+            let scalar = matches!(p.mode, crate::ast::ParamMode::Value)
+                && matches!(
+                    p.ty,
+                    Type::I64
+                        | Type::I32
+                        | Type::U8
+                        | Type::Usize
+                        | Type::Char
+                        | Type::F32
+                        | Type::F64
+                        | Type::Bool
+                );
+            proof.charge(&scalar);
+            proof.retention_closed &= scalar;
+            names.insert(&p.name, &mut proof)
+        });
+        for root in call_identity::roots(function) {
+            // New selector actual/formal/return and every bounded branch role
+            // are paid before the helper arguments or predicates are formed.
+            proof.bytes = proof.bytes.saturating_add(
+                crate::workspace_graph::expected_projection::call_carriers::closed_roots::SELECTOR,
+            );
+            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(
+                root, &mut proof,
+            ) {
+                continue;
+            }
+            proof.bytes = proof
+                .bytes
+                .saturating_add(size_of::<[Option<(&Expr, usize)>; 129]>());
+            complete &= call_identity::walk(root, &mut |expression| {
+                proof.charge(&expression);
+                match &expression.kind {
+                    ExprKind::Block { statements, .. } => statements.iter().all(|s| match s {
+                        Statement::Let { name, .. } | Statement::Assign { name, .. } => {
+                            names.insert(name, &mut proof)
+                        }
+                        Statement::For { item, .. } | Statement::ForOwn { item, .. } => {
+                            names.insert(item, &mut proof)
+                        }
+                        Statement::ForBorrow { item, index, .. } => {
+                            names.insert(item, &mut proof)
+                                && index
+                                    .as_ref()
+                                    .is_none_or(|i| names.insert(&i.name, &mut proof))
+                        }
+                        _ => true,
+                    }),
+                    ExprKind::Closure { params, .. } => params.iter().all(|p| {
+                        proof.charge(&p);
+                        names.insert(&p.name, &mut proof)
+                    }),
+                    ExprKind::Match { arms, .. } => arms
+                        .iter()
+                        .all(|a| names.pattern(&a.pattern, 0, &mut proof)),
+                    _ => true,
+                }
+            });
+        }
+        proof.charge(&complete);
+        if !complete {
+            continue;
+        }
+        let before = proof.roots;
+        let callee_before = Session::checkpoint(&session);
+        let body_allowed = Session::eligible(program) && ordinary_data(function, &mut proof);
+        let mut body_complete = true;
+        proof.charge(&(before, callee_before, body_allowed, body_complete));
+        for root in call_identity::roots(function) {
+            if !visit(
+                root,
+                false,
+                true,
+                0,
+                &names,
+                lookup,
+                context,
+                function,
+                body_allowed && std::ptr::eq(root, &function.body),
+                &mut body_complete,
+                &mut session,
+                &mut proof,
+            )? {
+                proof.roots = before;
+                body_complete = false;
+                proof.retention_closed = false;
+                break;
+            }
+        }
+        // No partial function can authorize an exclusion. Generic functions
+        // were rejected before this existing traversal; runtime trees never enter.
+        if proof.retention_closed {
+            // Prepay the physical u16 source plus widening result/local before
+            // forming them. Aggregate Counts and MAX remain full usize values.
+            proof.bytes = proof.bytes.saturating_add(size_of::<(u16, usize, usize)>());
+            let completed = proof.current_retained as usize;
+            proof.charge(&(proof.current_retained, proof.retained));
+            // Two checked aggregate additions (actual/formal operands and
+            // returned/receiving Options), plus the MAX operand/result bank.
+            proof.bytes =
+                proof
+                    .bytes
+                    .saturating_add(size_of::<([usize; 12], [Option<usize>; 4], [bool; 4])>());
+            proof.retained.expressions = proof
+                .retained
+                .expressions
+                .checked_add(completed)
+                .ok_or(Error::Arithmetic)?;
+            proof.retained.maximum_function = proof.retained.maximum_function.max(completed);
+            proof.retained.functions = proof
+                .retained
+                .functions
+                .checked_add(1)
+                .ok_or(Error::Arithmetic)?;
+        }
+        if !body_complete {
+            Session::rollback(&mut session, callee_before)?;
+        }
+    }
+    let costs = Session::finish(session, context)?;
+    Ok((proof, costs))
+}
+
+#[cfg(test)]
+fn count_with_eager_names<'p, 'a, L: Lookup<'p>>(
+    context: Context<'p, 'a>,
+    imports: bool,
+    mut proof: Proof,
+    lookup: &mut L,
+) -> Result<(Proof, Costs), Error> {
     let program = context.program;
     proof.charge(&(program, context.authored, imports));
     proof.bytes = proof.bytes.saturating_add(size_of::<Proof>());
@@ -768,12 +1138,12 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn visit<'p, 'a, L: Lookup<'p>>(
+fn visit<'p, 'a, L: Lookup<'p>, N: NameLookup>(
     expression: &Expr,
     free: bool,
     outside: bool,
     depth: usize,
-    names: &Names<'_>,
+    names: &N,
     lookup: &mut L,
     context: Context<'p, 'a>,
     owner: &'p Function,
@@ -835,7 +1205,7 @@ fn visit<'p, 'a, L: Lookup<'p>>(
         if (free || callee || retained_call)
             && outside
             && type_arguments.is_empty()
-            && !names.contains(name, proof)
+            && !names.has_name(name, proof)
         {
             let loan = lookup.target(context.authored, name, args.len(), proof);
             if retained_call {
@@ -940,6 +1310,96 @@ fn visit<'p, 'a, L: Lookup<'p>>(
     let complete = true;
     proof.charge(&complete);
     Ok(complete)
+}
+
+#[test]
+fn deferred_filter_preserves_joint_census_on_linear_and_indexed_paths() {
+    use std::fmt::Write as _;
+    for declarations in [2, 64, 129] {
+        for calls in [0u32, 64] {
+            let mut text = String::from("module lazy; @id(\"target\") fn target()->i64{1}");
+            for index in 0..declarations - 2 {
+                write!(text, " @id(\"pad{index}\") fn pad{index}()->i64{{0}}").unwrap();
+            }
+            text.push_str(" @id(\"main\") fn main()->i64{let mut value=0;");
+            for _ in 0..96 {
+                text.push_str("value=value+1;");
+            }
+            if calls > 0 {
+                let mut sum = "target()".to_owned();
+                for _ in 0..calls.ilog2() {
+                    sum = format!("({sum}+{sum})");
+                }
+                text.push_str(&sum);
+                text.push('+');
+            }
+            text.push_str("value}");
+            let programs = [crate::parse(&text, "lazy.spx").unwrap()];
+            let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+            let context = Context {
+                program: &programs[0],
+                authored: &authored,
+                programs: &programs,
+            };
+            let observe =
+                || crate::test_allocation_observer::measure(|| count(context, true).unwrap());
+            let (old, old_allocation) = with_eager_names(observe);
+            let (current, current_allocation) = observe();
+            assert_eq!(current.0.roots, old.0.roots);
+            assert_eq!(current.0.roots, calls as usize);
+            assert_eq!(current.0.retained, old.0.retained);
+            assert_eq!(
+                (current.1.slots, current.1.bytes),
+                (old.1.slots, old.1.bytes)
+            );
+            assert_eq!(current_allocation, old_allocation);
+            assert_eq!(current_allocation.live, 0);
+            if calls == 0 {
+                assert!(current.0.bytes < old.0.bytes);
+            }
+            eprintln!(
+                "joint name census declarations={declarations} calls={calls} old={} current={}",
+                old.0.bytes, current.0.bytes
+            );
+        }
+    }
+}
+
+#[test]
+fn deferred_filter_pays_exact_cold_overhead_without_bindings_or_calls() {
+    let mut program =
+        crate::parse("module lazy; @id(\"main\") fn main()->i64{1}", "lazy.spx").unwrap();
+    for functions in [1, 0] {
+        assert_eq!(program.functions.len(), functions);
+        let programs = std::slice::from_ref(&program);
+        let authored = crate::workspace_graph::index_authored(programs).unwrap();
+        let context = Context {
+            program: &program,
+            authored: &authored,
+            programs,
+        };
+        let observe = || crate::test_allocation_observer::measure(|| count(context, true).unwrap());
+        let ((eager, eager_costs), eager_allocations) = with_eager_names(observe);
+        let ((lazy, lazy_costs), lazy_allocations) = observe();
+        assert_eq!(eager.roots, 0);
+        assert_eq!(lazy.roots, eager.roots);
+        assert_eq!(lazy.retained, eager.retained);
+        assert_eq!(
+            (lazy_costs.slots, lazy_costs.bytes),
+            (eager_costs.slots, eager_costs.bytes)
+        );
+        assert_eq!(lazy_allocations, eager_allocations);
+        assert_eq!(lazy_allocations.live, 0);
+        assert_eq!(
+            lazy.bytes.checked_sub(eager.bytes),
+            Some(
+                size_of::<LazyNames<'_>>() - size_of::<Names<'_>>()
+                    + LazyNames::CELL_INITIALIZER
+                    + functions * LazyNames::CELL_RESET
+            )
+        );
+        program.functions.clear();
+    }
 }
 
 #[cfg(test)]

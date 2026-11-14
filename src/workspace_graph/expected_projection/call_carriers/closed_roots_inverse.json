@@ -269,50 +269,68 @@
     },
     "src/workspace_graph/expected_projection/call_carriers_joint.rs": {
       "current": {
-        "length": 36959,
-        "sha256": "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"
+        "length": 55403,
+        "sha256": "9c86a40b949491ed805caee83f4f5fbb390c0947b431b716f4f86737351167e1"
       },
       "edits": [
         {
-          "start": 14991,
-          "end": 15021,
-          "after": "before_joint_closed_roots_body",
-          "before": "before_closed_roots_body"
+          "start": 301,
+          "end": 374,
+          "after": "use crate::ast::{Function, MatchPattern, RecordMatchFieldPattern, Type};\n",
+          "before": "use crate::ast::{Function, Type};\n"
         },
         {
-          "start": 22551,
-          "end": 22581,
-          "after": "before_joint_closed_roots_body",
-          "before": "before_closed_roots_body"
+          "start": 15017,
+          "end": 15063,
+          "after": "macro_rules! before_joint_closed_roots_body {\n",
+          "before": "macro_rules! before_closed_roots_body {\n"
         },
         {
-          "start": 22591,
-          "end": 22592,
-          "after": " ",
+          "start": 22273,
+          "end": 28966,
+          "after": "// The eager receiver remains the executable control for the saved census\n// bodies. The live joint census uses the original name slots and a lazy\n// negative filter. The name spelling always owns the final comparison.\ntrait NameLookup {\n    fn has_name(&self, name: &str, proof: &mut Proof) -> bool;\n}\n\n#[cfg(test)]\nimpl NameLookup for Names<'_> {\n    fn has_name(&self, name: &str, proof: &mut Proof) -> bool {\n        self.contains(name, proof)\n    }\n}\n\nstruct LazyNames<'a> {\n    entries: [Option<&'a str>; 128],\n    len: usize,\n    filter: std::cell::Cell<usize>,\n}\n\nimpl<'a> LazyNames<'a> {\n    const COUNT_BITS: usize = u8::BITS as usize;\n    const COUNT_MASK: usize = u8::MAX as usize;\n    const FILTER_BITS: usize = usize::BITS as usize - Self::COUNT_BITS;\n    const CELL_INITIALIZER: usize = size_of::<([usize; 3], [std::cell::Cell<usize>; 2])>();\n    const CELL_RESET: usize =\n        size_of::<([usize; 2], [&mut std::cell::Cell<usize>; 2], &mut usize)>();\n\n    fn insert(&mut self, name: &'a str, proof: &mut Proof) -> bool {\n        proof.charge(&(&*self, name));\n        if self.len == self.entries.len() {\n            return false;\n        }\n        self.entries[self.len] = Some(name);\n        self.len += 1;\n        true\n    }\n\n    fn pattern(&mut self, pattern: &'a MatchPattern, depth: usize, proof: &mut Proof) -> bool {\n        proof.charge(&(&*self, pattern, depth));\n        if depth == 128 {\n            return false;\n        }\n        match pattern {\n            MatchPattern::Binding { name, .. } => self.insert(name, proof),\n            MatchPattern::Variant { fields, .. } => {\n                fields.iter().all(|f| self.insert(&f.binding, proof))\n            }\n            MatchPattern::Record { fields, .. } => fields\n                .iter()\n                .all(|f| self.record(&f.pattern, depth + 1, proof)),\n            MatchPattern::Or { alternatives, .. } => alternatives\n                .iter()\n                .all(|p| self.pattern(p, depth + 1, proof)),\n            _ => true,\n        }\n    }\n    fn record(\n        &mut self,\n        pattern: &'a RecordMatchFieldPattern,\n        depth: usize,\n        proof: &mut Proof,\n    ) -> bool {\n        proof.charge(&(&*self, pattern, depth));\n        if depth == 128 {\n            return false;\n        }\n        match pattern {\n            RecordMatchFieldPattern::Binding { name, .. } => self.insert(name, proof),\n            RecordMatchFieldPattern::Record { fields, .. } => fields\n                .iter()\n                .all(|f| self.record(&f.pattern, depth + 1, proof)),\n            RecordMatchFieldPattern::Wildcard { .. } => true,\n        }\n    }\n}\n\nimpl NameLookup for LazyNames<'_> {\n    fn has_name(&self, name: &str, proof: &mut Proof) -> bool {\n        proof.charge(&(self, name));\n        // The stamp is the exact prefix already indexed. Insertion appends\n        // immutable names, and a new function resets both words.\n        proof.bytes = proof.bytes.saturating_add(size_of::<(\n            [usize; 30],\n            [&std::cell::Cell<usize>; 2],\n            [&str; 2],\n            [bool; 6],\n        )>());\n        let count = self.len;\n        let mut packed = self.filter.get();\n        let stamped = packed & Self::COUNT_MASK;\n        if stamped != count {\n            proof.bytes = proof.bytes.saturating_add(size_of::<(\n                [usize; 12],\n                [&std::cell::Cell<usize>; 2],\n                [bool; 2],\n            )>());\n            packed = (packed & !Self::COUNT_MASK) | count;\n            let mut index = stamped;\n            while index < count {\n                proof.bytes = proof.bytes.saturating_add(size_of::<(\n                    [usize; 22],\n                    [&[Option<&str>; 128]; 2],\n                    &Option<&str>,\n                    &&str,\n                    [&str; 2],\n                    [bool; 2],\n                )>());\n                let Some(item) = &self.entries[index] else {\n                    unreachable!(\"the active name prefix contains only inserted slots\");\n                };\n                packed |= 1usize << (Self::COUNT_BITS + item.len() % Self::FILTER_BITS);\n                index += 1;\n            }\n            self.filter.set(packed);\n        }\n        let residue = name.len() % Self::FILTER_BITS;\n        let bit = 1usize << (Self::COUNT_BITS + residue);\n        if packed & bit == 0 {\n            proof.charge(&false);\n            return false;\n        }\n        // One scalar cursor. No iterator, closure environment, Some(name)\n        // construction or Option equality pipeline is formed by this search.\n        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());\n        let mut index = 0;\n        loop {\n            // Actual cursor/length comparison values and its boolean result,\n            // including the terminal probe on an absent spelling.\n            proof.bytes = proof\n                .bytes\n                .saturating_add(2 * std::mem::size_of::<usize>() + std::mem::size_of::<bool>());\n            if index == count {\n                proof.charge(&false);\n                return false;\n            }\n            // Array Index actual/formal receivers and indices, returned option\n            // loan. Matching a borrowed place forms no Option<&str> value.\n            proof.bytes = proof.bytes.saturating_add(\n                2 * std::mem::size_of::<&[Option<&str>; 128]>()\n                    + 2 * std::mem::size_of::<usize>()\n                    + std::mem::size_of::<&Option<&str>>(),\n            );\n            if let Some(item) = &self.entries[index] {\n                // The &&str pattern binding, str::eq's actual/formal fat loans,\n                // and its returned boolean all belong to this reached probe.\n                proof.bytes = proof.bytes.saturating_add(\n                    std::mem::size_of::<&&str>()\n                        + 4 * std::mem::size_of::<&str>()\n                        + std::mem::size_of::<bool>(),\n                );\n                if str::eq(*item, name) {\n                    proof.charge(&true);\n                    return true;\n                }\n            }\n            proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());\n            index += 1;\n        }\n    }\n}\n\n#[cfg(test)]\nthread_local! {\n    static EAGER_NAMES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };\n}\n\n#[cfg(test)]\npub(super) fn with_eager_names<T>(body: impl FnOnce() -> T) -> T {\n    struct Restore(bool);\n    impl Drop for Restore {\n        fn drop(&mut self) {\n            EAGER_NAMES.with(|flag| flag.set(self.0));\n        }\n    }\n    let _restore = Restore(EAGER_NAMES.with(|flag| flag.replace(true)));\n    body()\n}\n\n",
           "before": ""
         },
         {
-          "start": 22600,
-          "end": 22601,
-          "after": " ",
+          "start": 29268,
+          "end": 29349,
+          "after": "        return before_joint_closed_roots_body!(context, imports, proof, lookup);\n",
+          "before": "        return before_closed_roots_body!(context,imports,proof,lookup);\n"
+        },
+        {
+          "start": 29544,
+          "end": 37563,
+          "after": "    #[cfg(test)]\n    if super::tests::before_names_selected() || EAGER_NAMES.with(std::cell::Cell::get) {\n        return count_with_eager_names(context, imports, proof, lookup);\n    }\n    let program = context.program;\n    proof.charge(&(program, context.authored, imports));\n    proof.bytes = proof.bytes.saturating_add(size_of::<Proof>());\n    proof.charge(&(context, &mut *lookup, Option::<Session<'_, '_>>::None));\n    let mut session = None;\n    // The complete array/aggregate is constructed once in this invocation.\n    // Its immutable Program loans can outlive a function iteration; only the\n    // packed active prefix is read, so stale tail slots grant no name authority.\n    proof.bytes = proof.bytes.saturating_add(\n        std::mem::size_of::<LazyNames<'_>>()\n            + std::mem::size_of::<&mut Proof>()\n            + std::mem::size_of::<&LazyNames<'_>>(),\n    );\n    proof.bytes = proof.bytes.saturating_add(LazyNames::CELL_INITIALIZER);\n    let mut names = LazyNames {\n        entries: [None; 128],\n        len: 0,\n        filter: std::cell::Cell::new(0),\n    };\n    for function in &program.functions {\n        proof.charge(&function);\n        if !function.type_parameters.is_empty() {\n            continue;\n        }\n        // Reset scalar/actual-formal mutable and shared scope loans are paid\n        // before the first write. All existing per-node visit/insert/contains\n        // invoices remain complete; no old aggregate credit survives here.\n        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(\n            [usize; 4],\n            [&mut LazyNames<'_>; 2],\n            [&LazyNames<'_>; 2],\n            [bool; 2],\n        )>());\n        names.len = 0;\n        proof.bytes = proof.bytes.saturating_add(LazyNames::CELL_RESET);\n        *names.filter.get_mut() = 0;\n        proof.current_retained = 0;\n        proof.retention_closed = match function.yields {\n            Some(_) => false,\n            None => match function.follows {\n                Some(_) => false,\n                None => matches!(\n                    function.return_type,\n                    Type::I64\n                        | Type::I32\n                        | Type::U8\n                        | Type::Usize\n                        | Type::Char\n                        | Type::F32\n                        | Type::F64\n                        | Type::Bool\n                ),\n            },\n        };\n        proof.charge(&(proof.current_retained, proof.retention_closed));\n        let mut complete = function.params.iter().all(|p| {\n            proof.charge(&p);\n            let scalar = matches!(p.mode, crate::ast::ParamMode::Value)\n                && matches!(\n                    p.ty,\n                    Type::I64\n                        | Type::I32\n                        | Type::U8\n                        | Type::Usize\n                        | Type::Char\n                        | Type::F32\n                        | Type::F64\n                        | Type::Bool\n                );\n            proof.charge(&scalar);\n            proof.retention_closed &= scalar;\n            names.insert(&p.name, &mut proof)\n        });\n        for root in call_identity::roots(function) {\n            // New selector actual/formal/return and every bounded branch role\n            // are paid before the helper arguments or predicates are formed.\n            proof.bytes = proof.bytes.saturating_add(\n                crate::workspace_graph::expected_projection::call_carriers::closed_roots::SELECTOR,\n            );\n            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(\n                root, &mut proof,\n            ) {\n                continue;\n            }\n            proof.bytes = proof\n                .bytes\n                .saturating_add(size_of::<[Option<(&Expr, usize)>; 129]>());\n            complete &= call_identity::walk(root, &mut |expression| {\n                proof.charge(&expression);\n                match &expression.kind {\n                    ExprKind::Block { statements, .. } => statements.iter().all(|s| match s {\n                        Statement::Let { name, .. } | Statement::Assign { name, .. } => {\n                            names.insert(name, &mut proof)\n                        }\n                        Statement::For { item, .. } | Statement::ForOwn { item, .. } => {\n                            names.insert(item, &mut proof)\n                        }\n                        Statement::ForBorrow { item, index, .. } => {\n                            names.insert(item, &mut proof)\n                                && index\n                                    .as_ref()\n                                    .is_none_or(|i| names.insert(&i.name, &mut proof))\n                        }\n                        _ => true,\n                    }),\n                    ExprKind::Closure { params, .. } => params.iter().all(|p| {\n                        proof.charge(&p);\n                        names.insert(&p.name, &mut proof)\n                    }),\n                    ExprKind::Match { arms, .. } => arms\n                        .iter()\n                        .all(|a| names.pattern(&a.pattern, 0, &mut proof)),\n                    _ => true,\n                }\n            });\n        }\n        proof.charge(&complete);\n        if !complete {\n            continue;\n        }\n        let before = proof.roots;\n        let callee_before = Session::checkpoint(&session);\n        let body_allowed = Session::eligible(program) && ordinary_data(function, &mut proof);\n        let mut body_complete = true;\n        proof.charge(&(before, callee_before, body_allowed, body_complete));\n        for root in call_identity::roots(function) {\n            if !visit(\n                root,\n                false,\n                true,\n                0,\n                &names,\n                lookup,\n                context,\n                function,\n                body_allowed && std::ptr::eq(root, &function.body),\n                &mut body_complete,\n                &mut session,\n                &mut proof,\n            )? {\n                proof.roots = before;\n                body_complete = false;\n                proof.retention_closed = false;\n                break;\n            }\n        }\n        // No partial function can authorize an exclusion. Generic functions\n        // were rejected before this existing traversal; runtime trees never enter.\n        if proof.retention_closed {\n            // Prepay the physical u16 source plus widening result/local before\n            // forming them. Aggregate Counts and MAX remain full usize values.\n            proof.bytes = proof.bytes.saturating_add(size_of::<(u16, usize, usize)>());\n            let completed = proof.current_retained as usize;\n            proof.charge(&(proof.current_retained, proof.retained));\n            // Two checked aggregate additions (actual/formal operands and\n            // returned/receiving Options), plus the MAX operand/result bank.\n            proof.bytes =\n                proof\n                    .bytes\n                    .saturating_add(size_of::<([usize; 12], [Option<usize>; 4], [bool; 4])>());\n            proof.retained.expressions = proof\n                .retained\n                .expressions\n                .checked_add(completed)\n                .ok_or(Error::Arithmetic)?;\n            proof.retained.maximum_function = proof.retained.maximum_function.max(completed);\n            proof.retained.functions = proof\n                .retained\n                .functions\n                .checked_add(1)\n                .ok_or(Error::Arithmetic)?;\n        }\n        if !body_complete {\n            Session::rollback(&mut session, callee_before)?;\n        }\n    }\n    let costs = Session::finish(session, context)?;\n    Ok((proof, costs))\n}\n\n#[cfg(test)]\nfn count_with_eager_names<'p, 'a, L: Lookup<'p>>(\n    context: Context<'p, 'a>,\n    imports: bool,\n    mut proof: Proof,\n    lookup: &mut L,\n) -> Result<(Proof, Costs), Error> {\n",
           "before": ""
         },
         {
-          "start": 22607,
-          "end": 22608,
-          "after": " ",
-          "before": ""
+          "start": 40661,
+          "end": 40811,
+          "after": "            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(\n                root, &mut proof,\n            ) {\n",
+          "before": "            if crate::workspace_graph::expected_projection::call_carriers::closed_roots::accounted(root, &mut proof) {\n"
         },
         {
-          "start": 26009,
-          "end": 26026,
-          "after": "\n                ",
-          "before": ""
+          "start": 44998,
+          "end": 45046,
+          "after": "fn visit<'p, 'a, L: Lookup<'p>, N: NameLookup>(\n",
+          "before": "fn visit<'p, 'a, L: Lookup<'p>>(\n"
         },
         {
-          "start": 26042,
-          "end": 26056,
-          "after": ",\n            ",
+          "start": 45122,
+          "end": 45137,
+          "after": "    names: &N,\n",
+          "before": "    names: &Names<'_>,\n"
+        },
+        {
+          "start": 47219,
+          "end": 47263,
+          "after": "            && !names.has_name(name, proof)\n",
+          "before": "            && !names.contains(name, proof)\n"
+        },
+        {
+          "start": 51521,
+          "end": 55207,
+          "after": "#[test]\nfn deferred_filter_preserves_joint_census_on_linear_and_indexed_paths() {\n    use std::fmt::Write as _;\n    for declarations in [2, 64, 129] {\n        for calls in [0u32, 64] {\n            let mut text = String::from(\"module lazy; @id(\\\"target\\\") fn target()->i64{1}\");\n            for index in 0..declarations - 2 {\n                write!(text, \" @id(\\\"pad{index}\\\") fn pad{index}()->i64{{0}}\").unwrap();\n            }\n            text.push_str(\" @id(\\\"main\\\") fn main()->i64{let mut value=0;\");\n            for _ in 0..96 {\n                text.push_str(\"value=value+1;\");\n            }\n            if calls > 0 {\n                let mut sum = \"target()\".to_owned();\n                for _ in 0..calls.ilog2() {\n                    sum = format!(\"({sum}+{sum})\");\n                }\n                text.push_str(&sum);\n                text.push('+');\n            }\n            text.push_str(\"value}\");\n            let programs = [crate::parse(&text, \"lazy.spx\").unwrap()];\n            let authored = crate::workspace_graph::index_authored(&programs).unwrap();\n            let context = Context {\n                program: &programs[0],\n                authored: &authored,\n                programs: &programs,\n            };\n            let observe =\n                || crate::test_allocation_observer::measure(|| count(context, true).unwrap());\n            let (old, old_allocation) = with_eager_names(observe);\n            let (current, current_allocation) = observe();\n            assert_eq!(current.0.roots, old.0.roots);\n            assert_eq!(current.0.roots, calls as usize);\n            assert_eq!(current.0.retained, old.0.retained);\n            assert_eq!(\n                (current.1.slots, current.1.bytes),\n                (old.1.slots, old.1.bytes)\n            );\n            assert_eq!(current_allocation, old_allocation);\n            assert_eq!(current_allocation.live, 0);\n            if calls == 0 {\n                assert!(current.0.bytes < old.0.bytes);\n            }\n            eprintln!(\n                \"joint name census declarations={declarations} calls={calls} old={} current={}\",\n                old.0.bytes, current.0.bytes\n            );\n        }\n    }\n}\n\n#[test]\nfn deferred_filter_pays_exact_cold_overhead_without_bindings_or_calls() {\n    let mut program =\n        crate::parse(\"module lazy; @id(\\\"main\\\") fn main()->i64{1}\", \"lazy.spx\").unwrap();\n    for functions in [1, 0] {\n        assert_eq!(program.functions.len(), functions);\n        let programs = std::slice::from_ref(&program);\n        let authored = crate::workspace_graph::index_authored(programs).unwrap();\n        let context = Context {\n            program: &program,\n            authored: &authored,\n            programs,\n        };\n        let observe = || crate::test_allocation_observer::measure(|| count(context, true).unwrap());\n        let ((eager, eager_costs), eager_allocations) = with_eager_names(observe);\n        let ((lazy, lazy_costs), lazy_allocations) = observe();\n        assert_eq!(eager.roots, 0);\n        assert_eq!(lazy.roots, eager.roots);\n        assert_eq!(lazy.retained, eager.retained);\n        assert_eq!(\n            (lazy_costs.slots, lazy_costs.bytes),\n            (eager_costs.slots, eager_costs.bytes)\n        );\n        assert_eq!(lazy_allocations, eager_allocations);\n        assert_eq!(lazy_allocations.live, 0);\n        assert_eq!(\n            lazy.bytes.checked_sub(eager.bytes),\n            Some(\n                size_of::<LazyNames<'_>>() - size_of::<Names<'_>>()\n                    + LazyNames::CELL_INITIALIZER\n                    + functions * LazyNames::CELL_RESET\n            )\n        );\n        program.functions.clear();\n    }\n}\n\n",
           "before": ""
         }
       ]
@@ -883,8 +901,8 @@
     },
     "src/workspace_graph/expected_projection/call_carriers/closed_roots_tests.rs": {
       "current": {
-        "length": 13978,
-        "sha256": "0aaa5dbca65f07b883cdb876f7f3400c6841b9fb9fd59ead14c1077d65234a77"
+        "length": 14301,
+        "sha256": "bddad19b8a386797f457b3593363c745fb071d90d7d444e557a947383aaa657b"
       },
       "edits": [
         {
@@ -900,56 +918,62 @@
           "before": "        let programs = vec![parse(&fixture(n, complex))];\n"
         },
         {
-          "start": 4738,
-          "end": 4795,
+          "start": 3015,
+          "end": 3402,
+          "after": "                    // Keep the immediate closed-root comparison on its eager\n                    // name receiver. The lazy successor has its own invoice\n                    // and allocation comparisons against that same receiver.\n                    2 => super::super::joint::with_eager_names(|| {\n                        count_joint(context, true).unwrap().0\n                    }),\n",
+          "before": "                    2 => count_joint(context, true).unwrap().0,\n"
+        },
+        {
+          "start": 5061,
+          "end": 5118,
           "after": "        let programs = vec![census_program(n, complex)];\n",
           "before": "        let programs = vec![parse(&fixture(n, complex))];\n"
         },
         {
-          "start": 5519,
-          "end": 5541,
+          "start": 5842,
+          "end": 5864,
           "after": "                    (\n",
           "before": "                    let result = (\n"
         },
         {
-          "start": 5931,
-          "end": 5953,
+          "start": 6254,
+          "end": 6276,
           "after": "                    )\n",
           "before": "                    );\n                    drop((full, retained));\n                    result\n"
         },
         {
-          "start": 8845,
-          "end": 10015,
+          "start": 9168,
+          "end": 10338,
           "after": "fn restore_source(\n    root: &std::path::Path,\n    data: &serde_json::Value,\n    source: &str,\n    expected: &serde_json::Value,\n) -> String {\n    let read = |pin: &serde_json::Value| {\n        reader::read(\n            &root.join(source),\n            pin[\"length\"].as_u64().unwrap().try_into().unwrap(),\n            pin[\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap()\n    };\n    let Some(row) = data[\"successor_sources\"].get(source) else {\n        return read(expected);\n    };\n    let mut restored = read(&row[\"current\"]);\n    for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n        let start = edit[\"start\"].as_u64().unwrap().try_into().unwrap();\n        let end = edit[\"end\"].as_u64().unwrap().try_into().unwrap();\n        assert_eq!(&restored[start..end], edit[\"after\"].as_str().unwrap());\n        restored.replace_range(start..end, edit[\"before\"].as_str().unwrap());\n    }\n    assert_eq!(restored.len() as u64, expected[\"length\"]);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))\n        ),\n        expected[\"sha256\"]\n    );\n    restored\n}\n",
           "before": ""
         },
         {
-          "start": 10744,
-          "end": 10820,
+          "start": 11067,
+          "end": 11143,
           "after": "        let current = restore_source(root, &data, source, &row[\"current\"]);\n",
           "before": "        let current = reader::read(\n            &root.join(source),\n            row[\"current\"][\"length\"]\n                .as_u64()\n                .unwrap()\n                .try_into()\n                .unwrap(),\n            row[\"current\"][\"sha256\"].as_str().unwrap(),\n            2 << 20,\n        )\n        .unwrap();\n"
         },
         {
-          "start": 11532,
-          "end": 11598,
+          "start": 11855,
+          "end": 11921,
           "after": "            restore_source(root, &data, source, &row[\"current\"]),\n",
           "before": "            reader::read(\n                &root.join(source),\n                current.len(),\n                &hash(current.as_bytes()),\n                2 << 20\n            )\n            .unwrap(),\n"
         },
         {
-          "start": 11635,
-          "end": 11686,
+          "start": 11958,
+          "end": 12009,
           "after": "    let extraction = &data[\"boundary_extraction\"];\n",
           "before": "    let current = concat!(\n        include_str!(\"closed_roots.rs\"),\n        include_str!(\"closed_roots_tests.rs\")\n    );\n    assert_eq!(\n        current.len() as u64,\n        data[\"new_child\"][\"length\"].as_u64().unwrap()\n    );\n    assert_eq!(\n        hash(current.as_bytes()),\n        data[\"new_child\"][\"sha256\"].as_str().unwrap()\n    );\n"
         },
         {
-          "start": 12305,
-          "end": 12472,
+          "start": 12628,
+          "end": 12795,
           "after": "        acquired.push_str(&restore_source(\n            root,\n            &data,\n            source,\n            &extraction[\"current_components\"][source],\n        ));\n",
           "before": "        acquired.push_str(&physical);\n"
         },
         {
-          "start": 12478,
-          "end": 12651,
+          "start": 12801,
+          "end": 12974,
           "after": "    assert_eq!(acquired.len() as u64, data[\"new_child\"][\"length\"]);\n    assert_eq!(hash(acquired.as_bytes()), data[\"new_child\"][\"sha256\"]);\n    let mut original = acquired;\n",
           "before": "    assert_eq!(acquired, current);\n    let extraction = &data[\"boundary_extraction\"];\n    let mut original = current.to_owned();\n"
         }

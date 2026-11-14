@@ -79,7 +79,12 @@ fn all_four_complete_callers_keep_proofs_and_exact_actual_scratch_delta() {
                 let proof = match mode {
                     0 => count_linear(&programs[0], &authored, true),
                     1 => count(&programs[0], &authored, true),
-                    2 => count_joint(context, true).unwrap().0,
+                    // Keep the immediate closed-root comparison on its eager
+                    // name receiver. The lazy successor has its own invoice
+                    // and allocation comparisons against that same receiver.
+                    2 => super::super::joint::with_eager_names(|| {
+                        count_joint(context, true).unwrap().0
+                    }),
                     _ => count_modular(context, true).unwrap().0,
                 };
                 let counts = take();

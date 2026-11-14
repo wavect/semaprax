@@ -356,34 +356,34 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
     let function = &program.functions[0];
     for (stopped, dag) in [(0, false), (2, false), (0, true), (2, true)] {
         let run = |old, limit, work_limit, floor_offset: Option<usize>| {
-            let mut caller = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-            let mut work = SkeletonWork::new(&program, function, &mut caller);
-            // Immutable inputs are independently made outside this protocol
-            // observer; the separate whole-owner gate above includes all seeds.
-            let mut input = if dag {
-                dag_seed(128, &mut work)
-            } else {
-                seed(128, stopped, &mut work)
-            }
-            .unwrap();
-            if dag && stopped == 2 {
-                for path in &mut input {
-                    path.residual = true;
-                }
-            }
-            let suffixes = if dag {
-                dag_seed(1, &mut work)
-            } else {
-                seed(1, 0, &mut work)
-            }
-            .unwrap();
-            let observed = with_limit_usage_refusal_site(limit, || {
+            with_limit_usage_refusal_site(limit, || {
                 measure(|| {
-                    *work.budget = ReplayBudget::new();
+                    let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+                    FIRST_WORK.with(|slot| slot.set(None));
                     let outcome = (|| {
-                        work.budget.prepare_builder(function)?;
-                        work.budget.reserve_skeleton(function, work_limit)?;
-                        FIRST_WORK.with(|slot| slot.set(None));
+                        // The DAG and query slot authenticate the ledger on
+                        // construction. Keep that ledger through final Drop.
+                        let mut work =
+                            SkeletonWork::with_index(&program, function, &mut budget, None)?;
+                        let mut input = if dag {
+                            dag_seed(128, &mut work)?
+                        } else {
+                            seed(128, stopped, &mut work)?
+                        };
+                        if dag && stopped == 2 {
+                            for path in &mut input {
+                                path.residual = true;
+                            }
+                        }
+                        let suffixes = if dag {
+                            dag_seed(1, &mut work)?
+                        } else {
+                            seed(1, 0, &mut work)?
+                        };
+                        // Cut the sequencing allowance after input setup. The
+                        // separate global allowance still funds classification.
+                        work.budget.skeleton_remaining = work_limit;
+                        work.budget.skeleton_spent = 0;
                         if let Some(offset) = floor_offset {
                             assert!(set_active_floor(limit - offset));
                         }
@@ -392,36 +392,24 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
                         } else {
                             sequence_skeleton_paths(input, &suffixes, &mut work)
                         };
-                        result.map(|paths| {
-                            let shape = (paths.len(), paths.capacity());
-                            drop(paths);
-                            shape
-                        })
+                        result.map(|paths| (paths.len(), paths.capacity()))
                     })()
                     .map_err(failure);
                     let frontier = FIRST_WORK.with(|slot| slot.get());
-                    let remaining = work.budget.skeleton_remaining;
+                    let remaining = budget.skeleton_remaining;
                     let retry = if outcome.is_err() {
                         Some(
-                            work.budget
+                            budget
                                 .reserve_bytes(function, 0, "vector sticky retry")
                                 .map_err(failure),
                         )
                     } else {
                         None
                     };
-                    *work.budget = ReplayBudget::unobserved();
-                    // DAG memo/backing can be retained by SkeletonWork. Keep
-                    // its final Drop inside the original allocation window.
-                    drop(suffixes);
-                    drop(work);
-                    // The assignment above already dropped the actual funded
-                    // budget here. Only its resource-free unobserved replacement
-                    // remains in caller, outside the observer and borrow.
+                    drop(budget);
                     (outcome, frontier, remaining, retry)
                 })
-            });
-            observed
+            })
         };
         let (((ample, frontier, _, _), allocation), refused, exact, first, site) =
             run(false, usize::MAX, MAX_REPLAY_WORK_UNITS, None);
@@ -441,14 +429,14 @@ fn lexical_vector_first_work_keeps_six_fields_before_selection_floor_and_real_li
             assert_eq!(allocation.allocated, allocation.freed);
             eprintln!("vector stopped={stopped} dag={dag} limit={limit} reserved={paid} heap={allocation:?}");
         }
-        let (remaining, setup_paid) = frontier.expect("actual first original work frontier");
+        let (remaining, spent) = frontier.expect("actual first original work frontier");
         // This floor admits all preceding original/new held selection state but
         // refuses any positive optional query. Zero original work must win.
         let offset = usize::MAX - remaining;
         let (((actual, _, left, retry), allocation), _, _, _, _) =
-            run(false, usize::MAX, setup_paid, Some(offset));
+            run(false, usize::MAX, spent, Some(offset));
         let (((expected, _, _, _), old_allocation), _, _, _, _) =
-            run(true, usize::MAX, setup_paid, None);
+            run(true, usize::MAX, spent, None);
         assert_eq!(
             actual.unwrap_err(),
             expected.unwrap_err(),

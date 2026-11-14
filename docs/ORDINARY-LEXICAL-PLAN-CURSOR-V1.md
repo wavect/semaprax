@@ -388,6 +388,43 @@ sources. #902 remains open for the original-cap owning application gates.
 | Current shipping production Clippy log | `dfc1919d42b7c6fc8cc7856ee43c4354024a235f289069d63eaff501e500d8ad` |
 | Full comparator and expression-fact test log | `ffcecdba59957c7de3f52fe5f7f25f56744ce47d8a02e7b594c6eae89b5b4cd7` |
 
+### Matched application comparison with the cursor backing fix
+
+A third build used the same complete `d458d0539` comparator, phase
+observer and current caller, with only the `LegacyUnobserved` cursor
+backing fix from `2837a1ab8b` restored. The added branch is outside the
+active-builder payer. Catalog, ShiftSim and selected-file LogLens now
+passed Project check in both arms. Each app reached the same number of
+comparison owners and prepared path pairs. Both arms reported identical
+resolved-core attempt modes, byte consumption and outcomes.
+
+| Project | Prepared pairs | Predecessor comparison bytes | Current comparison bytes | Reduction |
+| --- | ---: | ---: | ---: | ---: |
+| Catalog | 11,565 | 46,768,084 | 31,793,406 | 14,974,678 (32.02%) |
+| ShiftSim | 35,025 | 201,773,932 | 139,216,808 | 62,557,124 (31.00%) |
+| Selected-file LogLens | 13,112 | 12,277,106 | 9,136,013 | 3,141,093 (25.58%) |
+
+These are cumulative debits of the observed active-builder comparison
+phase over the complete reporting invocation. All phase guards closed
+with zero unknown debits. ShiftSim includes five core attempts. The
+comparison totals cross ledger scopes and retries and are not a peak or a
+reduction in the successful attempt's builder debit. Current certified
+right-hand-side admissions were 9,953 for Catalog, 28,732 for ShiftSim
+and 12,153 for LogLens. The reductions compare the complete comparator
+generations, including the changes after the first-head continuation.
+The Normalizer entered no comparison phase and reproduced the same
+static refusal in all three builds.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Predecessor substitution with the cursor backing fix | `c56cc0445dde23708bd82e04d8ae90683ef606c0a282b874ee88db714d078849` |
+| Current Catalog Project report | `a0f877f34e84c01b890a13d9b098e6fa81a8a82064b480a42bc7a80517291b26` |
+| Fixed predecessor Catalog Project report | `99ef05d81ab13a456e75ca373dfc2d00336a86edcfb70d1e5261296034bbf0a5` |
+| Current ShiftSim Project report | `a08c923bd3917e313320edec841639a48d241d63afabfe005f69ff0240fb978d` |
+| Fixed predecessor ShiftSim Project report | `57de14a80c59c2e78d559bedffb76bf4ef8f2ee4e8ab4fe95ce9526c074d70a9` |
+| Current LogLens Project report | `ba20a603fd45ce387cbe725a1e37c4f23006b004800fdbda21a35094f5d31087` |
+| Fixed predecessor LogLens Project report | `ab473f8bb43ef6de33094251b9925b711293717192e5019e07ab2ea7bbc1a460` |
+
 ## Shared immutable segment boundary continuation
 
 When both loaded slices are empty, inspect only the next already validated

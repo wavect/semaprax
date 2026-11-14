@@ -394,9 +394,18 @@ fn held_closure_complete_old_invocation_and_current_caller_keep_checked_verdict_
         ),
         super::super::super::compare_with_index_storage(&program, &function, &mut b, None, None)
     );
+    // The production caller now retires HIR-private memo entries between
+    // roots. Rebuild its HIR owner and observe that work independently.
+    let release_work = super::super::super::hir_memo_release_tests::measure_legacy_release_work(
+        &program, &function,
+    );
+    assert!(release_work > 0);
     assert_eq!(
         (a.remaining, a.skeleton_remaining),
-        (b.remaining, b.skeleton_remaining)
+        (
+            b.remaining.checked_add(release_work).unwrap(),
+            b.skeleton_remaining
+        )
     );
 }
 

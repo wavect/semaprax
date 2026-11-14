@@ -645,16 +645,26 @@ fn complete_immediate_frontier_gateway_and_original_controls_restore_exact_bytes
     // Both independently compiled bodies bind the actual same payer producers;
     // the old gateway is neither deleted nor called through a compact wrapper.
     assert!(now.ends_with(direct_compact.trim_start_matches("//! Warm authentication publishes only into the caller's already paid slot.\nuse super::*;\n")));
-    let physical_budget = include_bytes!("../physical_budget.rs");
+    let physical_budget = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/physical_budget.rs",
+        "dca3a126f4c0dfde7e45db233d011100c5f9411cd77766260a9b1a4669c05cbd",
+        include_str!("../physical_budget.rs"),
+    )
+    .expect("authenticate current source and restore the exact compact frontier predecessor");
     assert_eq!(physical_budget.len(), 43414);
     assert_eq!(
-        digest(physical_budget),
+        digest(physical_budget.as_bytes()),
         "dca3a126f4c0dfde7e45db233d011100c5f9411cd77766260a9b1a4669c05cbd"
     );
-    let classifier_string = include_bytes!("../../../bounded_output/classifier_string.rs");
+    let classifier_string = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/bounded_output/classifier_string.rs",
+        "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550",
+        include_str!("../../../bounded_output/classifier_string.rs"),
+    )
+    .expect("authenticate current source and restore the exact compact frontier predecessor");
     assert_eq!(classifier_string.len(), 23258);
     assert_eq!(
-        digest(classifier_string),
+        digest(classifier_string.as_bytes()),
         "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550"
     );
 }

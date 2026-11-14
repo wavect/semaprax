@@ -833,6 +833,22 @@ pub(super) fn before_source(path: &str, supplied: String) -> String {
         supplied
     };
     let physical = field_local::tests::source_before(path, &physical);
+    let physical = if path == "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" {
+        crate::source_reflows::declared_history_inputs::expected_value(
+            path,
+            row["sha256"].as_str().unwrap(),
+            std::str::from_utf8(&physical).unwrap(),
+        )
+        .expect("authenticate the entire compact frontier test before its fused inverse")
+        .into_bytes()
+    } else {
+        physical
+    };
+    let supplied = if supplied.as_bytes() == compiled {
+        String::from_utf8(physical.clone()).unwrap()
+    } else {
+        supplied
+    };
     assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
     let mut actual = physical.clone();

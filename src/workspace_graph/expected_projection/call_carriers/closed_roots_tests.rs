@@ -148,19 +148,19 @@ fn full_mode6_forecasts_preserve_all_storage_semantics_and_complete_drop() {
         };
         let old = run(true);
         let current = run(false);
-        assert_eq!(&old.0.0.0[2..], &current.0.0.0[2..]);
-        assert_eq!(old.0.0.1, current.0.0.1);
+        assert_eq!(&old.0 .0 .0[2..], &current.0 .0 .0[2..]);
+        assert_eq!(old.0 .0 .1, current.0 .0 .1);
         if n > 0 && !complex {
-            assert!(current.0.0.0[0] < old.0.0.0[0] && current.0.0.0[1] < old.0.0.0[1]);
+            assert!(current.0 .0 .0[0] < old.0 .0 .0[0] && current.0 .0 .0[1] < old.0 .0 .0[1]);
         }
         if complex {
-            assert!(current.0.0.0[0] >= old.0.0.0[0] && current.0.0.0[1] >= old.0.0.0[1]);
+            assert!(current.0 .0 .0[0] >= old.0 .0 .0[0] && current.0 .0 .0[1] >= old.0 .0 .0[1]);
         }
         for row in [&old, &current] {
             assert!(!row.1 && row.3.is_none());
-            assert!(!row.0.1.invalid && row.0.1.live == 0);
-            assert_eq!(row.0.1.allocated, row.0.1.freed);
-            assert!(row.0.1.allocated <= row.2);
+            assert!(!row.0 .1.invalid && row.0 .1.live == 0);
+            assert_eq!(row.0 .1.allocated, row.0 .1.freed);
+            assert!(row.0 .1.allocated <= row.2);
         }
         eprintln!(
             "CLOSED_NAMES_FULL functions={n} fallback={complex} current={current:?} old={old:?}; no application fit or measured result until owning execution"

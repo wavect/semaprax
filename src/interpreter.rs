@@ -63,13 +63,13 @@ mod api_admission;
     reason = "ordinary partition receiving closure pending targets and public copy-out; no Value installer"
 )]
 pub(crate) mod byte_partition;
-pub mod partition_source;
 mod call_frame;
 mod checked_allocation;
 mod closures;
 mod command_state;
 pub(crate) mod construction_fusion;
 mod copy_projection;
+pub mod partition_source;
 use construction_fusion::{BorrowedSliceValue, OwnedBytesValue};
 mod static_text;
 use static_text::{BorrowedRoot, Utf8Backing};

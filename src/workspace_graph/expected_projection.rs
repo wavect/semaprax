@@ -345,6 +345,21 @@ fn dependency_identity_max(
 }
 
 fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost, Vec<Diagnostic>> {
+    let mut total = GenericInstanceCost {
+        bytes: 0,
+        string_bytes: 0,
+        identity_slots: 0,
+        identity_carriers: 0,
+    };
+    // A local instance always needs a local generic template. Imported
+    // wrappers are counted separately by the importing caller.
+    if program
+        .functions
+        .iter()
+        .all(|function| function.type_parameters.is_empty())
+    {
+        return Ok(total);
+    }
     let mut templates = Vec::with_capacity(program.functions.len());
     for function in &program.functions {
         if function.type_parameters.is_empty() {
@@ -363,12 +378,6 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
         ));
     }
     templates.sort_by(|left, right| left.0.cmp(right.0));
-    let mut total = GenericInstanceCost {
-        bytes: 0,
-        string_bytes: 0,
-        identity_slots: 0,
-        identity_carriers: 0,
-    };
     for function in program
         .functions
         .iter()
@@ -420,6 +429,34 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
         }
     }
     Ok(total)
+}
+
+#[cfg(test)]
+#[test]
+fn local_generic_cost_has_no_template_backing_for_monomorphic_modules() {
+    let mut source = String::from("module template_census;");
+    for index in 0..64 {
+        source.push_str(&format!(
+            "@id(\"f{index}\") fn f{index}() -> i64 {{ {index} }}"
+        ));
+    }
+    let program = crate::parse(&source, "template-census.spx").unwrap();
+    let (cost, allocation) = crate::test_allocation_observer::measure(|| {
+        generic_instance_source_cost(&program).unwrap()
+    });
+    assert_eq!(
+        (
+            cost.bytes,
+            cost.string_bytes,
+            cost.identity_slots,
+            cost.identity_carriers
+        ),
+        (0, 0, 0, 0)
+    );
+    assert!(!allocation.invalid);
+    assert_eq!(allocation.allocations, 0);
+    assert_eq!(allocation.reallocations, 0);
+    assert_eq!(allocation.live, 0);
 }
 // Imported intrinsic wrappers are retained as templates by the synthetic
 // projection too. Each actual typed call constructs a full instance, just as

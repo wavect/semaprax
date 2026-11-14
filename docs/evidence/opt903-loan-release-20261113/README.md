@@ -95,7 +95,7 @@ The shipping CLI built from `138edb9a04f66c1509673c14589bd4bb87a13ffe` returned 
 | `examples/shiftsim-typed-record-successor/semaprax.toml` | `59de9eaf9bdf3d945b2eb10c64eb4b1b4a9e1b11204c3c74b1703681c463ec0a` |
 | `examples/catalog-normalizer-project/semaprax.toml` | `1c76cc13569dac44ac364bf5840962e35792deedf886227a0e51339c00758cbb` |
 
-These are baseline checks at the shipping 128 MiB construction limit. The 64 MiB route, the CLI application gate and the scoped candidate remain pending.
+These are baseline checks at the shipping 128 MiB construction limit. The same CLI checked and built the unchanged selected-file LogLens fixture in a temporary directory. Its native binary passed all 33 historical checks and 16 SPEC boundary checks via the checked-in wrapper, and the wrapper suite passed all 207 checks. The qualification report SHA-256 is `e154633d933429082fa5d9685c8aaec091e15efd26636f795c6e7569542f3796` and the native binary SHA-256 is `30bb2619a0e138af6ffec58e588664b02f43f50022476ab7c0801c4145b9d248`. The 64 MiB application and candidate gates remain pending.
 
 ### Scope of the four-module forecast
 
@@ -107,3 +107,9 @@ A joint receiver change is required to reproduce the earlier shared-table
 reduction on the unchanged four-module control. The joint directory also
 serves other callers, so that change must retain its independent eager
 controls and cover both the linear and indexed directory paths.
+
+The modular-only build confirmed this routing on the original assertion. It
+passed seven of eight retained-scratch tests and left the four-module forecast
+at 6,573,050 bytes against the saved 6,418,504 bytes. The separate joint
+prototype preserves the historical controls and has started its owning Rust
+projection tests. Its source-pin regeneration and all 54 overlay tests passed.

@@ -160,6 +160,8 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ("semaprax json-codec <project> --plan <plan-json> --output <new-bundle>\n", ""),
         ("semaprax build <file> --profile fused-construction-v1 --managed-bytes N --target native|wasm [-o|--output fresh-path] [--json]\n", ""),
         ("semaprax run <file> --profile fused-construction-v1 --managed-bytes N [--json] [--max-steps N|--native]\n", ""),
+        ("semaprax build <file> --profile byte-partition-v1 --target native|wasm [-o|--output path] [--json]\n", ""),
+        ("semaprax run <file> --profile byte-partition-v1 --managed-bytes N [--json]\n", ""),
     ] {
         assert_eq!(stdout.matches(current_line).count(), 1, "current admitted usage");
         stdout = stdout.replacen(current_line, prior_line, 1);

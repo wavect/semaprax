@@ -174,3 +174,10 @@ for `semaprax-full`.
 This replay compares local command output for the discovery questions.
 Actual delivered tool responses, model requests, turns, usage, billing and
 task acceptance still require the matched LogLens and ShiftSim trials.
+
+The standalone help harness subsequently passed all 13 checks after the
+byte-partition build and run forms were moved into the shared command catalog.
+The exhaustive catalog and all scoped help spellings now derive those forms
+from the same entries. The owning historical catalog comparison passed with
+both older snapshots preserved. The local CLI was relinked against the
+retained compiler library for this CLI-only change.

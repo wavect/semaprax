@@ -187,6 +187,15 @@ pub(super) fn before_preparation(source: &str) -> String {
     };
     let mut restored = current.to_owned();
     if source == "main99_pair_scope_tests.rs" {
+        const SOURCE: &str = "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs";
+        const BEFORE_FORMAT: &str =
+            "a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1";
+        restored = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(
+            SOURCE,
+            BEFORE_FORMAT,
+            current,
+        )
+        .expect("complete pre-format PLAN comparison owner");
         assert_eq!(restored.len(), 43965);
         assert_eq!(
             format!(

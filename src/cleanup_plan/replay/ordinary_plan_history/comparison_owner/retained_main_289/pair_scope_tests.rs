@@ -2,6 +2,7 @@
 use super::*;
 #[path = "../pair_scope_tests/paired_segments.rs"]
 mod paired_segments;
+use super::compare as compare_independent_segments;
 #[path = "../pair_scope_tests/paired_tails.rs"]
 mod paired_tails;
 use crate::bounded_output::with_limit_usage_refusal;

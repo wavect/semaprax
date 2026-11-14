@@ -848,18 +848,17 @@ the no-pair control rose from 15,857 to 16,561 bytes. These are
 instrumented library-test observations. Shipping application parity
 at the original budget remains a separate gate.
 
-One failing historical comparator test passed its complete inverse
-in an isolated Rust check after restoring the declared 43,965-byte
-pre-format source before applying the original inverse. The inverse
-still produced the exact 43,884-byte original. The other two failures
-occur in the saved 289 comparator's independent segment tests. Their
-retained observation completed without producing the one census row
-the controls expect. The repository Rust tests still need to verify a
-source acquisition repair, and the two census failures remain open.
+The rerun passed all 140 tests from the original selection after
+repairing the three failures. The source control restores the declared
+43,965-byte pre-format view before applying the original inverse,
+which yields the exact 43,884-byte predecessor. The two saved 289
+independent-segment controls now call the comparator that owns the
+census they read. The two comparator owners passed their 37 pair-scope
+tests, including exact invoice and refusal controls.
 
 The focused lookup log SHA-256 is
 `7d03fabec6854079d75fe6d4c2d9ab67e9fee4371f88be048e55bd5655dd4389`.
-The combined log SHA-256 is
+The original combined log SHA-256 is
 `31597a6f3a26cfe417644e6b024623a05ec9e0670344e5805ad91d2668cbfeda`.
 
 #### Phase attribution for the 64-call control

@@ -1,7 +1,5 @@
 //! Ordinary independent-segment transport, checked against the complete immediate kernel.
 use super::*;
-// This retained incoming equation qualifies the complete puremain599 kernel.
-use super::super::super::main_loaded_segments::compare;
 
 pub(super) fn predecessor_price_counts(row: &pair_scope_census::Row) -> pair_scope_census::Row {
     assert!(row.complete && row.ended && !row.unwound && !row.truncated && !row.overflow);
@@ -115,7 +113,7 @@ fn observe_immediate_shaped_pair(
                         expected,
                     )
                 } else {
-                    compare(function, &mut budget, actual, expected)
+                    compare_independent_segments(function, &mut budget, actual, expected)
                 }
             })();
             let result = result.as_ref().map(|_| ()).map_err(failure);
@@ -296,7 +294,7 @@ fn observe_funded(
                         expected,
                     )
                 } else {
-                    compare(function, &mut budget, actual, expected)
+                    compare_independent_segments(function, &mut budget, actual, expected)
                 }
             })();
             let saved = result.as_ref().map(|_| ()).map_err(failure);

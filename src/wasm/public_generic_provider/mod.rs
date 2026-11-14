@@ -14,6 +14,8 @@ mod byte_runtime;
 mod carrier_classify;
 mod carrier_codec;
 mod component;
+#[cfg(test)]
+mod iterator_runtime;
 pub use component::PublicGenericWasmComponentArtifactV1;
 pub(crate) use component::{emit as emit_component, replay as replay_component};
 

@@ -111,6 +111,23 @@ validates the import-free module when the helper is unreachable and checks
 still needs a provider-owned Vec and iterator runtime with cumulative backing,
 transfer and drop accounting.
 
+The provider runtime tests exercise a fixed table of 32 rows with up to 32
+carrier slots each. The table needs 8,960 bytes. Vec and iterator handles
+identify both a row and its generation. Vec mutation, iterator conversion,
+and a successful Yield renew the handle before publishing a successor. Yield
+transfers the existing Bytes carrier and advances the authenticated cursor.
+Drop consumes only the untransferred suffix in element order. Done retires
+the iterator and writes an all-zero Step. Invocation reset clears row liveness
+and retains generations.
+
+The table size does not establish a bound on reachable constructors or live
+owners. Provider selection still needs to prove that every reachable
+constructor fits a row and that the maximum simultaneous Vec and iterator
+demand fits the table. The compiler must also bind calls and cleanup to the
+provider functions and keep the table outside the public scratch ranges.
+The current provider admission still refuses reachable Vec operations and
+owned Bytes iterators.
+
 The accumulating 4096-row witness and outer Vec accumulation are outside
 this profile. General quota/recovery work and selected String allocation
 remain separate OPT724 obligations.

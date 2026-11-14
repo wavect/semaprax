@@ -107,6 +107,66 @@ mod constructor_funding_tests {
         }
     }
 
+    // Complete ordinary layout and collectors from before the query slot.
+    #[allow(dead_code, reason = "complete saved pre-funding work layout")]
+    struct BeforeFunding<'a, 'b> {
+        pub(super) continuations: Option<&'b mut continuation_storage::Storage<'a>>,
+        pub(super) function: &'a ResolvedFunction,
+        pub(super) budget: &'b mut ReplayBudget,
+        pub(super) renewal_bindings: crate::cleanup_plan::renewal_profile::RenewalBindings<'a>,
+        pub(super) active_copy_region: Option<ExpressionId>,
+        dag_scratch: Option<std::rc::Rc<std::cell::RefCell<dag_storage::DestructionScratch>>>,
+        ordinary_scratch: Option<std::rc::Rc<std::cell::RefCell<dag_storage::DestructionScratch>>>,
+        next_ordinary_dag: usize,
+        held_renewals: Option<&'a crate::cleanup_plan::renewal_profile::RenewalBindings<'a>>,
+        ordinary_index: Option<&'b crate::loop_calls::byte_writer::ModuleIndex<'a>>,
+        ordinary_program: Option<&'a dyn crate::cleanup::ReplayContext>,
+        /// Authored same-owner append and direct literal-format String moves.
+        pub(super) string_owner_moves: BTreeSet<ExpressionId>,
+        pub(super) string_condition_reads: BTreeSet<ExpressionId>,
+        /// Authenticated execution identity of a lexical-profile function.
+        pub(super) owner: Option<crate::hir::FunctionExecutionId>,
+    }
+
+    impl<'a, 'b> BeforeFunding<'a, 'b> {
+        fn ordinary_with_index(
+            program: &'a dyn crate::cleanup::ReplayContext,
+            function: &'a ResolvedFunction,
+            budget: &'b mut ReplayBudget,
+            index: Option<&'b crate::loop_calls::byte_writer::ModuleIndex<'a>>,
+        ) -> Result<Self, Diagnostic> {
+            assert!(budget.oracle_lease().is_none());
+            Ok(Self {
+                function,
+                budget,
+                continuations: None,
+                active_copy_region: None,
+                dag_scratch: None,
+                ordinary_scratch: None,
+                next_ordinary_dag: 0,
+                held_renewals: None,
+                ordinary_index: index,
+                ordinary_program: Some(program),
+                renewal_bindings: if index.is_some() {
+                    crate::cleanup_plan::renewal_profile::RenewalBindings::empty()
+                } else {
+                    crate::cleanup_plan::renewal_profile::bindings_with_index(
+                        program, function, None,
+                    )
+                },
+                string_owner_moves: crate::literal_format::checked_moving_string_operands(
+                    function,
+                )?,
+                string_condition_reads: crate::string_ops::conditions::function_reads(function),
+                owner: if super::lexical_cert::requires_lexical(function) {
+                    crate::hir::lexical_exit::owner(program, function).ok()
+                } else {
+                    None
+                },
+            })
+        }
+    }
+
     #[test]
     fn ordinary_constructor_prepays_real_scratch_at_zero_short_exact_and_sticky_limits() {
         let program = program("module constructor.physical; @id(\"main\") fn main()->i64 {0}");
@@ -117,7 +177,7 @@ mod constructor_funding_tests {
             measure(|| {
                 let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
                 let result =
-                    SkeletonWork::with_index_before_funding(&program, function, &mut budget, None);
+                    BeforeFunding::ordinary_with_index(&program, function, &mut budget, None);
                 let accepted = result.is_ok();
                 drop(result);
                 drop(budget);

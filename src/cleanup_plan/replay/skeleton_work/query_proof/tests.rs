@@ -49,6 +49,12 @@ pub(super) fn restore(current: &str, path: &str) -> String {
     // Restore the exact pre-iterator receiver before applying the original
     // query inverse, whose length, digest, and full preimage still bind it.
     let iterator_epoch = (path == "src/cleanup_plan/replay/skeleton_work.rs").then(|| {
+        let current = crate::source_reflows::declared_history_inputs::expected_value(
+            path,
+            "1e651a283e01a31a37663592290cb71a13c4cf461803ca19fe2922f6f9f58dd6",
+            current,
+        )
+        .expect("authenticate the complete query-slot constructor epoch");
         let after = "        if program.retained_static_byte_iterators() {\n            selected_profile::paid::validate(program, function, budget)\n                .map_err(typed_storage::iterator_error)?;\n        } else {\n            selected_profile::validate(program, function, budget)?;\n        }\n";
         let before = "        selected_profile::validate(program, function, budget)?;\n";
         assert_eq!(current.matches(after).count(), 1);

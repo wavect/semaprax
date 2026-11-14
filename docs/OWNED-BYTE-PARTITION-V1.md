@@ -107,6 +107,10 @@ the same buffer cannot prepare overlapping ranges. Abort releases the claim
 and retires the ticket. Commit consumes the claim and leaves it bound to the
 buffer identity. Pending tickets are bounded by the backing inventory and
 count toward settlement even when they reserve zero child slots.
+Preparations also hold child tokens in the shared module token namespace.
+Other registries and ordinary allocations cannot spend those tokens while a
+ticket is pending. Commit consumes the held capacity, and abort or invocation
+abandonment releases it without rewinding the token counter.
 
 A recoverable physical-metadata allocation domain would require a separately accepted checked
 allocator contract, failure-before-publication implementation and physical

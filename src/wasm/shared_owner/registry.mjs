@@ -123,7 +123,8 @@ function createTokenIndex() {
 }
 
 // `tokens` is the enclosing host's single never-reset token authority:
-// `remaining()` reports how many fresh tokens `mint()` can still return.
+// `remaining()` reports unreserved tokens across all registries. A hold
+// protects the promised count from ordinary mints and other preparations.
 // `invocation()` is the host's current invocation serial (0 when idle); every
 // lease is stamped with it and authenticates only inside that invocation.
 export function createSharedByteOwnerRegistry({
@@ -135,7 +136,8 @@ export function createSharedByteOwnerRegistry({
   releasePayload = () => {},
 } = {}) {
   if (tokens === null || typeof tokens !== "object"
-      || typeof tokens.mint !== "function" || typeof tokens.remaining !== "function") {
+      || typeof tokens.mint !== "function" || typeof tokens.remaining !== "function"
+      || typeof tokens.hold !== "function" || typeof tokens.release !== "function") {
     throw new TypeError("SEMAPRAX shared owner token authority is required");
   }
   if (typeof invocation !== "function") {
@@ -257,14 +259,17 @@ export function createSharedByteOwnerRegistry({
     const backing = children > 0 ? freeBacking() : -1;
     if (tickets.size >= maxBackings || children > maxLeaseSlots - backingTableSlots - reservedSlots
         || (children > 0 && backing < 0)
-        || tokens.remaining() - reservedTokens < children) {
+        || tokens.remaining() < children) {
       return { refused: "metadata_capacity" };
     }
     const ticket = Object.freeze(Object.create(null));
     const reservation = { serial, whole, children, width: Number(width), backing };
     claimed.add(whole.buffer);
-    try { tickets.set(ticket, reservation); }
-    catch (error) { claimed.delete(whole.buffer); throw error; }
+    try {
+      tickets.set(ticket, reservation);
+      tokens.hold(children);
+    }
+    catch (error) { tickets.delete(ticket); claimed.delete(whole.buffer); throw error; }
     reservedSlots += children;
     reservedTokens += children;
     if (backing >= 0) backingState[backing] = RESERVED;
@@ -280,6 +285,7 @@ export function createSharedByteOwnerRegistry({
   };
 
   const unreserve = prepared => {
+    tokens.release(prepared.children);
     reservedSlots -= prepared.children;
     reservedTokens -= prepared.children;
     if (prepared.backing >= 0) backingState[prepared.backing] = FREE;
@@ -382,7 +388,7 @@ export function createSharedByteOwnerRegistry({
       if (leaseGeneration[slot] >= MAX_LEASE_GENERATION) {
         throw new Error("SEMAPRAX shared owner lease generation exhausted");
       }
-      if (tokens.remaining() - reservedTokens < 1) throw new Error("SEMAPRAX owned Bytes token space exhausted");
+      if (tokens.remaining() < 1) throw new Error("SEMAPRAX owned Bytes token space exhausted");
       mutate(viewOf(slot));
       const token = tokens.mint();
       if (!Number.isInteger(token) || token < 1 || token > MAX_TOKEN) {
@@ -422,6 +428,7 @@ export function createSharedByteOwnerRegistry({
         if (backingState[backing] === RESERVED) backingState[backing] = FREE;
       }
       for (const prepared of tickets.values()) claimed.delete(prepared.whole.buffer);
+      tokens.release(reservedTokens);
       tickets.clear();
       reservedSlots = 0;
       reservedTokens = 0;

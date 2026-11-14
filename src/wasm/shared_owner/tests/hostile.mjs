@@ -55,9 +55,15 @@ test("status domain codes follow refusal precedence", () => {
 test("empty tickets require settlement and backing claims cannot overlap", () => {
   let serial = 1;
   let token = 0;
+  let held = 0;
   const registry = createSharedByteOwnerRegistry({
     invocation: () => serial,
-    tokens: { mint: () => ++token, remaining: () => 32 - token },
+    tokens: {
+      mint: () => ++token,
+      remaining: () => 32 - token - held,
+      hold: count => { held += count; },
+      release: count => { held -= count; },
+    },
     maxBackings: 1,
   });
 
@@ -84,7 +90,46 @@ test("empty tickets require settlement and backing claims cannot overlap", () =>
   check(registry.audit(), "committed ranges do not overlap");
   for (const child of children) registry.release(child);
   check(registry.settled(), "all four children settled");
+  check(held === 0, "settled registry has no token hold");
   throws(() => registry.prepare(bytes, 2n, 2n), /already claimed/, "released backing cannot be issued again");
+});
+
+test("partition tickets reserve shared tokens across registries until retirement", () => {
+  let next = 0;
+  let held = 0;
+  const tokens = {
+    remaining: () => 4 - next - held,
+    mint() {
+      check(this.remaining() > 0, "mint cannot consume another registry's hold");
+      return ++next;
+    },
+    hold(count) {
+      check(this.remaining() >= count, "token holds cannot overbook");
+      held += count;
+    },
+    release(count) {
+      check(held >= count, "token hold released exactly once");
+      held -= count;
+    },
+  };
+  const first = createSharedByteOwnerRegistry({ tokens, invocation: () => 1 });
+  const second = createSharedByteOwnerRegistry({ tokens, invocation: () => 1 });
+  const a = new Uint8Array(2);
+  const b = new Uint8Array(3);
+  const left = first.prepare(a, 2n, 1n).ticket;
+  check(second.prepare(b, 3n, 1n).refused === "metadata_capacity",
+    "another registry cannot reserve the held tokens");
+  first.abort(left);
+  const right = second.prepare(b, 3n, 1n).ticket;
+  check(first.prepare(a, 2n, 1n).refused === "metadata_capacity",
+    "abort releases only the aborted ticket");
+  second.abandon();
+  const retry = first.prepare(a, 2n, 1n).ticket;
+  throws(() => second.commit(right), /ticket invariant/, "abandoned ticket stays retired");
+  const children = first.commit(retry);
+  check(next === 2 && held === 0, "commit consumes only its reserved tokens");
+  for (const child of children) first.release(child);
+  check(first.settled() && second.settled(), "both registries settle");
 });
 
 test("exact order, NUL, Unicode and non-UTF-8 preserved without a charge", () => {

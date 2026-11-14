@@ -81,10 +81,19 @@ Object.defineProperty(globalThis, REALM_KEY, {
   value: Object.freeze({}), writable: false, configurable: false, enumerable: false,
 });
 let nextToken = 1;
+let heldTokens = 0;
 const TOKENS = Object.freeze({
-  remaining: () => MAX_TOKEN - nextToken + 1,
+  remaining: () => MAX_TOKEN - nextToken + 1 - heldTokens,
+  hold(count) {
+    if (count > TOKENS.remaining()) throw new Error("SEMAPRAX owned Bytes token space exhausted");
+    heldTokens += count;
+  },
+  release(count) {
+    if (count > heldTokens) throw new Error("SEMAPRAX owned Bytes token reservation invariant");
+    heldTokens -= count;
+  },
   mint: () => {
-    if (nextToken > MAX_TOKEN) throw new Error("SEMAPRAX owned Bytes token space exhausted");
+    if (TOKENS.remaining() < 1) throw new Error("SEMAPRAX owned Bytes token space exhausted");
     return nextToken++;
   },
 });

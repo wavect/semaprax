@@ -43,18 +43,40 @@ fn independent_source_and_hir_bounds_count_each_real_iteration() {
     assert_eq!(proof.sites().count(), 1);
 }
 #[test]
-fn graph_resource_descriptor_replays_and_forged_iteration_bound_refuses() {
+fn graph_resource_descriptor_replays_and_rejects_changed_authority() {
     let source = crate::check(SOURCE, "finite-graph.spx").unwrap();
     let graph = crate::graph::to_json(&source).unwrap();
     crate::graph::verify_json(&source, &graph).unwrap();
-    let mut wire: serde_json::Value = serde_json::from_str(&graph).unwrap();
-    assert_eq!(wire["schema"], "semaprax.graph.v78");
+    let descriptor: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    assert_eq!(descriptor["schema"], "semaprax.graph.v78");
+    let loop_fact = &descriptor["finite_owned_iterator_scratch"]["loops"][0];
+    assert_eq!(loop_fact["iterations"], 2);
+    let (base, suffix) = graph
+        .rsplit_once(",\"finite_owned_iterator_scratch\":")
+        .unwrap();
+    for (field, forged) in [
+        ("iterations", serde_json::json!(1)),
+        ("execution", serde_json::json!("app.foreign")),
+        ("condition", loop_fact["body"].clone()),
+        ("body", loop_fact["condition"].clone()),
+        ("allocation_sites", serde_json::json!([])),
+        (
+            "allocation_sites",
+            serde_json::json!([loop_fact["allocation_sites"][0], "foreign.site"]),
+        ),
+    ] {
+        let original = format!("\"{field}\":{}", loop_fact[field]);
+        let replacement = format!("\"{field}\":{forged}");
+        assert!(suffix.contains(&original));
+        let mutated = suffix.replacen(&original, &replacement, 1);
+        let wire = format!("{base},\"finite_owned_iterator_scratch\":{mutated}");
+        let errors = crate::graph::verify_json(&source, &wire).unwrap_err();
+        assert_eq!(errors[0].code, "SPX-G411", "{field}");
+    }
     assert_eq!(
-        wire["finite_owned_iterator_scratch"]["loops"][0]["iterations"],
-        2
+        crate::graph::verify_json(&source, &format!("{base}}}")).unwrap_err()[0].code,
+        "SPX-G411"
     );
-    wire["finite_owned_iterator_scratch"]["loops"][0]["iterations"] = serde_json::json!(1);
-    assert!(crate::graph::verify_json(&source, &serde_json::to_string(&wire).unwrap()).is_err());
 }
 #[test]
 fn unknown_mutated_and_overlarge_constructor_provenance_refuse() {
@@ -231,6 +253,23 @@ fn source_exact_cumulative_boundary_and_one_extra_do_not_refund_drops() {
     );
 }
 #[test]
+fn decoded_hir_replays_the_finite_resource_bound() {
+    use crate::cache_codec::{decode, encode};
+    let source = crate::check(SOURCE, "finite-cache.spx").unwrap();
+    let program = hir::resolve(&source).unwrap();
+    let wire = encode(&program).unwrap();
+    let decoded: hir::ResolvedProgram = decode(&wire).unwrap();
+    assert_eq!(encode(&decoded).unwrap(), wire);
+    hir::validate(&decoded).unwrap();
+    let capacity = hir::analyze_byte_data_capacity(&decoded).unwrap();
+    let main = capacity.function("app.main").unwrap();
+    assert_eq!(
+        (main.bytes_copy_sites, main.owned_byte_payload_bytes),
+        (4, 9)
+    );
+}
+
+#[test]
 fn typed_unknown_constructor_and_forged_latch_lose_finite_authority() {
     let source = crate::check(SOURCE, "finite-forged.spx").unwrap();
     let mut resolved = hir::resolve(&source).unwrap();
@@ -296,6 +335,9 @@ fn typed_unknown_constructor_and_forged_latch_lose_finite_authority() {
         .unwrap();
     *latch = hir::LoopLatchKind::Condition;
     assert!(hir::validate(&resolved).is_err());
+    let wire = crate::cache_codec::encode(&resolved).unwrap();
+    let decoded = crate::cache_codec::decode(&wire).unwrap();
+    assert!(hir::validate(&decoded).is_err());
 }
 
 #[test]

@@ -142,6 +142,18 @@ the baseline allocation mismatch. The probe isolates the local template
 estimator. It does not exercise generic templates, the other forecast
 allocations, or a production fix.
 
+A second isolated probe ran the call-identity discount on the call-free
+scalar fixtures, using the same AST child order for their literal and empty
+block shapes. Its declaration tree requested and freed 368 bytes per
+estimate for one function and 3,408 bytes per estimate for 64 functions.
+Together with the template table, this accounts for 832 bytes across both
+estimates on the one-function fixture, matching its observed complete
+allocation. The same two owners alone account for 12,960 requested bytes
+across both estimates on the 64-function scalar fixture, above the 5,688-byte
+explicit reservation reported on the smaller fixture. The 64-function
+whole-estimate total and reservation still need to be recorded together.
+These isolated controls exercise no call or binding lookup.
+
 A separate production profiling build from
 `0a68f5420260999ef7e57a1a3641e41a69a95a4a` applied only the
 [64 MiB Project reporting patch](../opt785-application-preparation-20261113/current-builder-limit.patch)

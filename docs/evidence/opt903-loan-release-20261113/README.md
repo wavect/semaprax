@@ -384,3 +384,29 @@ fixture still requests 115,712 bytes from the two call-identity scans. The
 candidate needs an integrated reservation and Drop comparison before admission.
 The probe log SHA-256 is
 `63101ec849d592fc418f8126a0ee909b2af9c7d48e9e885282c06ccedf23d45e`.
+
+A follow-up probe reused the existing local declaration count for uniqueness
+and active-scope state. A block activated a unique name after its initializer
+and cleared that block's entries after its tail. The first declaration and
+first shadow name used inline storage. Later distinct names retained the
+original tree-backed fallback. The deferred declaration index was enabled
+in the same probe.
+
+| Matched fixture, one estimate | Eager requested bytes | Candidate requested bytes |
+| --- | ---: | ---: |
+| 64 functions with one local binding each | 61,264 | 0 |
+| Nested distinct locals | 1,336 | 408 |
+| Contract roots with local bindings | 1,784 | 408 |
+| One function with 4,096 distinct locals | 799,272 | 275,160 |
+| One function with 4,097 distinct locals | 130,736 | 129,984 |
+| 256 declarations of the same spelling | 760 | 0 |
+
+Both import settings agreed in every comparison. Recursive scope exit, nested
+duplicate and pattern shadowing, use before declaration, assignment, calls
+and unproved String initialization retained their original discount results.
+Both versions returned a discount of one at 4,096 distinct locals and zero at
+4,097. The collector observed equal requested and freed bytes in each arm.
+This isolated probe covered ordinary callee resolution. The resulting patch
+still needs a paid production receiver and complete mode-six execution.
+The wide-boundary log SHA-256 is
+`9f4fe3cabd37d3dfd33701a15630d0e494015894fee64d85634930c90ab78ce2`.

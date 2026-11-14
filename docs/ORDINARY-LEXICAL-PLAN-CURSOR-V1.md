@@ -330,6 +330,64 @@ The whole-caller and fresh source-history log SHA-256 values are
 `2280d169d38fb0106bb4f75ddbb45c0a200e625ae249cbe8e384c4d02195a7b6`
 and `a201ce89c8eb14326c05a12155f3a7b53e9666c3eb740fdf1584c56a836b6de6`.
 
+### Current application and predecessor controls at 64 MiB
+
+At `540d5ee48`, paired macOS arm64 production builds used Rust 1.97.1
+with opt-in workflow profiling and 67,108,864 bytes as the builder
+default. Both retained the same retry policy and checked the same
+application sources and bundled dependencies. The predecessor build
+substituted the entire `d458d0539` comparison owner and its three macro
+sources into the current caller. Both arms included the same feature-only
+phase observer. The comparator includes intervening changes beyond the
+first-head optimization.
+
+| Project check | Current | Verbatim predecessor in the current caller |
+| --- | --- | --- |
+| Catalog | Passed. Mode one consumed 48,615,173 bytes. | Resolved core consumed the same bytes. Final validation refused in `catalog.command`. |
+| ShiftSim | Passed in mode five at 66,822,056 bytes after four refusals. | The same five core attempts consumed the same bytes. Final validation refused in `shiftsim.command`. |
+| Selected-file LogLens | Passed. Mode one consumed 21,430,497 bytes. | Resolved core consumed the same bytes. Final validation refused in `loglens.add`. |
+| Catalog Normalizer | Static refusal at 66,248,903 retained bytes plus the 873,483-byte NDJSON module. | Identical diagnostic before any live attempt or comparison owner. |
+
+The predecessor's three final validation errors were `SPX-H006` with
+`ordinary plan history depth is invalid`. The current caller can reach
+comparison with the legacy unobserved payer. That payer's reservation
+helper leaves vector allocation to the owner, while cursor preparation
+requires preallocated backing. The later fix in `2837a1ab8b` explicitly
+allocates both cursor vectors for that payer. The verbatim predecessor
+lacks this branch. These refusing application runs cannot measure a
+matched end-to-end improvement.
+
+The current compiler passed the two declared tests in each checked-in
+Catalog and ShiftSim Project. The selected-file LogLens acceptance runner
+passed all 33 historical and 16 boundary checks through the native
+wrapper. The stronger owning tests reproduced the following refusals:
+
+- Catalog23 stopped during paired codec derivation. Its static
+  64,840,010-byte forecast fit, then live HIR expression and type lowering
+  requested 40 bytes with 8 remaining.
+- ShiftSim15 stopped during paired codec derivation. Six retained modules
+  used 60,265,703 bytes and the complete `src/response.spx` forecast
+  added 13,130,193 bytes.
+- The Normalizer owning interpreter, C11 and Core Wasm test stopped at
+  the same NDJSON static refusal as Project check.
+
+Scoped production Clippy with workflow profiling and warnings denied
+passed on the shipping build at `540d5ee48`. The 294-test comparator and
+expression-fact batch at `cd0da39c8` passed with byte-identical Rust
+sources. #902 remains open for the original-cap owning application gates.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Shared 64 MiB default patch | `8e9febcd9ce34480687337862ae3c7784cec7aceb96da2636a1786e41ad096ac` |
+| Verbatim predecessor substitution with the shared observer | `c80c23268b628e84443f685053de566dbc050f0c220294a84b46c767039b86d2` |
+| Current native LogLens acceptance receipt | `e3a273c63b4a21294eb6c5ea5f495b62500e20d921e85706f7723c3284168d97` |
+| Current Catalog23 owning log | `180d28e69b1accdfafd6b412e84021209f276358cf919d962e98daf8bd06a123` |
+| Current ShiftSim15 owning log | `2f45549d6196d62c77081cee17e1a902cc3c8ecba891e20ccdc9fd735a9b3fd4` |
+| Current Normalizer owning log | `396c7ff07d3fda81df7812910980a1f7060ee070a7ee4db29e55e67b5f8c3259` |
+| Identical Normalizer Project reporting logs | `28b01d380831a127ce06d5353fee2577efba266e998f8eaf06195336c5ad71cd` |
+| Current shipping production Clippy log | `dfc1919d42b7c6fc8cc7856ee43c4354024a235f289069d63eaff501e500d8ad` |
+| Full comparator and expression-fact test log | `ffcecdba59957c7de3f52fe5f7f25f56744ce47d8a02e7b594c6eae89b5b4cd7` |
+
 ## Shared immutable segment boundary continuation
 
 When both loaded slices are empty, inspect only the next already validated

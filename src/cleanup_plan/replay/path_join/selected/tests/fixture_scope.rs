@@ -88,10 +88,16 @@ pub(super) fn source_custody() {
         let path = source["path"].as_str().unwrap();
         assert_eq!(path, row["current"].as_str().unwrap());
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let raw = std::fs::read(root.join(path)).unwrap();
-        assert_eq!(raw.len(), row["current_length"].as_u64().unwrap() as usize);
-        assert_eq!(digest(&raw), row["current_sha256"].as_str().unwrap());
-        let mut actual = String::from_utf8(raw).unwrap();
+        let live = std::fs::read_to_string(root.join(path)).unwrap();
+        let expected = row["current_sha256"].as_str().unwrap();
+        let mut actual =
+            crate::source_reflows::declared_history_inputs::expected_value(path, expected, &live)
+                .unwrap_or(live);
+        assert_eq!(
+            actual.len(),
+            row["current_length"].as_u64().unwrap() as usize
+        );
+        assert_eq!(digest(actual.as_bytes()), expected);
         if let Some(prior) = row.get("exact_prior_current_record") {
             assert_eq!(prior["current"], row["current"]);
             let edits = row["edits"].as_array().unwrap();

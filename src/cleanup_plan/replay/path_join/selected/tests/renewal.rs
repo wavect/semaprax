@@ -1,4 +1,17 @@
 use super::*;
+const ORDINARY_SOURCE: &str = r#"module test.byte_renewal;
+@id("app.main") fn main()->i64 {
+ let mut buffer=bytes_zeroed(2usize);
+ let untouched=bytes_zeroed(1usize);
+ let mut index=0usize;
+ while index<2usize {
+  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}
+  index=index+1usize;
+  0
+ }
+ return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};
+}
+"#;
 // Selected byte renewal is a lexical-route family; the authored `continue`
 // makes `app.main` an actual lexical function for `new_paid(.., true)`.
 const SOURCE: &str = r#"module test.byte_renewal;
@@ -62,7 +75,7 @@ pub(super) const LEXICAL_SOURCE_UNREACHABLE: &str = r#"module test.byte_renewal;
 "#;
 #[test]
 fn actual_same_owner_byte_renewal_preserves_original_binding_and_whole_owner() {
-    fixture_scope::original_scope(SOURCE, "app.main");
+    fixture_scope::original_scope(ORDINARY_SOURCE, "app.main");
     let program = program(LEXICAL_SOURCE);
     crate::cleanup_plan::replay::validate_program(&program).unwrap();
     let source = primitive_fixture::Context::new(&program);

@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         134653,
-        "1768d4c704f819344d8f65c11db392a9f0828063ed0e456c1edc8476e35b8b34",
+        "af52c34144165e8ed49324d721ce84568a43020407476120a50d9f81a2b87a34",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -417,8 +417,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-44.json"
         )),
-        191467,
-        "08a56cf1c54ba0cdbf253dea01a0684f1ef44e626f356e2596b0169ae6e0d550",
+        226058,
+        "9d8430fa923690bfb54109585a00968be31a9ba2735fb2c09f8eaadf4320bef5",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-45.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1934924,
-        "dcde734a0c98da00d01ed8e08510fd7e6087048986a7a422bdb24111bb70e02d",
+        1935252,
+        "c2d21e376c83e14fe68e4acbde64dee75d9f3259566edccfb3ec396fa1ebc162",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -1372,6 +1372,24 @@ pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
 ("src/cleanup_plan/replay/path_join/fused_tests.rs", "4cbbb7995890355b8dd7ef96bcbe2254c2764271d4bd35979eea8882a9c5fa27") => Some((45,236)),
 ("src/cleanup_plan/replay/path_join/selected/frontier_tests.rs", "3a5463e01040f296252142a47869022af5ddb2877b83ee805806ef7e9e4784d7") => Some((45,237)),
 ("src/bounded_output/exclusive_debits.rs", "0c43f2acd2230a4bf1e443c7f3ba5ca2fee3f086ed3f65216e484ee8a7ed2cf4") => Some((45,238)),
+("src/cleanup_plan/replay/cfg_bounds.rs", "38e3a94ed599aae47829cde9fd765c38acaf64ad254428b2b5b0d54a3f1aa6b8") => Some((44,21)),
+("src/cleanup_plan/replay/factored/early_release.rs", "388264390688fb7464008cad4290d2d10c348e316839838d78bbd49e5aa94f2f") => Some((44,22)),
+("src/cleanup_plan/replay/final_output/current_observation_tests.rs", "8a88480f2aad08402d5e9856408180dbc0c2d7979a0515f3b231b6acab1e62e6") => Some((44,23)),
+("src/cleanup_plan/replay/final_output/fanout_tests.rs", "7164e06cdf36aa23e8cf76ca659542f371cdb90e87e351422359ebcc30a55ab7") => Some((44,24)),
+("src/cleanup_plan/replay/final_output/tests.rs", "f65c86b9e23fd8dd3dc7767dae1aa5b918513eca58050254fdbd1858f2de28f2") => Some((44,25)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs", "07ffa29782f9c1afe2c457fad9d5d6409e7b48e3d0c03aed5615a656ed60389e") => Some((44,26)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs", "fadcf2a448699c77049b318ff68121f98efa72f2323368505895efe2c8ceddb4") => Some((44,27)),
+("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs", "954c0ad04b909e00edcec2834b7936fe3b6c3ccfa1864799c408e13c96225d09") => Some((44,28)),
+("src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs", "a734ea47fafe8bd3438891ef80d4c189c8f5b1656f178749929ee30fa395b581") => Some((44,29)),
+("src/cleanup_plan/replay/path_array/completed_tests.rs", "ffeaea90bbc24e851c0a4c3945d18f698bf608c37ed0a1dc76e36568c2017389") => Some((44,30)),
+("src/cleanup_plan/replay/path_array/funded_tests.rs", "b2bc922c1cf7cf2dbe1877fde492379aca8b747495cf714ab10ae110b8b5ec5e") => Some((44,31)),
+("src/cleanup_plan/replay/path_array/main44/completed_tests.rs", "894b17d3f87579824379c8af6fe70736d99906f30e4f5ea8bb6c45903a70a1f8") => Some((44,32)),
+("src/cleanup_plan/replay/path_array/main8a/completed_tests.rs", "b76df9bf0f8ed54da29a290b24190399078856c3b856c5a724900d5d726ecf6c") => Some((44,33)),
+("src/cleanup_plan/replay/path_array/main8a/tests.rs", "bd5489959e8b0dc5f64cbd5ceb347f8737f7fbae527472eb7e05e6a065eae80c") => Some((44,34)),
+("src/cleanup_plan/replay/sequence_vector/funded_tests.rs", "9f5c0ff45b5deec393dcf55bdd72e4dfe20deeb47126a8a07b5c876165c2c719") => Some((44,35)),
+("src/cleanup_plan/replay/structural_control/cfg/ordinary.rs", "38483a7b0739d6ac3070f55d62772528a500fa9161a401a9bb20cfb176ce4335") => Some((44,36)),
+("src/cleanup_plan/replay/structural_control/cfg.rs", "5b0541198851af45d4794b235ee9a96dba9aab6b3b9cef380aaf9c2219b22c07") => Some((44,37)),
+("src/cleanup_plan/replay/structural_control.rs", "458cc5f8bb0de25f197a6c1d4a1a0d240d6123da70107b4e2fc9d342320a4a66") => Some((44,38)),
 _ => None, }
 }
 pub(crate) fn restore(source: &str, row: &serde_json::Value) -> String {

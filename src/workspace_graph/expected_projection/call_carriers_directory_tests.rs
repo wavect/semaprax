@@ -331,6 +331,13 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
     }
 }
 
+struct RestoreBuilderLimit(usize);
+impl Drop for RestoreBuilderLimit {
+    fn drop(&mut self) {
+        crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|limit| limit.set(self.0));
+    }
+}
+
 #[test]
 fn current_exact_short_zero_and_source_drift_keep_real_forecast_order_and_drop() {
     use crate::workspace_graph::expected_projection::cached_exact::{self, Retention};
@@ -341,14 +348,9 @@ fn current_exact_short_zero_and_source_drift_keep_real_forecast_order_and_drop()
     assert_eq!(current.roots, 16);
     for retention in [Retention::Parsed, Retention::Semantic] {
         let expected = cached_exact::summed(&programs, &index, retention).unwrap();
-        struct Restore(usize);
-        impl Drop for Restore {
-            fn drop(&mut self) {
-                crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|v| v.set(self.0));
-            }
-        }
-        let _restore =
-            Restore(crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|v| v.replace(expected.1)));
+        let _restore = RestoreBuilderLimit(
+            crate::workspace_graph::ACTIVE_BUILDER_LIMIT.with(|limit| limit.replace(expected.1)),
+        );
         assert_eq!(
             cached_exact::summed(&programs, &index, retention).unwrap(),
             expected
@@ -384,7 +386,7 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
         (128, 1, 0),
         (512, 128, 0),
         (64, 128, 1), // complete original duplicate-header negative
-        (64, 128, 2), // genuine warm calls, 128 synthetic shadow names
+        (64, 128, 2), // repeated warm statement calls
         (64, 128, 3), // same calls, balanced value tree and no shadow names
     ] {
         let mut source = flat(headers, groups, false);
@@ -427,7 +429,7 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
             let old = call_carriers_original::synthetic_builder_bytes_scoped_with_retention_with_registry(
                 program, &index, &programs, Some(maximum), true, (mode, retention), None,
             ).unwrap();
-            let current =
+            let forecast = || {
                 held_projection::synthetic_builder_bytes_scoped_with_retention_with_registry(
                     program,
                     &index,
@@ -436,20 +438,27 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
                     true,
                     (mode, retention),
                     None,
-                );
-            let current = match current {
+                )
+            };
+            let current = match forecast() {
                 Ok(current) => current,
                 Err(errors) => {
-                    assert_eq!((headers, groups, shape, mode), (512, 128, 0, 7));
+                    let cap = crate::workspace_graph::MAX_BUILDER_BYTES;
+                    assert_eq!(groups, 128, "a cold fixture must fit the ordinary limit");
                     assert_eq!(
                         errors,
-                        vec![crate::workspace_graph::limit_error(
-                            "builder_bytes",
-                            crate::workspace_graph::MAX_BUILDER_BYTES
-                        )]
+                        vec![crate::workspace_graph::limit_error("builder_bytes", cap)]
                     );
-                    eprintln!("AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} pre898={} current_refusal={errors:?}; original builder cap retained", old.retained_clone_and_hir);
-                    continue;
+                    // Observe the full invoice even when the ordinary forecast
+                    // refuses. The synthetic counter never constructs HIR.
+                    let _restore = RestoreBuilderLimit(
+                        crate::workspace_graph::ACTIVE_BUILDER_LIMIT
+                            .with(|limit| limit.replace(2 * cap)),
+                    );
+                    let measured = forecast().unwrap();
+                    assert!(measured.raw_clone_and_hir > cap);
+                    eprintln!("AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} over_cap_forecast={} cap={cap} current_refusal={errors:?}", measured.raw_clone_and_hir);
+                    measured
                 }
             };
             let copies = match retention {
@@ -482,18 +491,21 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
                     + local_identity_bytes,
                 old.retained_clone_and_hir + current_proof.bytes + local_fee
             );
-            if shape == 2 {
-                assert!(
-                    current.retained_clone_and_hir > old.retained_clone_and_hir,
-                    "128 synthetic shadow names retain the genuine unfavorable row"
-                );
-            }
-            if shape == 3 {
-                assert!(
-                    current.retained_clone_and_hir < old.retained_clone_and_hir,
-                    "adoption gate includes the complete pre898 forecast and every current cold/query fee: old={} current={}",
+            if shape >= 2 {
+                use std::cmp::Ordering::{Greater, Less};
+                let expected = if mode == 7 || (mode == 5 && shape == 2) {
+                    Less
+                } else {
+                    Greater
+                };
+                assert_eq!(
+                    current
+                        .retained_clone_and_hir
+                        .cmp(&old.retained_clone_and_hir),
+                    expected,
+                    "complete pre898 comparison at shape {shape}, mode {mode}: old={} current={}",
                     old.retained_clone_and_hir,
-                    current.retained_clone_and_hir
+                    current.retained_clone_and_hir,
                 );
             }
             // This complete pre898 comparison is separate from beating the

@@ -543,7 +543,10 @@ fn verify_exports(
 
 fn generate(revision: &ProjectRevision, max_bytes: usize) -> Result<String, Vec<Diagnostic>> {
     let (native, overflowed) = crate::bounded_output::with_limit(max_bytes, || {
-        crate::codegen::emit_hir_c(revision.public_api_program())
+        // Replay the held Project on the existing staged validation ledger.
+        // Native C emission remains subject to the caller's output allowance.
+        crate::codegen::CandidateNative::prepare(revision.public_api_program())
+            .and_then(crate::codegen::CandidateNative::emit)
     });
     if overflowed {
         return Err(error(

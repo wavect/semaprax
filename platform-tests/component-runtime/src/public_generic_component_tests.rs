@@ -12,24 +12,24 @@ mod parity;
 
 // Independent known answers for the checked-in, explicitly acquired project.
 // Replay must not accept identity claims supplied by the emitter under test.
-// The v0.10.1 package identity changes the provider/component bytes and their
-// digests. Descriptor digests remain bound to the unchanged checked source.
+// These pins include the bounded Bytes and iterator provider runtime. The
+// descriptor pins bind the checked source and public endpoint independently.
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST: &str =
-    "sha256:57375368386f61821ec1b24d50e8695e8353b98588845655e419e8e6d0d8fb28";
+    "sha256:5d5a342bc93af80cc75b9779c30054512858a27c2fef1a3327a458864276cfac";
 const EXPECTED_PUBLIC_GENERIC_DESCRIPTOR_DIGEST: &str =
     "sha256:52473587274784c87a62e109cd8640bf337306117f8fa943a6b930aeb6a75b1a";
 const EXPECTED_PUBLIC_GENERIC_PROVIDER_DIGEST: &str =
-    "sha256:46603417001d39a8ce72574c5b6dafa4c78d18d1244bb9d28907f0560ab8f259";
+    "sha256:cc02c92e621f3b29bfb203af32b4f4337e114673ab9e7bf7ac6528cc87bd40b7";
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_SHA256: &str =
-    "4ec96f2598dd7f7154779b0ca41a2cbc81561e790aae220b43aa1b81ab8e5e8e";
+    "448771351300ac8e986b41f2d5ff5230da7d7ab9a36a6137248cdee8578c61d8";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:80d8d622fb321104f205f03fa533a159df7ff6b754c7fcc01b24f6594acc3545";
+    "sha256:ebb2b5e29e51cdcca65dfcc557954f0b2a4caced599c26e75e6b32a108414c3c";
 const EXPECTED_CONTRACT_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:1cef20213f00dce6e80b9cc1eb977065018986bc5568263d6ab4cd04ba9c5d49";
 const EXPECTED_CONTRACT_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:c6bcea086dfcaacd0108ed9017f7cfe2c69e5a713017fcb3dbacdeb52f6e2fa5";
+    "sha256:c36e4a58803ed7345c5fe4d8cfc24d80024d6a10ce816ed26cb10cd57b339b80";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_SHA256: &str =
-    "1f9fd0335650b06ac096e08923272fb870e0a42b7361b531c40276dbf09bd8f4";
+    "bb2530f57f4540ee6b4097fef9c96fa725d68cb47648af53fa83e397e428339d";
 
 const MAX_LIST_BYTES: usize = 65_536;
 const REUSE_CYCLES: usize = 200;

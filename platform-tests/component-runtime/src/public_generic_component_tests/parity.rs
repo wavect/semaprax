@@ -43,24 +43,24 @@ mod native;
 // Independent known answers for the checked-in parity projects. Replay must
 // not accept identity claims supplied by the emitter under test.
 //
-// The v0.10.1 package identity changes the compiled provider and component
-// bytes. Descriptor digests remain bound to the unchanged checked source.
+// These pins include the bounded Bytes and iterator provider runtime. The
+// descriptor pins bind the checked source and public endpoint independently.
 const EXPECTED_PARITY_COMPONENT_DIGEST: &str =
-    "sha256:0910f6cd40ff33504ff210acc79668fa9a4ba95f796092e72629154da175826a";
+    "sha256:b1147ad9493e081a882b929e9b445d2e1da9c552c31ea08418102bb49b349b9d";
 const EXPECTED_PARITY_DESCRIPTOR_DIGEST: &str =
     "sha256:a4c32697da4d273ce3883bdb485d1a449741bd157eee1ada2e92732efee2ec0c";
 const EXPECTED_PARITY_PROVIDER_DIGEST: &str =
-    "sha256:f138c2fd4a7852840232618a3ffbbd9842837f8676c39d16b44e3f24c47b4bae";
+    "sha256:717682b16dd13a147b942713995d459096adbcbd2a004c178de69c0374dceede";
 const EXPECTED_PARITY_COMPONENT_SHA256: &str =
-    "e51f618b0398aaa5ddc1df9bdb3ca98fb8b2089a49f1860963d823afc0f8eac9";
+    "3f660359c4d87d90912da5e63ac38c6e9760f94ce100f3901ae5203eda2c8962";
 const EXPECTED_PARITY_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:2bd9982c7eb63f9dcad94206bd2d747c8ae5ffa231a8afba144b4f4fd4f2ec15";
+    "sha256:9846c28e026c798e2deb56b542a8e9f3db173d2cbd8c53a8f78ea3d4ee130720";
 const EXPECTED_PARITY_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:3cdecabf943da6c44e762c17c3555fb05dd079e0dca0066ecf9cb1e7ad5a5a86";
 const EXPECTED_PARITY_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:baf31d000829fdf01cc7e5163054bf8b05744381882ec54cbf34390a1e12dbe1";
+    "sha256:a1e34540307e2e8a9d9cc6d331244d938db1c1700f5c642c7883efc27d52966f";
 const EXPECTED_PARITY_FAILURE_COMPONENT_SHA256: &str =
-    "4a9b3093da6428e0865b2ccc2c4b81eadde4c4644d118e3612825271e3c9130c";
+    "9641029235c1b2890185aa65a1376c442a9d47f469de99e78bf04825fd559f4d";
 
 const PARITY_MANIFEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

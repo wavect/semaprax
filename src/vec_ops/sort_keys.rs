@@ -62,7 +62,7 @@ pub(crate) fn selector(value: &str) -> Option<Vec<(&str, bool)>> {
     Some(keys)
 }
 impl Descriptor {
-    pub(crate) fn identity(&self) -> Option<String> {
+    pub(super) fn reserve_identity(&self) -> Option<usize> {
         if !(1..=8).contains(&self.keys.len()) {
             return None;
         }
@@ -82,6 +82,11 @@ impl Descriptor {
         if !crate::bounded_output::reserve_active_required(length) {
             return None;
         }
+        Some(length)
+    }
+
+    pub(crate) fn identity(&self) -> Option<String> {
+        let length = self.reserve_identity()?;
         let mut out = String::with_capacity(length);
         out.push_str(PREFIX);
         part(&mut out, &self.element);
@@ -250,7 +255,7 @@ pub(crate) fn resolve(
         layout,
         keys,
     };
-    result.identity()?;
+    result.reserve_identity()?;
     Some(result)
 }
 pub(crate) fn replay(
@@ -384,7 +389,7 @@ pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, value: &str) -> 
         layout,
         keys,
     };
-    descriptor.identity()?;
+    descriptor.reserve_identity()?;
     Some(descriptor)
 }
 

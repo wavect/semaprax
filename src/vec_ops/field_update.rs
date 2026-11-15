@@ -14,7 +14,7 @@ pub(crate) struct Descriptor {
     pub(crate) field: DeclarationId,
 }
 impl Descriptor {
-    pub(crate) fn identity(&self) -> Option<String> {
+    pub(super) fn reserve_identity(&self) -> Option<usize> {
         let length = PREFIX
             .len()
             .checked_add(sort_keys::part_len(&self.element)?)?
@@ -25,6 +25,11 @@ impl Descriptor {
         {
             return None;
         }
+        Some(length)
+    }
+
+    pub(crate) fn identity(&self) -> Option<String> {
+        let length = self.reserve_identity()?;
         let mut out = String::with_capacity(length);
         out.push_str(PREFIX);
         sort_keys::part(&mut out, &self.element);
@@ -83,7 +88,7 @@ pub(crate) fn resolve(
         layout: selected.layout,
         field: field.id.clone(),
     };
-    result.identity()?;
+    result.reserve_identity()?;
     Some(result)
 }
 /// Source-owned independent derivation; never accepts resolved layout facts.
@@ -110,7 +115,7 @@ pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, name: &str) -> O
         layout: selected.layout,
         field: DeclarationId::new(&field.stable_id),
     };
-    result.identity()?;
+    result.reserve_identity()?;
     Some(result)
 }
 pub(crate) fn replay(

@@ -3,25 +3,28 @@ use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::{
     declared_history_inputs, ProjectionInvocation,
 };
-const CURRENT_LENGTH: usize = 2336970;
+const CURRENT_LENGTH: usize = 2364741;
+const SUPERSEDED_CURRENT_LENGTH: usize = 2336970;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "ad72070c326f26dbd7d3a77f6fafa3a2d3e7a7a2742da33ff9e5a34c21777013";
+const CURRENT_SHA: &str = "6b66456d03df63f70b029ac4c5d6e865b21bc234ee8c2f7489e9dababf750f23";
+const SUPERSEDED_CURRENT_SHA: &str =
+    "ad72070c326f26dbd7d3a77f6fafa3a2d3e7a7a2742da33ff9e5a34c21777013";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
 const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("tests/wasm/scalar_browser_ci_contract/current_profiles573.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles573.rs")), 10600, "06638e2675d38575c33c43743a3a50ab6d6d6f6b9edf6a68dde51198a1078e69"),
-    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 24954, "39c25673500a3b239e1d7d09230d6129d16349ee5d2b0c4339969e35c2c74ef3"),
-    ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")), 10205, "900af30a08f96959e6f9c553d28e6f82f3104473cf23dbbb3090436310a22669"),
+    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 28396, "7ca0358d88a1e9b79cae9f20166e5dd243347a9944c8f959f6b009ab3b29a15d"),
+    ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")), 10570, "99bd84045f4423e206abc44257935150d225ec18abbd53bee583bd4613f24ec6"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs")), 15950, "e4ad639ff6378b8d37a89fdddd90798d5aa7bd420f5ea2755a76c904d1d46602"),
     ("src/cleanup_plan/replay/selected_owner/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary.rs")), 4718, "fb794e530da2d722c135a4e2a9ac5bccd755bbd12fc0114f8ed9b6f5fd0e5eaf"),
-    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")), 6952, "4d50579a8485a1b9b7b68c58fb30a0d7c3cda24d645c4f30867865fa6ec181b1"),
+    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")), 7522, "97132820e330f58dd6d0b4f41110ab672df7a39fa0e2eaf5d6351b8eea5bbfbf"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs")), 2845, "6b070dcc9543929b7671d9e07ecb8c18d08d71f8cf869c9fa3c1bb669108d0af"),
     ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")), 86457, "222be5d44c3a8e43c04bd19b49ae92a57e7411578e5f8eaf87eea064fe667daa"),
-    ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")), 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 35376, "96eb3327ae6fb7a91bc5860872345bbc9f8912e9fc59b29d97a6d81d318b36e1"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs")), 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
-    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25205, "578025fde4ed873354a183eac565a81b6bbcd177abc1c248f3fe5c06be76e947"),
+    ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")), 8220, "5f3be78713805b983d66a9c653dc9034a262126293bb12a2f4ab0b1fdf7db90c"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs")), 35378, "428a23033cbc8eab18385e11b3a63f3095b4f6eff6247999e2b6f677c9062380"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs")), 32416, "dc759a6a3f6a47f5d0a6a190aa340a28df161c5847f8dddca27496286b48d499"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs")), 25503, "2530e1b55f6f817d61ad128c950e0851fbbf7f7390dc1d8badcd5352fb97a5ce"),
     ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs")), 7075, "7cc391286fb5a3b24eb5aa2b5b1bacd8bb8599f9161d3f5dbc427a048c85b57c"),
     ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs")), 10800, "3f57f0045c8efcb0f0808e7d0a10f786cae7e99f18e2f8b3fd3448ed53be0106"),
     ("src/cleanup_plan/replay/path_join/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/mod.rs")), 50333, "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"),
@@ -32,7 +35,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/path_join/before_frontier/transition.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/transition.rs")), 35563, "628c1c134e179b8e8ca0db4646b6219e4c3a939968598ac2935ac500de996616"),
     ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/boxed_flow.rs")), 4034, "28546e59049ad4d8707072d3d887e7569c00f98759b37230c20bd7c78fd48b91"),
     ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")), 22575, "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587"),
-    ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")), 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")), 22389, "74253f1d489967ff0b6e1961bee575eb388e98b09a9dfb3d1039b822731f7ad8"),
     ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")), 50760, "12157440786fc98e96af4288628125816e0b8c133885b59fb2df0eb232314850"),
     ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/whole.rs")), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
     ("src/call_index/validation_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/call_index/validation_before.rs")), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
@@ -47,23 +50,23 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")), 11934, "3cf62df5115b8065bc47c4e4f7186e913a5aa2eacc5d0b43191ac98d391ab699"),
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")), 18420, "4a34e1c29cac7e84131d82c68fb635892945c560dd16e8fbd1a93f6e43b4a3ed"),
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs")), 10932, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"),
-    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")), 24982, "f3c7cc3dc6c9e3bb4987a1243bad17e05cbef83677459f1ac1bae0e32fc167ee"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")), 25432, "f7918f1ebb569e834cd33dfe9f05f164e2c0d4a4d5b1e48dbc5aafc33d92e431"),
     ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12.rs")), 8239, "cd74954fbf31f4bc117c0dc5af46d9ed4fac1a0e4d62317361c70028b891e76d"),
     ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs")), 10768, "e165dd23473e7e79536bf3ccfe53bfee048c5abb36636978b1f80a2f40797b64"),
     ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_directory/modular.rs")), 3594, "b00352308d4dc48079e3807aca42493c4d42fed5a7412ce51c4ec8288c5d4952"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs")), 34272, "1c2967940ddf7b70de2631feb5d1d443745651b0d47447649618c340c81b8964"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs")), 10164, "12331004bc5ff08252bb790c870d298dca32160d07059d368c56c2a823cf57a3"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs")), 9915, "87ae6b18cd9a89e63bfcc7d70f64228841ecec48300794e97069e401b02375ec"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs")), 15314, "13a680a8d9ab43342498bfac32079597e1b3be57defe7ba0a30d33576514791d"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs")), 15298, "9ec62a40600fbdbf572af999412148d589391a9a8c401d8581ccc8ba7bff6377"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs")), 12946, "342ca60956a62f93878ae04b67aab70a971012aa38839a0a307cbf37001746ba"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs")), 12861, "e03c4e15d3a981936546fb582ad3199ee708db112321e6269afa21c30af201f7"),
     ("src/workspace_graph/expected_projection/shared_local_callees/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired.rs")), 8693, "5303b15254477d9b5d3598326ebbb076dce7a76c609804bb1131534bc3641bea"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")), 15262, "cf308c67bb5a860985f157002621d745099e03346a68e47bc08a3946346e1140"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")), 15246, "d20a1f6c67421a40928bc1dda640d73d4c82c3b6c20afb788c8be8740064ce30"),
     ("src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs")), 12373, "f3e048b188faffc52497a842aec8fa2cdcdfc64ea0a3ead918e13b03166ff2f1"),
     ("src/workspace_graph/expected_projection/shared_local_callees/record_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_before.rs")), 12593, "f472fe9bc7bea0097f6ae0323fcf5fa593790ec229c8499f75fb2a14deff050a"),
     ("src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs")), 12461, "e718c935351680f7d1c78458b5c7df1b503348ffc887115cda75197fbb749917"),
     ("src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs")), 11968, "d588429142af0102d9d3cde1f9c2ee50f76661efe22b19c2b44a7e6d1dc95f52"),
-    ("src/workspace_graph/expected_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")), 62861, "7485d5a9b8ab8a1bf943a8f2b00dd68abfacf68e66aaf970af1cc9ebcc427b94"),
+    ("src/workspace_graph/expected_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")), 64082, "45e8ab3271d3d113f3fa58c334a7aefee014561ed0b8417d412d29f7afd76848"),
     ("src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs")), 30829, "68b4e8709438aed0c2602c64e950c1e8b3e1321d49c61346e162f189f3c75c8e"),
     ("src/workspace_graph/expected_projection/retained_scratch.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/retained_scratch.rs")), 1746, "26f398991a4d64fe85416c823e1080b6395170625c2822e2e67793357d200555"),
     ("src/workspace_graph/expected_projection/uncached_peak_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/uncached_peak_before.rs")), 14469, "bf7ec7139714b6613e5573af38af1202e38825161cded497022524cf85893d85"),
@@ -84,7 +87,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs")), 14784, "4c1d4b3e2a6de391c39da456edc8d49da47433084c0fefcf7b661df2a5b3db8e"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs")), 10087, "9dee10813247b88639004ed0eff2849779505cba902a7ab62d998cb1e897627d"),
     ("src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs")), 8998, "737df7a2bb44db63bca40dea4165b59208bf74dfc80701694bdb0c3d211a185f"),
-    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs")), 14544, "133d24af24db25d38b69bb6b0bac77e8eddf596c663c089ffac3f55b6cdc5569"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs")), 14600, "6df90c1bf4b29219951b4d5993e90c700900a64d2daf8522d02d661a447993e4"),
     ("src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")), 28078, "293e0b26cc7224405ca7e0f60df318255d6279f53e31dc1a13fcd19d51e7d78c"),
     ("src/workspace_graph/expected_projection/shared_local_callees/reused.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused.rs")), 10317, "ed964ba39e51dfd7dbdd8c391b831260adba376c6f8dad5b035e8df36ab59fd7"),
     ("src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs")), 6564, "87ecd2f33b9af73f98c499aab75e7ccb879f9c5213fb23119fc9768b05254227"),
@@ -94,15 +97,15 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/tests.rs")), 9854, "0d9e2b1cbb7abeafd4a1f7b4d5f059f6d96e781ef044fee6f2680f8dc801c314"),
     ("src/workspace_graph/expected_projection/shared_local_callees/walk.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/walk.rs")), 9350, "fafdcb7e6743647fcd1ad787ea98731a159fc155e0a8d35b02541f60dd74ce17"),
     ("src/workspace_graph/expected_projection/vec_constructor.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/vec_constructor.rs")), 13779, "4831e29cce4d39b5c263ffd3743d3cb2227ffc9c57f94e28763994cd78721e10"),
-    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23199, "7178b17707f420519aeb7fe8bfec84ac8b16f83a254b3ed2016001a1feef1ceb"),
+    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23255, "b27785fa42383add26a2cef8de4d43ca2a78d2cea9ecf989336364d62770fa25"),
     ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")), 24858, "8a015ce328f793cfe6c27eb4e726ad0fd02ba3069e0afb7f04c7dd294882c272"),
-    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 36959, "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"),
-    ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 52496, "b6f5d26b7cf9d655fc515995bf265aa44ba1380f818ff5816a8068fc837216d1"),
+    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 55403, "9c86a40b949491ed805caee83f4f5fbb390c0947b431b716f4f86737351167e1"),
+    ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 53639, "8e4392620fddd82a84bdfeab2886f1c663aa50c608502ba090f3dbe710a3b711"),
     ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")), 13783, "8e58f15499b882c8fc5f46bc5ae76b9a472994ce9133c226295d30b078e42de0"),
     ("src/workspace_graph/expected_projection/call_carriers_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_original.rs")), 23610, "b1ce4d28f8364aed9967eba52699cd95968799b29779cb68eee71a4b7ef8fde3"),
     ("src/workspace_graph/expected_projection/call_carriers_historical_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_historical_tests.rs")), 30577, "30ee9b7d27da7985809d73823ad6b2297548873c76731723659b4464c9c49170"),
     ("src/workspace_graph/expected_projection/prelude_forecast.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast.rs")), 3225, "9c1b5e17bb19fe44d33a043c157b853168d2680e02eb4dac79c3e3ba2fdd09f2"),
-    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_tests.rs")), 27011, "d2764fe780162e373cfd2856beb8551daf76f98fe8efe7241381b7ab9f502bf8"),
+    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_tests.rs")), 27652, "447faf1a30587bfdf18016a8fa4a84f78e59ea2158f4dbeedeb7fb76d73ae381"),
     ("src/workspace_graph/expected_projection/prelude_forecast_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/prelude_forecast_original.rs")), 21078, "8aaa2384f1c6d31d6e9c1ac2a777da0364a84d86d8bb768109c27ac616c24c6e"),
     ("src/workspace_graph/expected_projection/held_projection_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection_original.rs")), 18283, "9a0e2b526b5fe4546e27f3ac870f35f46572e9ccbb5609b2586d584f0362b1fb"),
     ("src/workspace_graph/expected_projection/borrowed_leaf.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_leaf.rs")), 13625, "ec70684eeead756b71ac2643a36d56af6548645621349458f217b3b7397dc1dc"),
@@ -151,11 +154,35 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/hir/inspection/paid_nul/reuse_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before.rs")), 38440, "f244990419557597356086d2b3e6005f84c1d471160eb4b2e1506b1727e1ca3f"),
     ("src/hir/inspection/paid_nul/reuse_before/pending.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/reuse_before/pending.rs")), 2490, "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd"),
     ("src/hir/inspection/paid_nul/type_scratch.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/inspection/paid_nul/type_scratch.rs")), 8271, "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"),
-    ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")), 27897, "c2f468022de96008744b83f004a803b2fae2ac6d1e36ddbec85762dea5f420e1"),
+    ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/tests.rs")), 28156, "c3042cb4a7cc21a9cbf35404501106cdde9aa23c2337c842bb570eb525311636"),
     ("src/cleanup_plan/replay/continuation_storage/reached.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached.rs")), 6548, "d8c98f2a9a41aaa5a03ff2c9d6bf6b7476f7f77ecdc548958b45386fa7c4238a"),
     ("src/cleanup_plan/replay/continuation_storage/reached_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_before.rs")), 9194, "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb"),
     ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/continuation_storage/reached_tests.rs")), 20902, "68bc4a43f8ce480ca91ab86eb5bbcba0591caec5d347fae7c40c4894acebee53"),
     ("src/cleanup_plan/replay_tests/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay_tests/factored.rs")), 16045, "614c3bf513e879361696bd9cf4fa8177683eb1c8eb03df003263d8557dcbfcc4"),
+];
+
+// Only these changed members use an archived value in the previous whole join.
+// All other members must still contribute their independently verified live bytes.
+#[rustfmt::skip]
+const SUPERSEDED_CURRENT_PARTS: &[(&str, usize, &str)] = &[
+    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", 24954, "39c25673500a3b239e1d7d09230d6129d16349ee5d2b0c4339969e35c2c74ef3"),
+    ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", 10205, "900af30a08f96959e6f9c553d28e6f82f3104473cf23dbbb3090436310a22669"),
+    ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", 6952, "4d50579a8485a1b9b7b68c58fb30a0d7c3cda24d645c4f30867865fa6ec181b1"),
+    ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", 35376, "96eb3327ae6fb7a91bc5860872345bbc9f8912e9fc59b29d97a6d81d318b36e1"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
+    ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", 25205, "578025fde4ed873354a183eac565a81b6bbcd177abc1c248f3fe5c06be76e947"),
+    ("src/cleanup_plan/replay/path_join/frontier_tests.rs", 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
+    ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", 24982, "f3c7cc3dc6c9e3bb4987a1243bad17e05cbef83677459f1ac1bae0e32fc167ee"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", 15314, "13a680a8d9ab43342498bfac32079597e1b3be57defe7ba0a30d33576514791d"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", 15262, "cf308c67bb5a860985f157002621d745099e03346a68e47bc08a3946346e1140"),
+    ("src/workspace_graph/expected_projection.rs", 62861, "7485d5a9b8ab8a1bf943a8f2b00dd68abfacf68e66aaf970af1cc9ebcc427b94"),
+    ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", 14544, "133d24af24db25d38b69bb6b0bac77e8eddf596c663c089ffac3f55b6cdc5569"),
+    ("src/workspace_graph/expected_projection/held_projection.rs", 23199, "7178b17707f420519aeb7fe8bfec84ac8b16f83a254b3ed2016001a1feef1ceb"),
+    ("src/workspace_graph/expected_projection/call_carriers_joint.rs", 36959, "0518b853e9e2548e0b8d0ad36fc11c0998117faebf61c0a912ca0edc86348000"),
+    ("src/workspace_graph/expected_projection/call_carriers_tests.rs", 52496, "b6f5d26b7cf9d655fc515995bf265aa44ba1380f818ff5816a8068fc837216d1"),
+    ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", 27011, "d2764fe780162e373cfd2856beb8551daf76f98fe8efe7241381b7ab9f502bf8"),
+    ("src/cleanup_plan/replay/continuation_storage/tests.rs", 27897, "c2f468022de96008744b83f004a803b2fae2ac6d1e36ddbec85762dea5f420e1"),
 ];
 #[rustfmt::skip]
 const V10_CURRENT_PARTS: &[(&str, usize, &str)] = &[
@@ -557,7 +584,14 @@ fn physical(source: &str) -> Option<&'static str> {
     );
     Some(compiled)
 }
-// Only the two entire named predecessor tables may request historical bytes.
+fn read_superseded_current(length: usize, sha: &str) -> String {
+    let archive = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("e")
+        .join(sha);
+    super::raw_reader::read(&archive, length, sha, 2_097_152)
+        .expect("complete superseded current member")
+}
+// Only the enumerated named predecessor tables may request historical bytes.
 // A full current compiled/physical acquisition always precedes ordinary lookup.
 pub(super) fn named_part(
     source: &str,
@@ -582,6 +616,11 @@ pub(super) fn named_part(
     } else {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         declared_history_inputs::expected_value(source, sha, compiled)
+            .or_else(|| {
+                SUPERSEDED_CURRENT_PARTS
+                    .contains(&(source, length, sha))
+                    .then(|| read_superseded_current(length, sha))
+            })
             .or_else(|| invocation.file(&root.join(source), length, sha))
             .expect("ordinary full named predecessor and independent current source channels")
     };
@@ -851,6 +890,7 @@ pub(super) fn stages(
         actual, supplied,
         "entire actual owning join before either old normalization"
     );
+    let mut superseded_current = String::new();
     let mut previous_merged = String::new();
     let mut prior_current = String::new();
     let mut immediate = String::new();
@@ -871,7 +911,16 @@ pub(super) fn stages(
             },
             compiled,
         );
-        let previous = previous_merged_member(source, compiled, normalized.as_deref());
+        let superseded = SUPERSEDED_CURRENT_PARTS
+            .iter()
+            .find(|part| part.0 == source)
+            .map(|&(_, length, sha)| read_superseded_current(length, sha));
+        superseded_current.push_str(superseded.as_deref().unwrap_or(compiled));
+        let previous = previous_merged_member(
+            source,
+            compiled,
+            normalized.as_deref().or(superseded.as_deref()),
+        );
         previous_merged.push_str(&previous);
         let prior = prior_current_part(source, compiled, &previous);
         prior_current.push_str(&prior);
@@ -891,6 +940,11 @@ pub(super) fn stages(
             immediate.push_str(&prior);
         }
     }
+    assert_eq!(
+        (superseded_current.len(), digest(&superseded_current)),
+        (SUPERSEDED_CURRENT_LENGTH, SUPERSEDED_CURRENT_SHA.to_owned()),
+        "complete preceding current join"
+    );
     assert_eq!(
         (previous_merged.len(), digest(&previous_merged)),
         (

@@ -43,7 +43,7 @@ mod native_host_output;
 mod native_iter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_module_lease;
-mod native_owned_data_provider;
+pub(crate) mod native_owned_data_provider;
 mod native_resource;
 mod native_runtime;
 mod native_scalar_runtime;

@@ -15,7 +15,7 @@ pub(crate) use packet_lookup::ProjectionInvocation;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 const SOURCE_CAP: usize = 9753094;
-fn digest(bytes: &[u8]) -> String {
+pub(super) fn digest(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 fn packet() -> serde_json::Value {
@@ -433,29 +433,26 @@ fn same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        if a.dev() != b.dev()
-            || a.ino() != b.ino()
-            || a.mode() != b.mode()
-            || a.mtime() != b.mtime()
-            || a.mtime_nsec() != b.mtime_nsec()
-            || a.ctime() != b.ctime()
-            || a.ctime_nsec() != b.ctime_nsec()
-        {
-            return false;
-        }
+        a.dev() == b.dev()
+            && a.ino() == b.ino()
+            && a.mode() == b.mode()
+            && a.mtime() == b.mtime()
+            && a.mtime_nsec() == b.mtime_nsec()
+            && a.ctime() == b.ctime()
+            && a.ctime_nsec() == b.ctime_nsec()
     }
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
-        if a.file_attributes() & 0x400 != 0
-            || b.file_attributes() & 0x400 != 0
-            || a.creation_time() != b.creation_time()
-            || a.last_write_time() != b.last_write_time()
-        {
-            return false;
-        }
+        a.file_attributes() & 0x400 == 0
+            && b.file_attributes() & 0x400 == 0
+            && a.creation_time() == b.creation_time()
+            && a.last_write_time() == b.last_write_time()
     }
-    true
+    #[cfg(not(any(unix, windows)))]
+    {
+        true
+    }
 }
 fn held(path: &Path, length: usize, expected: &str) -> Result<String, &'static str> {
     if let Some(value) = overlay_v2::held_source(path, length, expected) {
@@ -1085,8 +1082,7 @@ fn combined_785_885_and_projection_carriers_authenticate_each_whole_side_before_
     assert!(combined_side_file(&root.join("unlisted"), 0, "unlisted").is_none());
 }
 
-// Nondelegating entry for the older owner's compiled-channel normalization.
-// Membership is tested before calling the public delegating route.
+// The older compiled-channel route checks membership before delegation.
 pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {
     ProjectionInvocation::new().value_direct(source, expected, supplied)
 }

@@ -11,7 +11,7 @@ mod prefix_custody;
 mod release_custody;
 #[path = "source_reflows_merge/successor_custody.rs"]
 mod successor_custody;
-use sha2::{Digest, Sha256};
+use main_e177_final_inputs::declared_history_inputs::digest as source_sha;
 #[path = "source_reflows_merge/final_custody.rs"]
 mod final_custody;
 #[path = "source_reflows_merge/metadata_json.rs"]
@@ -1497,10 +1497,4 @@ fn initial845_compiled_owner_entry(source: &str, current: &str) -> Option<String
     assert_eq!(prior.len(), prior_length);
     assert_eq!(source_sha(&prior), prior_sha);
     Some(prior)
-}
-fn source_sha(text: &str) -> String {
-    format!(
-        "{:x}",
-        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
-    )
 }

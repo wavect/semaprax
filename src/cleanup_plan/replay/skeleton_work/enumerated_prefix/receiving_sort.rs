@@ -595,7 +595,7 @@ fn sift(
 // Flattening a short batch replaces repeated history cursor construction
 // with a single traversal per path. Count both members and nodes before
 // choosing it, so a small number of paths cannot hide a large shared DAG.
-const FLAT_VISITS: usize = 8192;
+const FLAT_VISITS: usize = 32_768;
 const FLAT_SETUP: usize = RECEIVERS
     + 2 * size_of::<Vec<&ObservationDag>>()
     + 4 * size_of::<&mut [SkeletonPath]>()

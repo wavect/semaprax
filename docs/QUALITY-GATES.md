@@ -308,9 +308,10 @@ the exact behavior; the summary follows:
   that absence is itself the failure: a caller that promised a provisioned
   kernel and then finds none has a provisioning defect, not a skippable
   check.
-- **Invoked from `scripts/quality.sh full`** (after the validated
-  `semaprax.quality-route.v2` gate list, not part of its schema) and from
-  the `kernel0-lean-proof-gate` CI job in `.github/workflows/ci.yml`, which
+- **Invoked from `scripts/quality.sh full`** before `test-workspace`, so a
+  clean checkout has the compiled modules that the Rust Lean witness tests
+  import. The proof gate runs outside the `semaprax.quality-route.v2` schema.
+  It also runs in the `kernel0-lean-proof-gate` CI job in `.github/workflows/ci.yml`, which
   **is** in `release-gate`'s blocker set.
 
   That job provisions the pinned toolchain itself: a sha256-pinned `elan`

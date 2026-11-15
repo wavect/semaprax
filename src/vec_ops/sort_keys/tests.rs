@@ -84,6 +84,54 @@ fn borrowed_layout_fields_keep_exact_wire_and_budget_without_owned_pairs() {
     }
 }
 
+#[test]
+fn descriptor_precheck_keeps_wire_charge_without_materialization() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::test_allocation_observer::measure;
+
+    fn compare(encode: impl Fn() -> Option<String>, reserve: impl Fn() -> Option<usize>) {
+        let expected = encode().unwrap();
+        let probe = |limit| with_limit_usage_refusal(limit, || measure(&reserve));
+        let ((length, metrics), refused, paid, first) = probe(expected.len());
+        assert_eq!(length, Some(expected.len()));
+        assert_eq!(paid, expected.len());
+        assert!(!refused && first.is_none() && !metrics.invalid);
+        assert_eq!(metrics.allocated, 0);
+        for limit in [0, expected.len() - 1] {
+            let ((length, metrics), refused, paid, first) = probe(limit);
+            let (old, old_refused, old_paid, old_first) = with_limit_usage_refusal(limit, &encode);
+            assert!(length.is_none() && old.is_none() && refused && old_refused);
+            assert_eq!(first, old_first);
+            assert_eq!(paid, old_paid);
+            assert!(!metrics.invalid);
+            assert_eq!(metrics.allocated, 0);
+        }
+    }
+
+    let field = DeclarationId::new("field.λ\0");
+    let sort = Descriptor {
+        element: "element.λ\0".into(),
+        layout: "layout.é".into(),
+        keys: vec![Key {
+            field: field.clone(),
+            descending: true,
+        }],
+    };
+    let unique = crate::vec_ops::field_unique::Descriptor {
+        element: sort.element.clone(),
+        layout: sort.layout.clone(),
+        field: field.clone(),
+    };
+    let update = crate::vec_ops::field_update::Descriptor {
+        element: sort.element.clone(),
+        layout: sort.layout.clone(),
+        field,
+    };
+    compare(|| sort.identity(), || sort.reserve_identity());
+    compare(|| unique.identity(), || unique.reserve_identity());
+    compare(|| update.identity(), || update.reserve_identity());
+}
+
 const SOURCE: &str = "module sort; @id(\"r\") record R { @id(\"serial\") serial:i64, @id(\"key\") key:i64, } @id(\"main\") fn main()->i64 { let v=vec_with_capacity<R>(0usize);let w=vec_sort_by<R>(v,\"key:desc,serial:asc\");0 }";
 fn resolved() -> crate::hir::ResolvedProgram {
     crate::hir::resolve(&crate::check(SOURCE, "sort.spx").unwrap()).unwrap()

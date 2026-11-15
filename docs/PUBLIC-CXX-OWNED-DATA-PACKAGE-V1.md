@@ -26,6 +26,11 @@ and at most 32 adapters. This bounds artifact bytes, not allocator capacity or
 resident memory. Borrowed input and owned output together stay within 65,536
 bytes; Project v1-v7 and v9-v11 remain unchanged.
 
+The held Project validates the provider through the compiler's bounded replay
+stage before emitting C. Cleanup replay uses the existing per-program scratch
+ceiling. Provider construction still uses the package builder account and its
+wrapper reserve.
+
 When native-provider construction refuses its builder account, outward diagnostic
 help can report the first actual reservation, remaining allowance, reserved
 floor, and compiler-owned caller. This cumulative debit is separate from the

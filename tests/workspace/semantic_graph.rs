@@ -4,6 +4,7 @@ include!("semantic_graph/source_inventory.rs");
 include!("semantic_graph/host_pins.rs");
 #[path = "semantic_graph/source_inventory_controls.rs"]
 mod source_inventory_controls;
+use super::pin_capture::sha as document_digest;
 use semaprax::semantic_workspace;
 use semaprax::workspace_analysis::{
     self, WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
@@ -15,7 +16,6 @@ use semaprax::workspace_graph::{
     WorkspaceSemanticGraphModule,
 };
 use semaprax::{format, parse, workspace};
-use sha2::{Digest, Sha256};
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -163,23 +163,7 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 fn capture_pin_candidate(name: &str, bytes: &[u8]) {
     assert_merged_measured_host_history(name, bytes);
     super::pin_capture::record(name, bytes);
-    let Some(directory) = std::env::var_os("SEMAPRAX_PRELUDE_PIN_CAPTURE_DIR") else {
-        return;
-    };
-    use std::io::Write as _;
-    let path = std::path::Path::new(&directory).join(name);
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .expect("fresh pin evidence file");
-    file.write_all(bytes).expect("capture complete actual wire");
-}
-fn document_digest(bytes: &[u8]) -> String {
-    format!(
-        "sha256:{:x}",
-        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
-    )
+    super::pin_capture::write_local(name, bytes);
 }
 #[allow(dead_code)]
 fn assert_public_edge_getter_surface(edge: &WorkspaceSemanticGraphEdge) {

@@ -4,7 +4,7 @@ use std::io::Write as _;
 
 const MAX_CAPTURE_BYTES: usize = 64 * 1024;
 
-fn sha(bytes: &[u8]) -> String {
+pub(super) fn sha(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!(
         "sha256:{:x}",
@@ -55,6 +55,19 @@ pub(super) fn record(label: &str, bytes: &[u8]) {
     if enabled() && bytes.len() <= MAX_CAPTURE_BYTES {
         let _ = observe(label, bytes, sha(bytes));
     }
+}
+
+pub(super) fn write_local(name: &str, bytes: &[u8]) {
+    let Some(directory) = std::env::var_os("SEMAPRAX_PRELUDE_PIN_CAPTURE_DIR") else {
+        return;
+    };
+    let path = std::path::Path::new(&directory).join(name);
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .expect("fresh pin evidence file");
+    file.write_all(bytes).expect("capture complete actual wire");
 }
 
 /// Literal whole-wire expectations for the two measured native builder layouts.

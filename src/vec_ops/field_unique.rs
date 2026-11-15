@@ -59,7 +59,7 @@ fn ascending(value: &str) -> Option<String> {
 }
 
 impl Descriptor {
-    pub(crate) fn identity(&self) -> Option<String> {
+    pub(super) fn reserve_identity(&self) -> Option<usize> {
         let length = PREFIX
             .len()
             .checked_add(sort_keys::part_len(&self.element)?)?
@@ -69,6 +69,11 @@ impl Descriptor {
         {
             return None;
         }
+        Some(length)
+    }
+
+    pub(crate) fn identity(&self) -> Option<String> {
+        let length = self.reserve_identity()?;
         let mut out = String::with_capacity(length);
         out.push_str(PREFIX);
         sort_keys::part(&mut out, &self.element);
@@ -132,7 +137,7 @@ pub(crate) fn resolve(
         layout: selected.layout,
         field: key.field.clone(),
     };
-    descriptor.identity()?;
+    descriptor.reserve_identity()?;
     Some(descriptor)
 }
 
@@ -166,7 +171,7 @@ pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, value: &str) -> 
         layout: selected.layout,
         field: key.field.clone(),
     };
-    descriptor.identity()?;
+    descriptor.reserve_identity()?;
     Some(descriptor)
 }
 

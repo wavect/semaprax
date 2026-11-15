@@ -456,8 +456,8 @@ REQUIRE(!memcmp(fault_borrowed_input,fault_input,sizeof fault_input));REQUIRE(mu
     }
 }
 
-// Exact public-workspace host for production-library paid attribution. This
-// does not assert admission when the unchanged 64MiB builder refuses.
+// Exact public-workspace host for production-library paid attribution.
+// The attempt receipts carry the actual initial ledger limit and outcome.
 #[cfg(feature = "unstable-workflow-profiling")]
 #[test]
 fn catalog_normalizer_public_workspace_reports_actual_paid_validation_phases() {
@@ -570,19 +570,26 @@ fn catalog_normalizer_public_workspace_reports_actual_paid_validation_phases() {
         ),
     )
     .unwrap();
-    let capture = Capture::begin(Binding::caller_labelled("catalog-normalizer exact12/public-semantic-workspace/default64MiB; revision externally bound", digest.finalize().into())).unwrap();
+    let capture = Capture::begin(Binding::caller_labelled(
+        "catalog-normalizer exact12/public-semantic-workspace; revision externally bound",
+        digest.finalize().into(),
+    ))
+    .unwrap();
     let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         semaprax::semantic_workspace::initialize(&root, &paths)
     }));
     // The public route has returned or unwound and all compiler owners dropped.
     let report = capture.finish().unwrap();
-    eprintln!(
-        "NORMALIZER_PAID_PHASES default_builder_cap=67108864 inclusive_not_additive=true report={report:?}"
-    );
+    eprintln!("NORMALIZER_PAID_PHASES inclusive_not_additive=true report={report:?}");
     let result = match outcome {
         Ok(result) => result,
         Err(payload) => std::panic::resume_unwind(payload),
     };
+    // A static refusal has no live ledger to observe. Record the returned
+    // diagnostic before checking that the paid phases were reached.
+    if let Err(errors) = &result {
+        eprintln!("NORMALIZER_PAID_REAL_REFUSAL {errors:?}");
+    }
     assert_eq!(report.build, Build::InstrumentedProductionAlgorithm);
     let exclusive = &report.resolved_core;
     assert_eq!(exclusive.algorithm, semaprax::workflow_profile::plan_comparison::CoreDebitAlgorithm::InstrumentedProductionAlgorithm);
@@ -641,7 +648,6 @@ fn catalog_normalizer_public_workspace_reports_actual_paid_validation_phases() {
     match result {
         Ok(revision) => assert!(!revision.is_empty()),
         Err(errors) => {
-            eprintln!("NORMALIZER_PAID_REAL_REFUSAL {errors:?}");
             assert!(
                 !errors.is_empty() && errors.iter().all(|e| e.code == "SPX-G171"),
                 "{errors:?}"

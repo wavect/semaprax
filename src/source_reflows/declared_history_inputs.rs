@@ -102,8 +102,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-9.json"
         )),
-        706411,
-        "b2de161ce8d30d24651a75b0b657bb265aa90939e9d1bf6e5ae978db7b7993a2",
+        706636,
+        "cccd5024f78484ff97d45eac2972d1616a0cf281bb0fd1a4e4f35403d6021d75",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-10.json",
@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         134653,
-        "09207cdf9bfeafaf0cc9f351c01db77257e57cc0ed7c5138b2f54016bd0d119e",
+        "b929dc109930ef698e4b310292405fc3d694165ed0417041413a6c42aa321ce0",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -318,8 +318,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-33.json"
         )),
-        1044758,
-        "323041953c25ad22712a69d3f93d2c78d9c56b1b8392f435bb11f58f294ba049",
+        1044699,
+        "7b33495ef1f4d8ef23153b560a5136bf5a346672ca450e773f4f85fe647f8ee6",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-34.json",
@@ -372,8 +372,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-39.json"
         )),
-        980978,
-        "5fdb8a64a26bfea0da80c703e5d36a7be1765d6cbad5faf33594242ffc096977",
+        980943,
+        "86afd9c8731383689f7d348d652d7d53d5ffbc44faa2df8f44501a382f9e610a",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-40.json",
@@ -381,8 +381,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-40.json"
         )),
-        529449,
-        "5557fa7b1f74acfbadfd95d270a6b08bca809b41f99eea52d71560892bc7946c",
+        530163,
+        "eba41d937fdc0d4bc2f37a4a15cadf17e824b8592aee5ecd73284c2fd6dabc17",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-41.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        676421,
-        "f2b497f4b86c89d837b5c4325645231a61b69a7e46a74eff8b01d0334f6ea8cc",
+        679451,
+        "4f5924b39404c71f5dd5d505c6636e455400d9887c6837962f2146bc5b98bf49",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -443,10 +443,7 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
         CAP,
     )
     .unwrap();
-    assert_eq!(
-        fresh, compiled,
-        "whole fresh/compiled declared-history table"
-    );
+    assert_eq!(fresh, compiled, "compiled history differs from disk");
     CACHE[part].get_or_init(|| serde_json::from_str(compiled).unwrap())
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {

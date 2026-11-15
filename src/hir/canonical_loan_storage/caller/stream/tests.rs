@@ -590,6 +590,10 @@ mod source_reader;
 fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     use sha2::{Digest, Sha256};
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let check_physical = |path: &std::path::Path, contents: &str, pin: &str| {
+        let actual = source_reader::read(path, contents.len(), pin, 2 * 1024 * 1024).unwrap();
+        assert_eq!(actual, contents);
+    };
     let raw = include_str!("../../../../loan_plan/canonical_sink/immediate-before.json");
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
@@ -608,15 +612,10 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     );
     let architecture_path =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ARCHITECTURE.md");
-    assert_eq!(
-        source_reader::read(
-            &architecture_path,
-            396047,
-            "2868a2a0ade7c234b026186e339bcaceafe6707cdf937daf01255763d4cff5a9",
-            2 * 1024 * 1024
-        )
-        .unwrap(),
-        architecture_current
+    check_physical(
+        &architecture_path,
+        architecture_current,
+        "2868a2a0ade7c234b026186e339bcaceafe6707cdf937daf01255763d4cff5a9",
     );
     let architecture_before = include_str!(
         "../../../../../e/20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41"
@@ -679,15 +678,10 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     );
     let shared_plan_path =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/SHARED-LOAN-PLAN-V1.md");
-    assert_eq!(
-        source_reader::read(
-            &shared_plan_path,
-            shared_plan_actual.len(),
-            &digest(shared_plan_actual.as_bytes()),
-            2 * 1024 * 1024
-        )
-        .unwrap(),
-        shared_plan_actual
+    check_physical(
+        &shared_plan_path,
+        shared_plan_actual,
+        &digest(shared_plan_actual.as_bytes()),
     );
     let cases: &[(&str, &str)] = &[
         ("docs/ARCHITECTURE.md", architecture_before),
@@ -887,10 +881,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
             }
             _ => path,
         });
-        assert_eq!(
-            source_reader::read(&physical, compiled.len(), pin, 2 * 1024 * 1024).unwrap(),
-            *compiled
-        );
+        check_physical(&physical, compiled, pin);
         if let Some(before) = row["before"].as_str() {
             assert_eq!(
                 digest(before.as_bytes()),
@@ -916,10 +907,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
             assert!(row["edits"].as_array().unwrap().is_empty());
         }
         // Physical acquisition is repeated after the entire inverse replay.
-        assert_eq!(
-            source_reader::read(&physical, compiled.len(), pin, 2 * 1024 * 1024).unwrap(),
-            *compiled
-        );
+        check_physical(&physical, compiled, pin);
     }
 
     assert_eq!(
@@ -1005,15 +993,10 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         .unwrap()
         .1;
     assert!(current.contains(&format!("fn prepare_sealed_before<'a, T>({original}")));
-    assert_eq!(
-        source_reader::read(
-            &shared_plan_path,
-            shared_plan_actual.len(),
-            &digest(shared_plan_actual.as_bytes()),
-            2 * 1024 * 1024
-        )
-        .unwrap(),
-        shared_plan_actual
+    check_physical(
+        &shared_plan_path,
+        shared_plan_actual,
+        &digest(shared_plan_actual.as_bytes()),
     );
 }
 
@@ -1036,6 +1019,7 @@ fn empty_stage<T>(old: bool, operation: impl FnOnce() -> T) -> T {
 }
 fn empty_run(
     program: &ResolvedProgram,
+    expected: Option<&Storage<'_>>,
     old: bool,
     cap: usize,
     floor: usize,
@@ -1048,25 +1032,39 @@ fn empty_run(
         let measured = measure(|| {
             let result = empty_stage(old, || prepare_with_comparison(&seed, program));
             let ok = result.is_ok();
-            assert_eq!(
-                ok,
-                success,
-                "old={old} cap={cap}: {:?}",
-                result.as_ref().err()
-            );
+            let error = result.as_ref().err();
+            assert_eq!(ok, success, "old={old} cap={cap}: {error:?}");
             match result {
                 Ok((storage, deferred)) => {
-                    assert!(storage.is_current(program));
-                    assert!(
-                        storage.ids.is_empty()
-                            && storage.liveness.is_empty()
-                            && storage.origins.is_empty()
-                    );
+                    if let Some(expected) = expected {
+                        assert_storage(&storage, expected);
+                    } else {
+                        assert!(storage.is_current(program));
+                        assert!(
+                            storage.ids.is_empty()
+                                && storage.liveness.is_empty()
+                                && storage.origins.is_empty()
+                        );
+                    }
                     deferred.finish(program).unwrap();
                     drop(storage);
                 }
                 Err(error) => {
                     assert_eq!(error.code, "SPX-H006");
+                    if expected.is_some() {
+                        assert_eq!(error.severity, crate::diagnostic::Severity::Error);
+                        assert!(
+                            error.path.is_none() && error.span.is_none() && error.help.is_none()
+                        );
+                        assert_eq!(
+                            error.message,
+                            if cap == 0 {
+                                ""
+                            } else {
+                                "canonical loan CFG storage reservation refused"
+                            }
+                        );
+                    }
                     drop(error);
                     let first =
                         crate::bounded_output::classifier_string::ClassifierLedger::capture()
@@ -1093,7 +1091,13 @@ fn empty_run(
     assert_eq!(receipt.is_some(), !success);
     clean(metrics, paid);
     if success && !old {
-        assert_eq!(take_empty_counts(), (program.functions.len(), 0));
+        // The mixed fixture must yield two Some and two None outcomes.
+        let counts = if expected.is_some() {
+            (2, 2)
+        } else {
+            (program.functions.len(), 0)
+        };
+        assert_eq!(take_empty_counts(), counts);
     }
     paid
 }
@@ -1105,8 +1109,8 @@ fn authenticated_empty_terminal_has_whole_scalar_caller_net_after_all_new_branch
     );
     for functions in [0, 16, 64] {
         let program = empty_scalar_program(functions);
-        let old = empty_run(&program, true, usize::MAX, 0, true);
-        let current = empty_run(&program, false, usize::MAX, 0, true);
+        let old = empty_run(&program, None, true, usize::MAX, 0, true);
+        let current = empty_run(&program, None, false, usize::MAX, 0, true);
         let count = program.functions.len();
         assert_eq!(
             old + count * (BRANCH_SELECTION_BYTES + EMPTY_CLEAR_BYTES),
@@ -1117,10 +1121,10 @@ fn authenticated_empty_terminal_has_whole_scalar_caller_net_after_all_new_branch
             "complete scalar caller must repay every new branch/clear role"
         );
         for (old, exact) in [(true, old), (false, current)] {
-            assert_eq!(empty_run(&program, old, exact, 0, true), exact);
-            empty_run(&program, old, exact - 1, 0, false);
-            empty_run(&program, old, exact, 1, false);
-            empty_run(&program, old, 0, 0, false);
+            assert_eq!(empty_run(&program, None, old, exact, 0, true), exact);
+            empty_run(&program, None, old, exact - 1, 0, false);
+            empty_run(&program, None, old, exact, 1, false);
+            empty_run(&program, None, old, 0, 0, false);
         }
         eprintln!(
             "EMPTY_CANONICAL functions={count} old={old} current={current} delta={}",
@@ -1211,79 +1215,7 @@ fn mixed_empty_program(interleave: bool) -> ResolvedProgram {
     source.push_str(r#"@id("mixed.main") fn main()->i64 {0}"#);
     crate::hir::resolve(&crate::check(&source, "mixed-canonical.spx").unwrap()).unwrap()
 }
-fn mixed_empty_run(
-    program: &ResolvedProgram,
-    expected: &Storage<'_>,
-    old: bool,
-    cap: usize,
-    floor: usize,
-    success: bool,
-) -> usize {
-    let seed = ConstructorSeed::authenticate(program, None).unwrap();
-    take_empty_counts();
-    let ((ok, metrics), refused, paid, receipt) = with_limit_usage_refusal(cap, || {
-        assert!(bounded_output::set_active_floor(floor));
-        let measured = measure(|| {
-            let result = empty_stage(old, || prepare_with_comparison(&seed, program));
-            let ok = result.is_ok();
-            assert_eq!(
-                ok,
-                success,
-                "old={old} cap={cap}: {:?}",
-                result.as_ref().err()
-            );
-            match result {
-                Ok((storage, deferred)) => {
-                    assert_storage(&storage, expected);
-                    deferred.finish(program).unwrap();
-                    drop(storage);
-                }
-                Err(error) => {
-                    assert_eq!(error.code, "SPX-H006");
-                    assert_eq!(error.severity, crate::diagnostic::Severity::Error);
-                    assert!(error.path.is_none() && error.span.is_none() && error.help.is_none());
-                    assert_eq!(
-                        error.message,
-                        if cap == 0 {
-                            ""
-                        } else {
-                            "canonical loan CFG storage reservation refused"
-                        }
-                    );
-                    drop(error);
-                    let remaining = bounded_output::active_remaining();
-                    let first =
-                        crate::bounded_output::classifier_string::ClassifierLedger::capture()
-                            .first_refusal();
-                    let retry = empty_stage(old, || prepare_with_comparison(&seed, program));
-                    assert!(retry.is_err());
-                    drop(retry);
-                    assert_eq!(bounded_output::active_remaining(), remaining);
-                    assert_eq!(
-                        crate::bounded_output::classifier_string::ClassifierLedger::capture()
-                            .first_refusal(),
-                        first
-                    );
-                }
-            }
-            ok
-        });
-        bounded_output::clear_active_floor();
-        measured
-    });
-    assert_eq!(ok, success);
-    assert_eq!(refused, !success);
-    assert_eq!(receipt.is_some(), !success);
-    clean(metrics, paid);
-    if success && !old {
-        assert_eq!(
-            take_empty_counts(),
-            (2, 2),
-            "actual independent producer has two Some and two None outcomes"
-        );
-    }
-    paid
-}
+
 #[test]
 fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_surcharge_limits() {
     for interleave in [false, true] {
@@ -1303,8 +1235,8 @@ fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_sur
                 && !expected.ids.is_empty()
                 && !expected.liveness.is_empty()
         );
-        let old = mixed_empty_run(&program, &expected, true, usize::MAX, 0, true);
-        let current = mixed_empty_run(&program, &expected, false, usize::MAX, 0, true);
+        let old = empty_run(&program, Some(&expected), true, usize::MAX, 0, true);
+        let current = empty_run(&program, Some(&expected), false, usize::MAX, 0, true);
         // BOTH Some branches retain their complete old append bank. Only the
         // two real None results remove it; every function pays branch controls.
         assert_eq!(
@@ -1313,12 +1245,12 @@ fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_sur
         );
         for (old, exact) in [(true, old), (false, current)] {
             assert_eq!(
-                mixed_empty_run(&program, &expected, old, exact, 0, true),
+                empty_run(&program, Some(&expected), old, exact, 0, true),
                 exact
             );
-            mixed_empty_run(&program, &expected, old, exact - 1, 0, false);
-            mixed_empty_run(&program, &expected, old, exact, 1, false);
-            mixed_empty_run(&program, &expected, old, 0, 0, false);
+            empty_run(&program, Some(&expected), old, exact - 1, 0, false);
+            empty_run(&program, Some(&expected), old, exact, 1, false);
+            empty_run(&program, Some(&expected), old, 0, 0, false);
         }
         drop(expected);
     }

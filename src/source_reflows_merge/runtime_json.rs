@@ -1,7 +1,7 @@
 //! Authenticated test-only repository data. No compiler or budget authority.
 //! Runtime files are required at the exact compile-time repository location.
 #![cfg(test)]
-use sha2::{Digest, Sha256};
+use super::main_e177_final_inputs::digest as digest_hex;
 use std::io::Read;
 #[path = "runtime_json/sealed_io.rs"]
 mod sealed_io;
@@ -149,26 +149,23 @@ fn main043_raw_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        if a.dev() != b.dev()
-            || a.ino() != b.ino()
-            || a.ctime() != b.ctime()
-            || a.ctime_nsec() != b.ctime_nsec()
-        {
-            return false;
-        }
+        a.dev() == b.dev()
+            && a.ino() == b.ino()
+            && a.ctime() == b.ctime()
+            && a.ctime_nsec() == b.ctime_nsec()
     }
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
-        if a.file_attributes() & 0x400 != 0
-            || b.file_attributes() & 0x400 != 0
-            || a.creation_time() != b.creation_time()
-            || a.last_write_time() != b.last_write_time()
-        {
-            return false;
-        }
+        a.file_attributes() & 0x400 == 0
+            && b.file_attributes() & 0x400 == 0
+            && a.creation_time() == b.creation_time()
+            && a.last_write_time() == b.last_write_time()
     }
-    true
+    #[cfg(not(any(unix, windows)))]
+    {
+        true
+    }
 }
 
 fn main043_raw_file(
@@ -285,10 +282,7 @@ fn main043_check_raw_subject(packet: &serde_json::Value, source: &str) -> String
     let live = main043_raw_file(
         std::path::Path::new(path),
         compiled.len(),
-        &format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
-        ),
+        &digest_hex(compiled.as_bytes()),
     )
     .unwrap();
     assert_eq!(
@@ -306,13 +300,7 @@ fn main043_check_raw_subject(packet: &serde_json::Value, source: &str) -> String
         length,
         "complete historical RAW checkpoint length"
     );
-    assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(physical.as_bytes()))
-        ),
-        expected
-    );
+    assert_eq!(digest_hex(physical.as_bytes()), expected);
 
     let held = main043_raw_file(std::path::Path::new(archive), length, expected).unwrap();
     assert_eq!(physical, compiled, "complete current compiled RAW source");
@@ -702,13 +690,7 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
         let mut live = main043_before_successors(source, live, key, &mut outer);
         for successor in successors.iter().filter(|row| row["source"] == source) {
             assert_eq!(live.len() as u64, successor["length"]);
-            assert_eq!(
-                format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(live.as_bytes()))
-                ),
-                successor["sha256"]
-            );
+            assert_eq!(digest_hex(live.as_bytes()), successor["sha256"]);
             for pair in successor["inverse"].as_array().unwrap() {
                 let after = pair[0].as_str().unwrap();
                 let before = pair[1].as_str().unwrap();
@@ -721,13 +703,7 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
                 outer.push(serde_json::Value::Object(edit));
             }
             assert_eq!(live.len() as u64, successor["checkpoint_length"]);
-            assert_eq!(
-                format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(live.as_bytes()))
-                ),
-                successor["checkpoint_sha256"]
-            );
+            assert_eq!(digest_hex(live.as_bytes()), successor["checkpoint_sha256"]);
         }
         if live != current {
             let matches = checkpoints
@@ -739,19 +715,10 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
             assert_eq!(matches.len(), 1, "unique latest RAW checkpoint inverse");
             let checkpoint = matches[0];
             assert_eq!(live.len() as u64, checkpoint["length"]);
-            assert_eq!(
-                format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(live.as_bytes()))
-                ),
-                checkpoint["sha256"]
-            );
+            assert_eq!(digest_hex(live.as_bytes()), checkpoint["sha256"]);
             assert_eq!(current.len() as u64, checkpoint["checkpoint_length"]);
             assert_eq!(
-                format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
-                ),
+                digest_hex(current.as_bytes()),
                 checkpoint["checkpoint_sha256"]
             );
             let mut restored = live.to_owned();
@@ -795,10 +762,7 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
             let latest = main043_raw_file(
                 std::path::Path::new(path),
                 compiled.len(),
-                &format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
-                ),
+                &digest_hex(compiled.as_bytes()),
             )
             .unwrap();
             assert_eq!(latest, compiled, "fresh complete RAW composition source");
@@ -853,22 +817,12 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
         let compiled =
             include_str!("../cleanup_plan/replay/expression_facts/receiving/retained/exits.rs");
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
-        let live = main043_raw_file(
-            &path,
-            compiled.len(),
-            &format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
-            ),
-        )
-        .unwrap();
+        let live =
+            main043_raw_file(&path, compiled.len(), &digest_hex(compiled.as_bytes())).unwrap();
         assert_eq!(live, compiled, "complete current RAW exits input");
         let checkpoint = super::main_e177_final_inputs::value_direct(
             source,
-            &format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(expected.as_bytes()))
-            ),
+            &digest_hex(expected.as_bytes()),
             &live,
         );
         assert_eq!(checkpoint, expected, "whole sealed RAW exits checkpoint");
@@ -1026,7 +980,7 @@ mod main043_raw_tests {
         let file = directory.join("raw");
         let bytes = b"complete\n";
         std::fs::write(&file, bytes).unwrap();
-        let sha = format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+        let sha = digest_hex(bytes);
         assert_eq!(
             main043_raw_file(&file, bytes.len(), &sha)
                 .unwrap()
@@ -1040,10 +994,7 @@ mod main043_raw_tests {
         assert!(main043_raw_file(&directory, 0, &sha).is_err());
         assert!(main043_raw_file(&directory.join("missing"), 0, &sha).is_err());
         std::fs::write(&file, [255_u8]).unwrap();
-        let invalid = format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest([255_u8]))
-        );
+        let invalid = digest_hex(&[255_u8]);
         assert!(main043_raw_file(&file, 1, &invalid).is_err());
         #[cfg(unix)]
         {

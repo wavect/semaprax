@@ -524,8 +524,11 @@ def encode_overlay_page(overlay, page, schema):
     assert len(raw) <= overlay['V21_OUTPUT_CAP']
     # Retain the established encoding whenever it fits the one-page cap.
     digest = sha(raw)
-    for iterations in (20, 80):
-        payload = base64.b85encode(compress(raw, numiterations=iterations)).decode('ascii')
+    # If bounded block splitting cannot fit, let the compressor choose
+    # additional block boundaries before reporting that the page is full.
+    for iterations, split_limit in ((20, 15), (80, 15), (160, 0)):
+        compressed = compress(raw, numiterations=iterations, blocksplittingmax=split_limit)
+        payload = base64.b85encode(compressed).decode('ascii')
         wire = dict(schema=schema, length=len(raw), sha256=digest, payload=payload)
         if len(overlay['canonical'](wire)) <= overlay['PAGE_CAP']:
             assert overlay['expand_compressed_page'](wire) == page

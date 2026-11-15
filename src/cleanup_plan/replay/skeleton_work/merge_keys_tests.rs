@@ -12,7 +12,9 @@ fn fixture(lexical: bool) -> ResolvedProgram {
     crate::hir::resolve(&parsed).unwrap()
 }
 
-fn expand(observations: &Observations) -> Vec<Vec<Observation>> {
+pub(in crate::cleanup_plan::replay) fn expand(
+    observations: &Observations,
+) -> Vec<Vec<Observation>> {
     fn dag(node: &ObservationDag) -> Vec<Vec<Observation>> {
         match &node.kind {
             ObservationDagKind::Seq(prefix, items) => {

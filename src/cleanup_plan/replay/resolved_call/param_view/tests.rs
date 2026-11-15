@@ -1,6 +1,7 @@
 //! Exact projection, complete replay and physical lifetime receivers.
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
+use crate::cleanup_plan::replay::skeleton_work::merge_keys_tests::expand;
 use crate::cleanup_plan::replay::*;
 use crate::test_allocation_observer::measure;
 mod old_frame;
@@ -290,7 +291,11 @@ fn full_old_constructor_replay_and_atomic_commit_order_are_identical() {
     for (old, new) in old.iter().zip(&new) {
         assert_eq!(old.len(), new.len());
         for (old, new) in old.iter().zip(new) {
-            assert_eq!(old.observations, new.observations);
+            assert_eq!(
+                expand(&old.observations),
+                expand(&new.observations),
+                "complete ordered observation histories"
+            );
             assert_eq!(old.owned_source, new.owned_source);
             assert_eq!(
                 (old.failed, old.residual, &old.continuation),
@@ -574,10 +579,15 @@ fn ordinary_vec_fallback_keeps_original_owned_provider_and_payment_with_old_sele
     }
     let old = paths(&program, true);
     let current = paths(&program, false);
+    assert_eq!(old.len(), current.len());
     for (old, current) in old.iter().zip(&current) {
         assert_eq!(old.len(), current.len());
         for (old, current) in old.iter().zip(current) {
-            assert_eq!(old.observations, current.observations);
+            assert_eq!(
+                expand(&old.observations),
+                expand(&current.observations),
+                "complete ordered observation histories"
+            );
             assert_eq!(old.owned_source, current.owned_source);
             assert_eq!(
                 (old.failed, old.residual, &old.continuation),

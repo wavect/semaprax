@@ -500,7 +500,36 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
     ));
     assert_roundtrip(&output);
     assert_success(&cli(&output, &["check", "."]));
-    assert_success(&cli(&output, &["test", ".", "--target", "native"]));
+    let tests = cli(&output, &["test", ".", "--target", "native", "--json"]);
+    assert_success(&tests);
+    let report: serde_json::Value = serde_json::from_slice(&tests.stdout).unwrap();
+    assert_eq!(report["schema"], "semaprax.native-test.v1");
+    assert_eq!(report["target"], "native");
+    assert_eq!(report["passed"], true);
+    let cases = report["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 2, "both declared LogLens roots must execute");
+    let roots = cases
+        .iter()
+        .map(|case| {
+            (
+                case["stable_id"].as_str().unwrap(),
+                case["name"].as_str().unwrap(),
+                case["role"].as_str().unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        roots,
+        vec![
+            ("loglens.tests.main", "main", "main"),
+            ("loglens.tests.decimal", "test_decimal", "case"),
+        ],
+        "a successful empty or substituted native suite is not acceptance evidence"
+    );
+    assert!(cases.iter().all(|case| case["passed"] == true
+        && case["result"] == 0
+        && case["exit_code"] == 0
+        && case["stderr"] == ""));
     assert_success(&cli(
         &output,
         &["build", ".", "--target", "native", "-o", "loglens"],

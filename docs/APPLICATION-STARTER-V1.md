@@ -4,6 +4,8 @@ Audience: compiler contributors and reviewers.
 
 Status: local macOS arm64 evidence for fresh ShiftSim and selected-file
 LogLens starters. Matched setup and repair trials for #837 remain pending.
+See the [Linux native-root qualification](evidence/issue837-native-root-qualification-20261114/README.md)
+for the focused reproducible workflow and matched-trial requirements.
 
 The full host composes existing checked codec plans with an explicit command:
 

@@ -506,7 +506,16 @@ fn original_oracle_retains_full_old_accounts_without_entering_shared_storage() {
             drop(scope);
             receipt
         };
-        assert_eq!(run(true), run(false));
+        // The current path uses the two real compact payment receivers
+        // with this payer too. The independent old body still pays both
+        // wide roles and every other receipt field must stay identical.
+        let compact = (final_output::HIR_SELECTION_CONTROLS
+            - final_output::compact::HIR_SELECTION_CONTROLS)
+            + (path_array::count_controls::<true>()
+                - final_output::compact::path_count_controls::<true>());
+        let mut expected = run(true);
+        expected.charged = expected.charged.checked_sub(compact).unwrap();
+        assert_eq!(run(false), expected);
     });
 }
 

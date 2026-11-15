@@ -429,10 +429,16 @@ fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
         let (actual, new_work, new_receipt) = run(false);
         same(&actual, &expected);
         assert_eq!(new_work, old_work);
-        // Both oracle arms deliberately execute the complete original receiver.
-        // Compact transport belongs to the ordinary route, tested separately above.
-        // Compare every original receipt field without a synthetic byte adjustment.
-        assert_eq!(new_receipt, old_receipt);
+        // Both arms preserve the complete sequence work. The current
+        // dispatch over this payer acquires the compact selection and count
+        // receivers, while the independent old owner pays the wide roles.
+        let compact = (final_output::HIR_SELECTION_CONTROLS
+            - final_output::compact::HIR_SELECTION_CONTROLS)
+            + (path_array::count_controls::<true>()
+                - final_output::compact::path_count_controls::<true>());
+        let mut expected_receipt = old_receipt;
+        expected_receipt.charged = expected_receipt.charged.checked_sub(compact).unwrap();
+        assert_eq!(new_receipt, expected_receipt);
         drop((actual, expected));
     });
     assert!(!refused);

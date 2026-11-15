@@ -1,6 +1,8 @@
 //! Compiled current input for each declared source owner.
 pub(crate) fn compiled(source: &str) -> &'static str {
     match source {
+        "src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/paid_type_facts/inventory_tests.rs")),
+        "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/oracle_entry.rs")),
         "tests/native/string_settlement/codec_allocation/string_vectors.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/native/string_settlement/codec_allocation/string_vectors.rs")),
         "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" => include_str!("../../cleanup_plan/replay/path_join/compact_failure_tests.rs"),
 "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs")),

@@ -522,10 +522,15 @@ def encode_overlay_page(overlay, page, schema):
     assert page.get('schema') == overlay['V20_SCHEMA']
     raw = overlay['canonical'](page)
     assert len(raw) <= overlay['V21_OUTPUT_CAP']
-    payload = base64.b85encode(compress(raw, numiterations=20)).decode('ascii')
-    wire = dict(schema=schema, length=len(raw), sha256=sha(raw), payload=payload)
-    assert overlay['expand_compressed_page'](wire) == page
-    return wire
+    # Retain the established encoding whenever it fits the one-page cap.
+    digest = sha(raw)
+    for iterations in (20, 80):
+        payload = base64.b85encode(compress(raw, numiterations=iterations)).decode('ascii')
+        wire = dict(schema=schema, length=len(raw), sha256=digest, payload=payload)
+        if len(overlay['canonical'](wire)) <= overlay['PAGE_CAP']:
+            assert overlay['expand_compressed_page'](wire) == page
+            return wire
+    raise AssertionError('V22 compressed page exceeds its one-page cap')
 
 
 def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):

@@ -256,7 +256,12 @@ mod oracle;
         );
     }
     {
-        let mut current = include_str!("../../paid_type_facts.rs").to_owned();
+        let mut current = crate::source_reflows::declared_history_inputs::expected_value(
+            "src/cleanup_plan/replay/paid_type_facts.rs",
+            "e508f5533dc1c8913e309d87a80dee963f92edffccb3f24ced35eae49ad904bf",
+            include_str!("../../paid_type_facts.rs"),
+        )
+        .expect("authenticate the complete live oracle receiver checkpoint");
         undo(
             &mut current,
             r#"mod inventory_lifecycle;
@@ -721,7 +726,12 @@ fn complete_prior_raw_and_zero_work_receivers_and_identity_formatter_remain_sour
         );
     }
     {
-        let mut current = include_str!("../../skeleton_work/oracle_entry.rs").to_owned();
+        let mut current = crate::source_reflows::declared_history_inputs::expected_value(
+            "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
+            "9ccc81b3f79c93b7330f3cbe8013c05424e95b2808b51dc06bbb18f9bfa6f7b7",
+            include_str!("../../skeleton_work/oracle_entry.rs"),
+        )
+        .expect("authenticate the complete live oracle receiver checkpoint");
         undo(
             &mut current,
             r#"                Err(error) => return Err(refused(budget, function, error)),

@@ -488,7 +488,12 @@ fn complete_current_callers_restore_whole_predecessors_without_touching_old_rout
             crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
         )
     };
-    let mut root = include_str!("../../../replay.rs").to_owned();
+    let mut root = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay.rs",
+        "027903ce7f76fd0a9883e2736adfa1214bdb1e687303d939c0e40751c6130320",
+        include_str!("../../../replay.rs"),
+    )
+    .expect("authenticate the complete flat-fanout owner checkpoint");
     // Reverse exactly the new public shared-call receiver before composing
     // the independent DAG and HIR feature inverses (full f1d66/3666 root).
     let current_call = r#####"            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
@@ -552,7 +557,12 @@ fn complete_current_callers_restore_whole_predecessors_without_touching_old_rout
         hash(&root),
         "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d"
     );
-    let sequence = include_str!("../../sequence_vector.rs");
+    let sequence = crate::source_reflows::declared_history_inputs::expected_value(
+        "src/cleanup_plan/replay/sequence_vector.rs",
+        "973bfa756f02048b70bebb91098153f400b0d1677eacd5633397b581b09aaeea",
+        include_str!("../../sequence_vector.rs"),
+    )
+    .expect("authenticate the complete flat-fanout owner checkpoint");
     let added_arm = r#####"    ($prefixes:ident, $suffixes:ident, $work:ident, token $sharing:ident, $minimum:ident, $precharged:ident) => {{
         $crate::cleanup_plan::replay::sequence_vector::reuse!(
             $prefixes, $suffixes, $work,

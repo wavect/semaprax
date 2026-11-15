@@ -1,7 +1,7 @@
 //! Fixed provider storage for the finite owned-Bytes iterator profile.
 //! The compiler must prove both constructor capacity and live table demand
 //! before selecting these functions. Handles contain a row and its generation.
-use wasm_encoder::{BlockType, Encode, Function, Instruction as I, MemArg, ValType};
+use wasm_encoder::{BlockType, Encode, Function, Instruction as I, MemArg, MemArgTarget, ValType};
 
 const SLOTS: i32 = 32;
 const ROW_CAPACITY: i32 = 32;
@@ -27,7 +27,8 @@ fn mem(offset: u64, align: u32) -> MemArg {
     MemArg {
         offset,
         align,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }
 }
 

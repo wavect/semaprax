@@ -18,7 +18,8 @@ use std::fmt::Write as _;
 use wasm_encoder::{
     CodeSection, ComponentBuilder, ComponentExportKind, ComponentValType, ConstExpr, EntityType,
     ExportKind, ExportSection, Function, FunctionSection, GlobalSection, GlobalType, ImportSection,
-    Instruction, MemArg, MemoryType, Module, ModuleArg, PrimitiveValType, TypeSection, ValType,
+    Instruction, MemArg, MemArgTarget, MemoryType, Module, ModuleArg, PrimitiveValType,
+    TypeSection, ValType,
 };
 
 const COMPONENT_DOMAIN: &[u8] = b"semaprax.public-generic-wasm-component.v1.artifact\0";
@@ -390,7 +391,8 @@ fn resource_dtor_module() -> Module {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Eqz);
     body.instruction(&Instruction::If(wasm_encoder::BlockType::Empty));
@@ -400,7 +402,8 @@ fn resource_dtor_module() -> Module {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(1));
     body.instruction(&Instruction::I32Sub);
@@ -422,7 +425,8 @@ fn resource_dtor_module() -> Module {
     body.instruction(&Instruction::I32Store8(MemArg {
         offset: 0,
         align: 0,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalGet(3));
     body.instruction(&Instruction::I32Const(1));
@@ -436,7 +440,8 @@ fn resource_dtor_module() -> Module {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::End);
     let mut exports = ExportSection::new();
@@ -625,7 +630,8 @@ fn owned_bytes_new_body() -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Eqz);
     body.instruction(&Instruction::If(wasm_encoder::BlockType::Empty));
@@ -636,7 +642,8 @@ fn owned_bytes_new_body() -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(0));
     body.instruction(&Instruction::LocalSet(cursor));
@@ -652,7 +659,8 @@ fn owned_bytes_new_body() -> Function {
     body.instruction(&Instruction::I32Load8U(MemArg {
         offset: 0,
         align: 0,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(byte));
     body.instruction(&Instruction::LocalGet(base));
@@ -664,7 +672,8 @@ fn owned_bytes_new_body() -> Function {
     body.instruction(&Instruction::I32Store8(MemArg {
         offset: 0,
         align: 0,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalGet(cursor));
     body.instruction(&Instruction::I32Const(1));
@@ -724,7 +733,8 @@ fn owned_bytes_read_body() -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalTee(len));
     body.instruction(&Instruction::I32Eqz);
@@ -738,7 +748,8 @@ fn owned_bytes_read_body() -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(RESOURCE_READ_RETURN_RECORD as i32));
     body.instruction(&Instruction::LocalGet(len));
@@ -747,7 +758,8 @@ fn owned_bytes_read_body() -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 4,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(RESOURCE_READ_RETURN_RECORD as i32));
     body.instruction(&Instruction::End);
@@ -771,14 +783,16 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_ptr_a));
     body.instruction(&Instruction::LocalGet(out_len_a));
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 4,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_len_a));
     body.instruction(&Instruction::LocalGet(1));
@@ -788,14 +802,16 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_ptr_b));
     body.instruction(&Instruction::LocalGet(out_len_b));
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 4,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_len_b));
     for (offset, local) in [
@@ -811,7 +827,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
         body.instruction(&Instruction::I32Store(MemArg {
             offset: 0,
             align: 2,
-            memory_index: 0,
+            target: MemArgTarget::Memory(0),
+            ordering: None,
         }));
     }
 
@@ -941,7 +958,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_ptr_a));
     body.instruction(&Instruction::I32Const(
@@ -950,7 +968,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_len_a));
     body.instruction(&Instruction::I32Const(
@@ -959,7 +978,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_ptr_b));
     body.instruction(&Instruction::I32Const(
@@ -968,7 +988,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Load(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalSet(out_len_b));
     body.instruction(&Instruction::LocalGet(result_id));
@@ -1003,7 +1024,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(
         (RESOURCE_INVOKE_RETURN_RECORD + 4) as i32,
@@ -1012,7 +1034,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(
         (RESOURCE_INVOKE_RETURN_RECORD + 8) as i32,
@@ -1021,7 +1044,8 @@ fn invoke_body(descriptor_len: usize, binding_len: usize) -> Function {
     body.instruction(&Instruction::I32Store(MemArg {
         offset: 0,
         align: 2,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Const(RESOURCE_INVOKE_RETURN_RECORD as i32));
     body.instruction(&Instruction::End);
@@ -1062,7 +1086,8 @@ fn emit_cleanup_return(body: &mut Function, provider: u32, input: u32, result: u
         body.instruction(&Instruction::I32Store(MemArg {
             offset: 0,
             align: 2,
-            memory_index: 0,
+            target: MemArgTarget::Memory(0),
+            ordering: None,
         }));
     }
     body.instruction(&Instruction::I32Const(RESOURCE_INVOKE_RETURN_RECORD as i32));
@@ -1184,12 +1209,14 @@ fn cabi_realloc_body() -> Function {
     body.instruction(&Instruction::I32Load8U(MemArg {
         offset: 0,
         align: 0,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::I32Store8(MemArg {
         offset: 0,
         align: 0,
-        memory_index: 0,
+        target: MemArgTarget::Memory(0),
+        ordering: None,
     }));
     body.instruction(&Instruction::LocalGet(cursor));
     body.instruction(&Instruction::I32Const(1));

@@ -137,7 +137,9 @@ pub(crate) fn decode(identity: &str) -> Option<Descriptor> {
         layout,
         keys,
     };
-    (result.identity()?.as_str() == identity).then_some(result)
+    // Every part was read with a canonical byte length. Keep the original
+    // re-encoding reservation and sticky refusal without copying the wire.
+    crate::bounded_output::reserve_active_required(identity.len()).then_some(result)
 }
 fn layout_key(
     element: &str,

@@ -175,3 +175,72 @@ fn length_bound_canonical_decimal_and_truncation_are_unforgeable() {
     };
     assert!(huge.identity().is_none());
 }
+
+#[test]
+fn canonical_descriptor_decode_retains_the_exact_required_reservation() {
+    use crate::bounded_output::with_limit_usage_refusal;
+    use crate::vec_ops::{field_unique, field_update};
+
+    let sort = Descriptor {
+        element: "record".into(),
+        layout: "layout:é".into(),
+        keys: vec![Key {
+            field: DeclarationId::new("field"),
+            descending: false,
+        }],
+    };
+    let unique = field_unique::Descriptor {
+        element: sort.element.clone(),
+        layout: sort.layout.clone(),
+        field: sort.keys[0].field.clone(),
+    };
+    let update = field_update::Descriptor {
+        element: sort.element.clone(),
+        layout: sort.layout.clone(),
+        field: sort.keys[0].field.clone(),
+    };
+    type Decode = fn(&str) -> Option<String>;
+    let fixtures: [(String, Decode); 3] = [
+        (sort.identity().unwrap(), |wire| decode(wire)?.identity()),
+        (unique.identity().unwrap(), |wire| {
+            field_unique::decode(wire)?.identity()
+        }),
+        (update.identity().unwrap(), |wire| {
+            field_update::decode(wire)?.identity()
+        }),
+    ];
+
+    for (wire, roundtrip) in fixtures {
+        assert_eq!(roundtrip(&wire).as_deref(), Some(wire.as_str()));
+
+        // Each roundtrip reserves once for validation and once for writing
+        // the returned wire. A one-short second request must remain sticky.
+        let length = wire.len();
+        let (exact, refused, paid, first) =
+            with_limit_usage_refusal(2 * length, || roundtrip(&wire));
+        assert_eq!(exact.as_deref(), Some(wire.as_str()));
+        assert!(!refused);
+        assert_eq!(paid, 2 * length);
+        assert!(first.is_none());
+
+        let (short, refused, paid, first) =
+            with_limit_usage_refusal(2 * length - 1, || roundtrip(&wire));
+        assert!(short.is_none() && refused);
+        assert_eq!(paid, length);
+        assert_eq!(first.unwrap().requested, length);
+
+        let (before_copy, refused, paid, first) =
+            with_limit_usage_refusal(length - 1, || roundtrip(&wire));
+        assert!(before_copy.is_none() && refused);
+        assert_eq!(paid, 0);
+        assert_eq!(first.unwrap().requested, length);
+
+        let malformed = wire.replacen("6:record", "06:record", 1);
+        assert_ne!(malformed, wire);
+        let (value, refused, paid, first) = with_limit_usage_refusal(0, || roundtrip(&malformed));
+        assert!(value.is_none());
+        assert!(!refused);
+        assert_eq!(paid, 0);
+        assert!(first.is_none());
+    }
+}

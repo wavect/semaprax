@@ -587,7 +587,7 @@ fn current1042_named_native_path(path: &str) -> std::path::PathBuf {
 fn current_manifest_source(row: &serde_json::Value) -> String {
     const SOURCE: &str = "Cargo.toml";
     const ACTUAL: &str = include_str!("../../Cargo.toml");
-    const ACTUAL_SHA: &str = "e544949a42a75c1b35422ed7f8c5069d9c610876b1e1889fb5fc7ef940b3adce";
+    const ACTUAL_SHA: &str = "0bcf9c75e7206b5e2d91cc4b761a28e6b4142ec845dd66c255bb71c2d9d4bf0d";
     const PRIOR: &str = include_str!("../../e/1c47ed1ea0c9d9ba7a496cf2256f24d7a2d7656810e1275448718e4fad2a4ef6");
     const PRIOR_SHA: &str = "1c47ed1ea0c9d9ba7a496cf2256f24d7a2d7656810e1275448718e4fad2a4ef6";
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -600,9 +600,9 @@ fn current_manifest_source(row: &serde_json::Value) -> String {
     authenticate();
     let edits = [
         (28, 47, "version = \"0.10.1\"\n", "version = \"0.9.0\"\n"),
-        (1829, 1923, "sigstore-verify = { version = \"=0.15.1\", default-features = false, features = [\"aws-lc-rs\"] }\n", "sigstore-verify = { version = \"=0.15.0\", default-features = false }\n"),
-        (1984, 2129, "webpki-roots = \"=1.0.11\"\nwasmparser = { version = \"=0.263.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\n", "webpki-roots = \"=1.0.10\"\nwasmparser = { version = \"=0.262.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\n"),
-        (2254, 2273, "base64 = \"=0.22.1\"\n", ""),
+        (1829, 1923, "sigstore-verify = { version = \"=0.16.0\", default-features = false, features = [\"aws-lc-rs\"] }\n", "sigstore-verify = { version = \"=0.15.0\", default-features = false }\n"),
+        (1984, 2234, "webpki-roots = \"=1.0.11\"\nwasmparser = { version = \"=0.263.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.263.0\", default-features = false, features = [\"std\", \"component-model\"] }\n", "webpki-roots = \"=1.0.10\"\nwasmparser = { version = \"=0.262.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.262.0\", default-features = false, features = [\"std\", \"component-model\"] }\n"),
+        (2254, 2361, "base64 = \"=0.23.1\"\nflate2 = { version = \"=1.1.11\", default-features = false, features = [\"rust_backend\"] }\n", "flate2 = { version = \"=1.1.10\", default-features = false, features = [\"rust_backend\"] }\n"),
         (2498, 2572, "tokio = { version = \"=1.54.1\", features = [\"rt\", \"net\", \"time\", \"sync\"] }\n", "tokio = { version = \"=1.53.3\", features = [\"rt\", \"net\", \"time\", \"sync\"] }\n"),
         (3343, 3447, "rustix = { version = \"=1.1.6\", default-features = false, features = [\"fs\", \"process\", \"std\", \"stdio\"] }\n", "rustix = { version = \"=1.1.5\", default-features = false, features = [\"fs\", \"process\", \"std\", \"stdio\"] }\n"),
     ];

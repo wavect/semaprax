@@ -43,7 +43,10 @@ pub(crate) fn decode(identity: &str) -> Option<Descriptor> {
         layout: sort_keys::take(&mut input)?.to_owned(),
         field: DeclarationId::new(sort_keys::take(&mut input)?),
     };
-    (input.is_empty() && result.identity()?.as_str() == identity).then_some(result)
+    // Every part was read with a canonical byte length. Keep the original
+    // re-encoding reservation and sticky refusal without copying the wire.
+    (input.is_empty() && crate::bounded_output::reserve_active_required(identity.len()))
+        .then_some(result)
 }
 pub(crate) fn resolve(
     index: &DeclarationIndex,

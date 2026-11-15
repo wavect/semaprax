@@ -365,6 +365,16 @@ fn complete_old_preparation_and_all_three_serializer_sources_remain_authenticate
             .iter()
             .find(|row| row["source"] == path)
             .unwrap();
-        assert_eq!(sha(current.as_bytes()), row["sha256"].as_str().unwrap());
+        let mut original = current.to_owned();
+        if let Some(edits) = row["decoder_inverse"].as_array() {
+            for edit in edits.iter().rev() {
+                let start = edit["start"].as_u64().unwrap() as usize;
+                let new = edit["new"].as_str().unwrap();
+                let old = edit["old"].as_str().unwrap();
+                assert_eq!(original.get(start..start + new.len()), Some(new));
+                original.replace_range(start..start + new.len(), old);
+            }
+        }
+        assert_eq!(sha(original.as_bytes()), row["sha256"].as_str().unwrap());
     }
 }

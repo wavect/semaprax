@@ -17,9 +17,20 @@ pub(crate) struct Descriptor {
     pub(crate) layout: String,
     pub(crate) keys: Vec<Key>,
 }
+fn decimal_digits(value: usize) -> usize {
+    value.checked_ilog10().unwrap_or(0) as usize + 1
+}
+
+fn canonical_decimal(value: &str) -> Option<usize> {
+    let parsed = value.parse::<usize>().ok()?;
+    // usize parsing accepts a leading '+' and redundant zeroes. Either
+    // spelling is longer than the minimal decimal representation.
+    (value.len() == decimal_digits(parsed)).then_some(parsed)
+}
+
 pub(super) fn part_len(value: &str) -> Option<usize> {
-    let digits = value.len().checked_ilog10().unwrap_or(0) as usize + 1;
-    value.len().checked_add(digits)?.checked_add(1)
+    let length = value.len();
+    length.checked_add(decimal_digits(length))?.checked_add(1)
 }
 pub(super) fn part(out: &mut String, value: &str) {
     write!(out, "{}:{value}", value.len()).unwrap();
@@ -85,10 +96,7 @@ impl Descriptor {
 }
 pub(super) fn take<'a>(input: &mut &'a str) -> Option<&'a str> {
     let (size, tail) = input.split_once(':')?;
-    let size_value = size.parse::<usize>().ok()?;
-    if size_value.to_string() != size {
-        return None;
-    }
+    let size_value = canonical_decimal(size)?;
     let value = tail.get(..size_value)?;
     *input = tail.get(size_value..)?;
     Some(value)
@@ -101,8 +109,8 @@ pub(crate) fn decode(identity: &str) -> Option<Descriptor> {
     let element = take(&mut input)?.to_owned();
     let layout = take(&mut input)?.to_owned();
     let (count, tail) = input.split_once(':')?;
-    let n = count.parse::<usize>().ok()?;
-    if count != n.to_string() || !(1..=8).contains(&n) {
+    let n = canonical_decimal(count)?;
+    if !(1..=8).contains(&n) {
         return None;
     }
     input = tail;

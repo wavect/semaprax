@@ -164,7 +164,7 @@ fn release_artifacts_are_attested_signed_and_packaged_for_offline_replay_before_
         "actions: read",
         "contents: write",
         "id-token: write",
-        "uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2",
+        "uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3",
         "cosign-release: v3.1.3",
         "--tag \"$GITHUB_REF_NAME\"",
         "--commit \"$GITHUB_SHA\"",

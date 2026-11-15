@@ -1,14 +1,29 @@
-//! Complete real Main-f1 versus shipping lexical sequence corpus.
+//! Complete real Main-f1 versus the shipping sequence, including ordinary forks.
 use super::tests::{program, same, seed};
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
+use crate::cleanup_plan::replay::skeleton_work::ObservationDagKind;
 use crate::cleanup_plan::replay::*;
 use crate::test_allocation_observer::measure;
+use std::rc::Rc;
 
 #[test]
 fn shipping_lexical_single_successor_matches_complete_main_f1_corpus() {
     let program = program();
     let function = &program.functions[0];
+    assert!(function.cleanup_plan.lexical_control.is_none());
+    let renewal_scan: usize = function
+        .cleanup_plan
+        .blocks
+        .iter()
+        .map(|block| {
+            assert!(!block.transitions.iter().any(|transition| matches!(
+                transition,
+                CleanupTransition::ReserveRenewal { .. } | CleanupTransition::Renew { .. }
+            )));
+            1 + block.transitions.len()
+        })
+        .sum();
     let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
         measure(|| {
             for count in [
@@ -68,8 +83,44 @@ fn shipping_lexical_single_successor_matches_complete_main_f1_corpus() {
                         )
                         .unwrap();
                         assert_eq!(skeleton_materializations() - before, old_materializations);
-                        same(&actual, &expected);
-                        assert_eq!(work.budget.remaining, old_work.budget.remaining);
+                        let ordinary_fork = fanout == 2 && count > 8;
+                        let shared = ordinary_fork && stopped == 0;
+                        if shared {
+                            // Two outputs retain one leaf. Compare the complete
+                            // ordered observations against Main-f1's flat word
+                            // without adding heap traffic inside the measurement.
+                            assert_eq!(actual.len(), 2);
+                            assert_eq!(actual.len(), expected.len());
+                            let root = actual[0].observations.prefix.as_ref().unwrap();
+                            let ObservationDagKind::Seq(None, prefix) = &root.kind else {
+                                panic!("the original flat prefix should form one shared leaf");
+                            };
+                            assert_eq!(prefix.len(), count);
+                            for (current, old) in actual.iter().zip(&expected) {
+                                assert!(Rc::ptr_eq(
+                                    current.observations.prefix.as_ref().unwrap(),
+                                    root
+                                ));
+                                assert!(old.observations.prefix.is_none());
+                                assert!(prefix
+                                    .iter()
+                                    .chain(&current.observations.items)
+                                    .eq(&old.observations.items));
+                                assert_eq!(current.owned_source, old.owned_source);
+                                assert_eq!(current.failed, old.failed);
+                                assert_eq!(current.residual, old.residual);
+                                assert_eq!(current.continuation, old.continuation);
+                            }
+                        } else {
+                            same(&actual, &expected);
+                        }
+                        // Fork admission scans the blocks/transitions and the
+                        // three flat inputs. The one leaf adds one release unit.
+                        let fork_work = if ordinary_fork { renewal_scan + 3 } else { 0 };
+                        assert_eq!(
+                            work.budget.remaining + fork_work + usize::from(shared),
+                            old_work.budget.remaining
+                        );
                         assert_eq!(
                             work.budget.skeleton_remaining,
                             old_work.budget.skeleton_remaining

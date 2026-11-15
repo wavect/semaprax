@@ -126,11 +126,11 @@ fn exact_original_owner_helper_and_both_original_adapters_remain_source_bound() 
     );
     // Owner identity comparisons are the unchanged streaming, allocation-free
     // helpers, not a reconstructed identity String hidden behind the search.
+    let ids = crate::source_reflows_merge::current344::ids_before_warm_as_str(include_str!(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/ids.rs")
+    ));
     assert_eq!(
-        digest(include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/hir/ids.rs"
-        ))),
+        digest(ids.as_bytes()),
         "1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e"
     );
     let wrapper = include_str!("../ordinary.rs");
@@ -158,13 +158,23 @@ fn exact_original_owner_helper_and_both_original_adapters_remain_source_bound() 
             include_str!("frontier_custody_before.rs.txt"),
         ),
     ] {
-        let restored = super::custody(path, compiled.as_bytes());
-        assert_eq!(restored, before.as_bytes());
-        assert!(std::panic::catch_unwind(|| super::custody(
-            path,
-            &(compiled.to_owned() + " ").into_bytes()
-        ))
-        .is_err());
-        assert!(std::panic::catch_unwind(|| super::custody(path, before.as_bytes())).is_err());
+        let restore = |source: &str| {
+            let checkpoint;
+            let source = if path == "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" {
+                checkpoint = crate::source_reflows::declared_history_inputs::expected_value(
+                    path,
+                    "7ff8a657d3aa720a8285752dadd221b272fcf27ef443a78344f0eb4181381290",
+                    source,
+                )
+                .expect("authenticate the complete frontier owner");
+                checkpoint.as_str()
+            } else {
+                source
+            };
+            super::custody(path, source.as_bytes())
+        };
+        assert_eq!(restore(compiled), before.as_bytes());
+        assert!(std::panic::catch_unwind(|| restore(&(compiled.to_owned() + " "))).is_err());
+        assert!(std::panic::catch_unwind(|| restore(before)).is_err());
     }
 }

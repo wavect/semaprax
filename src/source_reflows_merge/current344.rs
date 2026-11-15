@@ -22,6 +22,30 @@ fn assert_digest(source: &str, expected: &serde_json::Value) {
     assert_eq!(Sha256::digest(source.as_bytes()).as_slice(), bytes);
 }
 
+// Restore the whole identity owner from before the warm as_str accounting
+// constant was appended. Both pieces are independently bound, and the
+// compiled input must still equal the physical source.
+pub(crate) fn ids_before_warm_as_str(current: &str) -> &str {
+    const BEFORE: &str =
+        include_str!("../../e/1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e");
+    assert_eq!(current, include_str!("../hir/ids.rs"));
+    let physical = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/hir/ids.rs"),
+    )
+    .unwrap();
+    assert_eq!(physical, current);
+    let (prior, appended) = current.split_at(BEFORE.len());
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(appended.as_bytes()))
+        ),
+        "21ad61b58e1ffe670fe243b4f298a3b44af21b9f59f5d3705bc93cdd2f94a4da"
+    );
+    assert_eq!(prior, BEFORE);
+    prior
+}
+
 pub(crate) fn project(source: &str, current: &str) -> String {
     let outer = super::final_ready_inputs::current344_input(source, current);
     let current = outer.as_str();
@@ -39,6 +63,13 @@ pub(crate) fn project(source: &str, current: &str) -> String {
         );
         // The authored length comparison now uses the actual i64 result.
         // Keep the complete pre-fix input for the unchanged historical reader.
+        let checkpoint = crate::source_reflows::declared_history_inputs::expected_value(
+            source,
+            "d9bc839d8ac046551361cde60039525ff9bbc0e70080769dd5f7f3403e809fed",
+            current,
+        )
+        .expect("authenticate the complete String-vector fixture before profiling reports changed");
+        let current = checkpoint.as_str();
         assert_digest(
             current,
             &serde_json::Value::String(
@@ -91,28 +122,10 @@ pub(crate) fn project(source: &str, current: &str) -> String {
         _ => None,
     };
     let current = if let Some((sha256, before)) = stage {
-        let ids_before;
         let current = if source == "src/hir/ids.rs" {
-            assert_eq!(current, include_str!("../hir/ids.rs"));
-            assert_eq!(
-                current,
-                std::fs::read_to_string(
-                    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source)
-                )
-                .unwrap()
-            );
-            assert_eq!(
-                format!(
-                    "{:x}",
-                    crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
-                ),
-                "1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e"
-            );
-            ids_before = current
+            ids_before_warm_as_str(current)
                 .strip_suffix("\n#[cfg(test)]\nmod lowering_identity_tests;\n")
                 .unwrap()
-                .to_owned();
-            ids_before.as_str()
         } else {
             current
         };

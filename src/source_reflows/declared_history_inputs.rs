@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         134653,
-        "e62ec476371bf9b876dac223f6cfc02c49632f1527850df47b4f1381ede6cfe0",
+        "98bde908f494dabccb14beb934c90cc5b1e0acbe5a0876118cc3f3b01e2dcb1d",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -408,8 +408,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-43.json"
         )),
-        675035,
-        "989a35c25019fcc4fbb7830c0e5fbd3f08159d59ebc47a615ba3af0e7c69e0d1",
+        676335,
+        "3e69df527078b5935aecc0da9bfc657c1abb62c1dd29774aef4677d00ff0cc3f",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-44.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        1952523,
-        "bbd660226c5b75b1e175faf4d21880241a9280d7f5e63e4512018a93bf0b0d4a",
+        1989086,
+        "03877806c9f79bf66d9e3cea1eefdd8ebc316befa79da103598f85e9d7b43177",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];
@@ -451,6 +451,8 @@ pub(crate) fn records(part: usize) -> &'static serde_json::Value {
 }
 pub(crate) fn slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source,expected) {
+("tests/native/string_settlement/codec_allocation/string_vectors.rs", "d9bc839d8ac046551361cde60039525ff9bbc0e70080769dd5f7f3403e809fed") => Some((45,243)),
+("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", "7ff8a657d3aa720a8285752dadd221b272fcf27ef443a78344f0eb4181381290") => Some((45,242)),
 ("src/cleanup_plan/replay/factored.rs", "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc") => Some((45,241)),
 ("src/hir.rs", "432395d875a954de8aee03c3fcbd827ecbb5066e0c6fa9fd0cc0ec2c2a36db7f") => Some((45,240)),
 ("docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md", "349c2e0f628d84a2df24e21e7b27b784ea7d3287792a47fad5fe27374c7e82c5") => Some((45,239)),

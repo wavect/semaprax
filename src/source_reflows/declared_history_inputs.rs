@@ -112,7 +112,7 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             "/docs/evidence/declared-history-inputs-20261105/part-10.json"
         )),
         134653,
-        "40de041b78f7daf56f9a7c3e3fffbd92f2441cb00683456c6489fc8f862efe55",
+        "9f10ee40c93607c30deefaab1fe90ea3d64f75a5753c12e96f3069adb6770bcb",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-11.json",
@@ -426,8 +426,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-45.json"
         )),
-        2009346,
-        "40163d9ddc6e30504779535f4fd9b1bfa572569673f3ef88888fb6a3adc6f700",
+        2009345,
+        "99d7807b275b9274d31c66cb9cdcaa575a66461beaf6b969fa5ff161808b9de4",
     ),
 ];
 static CACHE: [OnceLock<serde_json::Value>; 46] = [const { OnceLock::new() }; 46];

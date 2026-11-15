@@ -249,8 +249,18 @@ fn held_metadata_root_suffix_zero_one_short_and_sticky_work_keep_original_querie
 }
 #[test]
 fn complete_original_nested_and_index_sources_stay_independent_and_byte_exact() {
+    // Restore the complete saved owner across the two borrowed invariant
+    // lookups. Each inverse is exact and unique in the authenticated input.
+    let mut nested = ci_str!("../../../../hir/collection_outcome/nested.rs").to_owned();
+    for (current, original) in [
+        ("        || index.has_record_invariant(declaration)\n", "        || index\n            .declaration(&DeclarationId::new(format!(\"{declaration}#invariant\")))\n            .is_some()\n"),
+        ("                    || index.has_record_invariant(&declaration)\n", "                    || index\n                        .declaration(&DeclarationId::new(format!(\"{declaration}#invariant\")))\n                        .is_some()\n"),
+    ] {
+        assert_eq!(nested.matches(current).count(), 1);
+        nested = nested.replacen(current, original, 1);
+    }
     assert_eq!(
-        ci_str!("../../../../hir/collection_outcome/nested.rs"),
+        nested,
         ci_str!("../../../../../docs/evidence/schema-summary/nested.rs.before")
     );
     let nominal: serde_json::Value = serde_json::from_str(ci_str!(

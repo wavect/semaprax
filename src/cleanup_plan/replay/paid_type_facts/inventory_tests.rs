@@ -58,7 +58,13 @@ fn raw_missing_cleanup_facts_refusal_keeps_message_without_replay_prefix() {
 
 #[test]
 fn full_current_classifier_source_equals_complete_saved_receiver_plus_raw_adapter() {
-    let current = include_str!("../paid_type_facts.rs");
+    // Authenticate the complete classifier immediately before the separate
+    // schema payer was added. Its constructor and raw adapter stay intact.
+    let current = crate::source_reflows_merge::main_e177_final_inputs::value(
+        "src/cleanup_plan/replay/paid_type_facts.rs",
+        "e508f5533dc1c8913e309d87a80dee963f92edffccb3f24ced35eae49ad904bf",
+        include_str!("../paid_type_facts.rs"),
+    );
     assert_eq!(current.matches("pub(super) struct Payer<'a> {").count(), 1);
     let current = current.replacen("pub(super) struct Payer<'a> {", "struct Payer<'a> {", 1);
     let current = current

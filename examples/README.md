@@ -49,9 +49,9 @@ the authority on what is covered.
 | --- | --- | --- | --- |
 | `examples/net_http_get.spx` | The six `net_*` operations composing a plain-TCP HTTP/1.1 `GET`: connect, piecewise `net_send`, `net_wait` readiness, `net_stream_stdout` into the bounded transcript, close. `main` returns `0` without touching the network; `fetch` executes only through the hosted network seam or the native network profile (no CLI command yet) | `semaprax run examples/net_http_get.spx` → `0` | [Bounded Language Network I/O v1](../docs/BOUNDED-LANGUAGE-NETWORK-IO-V1.md) |
 | `examples/http_app_routing.spx` | A typed route/handler dispatch profile over a closed `i64` route-code domain: bounded request-line and `Content-Length` header parsing, five routes (health, echo, not-found, method-not-allowed, malformed) exercised against five literal HTTP/1.1 request byte arrays standing in for a deterministic fixture transport, no sockets | `semaprax run examples/http_app_routing.spx` → `0` | [HTTP Application Routing v1](../docs/HTTP-APPLICATION-ROUTING-V1.md) |
-| `examples/effects.spx` | A module-level `permit` set with a function that declares `uses { clock.read }` | `semaprax run examples/effects.spx` → `42` | [RFC 0001](../docs/RFC-0001.md), [Capability Manifest v1](../docs/CAPABILITY-MANIFEST-V1.md) |
+| `examples/effects.spx` | A module-level `permit` set with a function that declares `uses { clock.read }` | `semaprax run --native examples/effects.spx` → `42` | [RFC 0001](../docs/RFC-0001.md), [Capability Manifest v1](../docs/CAPABILITY-MANIFEST-V1.md) |
 | `examples/classes.spx` | A class with a field and two methods, one of them returning a new instance | `semaprax run examples/classes.spx` → `42` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md) |
-| `examples/inheritance.spx` | A three-level class hierarchy with method override, `super` dispatch and an upcast binding | `semaprax run examples/inheritance.spx` → `6` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md) |
+| `examples/inheritance.spx` | A three-level class hierarchy with method override, `super` dispatch and an upcast binding | `semaprax run --native examples/inheritance.spx` → `6` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md) |
 | `examples/strings.spx` | String literals and structural string equality, nothing else | `semaprax run examples/strings.spx` → `1` | [RFC 0001](../docs/RFC-0001.md) |
 | `examples/string_ops.spx` | The `string_concat`, `string_len` and `string_is_empty` intrinsics | `semaprax run examples/string_ops.spx` → `7` | [String Operations v1](../docs/STRING-OPS-V1.md) |
 | `examples/string_ops_v2.spx` | `string_starts_with`, `string_contains`, `string_len_chars` and `string_from_char` over non-ASCII text, including astral-plane input | `semaprax run examples/string_ops_v2.spx` → `7` | [String Operations v1](../docs/STRING-OPS-V1.md) |
@@ -69,8 +69,8 @@ does emit.
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
 | `examples/integers_i32.spx` | `i32` arithmetic, negation, comparison and the near-minimum value, alongside an `i64` result | `semaprax run examples/integers_i32.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
-| `examples/bytes_u8.spx` | `u8` literals, division and subtraction, a `u8` record field, and a `requires` clause guarding saturation | `semaprax run examples/bytes_u8.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
-| `examples/chars.spx` | `char` literals including an escape, `char` ordering, and a `char` record field | `semaprax run examples/chars.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
+| `examples/bytes_u8.spx` | `u8` literals, division and subtraction, a `u8` record field, and a `requires` clause guarding saturation | `semaprax run --native examples/bytes_u8.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
+| `examples/chars.spx` | `char` literals including an escape, `char` ordering, and a `char` record field | `semaprax run --native examples/chars.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
 | `examples/floats.spx` | `f64` and `f32` arithmetic, unary negation, and float-typed record fields | `semaprax run examples/floats.spx` → `7` | [RFC 0001](../docs/RFC-0001.md) |
 | `examples/useful_data_usize_v1.spx` | Target-independent `usize` arithmetic and `%`, driven by mutable locals | `semaprax run examples/useful_data_usize_v1.spx` → `0` | [Portable Indexed Byte Data v1](../docs/PORTABLE-INDEXED-BYTE-DATA-V1.md) |
 
@@ -79,7 +79,7 @@ does emit.
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
 | `examples/record_rules.spx` | Record invariants checked at every literal, `with`, and field assignment; `==` on payload-free variants; `A {} \| B {}` case or-patterns | `semaprax run examples/record_rules.spx` → `212` | [Record Invariants v1](../docs/RECORD-INVARIANTS-V1.md) |
-| `examples/records.spx` | Nested records, out-of-order field initialization, and nested `with` update expressions | `semaprax run examples/records.spx` → `42` | [RFC 0002](../docs/RFC-0002-ALGEBRAIC-DATA.md) |
+| `examples/records.spx` | Nested records, out-of-order field initialization, and nested `with` update expressions | `semaprax run --native examples/records.spx` → `42` | [RFC 0002](../docs/RFC-0002-ALGEBRAIC-DATA.md) |
 | `examples/refutable_match.spx` | Refutable `match` over `i64`, `u8` and `char` with or-patterns, guards, binding arms and `_` | `semaprax run examples/refutable_match.spx` → `-5` | [Refutable Match v1](../docs/REFUTABLE-MATCH-V1.md) |
 
 ## Mutation and loops
@@ -87,15 +87,15 @@ does emit.
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
 | `examples/explicit_mutation.spx` | `let mut` locals and reassignment at both `i64` and `i32` widths | `semaprax run examples/explicit_mutation.spx` → `500016` | [Explicit Mutation v1](../docs/EXPLICIT-MUTATION-V1.md) |
-| `examples/field_mutation.spx` | Assignment to record and class fields, including inside both arms of an `if` | `semaprax run examples/field_mutation.spx` → `96` | [Field Mutation v1](../docs/FIELD-MUTATION-V1.md) |
+| `examples/field_mutation.spx` | Assignment to record and class fields, including inside both arms of an `if` | `semaprax run --native examples/field_mutation.spx` → `96` | [Field Mutation v1](../docs/FIELD-MUTATION-V1.md) |
 | `examples/while_loops.spx` | Two `while` loops with their loop-continuation expressions, over mutable locals | `semaprax run examples/while_loops.spx` → `41` | [While Loops v1](../docs/WHILE-LOOPS-V1.md) |
 
 ## Expressive standalone examples
 
-These extend the minimal subjects above with multi-concept programs that
-still run in the reference interpreter (`run` returns `42`) and verify
-(`check` and `graph` pass). Each combines contracts, mutation, loops,
-records, variants, classes, strings and bytes in a small domain.
+These programs combine contracts, mutation, loops, records, variants,
+classes, strings and bytes in small domains. Use the run command shown for
+each example. The `--native` flag selects the native route for programs
+that need it.
 
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |

@@ -281,7 +281,17 @@ fn complete_immediate_source_and_lexical_old_collector_are_bound() {
         );
     }
     for row in data["owners"].as_array().unwrap() {
-        let path = root.join(row["source"].as_str().unwrap());
+        let source = row["source"].as_str().unwrap();
+        let path = if source == "docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md" {
+            let expected = row["current"]["sha256"].as_str().unwrap();
+            let live = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::compiled(source);
+            let checkpoint =
+                crate::source_reflows_merge::main_e177_final_inputs::value(source, expected, live);
+            assert_eq!(digest(&checkpoint), expected);
+            root.join("e").join(expected)
+        } else {
+            root.join(source)
+        };
         let current = reader::read(
             &path,
             row["current"]["length"]

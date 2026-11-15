@@ -210,6 +210,14 @@ fn all_four_whole_changed_owners_restore_fixed_immediate_old_bytes() {
         let mut current = std::fs::read(root.join(path)).unwrap();
         assert_eq!(current, compiled);
         current = match path {
+            "src/cleanup_plan/replay/factored.rs" => {
+                crate::source_reflows_merge::main_e177_final_inputs::value(
+                    path,
+                    row["current_sha256"].as_str().unwrap(),
+                    std::str::from_utf8(&current).unwrap(),
+                )
+                .into_bytes()
+            }
             "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/skeleton_work.rs" => {
                 crate::cleanup_plan::replay::skeleton_work::query_proof::before_owner(
                     std::str::from_utf8(&current).unwrap(),

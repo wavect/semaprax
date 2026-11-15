@@ -18,6 +18,24 @@ pub(super) fn value_with_fallback_hook(
     supplied: &str,
     before_fallback: impl FnOnce(),
 ) -> String {
+    value_with_fallback_lookup(
+        authenticated,
+        source,
+        expected,
+        supplied,
+        before_fallback,
+        from_reacquired_packet,
+    )
+}
+
+fn value_with_fallback_lookup(
+    authenticated: &Value,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+    before_fallback: impl FnOnce(),
+    lookup: impl FnOnce(&Value, &str, &str, &str) -> String,
+) -> String {
     // Current and prior logical-table views retain their complete scope before
     // the separately authenticated historical Clippy-stage acquisition.
     let direct = from_packet_with_context(authenticated, source, expected, supplied);
@@ -31,7 +49,7 @@ pub(super) fn value_with_fallback_hook(
     let normalized = clippy_stage::normalize(source, supplied);
     before_fallback();
     super::super::overlay_v2::packet_reacquire::run();
-    let result = from_packet(authenticated, source, expected, normalized.as_ref());
+    let result = lookup(authenticated, source, expected, normalized.as_ref());
     if normalized.as_ref() != supplied
         && result == normalized.as_ref()
         && digest(result.as_bytes()) != expected
@@ -40,6 +58,62 @@ pub(super) fn value_with_fallback_hook(
     } else {
         result
     }
+}
+
+fn from_reacquired_packet(
+    authenticated: &Value,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    use super::super::{overlay_v2, read_view};
+    if !overlay_v2::declares_source(source) {
+        return from_packet(authenticated, source, expected, supplied);
+    }
+    let Some(row) = authenticated["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)
+    else {
+        return from_packet(authenticated, source, expected, supplied);
+    };
+    let Some(prior) = row["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|prior| prior["sha256"] == expected)
+    else {
+        return supplied.to_owned();
+    };
+    // The former actual(row) call acquired the packet a second time. Keep
+    // that read sequence before the current and archived source checks. The
+    // authenticated packet already contains the composition of those bytes.
+    overlay_v2::packet_reacquire::run();
+    let current = actual_with_packet(authenticated, row);
+    let previous = read_view(prior);
+    if supplied == current || supplied == previous {
+        previous
+    } else {
+        supplied.to_owned()
+    }
+}
+
+#[cfg(test)]
+pub(in super::super) fn test_complete_previous_fallback(
+    authenticated: &Value,
+    source: &str,
+    expected: &str,
+    supplied: &str,
+) -> String {
+    value_with_fallback_lookup(
+        authenticated,
+        source,
+        expected,
+        supplied,
+        || {},
+        from_packet,
+    )
 }
 
 #[cfg(test)]

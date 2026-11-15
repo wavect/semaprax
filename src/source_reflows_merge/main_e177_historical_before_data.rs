@@ -1002,6 +1002,45 @@ mod invocation_acquisition_tests {
     }
 
     #[test]
+    fn selected_overlay_fallback_replays_the_second_acquisition_and_exact_source_reads() {
+        let fixture = Fixture::new();
+        let scope = fixture.route();
+        assert!(overlay_v2::declares_source(SOURCE));
+        let row = fixture.packet["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["source"] == SOURCE)
+            .unwrap();
+        let views = row["views"].as_array().unwrap();
+        assert!(!views.is_empty());
+        let raw = super::super::compiled(SOURCE).unwrap();
+        for view in views {
+            let expected = view["sha256"].as_str().unwrap();
+            for supplied in [String::new(), format!("{raw} "), "foreign".to_owned()] {
+                scope.reset();
+                let before = super::super::packet_lookup::reacquired_context::test_complete_previous_fallback(
+                    &fixture.packet, SOURCE, expected, &supplied,
+                );
+                let before_reads = scope.stats().reads;
+                assert_eq!(before, supplied);
+                scope.reset();
+                let mut fallback = false;
+                let after = super::super::packet_lookup::reacquired_context::test_reacquired_value(
+                    &fixture.packet,
+                    SOURCE,
+                    expected,
+                    &supplied,
+                    || fallback = true,
+                );
+                assert!(fallback);
+                assert_eq!(after, before);
+                assert_eq!(scope.stats().reads, before_reads);
+            }
+        }
+    }
+
+    #[test]
     fn injected_current_value_keeps_the_complete_old_packet_producer() {
         let fixture = Fixture::new();
         let scope = fixture.route();

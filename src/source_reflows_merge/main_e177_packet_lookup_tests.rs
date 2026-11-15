@@ -266,48 +266,56 @@ fn same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_re
     }
     assert_eq!(legacy_context.metadata(), &fixture);
     drop(legacy_context);
-    let ((), heap) = crate::test_allocation_observer::measure(|| {
-        let mut context = ProjectionInvocation::new();
-        assert!(
-            context.packet.is_none(),
-            "a new invocation owns no prior packet"
-        );
-        assert!(context
-            .file(std::path::Path::new("foreign"), 4, &expected)
-            .is_none());
-        assert!(
-            context.packet.is_none(),
-            "foreign paths retain the pre-packet refusal"
-        );
-        // Only this private control installs a synthetic immutable packet.
-        // The public constructor always acquires the complete real packet.
-        context.packet = Some(fixture.clone());
-        let identity = context.metadata() as *const serde_json::Value;
-        for _ in 0..2 {
-            assert_eq!(
-                context.file_row(source, 4, &expected),
-                Some("old!".to_owned())
+    // Current packet metadata can exceed the default 16,384-pointer observer.
+    // Both windows still measure the complete lookup and teardown.
+    const PACKET_POINTER_LIMIT: usize = 131_072;
+    let ((), heap) =
+        crate::test_allocation_observer::measure_with_capacity(PACKET_POINTER_LIMIT, || {
+            let mut context = ProjectionInvocation::new();
+            assert!(
+                context.packet.is_none(),
+                "a new invocation owns no prior packet"
             );
-            assert_eq!(from_packet(&fixture, source, &expected, "new!"), "old!");
-            assert_eq!(context.value_direct_row(source, &expected, "new!"), "old!");
-            assert_eq!(context.value_direct(source, &expected, "old!"), "old!");
-            assert_eq!(
-                from_packet(&fixture, source, &expected, "foreign"),
-                "foreign"
+            assert!(context
+                .file(std::path::Path::new("foreign"), 4, &expected)
+                .is_none());
+            assert!(
+                context.packet.is_none(),
+                "foreign paths retain the pre-packet refusal"
             );
-            assert_eq!(context.metadata() as *const serde_json::Value, identity);
-            assert_eq!(
-                context.metadata(),
-                &fixture,
-                "every unknown field remains whole"
-            );
-        }
-        assert!(context.file_row(source, 5, &expected).is_none());
-        assert!(context.file_row(source, 4, &"0".repeat(64)).is_none());
-        assert!(context.file_row("foreign", 4, &expected).is_none());
-        drop(context);
-    });
-    assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
+            // Only this private control installs a synthetic immutable packet.
+            // The public constructor always acquires the complete real packet.
+            context.packet = Some(fixture.clone());
+            let identity = context.metadata() as *const serde_json::Value;
+            for _ in 0..2 {
+                assert_eq!(
+                    context.file_row(source, 4, &expected),
+                    Some("old!".to_owned())
+                );
+                assert_eq!(from_packet(&fixture, source, &expected, "new!"), "old!");
+                assert_eq!(context.value_direct_row(source, &expected, "new!"), "old!");
+                assert_eq!(context.value_direct(source, &expected, "old!"), "old!");
+                assert_eq!(
+                    from_packet(&fixture, source, &expected, "foreign"),
+                    "foreign"
+                );
+                assert_eq!(context.metadata() as *const serde_json::Value, identity);
+                assert_eq!(
+                    context.metadata(),
+                    &fixture,
+                    "every unknown field remains whole"
+                );
+            }
+            assert!(context.file_row(source, 5, &expected).is_none());
+            assert!(context.file_row(source, 4, &"0".repeat(64)).is_none());
+            assert!(context.file_row("foreign", 4, &expected).is_none());
+            drop(context);
+        });
+    assert!(
+        !heap.invalid && heap.live == 0 && heap.allocated == heap.freed,
+        "file-context allocation observation: {heap:?}; observer refusal: {:?}",
+        crate::test_allocation_observer::invalid_reason(),
+    );
     // Refusal panics are outside the complete normal-Drop measurement.
     let mut context = ProjectionInvocation::new();
     context.packet = Some(fixture.clone());
@@ -344,35 +352,45 @@ fn same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_re
             "source":source,"compiled":false,"unknown_metadata":[1,2],
             "current":{"archive":source,"length":4,"sha256":digest(b"new!")},
             "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
-    let ((), heap) = crate::test_allocation_observer::measure(|| {
-        for invocation in 1..=2 {
-            let mut context = ProjectionInvocation {
-                guard: super::super::overlay_v2::InvocationGuard::Disabled,
-                packet: None,
-                ordinary_packet_loader: false,
-                stage: None,
-                acquire_stage: super::clippy_stage::rows,
-                acquire: || {
-                    loads.set(loads.get() + 1);
-                    fixture.clone()
-                },
-            };
-            assert_eq!(context.value(source, &expected, "new!"), "old!");
-            assert_eq!(context.value_direct(source, &expected, "new!"), "old!");
-            assert_eq!(
-                context.file_row_with_context(source, 4, &expected),
-                Some("old!".to_owned())
-            );
-            assert_eq!(
-                super::from_packet_with_context(context.metadata(), source, &expected, "foreign"),
-                "foreign"
-            );
-            assert_eq!(loads.get(), invocation);
-            assert_eq!(context.metadata(), &fixture);
-            drop(context);
-        }
-    });
-    assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
+    let ((), heap) =
+        crate::test_allocation_observer::measure_with_capacity(PACKET_POINTER_LIMIT, || {
+            for invocation in 1..=2 {
+                let mut context = ProjectionInvocation {
+                    guard: super::super::overlay_v2::InvocationGuard::Disabled,
+                    packet: None,
+                    ordinary_packet_loader: false,
+                    stage: None,
+                    acquire_stage: super::clippy_stage::rows,
+                    acquire: || {
+                        loads.set(loads.get() + 1);
+                        fixture.clone()
+                    },
+                };
+                assert_eq!(context.value(source, &expected, "new!"), "old!");
+                assert_eq!(context.value_direct(source, &expected, "new!"), "old!");
+                assert_eq!(
+                    context.file_row_with_context(source, 4, &expected),
+                    Some("old!".to_owned())
+                );
+                assert_eq!(
+                    super::from_packet_with_context(
+                        context.metadata(),
+                        source,
+                        &expected,
+                        "foreign"
+                    ),
+                    "foreign"
+                );
+                assert_eq!(loads.get(), invocation);
+                assert_eq!(context.metadata(), &fixture);
+                drop(context);
+            }
+        });
+    assert!(
+        !heap.invalid && heap.live == 0 && heap.allocated == heap.freed,
+        "public-context allocation observation: {heap:?}; observer refusal: {:?}",
+        crate::test_allocation_observer::invalid_reason(),
+    );
     // Metadata reuse never hides fresh-current failure or the missing archive.
     let mut context = ProjectionInvocation {
         guard: super::super::overlay_v2::InvocationGuard::Disabled,

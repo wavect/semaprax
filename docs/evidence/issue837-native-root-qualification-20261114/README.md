@@ -1,5 +1,7 @@
 # Application starter qualification for #837
 
+Status: Focused tests and scoped Clippy passed at the recorded revision.
+
 Audience: compiler contributors and reviewers.
 
 This is acceptance coverage and local evidence, not a new installer, a general

@@ -107,10 +107,19 @@ thread_local! {
     static FRONTIERS: std::cell::Cell<[Option<usize>; 3]> = const {std::cell::Cell::new([None;3])};
 }
 pub(super) fn frontier(index: usize, budget: &ReplayBudget) {
-    if let Some(physical) = &budget.physical {
+    let charged = if let Some(physical) = &budget.physical {
+        Some(physical.charged())
+    } else if matches!(budget.payer, AllocationPayer::ActiveBuilder) {
+        crate::bounded_output::active_limit()
+            .zip(crate::bounded_output::active_remaining())
+            .map(|(limit, remaining)| limit - remaining)
+    } else {
+        None
+    };
+    if let Some(charged) = charged {
         FRONTIERS.with(|record| {
             let mut values = record.get();
-            values[index] = Some(physical.charged());
+            values[index] = Some(charged);
             record.set(values);
         });
     }
@@ -126,26 +135,31 @@ fn probe(
     [Option<usize>; 3],
     crate::test_allocation_observer::Metrics,
 ) {
-    let mut budget = ReplayBudget::with_physical(function, limit).unwrap();
     FRONTIERS.with(|record| record.set([None; 3]));
-    let ((success, charged), metrics) = crate::test_allocation_observer::measure(|| {
-        let result = if old {
-            build_comparison_before_release(program, function, &mut budget, None, None)
-        } else {
-            build_comparison(program, function, &mut budget, None, None)
-        };
-        let success = result.is_ok();
-        drop(result);
-        let charged = budget.physical.as_ref().unwrap().charged();
-        if !success {
-            assert!(budget
-                .reserve_bytes(function, 0, "release sticky retry")
-                .is_err());
-            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);
-        }
-        drop(budget);
-        (success, charged)
-    });
+    let ((success, metrics), refused, charged, first) =
+        crate::bounded_output::with_limit_usage_refusal(limit, || {
+            let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            crate::test_allocation_observer::measure(|| {
+                let result = if old {
+                    build_comparison_before_release(program, function, &mut budget, None, None)
+                } else {
+                    build_comparison(program, function, &mut budget, None, None)
+                };
+                let success = result.is_ok();
+                if let Err(error) = result {
+                    assert!(crate::bounded_output::active_refused(), "{error:?}");
+                    let remaining = crate::bounded_output::active_remaining();
+                    assert!(budget
+                        .reserve_bytes(function, 0, "release sticky retry")
+                        .is_err());
+                    assert_eq!(crate::bounded_output::active_remaining(), remaining);
+                }
+                drop(budget);
+                success
+            })
+        });
+    assert_eq!(refused, !success);
+    assert_eq!(first.is_some(), refused);
     assert!(!metrics.invalid && metrics.live == 0);
     assert_eq!(metrics.allocated, metrics.freed);
     (
@@ -164,8 +178,8 @@ fn complete_constructor_drop_observes_both_old_and_released_owner_lifetimes() {
         std::mem::size_of::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>();
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
         let (program, _) = lexical_plan_tests::fixture(source);
-        // Selected physical replay authenticates the exact held member. The
-        // fixture's detached clone belongs to the ordinary comparison oracle.
+        // Use the actual ordinary builder account for both constructors.
+        // These full-program fixtures include the generated Copy-for plan.
         let function = program
             .functions()
             .iter()

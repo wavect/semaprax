@@ -191,6 +191,22 @@ fn complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagno
         let start = full.remaining;
         let expected = compare(&program, &function, &mut full);
         assert_eq!(expected, Ok(Some(true)));
+        let mut shipping = ReplayBudget::unobserved();
+        assert_eq!(
+            current::compare(&program, &function, &mut shipping),
+            expected
+        );
+        // Compare the two node layouts at the same work schedule. The
+        // later PLAN partition proof has its own every-cut shipping tests.
+        let compact_before_partition = |budget: &mut ReplayBudget| {
+            current::hir_memo_release_tests::compare_before_memo_release(
+                &program, &function, budget, None, None,
+            )
+        };
+        let mut compact = ReplayBudget::unobserved();
+        assert_eq!(compact_before_partition(&mut compact), expected);
+        assert_eq!(compact.remaining, full.remaining);
+        assert_eq!(compact.skeleton_spent, full.skeleton_spent);
         let spent = start - full.remaining;
         for units in 0..=spent {
             let mut a = ReplayBudget::unobserved();
@@ -200,7 +216,7 @@ fn complete_builder_and_comparison_receivers_keep_work_and_later_semantic_diagno
             // Result equality includes every Diagnostic field at every work frontier.
             assert_eq!(
                 compare(&program, &function, &mut a),
-                current::compare(&program, &function, &mut b)
+                compact_before_partition(&mut b)
             );
             assert_eq!(a.remaining, b.remaining);
             assert_eq!(a.skeleton_spent, b.skeleton_spent);

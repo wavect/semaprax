@@ -1786,7 +1786,7 @@ name = "semaprax"
 version = "0.10.1"
 dependencies = [
  "argon2",
- "base64 0.22.1",
+ "base64 0.23.1",
  "criterion",
  "ed25519-dalek",
  "flate2",

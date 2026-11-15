@@ -582,6 +582,16 @@ esac
             "profile {profile}: {}",
             String::from_utf8_lossy(&output.stderr)
         );
+        let executed = fs::read_to_string(&log).unwrap();
+        let proof = "python3:scripts/kernel0-lean-gate.py";
+        if profile == "full" {
+            let workspace = "cargo:test --locked --workspace --all-targets --all-features";
+            let steps: Vec<_> = executed.lines().collect();
+            assert_eq!(steps.iter().filter(|step| **step == proof).count(), 1);
+            assert!(steps.windows(2).any(|pair| pair == [proof, workspace]));
+        } else {
+            assert!(!executed.lines().any(|step| step == proof));
+        }
     }
 
     for (surface, expect_cli, expect_editor) in [

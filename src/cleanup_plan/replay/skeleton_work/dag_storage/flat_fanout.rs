@@ -94,7 +94,7 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
         .functions()
         .get(0)
         .expect("flat fanout fixture function");
-    let run = |old| {
+    let run = |old, duplicate: bool| {
         with_before(old, || {
             let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();
             budget.remaining = 0;
@@ -125,6 +125,13 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
             let normal = empty_expr_path();
             let mut failed = empty_expr_path();
             failed.failed = true;
+            // Equal states merge into an Alt before the sharing selector.
+            // Keep a distinct state in the other case to exercise Flat.
+            let mut second_failure = failed.clone();
+            if !duplicate {
+                second_failure.owned_source =
+                    Some(CleanupPlace::whole(StorageId::ProvisionalResult));
+            }
             let mut residual = empty_expr_path();
             residual.residual = true;
             residual.owned_source = Some(CleanupPlace::whole(StorageId::ProvisionalResult));
@@ -132,48 +139,61 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
             let before_work = work.budget.skeleton_spent;
             let paths = sequence_skeleton_paths(
                 vec![prefix, second, stopped],
-                &[normal, failed.clone(), failed, residual],
+                &[normal, failed, second_failure, residual],
                 &mut work,
             )
             .unwrap();
-            assert_eq!(paths[0].observations.prefix.is_some(), !old);
+            let suffix_groups = if duplicate { 3 } else { 4 };
+            assert_eq!(paths.len(), 2 * suffix_groups + 1);
+            for start in [0, suffix_groups] {
+                assert_eq!(
+                    paths[start].observations.prefix.is_some(),
+                    duplicate || !old
+                );
+            }
             let materialized = SKELETON_MATERIALIZATIONS.with(Cell::get);
             let charged_work = work.budget.skeleton_spent - before_work;
             let result = paths
                 .iter()
-                .map(|p| {
-                    (
-                        words(&p.observations),
-                        p.failed,
-                        p.residual,
-                        p.owned_source.clone(),
-                        p.continuation.clone(),
-                    )
+                .flat_map(|path| {
+                    words(&path.observations).into_iter().map(move |word| {
+                        (
+                            word,
+                            path.failed,
+                            path.residual,
+                            path.owned_source.clone(),
+                            path.continuation.clone(),
+                        )
+                    })
                 })
                 .collect::<Vec<_>>();
             assert_eq!(result.len(), 9);
-            for path in &result[..8] {
-                assert_eq!(path.0, vec![expected.clone()]);
+            for group in result[..8].chunks_exact(4) {
+                for path in group {
+                    assert_eq!(path.0, expected);
+                }
+                assert!(!group[0].1 && !group[0].2);
+                assert!(group[1].1 && group[2].1);
+                assert_eq!(group[1] == group[2], duplicate);
+                assert!(group[3].2 && group[3].3.is_some());
             }
-            assert_eq!(
-                result[1], result[2],
-                "duplicate failures retain multiplicity"
-            );
-            assert!(result[3].2 && result[3].3.is_some());
-            assert!(result[8].1 && result[8].0 == vec![vec![]]);
+            assert!(result[8].1 && result[8].0.is_empty());
             (result, materialized, charged_work)
         })
     };
-    let old = run(true);
-    let current = run(false);
-    assert_eq!(current.0, old.0);
-    assert_eq!(
-        current.1, old.1,
-        "all original materialization events remain"
-    );
-    // Leaf Seq owns zero child edges: two constructor/release units and one
-    // authentic ordinal are additional work, never waived or hidden.
-    assert_eq!(current.2, old.2 + 6);
+    for duplicate in [false, true] {
+        let old = run(true, duplicate);
+        let current = run(false, duplicate);
+        assert_eq!(current.0, old.0);
+        assert_eq!(
+            current.1, old.1,
+            "all original materialization events remain"
+        );
+        // Only the Flat case adds two leaf Seq nodes. Each pays two
+        // constructor/release units and one ordinal.
+        let new_work = if duplicate { 0 } else { 6 };
+        assert_eq!(current.2, old.2 + new_work);
+    }
 }
 
 // Independent typed invoice for this real leaf Seq(None, items): no edge means
@@ -320,16 +340,25 @@ fn flat_fanout_keeps_earlier_work_and_semantic_refusals_first() {
         });
     }
     let detached = function.clone();
+    let primitive = crate::cleanup_plan::replay::primitive_fixture::Context::new(&program);
     let run = |old| {
         with_before(old, || {
             let mut budget = ReplayBudget::with_physical(&detached, 1 << 24).unwrap();
-            let result = factored::compare(&program, &detached, &mut budget).unwrap_err();
-            assert!(result.message.contains("not held by its current context"));
+            let result = factored::compare(&primitive, &detached, &mut budget).unwrap_err();
+            assert!(
+                result.message.contains("not held by its current context"),
+                "{result:?}"
+            );
             // Semantic refusal does not invent a physical exhaustion.
             assert!(budget
                 .reserve_bytes(&detached, 0, "after semantic refusal")
                 .is_ok());
-            (result.json(), budget.physical.as_ref().unwrap().charged())
+            (
+                result.json(),
+                budget.physical.as_ref().unwrap().charged(),
+                budget.remaining,
+                budget.skeleton_spent,
+            )
         })
     };
     assert_eq!(run(false), run(true));

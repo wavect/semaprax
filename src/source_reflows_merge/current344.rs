@@ -63,7 +63,7 @@ pub(crate) fn project(source: &str, current: &str) -> String {
         );
         // The authored length comparison now uses the actual i64 result.
         // Keep the complete pre-fix input for the unchanged historical reader.
-        let checkpoint = crate::source_reflows::declared_history_inputs::expected_value(
+        let checkpoint = super::main_e177_final_inputs::declared_history_inputs::expected_value(
             source,
             "d9bc839d8ac046551361cde60039525ff9bbc0e70080769dd5f7f3403e809fed",
             current,

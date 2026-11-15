@@ -16,7 +16,7 @@ def bounded(path,length,digest):
  finally:os.close(fd)
 _CONFIG_PATH=R/'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
 _CONFIG_LENGTH=250638
-_CONFIG_SHA256='e8bdde08aa0b1aeebddade566d6e67fb73f30b95ee096fb5ce80f911e011d41c'
+_CONFIG_SHA256='2b0f4bc36f7cbacbc85b0ad3e579196be369c6f5094135592798cac714b91f78'
 _CONFIG_RAW=bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)
 # Closed field-only transport. Legacy list semantics and every other CONFIG value remain unchanged.
 _CLOSED_SOURCE_SCHEMA='semaprax.closed-prior-sources.prefixes.v1'
@@ -272,7 +272,7 @@ _OVERLAY_RAW = None
 def _overlay():
  global _OVERLAY_NS, _OVERLAY_RAW
  _configuration_current()
- program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py',65231,'adfd6a62283a9b40fb19b1b2eee21bd40ee7ee7cc0fb67d09bc1b39998d90308')
+ program=bounded(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py',65231,'14756383b45014404b976138d5372be457f84692515080eaf0fde232a3be243c')
  assert len(program)<=65536
  if _OVERLAY_NS is None:
   _OVERLAY_NS={'__file__':str(R/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py')}

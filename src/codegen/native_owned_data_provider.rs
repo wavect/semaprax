@@ -83,6 +83,24 @@ pub fn emit_project_v8_native_owned_data_provider(
     )
 }
 
+pub(crate) fn emit_staged_v8_owned_provider(
+    program: &ResolvedProgram,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
+    let validated = super::native_resource::OrdinaryValidatedProgram::validate_staged(program)?;
+    emit_provider_with_allowance(
+        validated,
+        selected,
+        subject,
+        descriptor_bytes,
+        descriptor_digest,
+        true,
+    )
+}
+
 pub fn emit_project_v10_native_owned_utf8_provider(
     program: &ResolvedProgram,
     selected: &[String],
@@ -272,6 +290,24 @@ fn emit_provider(
     project_v8: bool,
 ) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
     let validated = super::native_resource::OrdinaryValidatedProgram::validate(program)?;
+    emit_provider_with_allowance(
+        validated,
+        selected,
+        subject,
+        descriptor_bytes,
+        descriptor_digest,
+        project_v8,
+    )
+}
+
+fn emit_provider_with_allowance(
+    validated: super::native_resource::OrdinaryValidatedProgram<'_>,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+    project_v8: bool,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
     let emit = || {
         emit_validated_provider(
             validated,

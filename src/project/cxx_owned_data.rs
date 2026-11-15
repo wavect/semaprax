@@ -90,13 +90,16 @@ impl ProjectSnapshot {
                             "native provider wrapper reserve is unavailable",
                         ));
                     }
-                    let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
-                        self.public_api_program(),
-                        selected,
-                        subject,
-                        &descriptor_bytes,
-                        &descriptor_digest,
-                    );
+                    // The held Project uses the bounded compiler replay stage.
+                    // Semantic C and wrapper output remain on this package ledger.
+                    let provider =
+                        crate::codegen::native_owned_data_provider::emit_staged_v8_owned_provider(
+                            self.public_api_program(),
+                            selected,
+                            subject,
+                            &descriptor_bytes,
+                            &descriptor_digest,
+                        );
                     crate::bounded_output::clear_active_floor();
                     provider
                 },

@@ -52,7 +52,11 @@ fn sequence(
     if old {
         before::sequence_skeleton_paths(prefixes, suffixes, work)
     } else {
-        super::super::super::sequence_skeleton_paths(prefixes, suffixes, work)
+        // The later shared fork changes the physical history representation.
+        // Run its independently retained predecessor for the fusion invoice.
+        ordinary_plan_history::completed_fork::emission::with_before(|| {
+            super::super::super::sequence_skeleton_paths(prefixes, suffixes, work)
+        })
     }
 }
 fn same_dag(
@@ -97,6 +101,19 @@ fn same(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
         assert_eq!(a.continuation, b.continuation);
     }
 }
+fn assert_complete_output(actual: &[ExprSkeletonPath], expected: &[ExprSkeletonPath]) {
+    use crate::cleanup_plan::replay::skeleton_work::merge_keys_tests::expand;
+
+    assert_eq!(actual.len(), expected.len());
+    for (actual, expected) in actual.iter().zip(expected) {
+        assert_eq!(expand(&actual.observations), expand(&expected.observations));
+        assert_eq!(actual.owned_source, expected.owned_source);
+        assert_eq!(actual.failed, expected.failed);
+        assert_eq!(actual.residual, expected.residual);
+        assert_eq!(actual.continuation, expected.continuation);
+    }
+}
+
 #[test]
 fn ordinary_prefix_fusion_complete_previous_fields_capacity_work_and_materializations() {
     let program = program();
@@ -120,6 +137,18 @@ fn ordinary_prefix_fusion_complete_previous_fields_capacity_work_and_materializa
                     assert_eq!(skeleton_materializations() - start, old_events);
                     same(&actual, &expected);
                     drop((suffixes, work));
+
+                    let mut shipping = ReplayBudget::with_skeleton_limit(usize::MAX);
+                    let mut work = SkeletonWork::new(&program, function, &mut shipping);
+                    let (prefixes, suffixes) = inputs(&mut work, len, suffix, count).unwrap();
+                    let published = super::super::super::sequence_skeleton_paths(
+                        prefixes, &suffixes, &mut work,
+                    )
+                    .unwrap();
+                    assert_complete_output(&published, &expected);
+                    drop((published, suffixes, work));
+                    drop(shipping);
+
                     assert_eq!(current.skeleton_spent, old.skeleton_spent);
                     assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
                     drop((actual, expected, current, old));
@@ -416,7 +445,12 @@ fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
             let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());
             let mut work = SkeletonWork::new(&program, function, &mut budget);
             let (prefixes, suffixes) = inputs(&mut work, 1024, 1, 4).unwrap();
-            let result = sequence(old, prefixes, &suffixes, &mut work).unwrap();
+            let result = if old {
+                before::sequence_skeleton_paths(prefixes, &suffixes, &mut work)
+            } else {
+                super::super::super::sequence_skeleton_paths(prefixes, &suffixes, &mut work)
+            }
+            .unwrap();
             drop((suffixes, work));
             assert_eq!(invocation.exit(), Ok(()));
             let work = (budget.skeleton_spent, budget.skeleton_remaining);

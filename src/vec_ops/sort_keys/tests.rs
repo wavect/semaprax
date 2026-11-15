@@ -1,4 +1,89 @@
 use super::*;
+
+#[test]
+fn borrowed_layout_fields_keep_exact_wire_and_budget_without_owned_pairs() {
+    use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
+    use crate::test_allocation_observer::measure;
+    use sha2::{Digest, Sha256};
+
+    let fields = [
+        ("sample.signed", ResolvedType::I64),
+        ("sample.short", ResolvedType::I32),
+        ("sample.byte", ResolvedType::U8),
+        ("sample.size", ResolvedType::Usize),
+        ("sample.character", ResolvedType::Char),
+        ("sample.float", ResolvedType::F32),
+        ("sample.double", ResolvedType::F64),
+        ("sample.flag", ResolvedType::Bool),
+        ("sample.raw", ResolvedType::Bytes),
+        ("sample.text", ResolvedType::String),
+    ];
+    let element = "nominal:11:sample.item:0:";
+    for (family, fields) in [
+        ("copy-record", &fields[..8]),
+        ("owned-record", &fields[2..]),
+    ] {
+        let previous = || {
+            let fields: Vec<_> = fields
+                .iter()
+                .map(|(id, ty)| ((*id).to_owned(), ty.identity_key()))
+                .collect();
+            let mut length = part_len(family)? + part_len(element)? + 21;
+            for (id, ty) in &fields {
+                length += part_len(id)? + part_len(ty)?;
+            }
+            if length > MAX_DESCRIPTOR_BYTES || !reserve_active_required(length) {
+                return None;
+            }
+            let mut out = String::with_capacity(length);
+            part(&mut out, family);
+            part(&mut out, element);
+            out.push_str("4096:");
+            for (id, ty) in fields {
+                part(&mut out, &id);
+                part(&mut out, &ty);
+            }
+            Some(out)
+        };
+        let current = || {
+            layout_key(
+                element,
+                fields
+                    .iter()
+                    .map(|(id, ty)| Some((*id, field_identity_key(ty)?))),
+                family,
+                4096,
+            )
+        };
+        let probe = |build: &dyn Fn() -> Option<String>, limit| {
+            with_limit_usage_refusal(limit, || {
+                measure(|| build().map(|key| Sha256::digest(key.as_bytes())))
+            })
+        };
+        let ((expected, old), refused, paid, first) = probe(&previous, usize::MAX);
+        assert!(expected.is_some() && !refused && first.is_none());
+        let ((actual, measured), refused, bytes, first) = probe(&current, paid);
+        assert_eq!(actual, expected);
+        assert_eq!(bytes, paid);
+        assert!(!refused && first.is_none());
+        assert_eq!(measured.allocations, 1);
+        assert_eq!(measured.allocated, paid);
+        assert!(measured.allocated < old.allocated);
+        for metrics in [old, measured] {
+            assert!(!metrics.invalid && metrics.live == 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+        }
+        for limit in [paid - 1, 0] {
+            let ((_, _), old_refused, old_charge, old_first) = probe(&previous, limit);
+            let ((value, metrics), refused, charged, first) = probe(&current, limit);
+            assert!(value.is_none() && refused && old_refused);
+            assert_eq!(first, old_first);
+            assert_eq!(charged, old_charge);
+            assert_eq!(metrics.allocated, 0);
+        }
+    }
+}
+
 const SOURCE: &str = "module sort; @id(\"r\") record R { @id(\"serial\") serial:i64, @id(\"key\") key:i64, } @id(\"main\") fn main()->i64 { let v=vec_with_capacity<R>(0usize);let w=vec_sort_by<R>(v,\"key:desc,serial:asc\");0 }";
 fn resolved() -> crate::hir::ResolvedProgram {
     crate::hir::resolve(&crate::check(SOURCE, "sort.spx").unwrap()).unwrap()

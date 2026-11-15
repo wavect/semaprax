@@ -141,17 +141,33 @@ pub(crate) fn decode(identity: &str) -> Option<Descriptor> {
     // re-encoding reservation and sticky refusal without copying the wire.
     crate::bounded_output::reserve_active_required(identity.len()).then_some(result)
 }
-fn layout_key(
+fn field_identity_key(ty: &ResolvedType) -> Option<&'static str> {
+    Some(match ty {
+        ResolvedType::I64 => "i64",
+        ResolvedType::I32 => "i32",
+        ResolvedType::U8 => "u8",
+        ResolvedType::Usize => "usize",
+        ResolvedType::Char => "char",
+        ResolvedType::F32 => "f32",
+        ResolvedType::F64 => "f64",
+        ResolvedType::Bool => "bool",
+        ResolvedType::String => "string",
+        ResolvedType::Bytes => "bytes",
+        _ => return None,
+    })
+}
+
+fn layout_key<'a>(
     element: &str,
-    fields: impl Iterator<Item = (String, String)>,
+    fields: impl Iterator<Item = Option<(&'a str, &'static str)>> + Clone,
     family: &str,
     capacity: u64,
 ) -> Option<String> {
-    let fields = fields.collect::<Vec<_>>();
     let mut length = part_len(family)?
         .checked_add(part_len(element)?)?
         .checked_add(21)?;
-    for (id, ty) in &fields {
+    for field in fields.clone() {
+        let (id, ty) = field?;
         length = length
             .checked_add(part_len(id)?)?
             .checked_add(part_len(ty)?)?;
@@ -163,9 +179,10 @@ fn layout_key(
     part(&mut out, family);
     part(&mut out, element);
     write!(out, "{capacity}:").unwrap();
-    for (id, ty) in fields {
-        part(&mut out, &id);
-        part(&mut out, &ty);
+    for field in fields {
+        let (id, ty) = field?;
+        part(&mut out, id);
+        part(&mut out, ty);
     }
     Some(out)
 }
@@ -209,11 +226,12 @@ pub(crate) fn resolve(
     } else {
         owned?.capacity()
     };
+    let element = element.identity_key();
     let layout = layout_key(
-        &element.identity_key(),
+        &element,
         fields
             .iter()
-            .map(|f| (f.id.as_str().to_owned(), f.ty.identity_key())),
+            .map(|f| Some((f.id.as_str(), field_identity_key(&f.ty)?))),
         if copy { "copy-record" } else { "owned-record" },
         capacity,
     )?;
@@ -228,7 +246,7 @@ pub(crate) fn resolve(
         });
     }
     let result = Descriptor {
-        element: element.identity_key(),
+        element,
         layout,
         keys,
     };
@@ -308,39 +326,30 @@ pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, value: &str) -> 
     {
         return None;
     }
-    let mut owned = 0;
-    let mut scalar = 0;
-    let fields_types = fields
-        .iter()
-        .map(|field| {
-            let ty = match field.ty {
-                Type::I64 => ResolvedType::I64,
-                Type::I32 => ResolvedType::I32,
-                Type::U8 => ResolvedType::U8,
-                Type::Usize => ResolvedType::Usize,
-                Type::Bool => ResolvedType::Bool,
-                Type::Char => ResolvedType::Char,
-                Type::F32 => ResolvedType::F32,
-                Type::F64 => ResolvedType::F64,
-                Type::String => {
-                    owned += 1;
-                    ResolvedType::String
-                }
-                Type::Bytes => {
-                    owned += 1;
-                    ResolvedType::Bytes
-                }
-                _ => return None,
-            };
-            if !matches!(field.ty, Type::String | Type::Bytes) {
-                scalar += 1;
-            }
-            Some((field.stable_id.clone(), ty.identity_key()))
-        })
-        .collect::<Option<Vec<_>>>()?;
+    let field_keys = fields.iter().map(|field| {
+        let ty = match field.ty {
+            Type::I64 => ResolvedType::I64,
+            Type::I32 => ResolvedType::I32,
+            Type::U8 => ResolvedType::U8,
+            Type::Usize => ResolvedType::Usize,
+            Type::Bool => ResolvedType::Bool,
+            Type::Char => ResolvedType::Char,
+            Type::F32 => ResolvedType::F32,
+            Type::F64 => ResolvedType::F64,
+            Type::String => ResolvedType::String,
+            Type::Bytes => ResolvedType::Bytes,
+            _ => return None,
+        };
+        Some((field.stable_id.as_str(), field_identity_key(&ty)?))
+    });
     let capacity = if copy {
         crate::vec_ops::MAX_CAPACITY / fields.len() as u64
     } else {
+        let owned = fields
+            .iter()
+            .filter(|field| matches!(field.ty, Type::String | Type::Bytes))
+            .count() as u64;
+        let scalar = fields.len() as u64 - owned;
         let scalar = crate::vec_ops::MAX_CAPACITY
             .checked_div(scalar)
             .unwrap_or(crate::vec_ops::MAX_CAPACITY);
@@ -358,7 +367,7 @@ pub(crate) fn source(declaration: &crate::ast::TypeDeclaration, value: &str) -> 
     .identity_key();
     let layout = layout_key(
         &element,
-        fields_types.into_iter(),
+        field_keys,
         if copy { "copy-record" } else { "owned-record" },
         capacity,
     )?;

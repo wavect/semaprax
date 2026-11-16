@@ -1908,6 +1908,7 @@ Audience: all documentation readers.
 - [OPT #903 paid loan reachability release](evidence/opt903-loan-release-20261113/README.md)
 - [Application starter qualification for #837](evidence/issue837-native-root-qualification-20261114/README.md)
 - [OPT #935 secondary byte-traversal replay](evidence/opt935-scalar-root-replay-20261113/README.md)
+- [Calculator Web packages use the authenticated Project graph](evidence/browser-web-ordinary-347f-20261116/README.md)
 
 - [Valid alias success subjects with original rejection witnesses](evidence/alias-valid-subjects-20261025/README.md)
 

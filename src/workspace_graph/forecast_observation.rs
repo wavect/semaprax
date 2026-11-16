@@ -55,11 +55,21 @@ impl Default for LiveModule {
         }
     }
 }
+#[derive(Clone, Copy)]
+enum LiveAttempt {
+    Module([usize; 7]),
+    LaterValidation {
+        retained: usize,
+        scratch: usize,
+        directory: usize,
+        limit: usize,
+    },
+}
 struct State {
     live_modules: Vec<LiveModule>,
     live_pass: Option<(u8, usize)>,
     live_expected: usize,
-    live_attempt: Option<[usize; 7]>,
+    live_attempt: Option<LiveAttempt>,
     entries: Vec<Option<Record>>,
     count: usize,
     oversized_paths: usize,
@@ -312,7 +322,25 @@ impl Pass {
     /// Exact live inputs immediately before checked_usage; no bound is rerun.
     pub(crate) fn live_attempt(&self, values: [usize; 7]) {
         if self.active {
-            STATE.with(|state| state.borrow_mut().live_attempt = Some(values));
+            STATE.with(|state| state.borrow_mut().live_attempt = Some(LiveAttempt::Module(values)));
+        }
+    }
+    pub(crate) fn live_later_validation(
+        &self,
+        retained: usize,
+        scratch: usize,
+        directory: usize,
+        limit: usize,
+    ) {
+        if self.active {
+            STATE.with(|state| {
+                state.borrow_mut().live_attempt = Some(LiveAttempt::LaterValidation {
+                    retained,
+                    scratch,
+                    directory,
+                    limit,
+                });
+            });
         }
     }
     pub(crate) fn module(&self, index: usize) {
@@ -354,13 +382,26 @@ impl Pass {
         capture(path, self.mode, false, false, Kind::Step, values, [0; 2]);
     }
     pub(crate) fn complete(&mut self, peak: usize, retained: usize, transient: usize) {
+        self.finish(peak, retained, transient, false);
+    }
+    pub(crate) fn complete_with_later_validation(
+        &mut self,
+        peak: usize,
+        retained: usize,
+        later: usize,
+    ) {
+        let later_wins = later > self.peak && later > retained;
+        self.finish(peak, retained, 0, later_wins);
+    }
+    fn finish(&mut self, peak: usize, retained: usize, transient: usize, later_wins: bool) {
         if self.active {
             let mut values = [0; VALUES];
-            let retained_wins = peak > self.peak;
-            let winner = if retained_wins {
-                self.last_module
+            let (winner, term) = if later_wins {
+                (None, 2)
+            } else if peak > self.peak {
+                (self.last_module, 1)
             } else {
-                self.winner
+                (self.winner, 0)
             };
             values[..6].copy_from_slice(&[
                 1,
@@ -368,7 +409,7 @@ impl Pass {
                 retained,
                 transient,
                 winner.unwrap_or(usize::MAX),
-                usize::from(retained_wins),
+                term,
             ]);
             capture("", self.mode, false, false, Kind::Global, values, [0; 2]);
         }
@@ -482,10 +523,39 @@ fn write_live_precharge(
     output: &mut impl Write,
     application: &str,
     state: &State,
-    attempt: [usize; 7],
+    attempt: LiveAttempt,
 ) {
-    let [index, ordinal, retained, full, kept, limit, resolving] = attempt;
-    let additional = if resolving != 0 { full } else { kept };
+    let (phase, retained, additional, limit, module, validation) = match attempt {
+        LiveAttempt::Module([index, ordinal, retained, full, kept, limit, resolving]) => {
+            let (phase, additional) = if resolving != 0 {
+                ("resolve", full)
+            } else {
+                ("retain", kept)
+            };
+            (
+                phase,
+                retained,
+                Some(additional),
+                limit,
+                Some([index, ordinal, full, kept]),
+                None,
+            )
+        }
+        LiveAttempt::LaterValidation {
+            retained,
+            scratch,
+            directory,
+            limit,
+        } => (
+            "later_validation",
+            retained,
+            scratch.checked_add(directory),
+            limit,
+            None,
+            Some([scratch, directory]),
+        ),
+    };
+    let total = additional.and_then(|bytes| retained.checked_add(bytes));
     let complete = state.live_expected <= state.live_modules.len()
         && state.live_modules[..state.live_expected]
             .iter()
@@ -527,10 +597,12 @@ fn write_live_precharge(
         serde_json::json!({"schema":"semaprax.forecast-live-precharge.v1",
         "application":application,"pass_id":state.live_pass.map(|pass|pass.1),
         "scope":"last attempted precharge of the actual captured mode6 pass; not reconstructed, allocations or application admission",
-        "module_index":index,"sorted_step":ordinal,"retained_before":retained,
-        "full_cost":full,"retained_cost":kept,"phase":if resolving!=0 {"resolve"} else {"retain"},
-        "additional":additional,"limit":limit,"total":retained.checked_add(additional),
-        "would_refuse":retained.checked_add(additional).is_none_or(|total|total>limit),
+        "retained_before":retained,"phase":phase,
+        "module_index":module.map(|m| m[0]),"sorted_step":module.map(|m| m[1]),
+        "full_cost":module.map(|m| m[2]),"retained_cost":module.map(|m| m[3]),
+        "maximum_scratch_bytes":validation.map(|v| v[0]),"directory_bytes":validation.map(|v| v[1]),
+        "additional":additional,"limit":limit,"total":total,
+        "would_refuse":total.is_none_or(|total|total>limit),
         "expected_modules":state.live_expected,"complete_live_components":complete,
         "observer_backing":"separate MAX_FILES-bounded latest-pass buffer prepared before fixtures; no collection allocation"}),
     );
@@ -625,14 +697,19 @@ fn write_observation(output: &mut impl Write, application: &str, strict: bool) {
             let v = item.values;
             let path = item.path.get(..item.len).and_then(|bytes| std::str::from_utf8(bytes).ok()).unwrap_or("<invalid-path>");
             if item.global {
+                let winning_term = match v[5] {
+                    2 => "later_validation",
+                    1 => "retained_sum",
+                    _ => "resolve_step",
+                };
                 write_row(output, serde_json::json!({"schema":"semaprax.forecast-pass.v1",
                     "application":application,"ordinal":ordinal,"execution_mode":item.mode,"pass_id":item.pass.map(|p|p.1),
                     "completed":v[0]!=0,"complete_attribution":v[0]!=0 && complete,
                     "global_peak":(v[0]!=0 && complete).then_some(v[1]),"retained_sum":(v[0]!=0 && complete).then_some(v[2]),
                     "transient_ast_peak":(v[0]!=0 && complete && item.mode==5).then_some(v[3]),
                     "winning_module_index":(v[0]!=0 && complete && item.mode==6 && v[4]!=usize::MAX).then_some(v[4]),
-                    "winning_term":if item.mode==6 && v[0]!=0 && complete {Some(if v[5]!=0 {"retained_sum"} else {"resolve_step"})} else {None},
-                    "winner_selection":"first strict resolve maximum; final retained sum only when larger",
+                    "winning_term":(item.mode==6 && v[0]!=0 && complete).then_some(winning_term),
+                    "winner_selection":"first strict resolve maximum; later validation or final retained sum only when larger",
                     "residual":null,"scope":"static forecast only; incomplete/lost/invalid pass totals unavailable"}));
             } else if item.step {
                 write_row(output, serde_json::json!({"schema":"semaprax.forecast-mode6-step.v1",
@@ -1039,5 +1116,61 @@ mod tests {
             "old lost-ring control unchanged"
         );
         drop(report);
+    }
+
+    #[test]
+    fn later_validation_replaces_the_last_module_attempt_and_preserves_resolve_ties() {
+        for (scratch, limit, total, winner) in [
+            (3, 12, Some(13), None),
+            (3, 13, Some(13), Some("later_validation")),
+            (2, 13, Some(12), Some("resolve_step")),
+            (usize::MAX, 13, None, None),
+        ] {
+            let report = Report::prepare("live-later-validation");
+            let ((), metrics) = crate::test_allocation_observer::measure(|| {
+                let _capture = report.capture();
+                let mut pass = begin_pass(6);
+                pass.live_layout(1);
+                pass.live_attempt([0, 0, 0, 12, 8, limit, 0]);
+                pass.step("source.spx", 0, 0, (0, 12, 8), (12, 8));
+                pass.live_later_validation(8, scratch, 2, limit);
+                if winner.is_some() {
+                    let later = total.unwrap();
+                    pass.complete_with_later_validation(later.max(12), 8, later);
+                }
+            });
+            assert!(!metrics.invalid);
+            assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));
+            let mut output = Vec::new();
+            write_observation(&mut output, "live-later-validation", true);
+            let mut rows = serde_json::Deserializer::from_slice(&output)
+                .into_iter::<serde_json::Value>()
+                .map(Result::unwrap);
+            let attempt = rows.next().unwrap();
+            assert_eq!(attempt["phase"], "later_validation");
+            assert!(attempt["module_index"].is_null());
+            assert!(attempt["sorted_step"].is_null());
+            assert_eq!(attempt["retained_before"], 8);
+            assert_eq!(attempt["maximum_scratch_bytes"], scratch);
+            assert_eq!(attempt["directory_bytes"], 2);
+            assert_eq!(
+                attempt["additional"],
+                serde_json::json!(scratch.checked_add(2))
+            );
+            assert_eq!(attempt["total"], serde_json::json!(total));
+            assert_eq!(attempt["would_refuse"], winner.is_none());
+            let pass = rows
+                .find(|row| row["schema"] == "semaprax.forecast-pass.v1")
+                .unwrap();
+            assert_eq!(pass["completed"], winner.is_some());
+            assert_eq!(pass["winning_term"], serde_json::json!(winner));
+            let module = (winner == Some("resolve_step")).then_some(0);
+            assert_eq!(pass["winning_module_index"], serde_json::json!(module));
+            assert_eq!(
+                pass["global_peak"],
+                serde_json::json!(total.filter(|_| winner.is_some()))
+            );
+            drop(report);
+        }
     }
 }

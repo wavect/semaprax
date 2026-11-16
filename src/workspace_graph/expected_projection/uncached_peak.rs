@@ -160,6 +160,8 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
     // Scratch is MAX, directory backing is SUM; neither is silently zero.
     let directory = crate::hir::retained_scalar_directory_bound(covered_functions)
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    #[cfg(test)]
+    observation.live_later_validation(retained, later_scratch, directory, active_builder_limit());
     let additional = later_scratch
         .checked_add(directory)
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
@@ -182,7 +184,7 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
     peak = peak.max(later);
     super::super::diagnostics::complete_sequential_precharge(peak.max(retained));
     #[cfg(test)]
-    observation.complete(peak.max(retained), retained, 0);
+    observation.complete_with_later_validation(peak.max(retained), retained, later);
     Ok(UncachedOutputLayout {
         order,
         forecast: peak.max(retained),

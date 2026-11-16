@@ -462,6 +462,50 @@ pub(crate) mod work;
             include_str!("../../../../project/incremental/cold_source_tests.rs").to_owned();
         undo(
             &mut current,
+            r#"    same(&warm, &old);
+    let backing = Arc::downgrade(&checked.checked["src/app.spx"]);
+    let cached_functions = &checked.checked["src/app.spx"].resolved.functions;
+    for build in [&cold, &warm] {
+        let module = build
+            .revision()
+            .semantic
+            .image_modules()
+            .iter()
+            .find(|module| module.path() == "src/app.spx")
+            .expect("published app module");
+        assert_eq!(module.functions().len(), 3);
+        for function in module.functions() {
+            let cached = cached_functions
+                .iter()
+                .find(|candidate| candidate.id == function.id)
+                .expect("checked function backing");
+            assert!(std::ptr::eq(function, cached));
+        }
+    }
+    let report: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();
+"#,
+            r#"    same(&warm, &old);
+    let report: serde_json::Value = serde_json::from_str(warm.to_json()).unwrap();
+"#,
+        );
+        undo(
+            &mut current,
+            r#"    same(&changed_warm, &old_changed);
+    drop(checked);
+    assert!(backing.upgrade().is_some());
+    same(&cold, &old);
+    same(&warm, &old);
+    drop(cold);
+    drop(warm);
+    assert!(backing.upgrade().is_none());
+}
+"#,
+            r#"    same(&changed_warm, &old_changed);
+}
+"#,
+        );
+        undo(
+            &mut current,
             "#[path = \"cold_source_tests/oracle_owner_before.rs\"]\n",
             "",
         );

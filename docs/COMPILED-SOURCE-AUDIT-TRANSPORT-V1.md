@@ -284,3 +284,17 @@ The all-target test plan has the same unit graph and 160 roots as the
 default plan, with the codegen override applied to 95 of 480 units. The
 270-unit release build plan is byte-identical under the override. The
 timing and memory comparison covers the root library-test compiler.
+
+The subsequent `--all-targets --no-run` build finished in 8 minutes 26
+seconds on the same private target. It linked or reused all 160 Cargo test
+roots from the plan and reused all 15 library-test executables, with
+unchanged registered and ignored inventories for those libraries. The
+156 libtest executables registered 20,054 tests, including 251 ignored
+tests. Cargo also built the four standalone benchmarks. The largest
+sampled physical footprint across the 165 fresh compiler invocations was
+1,740,736,864 bytes. None reached the host guard.
+
+The build's exact binaries passed 27 literal-format tests and 15
+selected-file tests, including the original LogLens acceptance corpus
+at native O0 and O2. The all-target inventory reports discovery, while the
+focused results report execution.

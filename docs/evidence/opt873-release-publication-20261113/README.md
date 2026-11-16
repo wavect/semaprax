@@ -98,6 +98,44 @@ delivery and replacement pull-request mergeability still need verification.
 The separate archive qualification also requires four original Git commit
 bindings that remain unavailable.
 
+### File indexes for the four archive checkpoints
+
+Each index lists every changed path with its mode and an immutable GitHub
+file link for the side where it exists. The checkpoint numbers refer to
+the split archive comparisons. The four indexes cover all 990 path
+changes. The raw-content endpoint returned a representative file from
+each checkpoint with the expected Git object ID and SHA-256.
+
+| Checkpoint | Paths changed | Head tree verified |
+| --- | ---: | --- |
+| [Checkpoint 72](review-72.md) | 243 | `eac0018331a159c58d5f86414530786783fa0d15` |
+| [Checkpoint 81](review-81.md) | 252 | `06b5c501cc4e6092f212c8caac403d0d6abdaa17` |
+| [Checkpoint 121](review-121.md) | 250 | `d2a59aa92873382b1b1d0bd9793d275722ab8b91` |
+| [Checkpoint 131](review-131.md) | 245 | `9da478d9032124f0817a069a1e45c4d5cf23da00` |
+
+GitHub's web patch endpoint returned an HTML timeout page with HTTP 200
+for each checkpoint. A smaller patch from the same split plan applied to
+its exact base and reproduced its head tree. Software Heritage returned
+404 for all four missing original commit IDs. Its documented sample
+revision returned a valid response.
+
+To inspect an exact per-file patch, use the base and head commit IDs in
+the index's compare link and a literal file path from the table. Run
+these commands in a scratch directory on the review drive.
+
+```sh
+git init --bare review.git
+git -C review.git remote add origin https://github.com/wavect/semaprax.git
+git -C review.git config remote.origin.promisor true
+git -C review.git config remote.origin.partialclonefilter blob:none
+git -C review.git fetch --no-tags --depth=1 --filter=blob:none origin "$before" "$after"
+git -C review.git --literal-pathspecs diff --no-ext-diff --no-textconv \
+  --binary --no-renames "$before" "$after" -- "$path"
+```
+
+A clean bare repository using these commands reproduced the expected
+blob for an indexed path after applying the patch to its base index.
+
 <details>
 <summary>Compare all 105 ranges in dependency order</summary>
 

@@ -13,7 +13,9 @@ pub fn binary() -> &'static Path {
         .get_or_init(|| {
             let executable = std::env::current_exe().expect("integration test executable");
             let profile = executable.parent().unwrap().parent().unwrap();
-            let target = profile.parent().unwrap();
+            // This build selects its own profile and features. Keep its CLI
+            // separate from the runner's CARGO_BIN_EXE_semaprax-full.
+            let target = profile.parent().unwrap().join("toolchain-tests");
             let output = native_rust_cargo::cargo_command()
                 .current_dir(env!("CARGO_MANIFEST_DIR"))
                 .args([
@@ -27,7 +29,7 @@ pub fn binary() -> &'static Path {
                     "semaprax-full",
                 ])
                 .arg("--target-dir")
-                .arg(target)
+                .arg(&target)
                 .output()
                 .expect("build unpublished full-toolchain CLI");
             assert!(

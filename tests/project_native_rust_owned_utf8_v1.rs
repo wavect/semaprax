@@ -14,6 +14,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 static PACKAGE_PUBLICATION: Mutex<()> = Mutex::new(());
 
+#[test]
+fn nested_toolchain_build_uses_a_separate_artifact_directory() {
+    let executable = std::env::current_exe().expect("integration test executable");
+    let profile = executable.parent().unwrap().parent().unwrap();
+    assert_ne!(full_toolchain::binary().parent(), Some(profile));
+}
+
 fn publication_guard() -> std::sync::MutexGuard<'static, ()> {
     // These tests exercise the same real compiler and archiver authorities.
     // Keep their package-publication lifetimes disjoint within this test binary.

@@ -32,7 +32,16 @@ static __attribute__((unused)) uint32_t spx_partition_run(
     return 0u;
 }
 #ifndef SPX_NO_ENTRY_WRAPPER
+#if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
+#endif
 int main(void) {
+#if defined(_WIN32)
+    if (_setmode(_fileno(stdout), _O_BINARY) == -1 ||
+        _setmode(_fileno(stderr), _O_BINARY) == -1)
+        spx_runtime_invariant_failure("partition entry cannot select binary output");
+#endif
     int64_t result = INT64_C(0);
     spx_partition_status_domain domain = {0}; uint32_t code = 0u;
     if (spx_partition_run(&result, &domain, &code) != 0u) {

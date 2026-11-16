@@ -67,13 +67,11 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     # model check belongs to the Claude adapter rather than this Codex arm.
     inherited = argparse.Namespace(**vars(args))
     inherited.model, inherited.effort = shiftsim.MODEL, shiftsim.EFFORT
-    base = shiftsim.plan(inherited, shiftsim.common.digest(binary))
+    binary_sha256 = shiftsim.common.digest(binary)
+    base = shiftsim.plan(inherited, binary_sha256, compiler_source_ref=args.compiler_source_ref)
     qualification = base["qualification"]
     if qualification.get("scored_trials_allowed") is not True:
         raise ValueError("qualification evidence does not admit scored ShiftSim trials")
-    compiler_commit = shiftsim.resolve_commit(Path(args.repo).resolve(), args.compiler_source_ref)
-    if compiler_commit != qualification["compiler_source_commit"]:
-        raise ValueError("compiler-source-ref differs from the qualified compiler source commit")
     base.update({
         "schema": shiftsim.AUTHORING_PROFILES[base["authoring_profile"]]["codex_campaign_schema"],
         "adapter": (shiftsim.AUTHORING_PROFILES[base["authoring_profile"]]["codex_adapter"]
@@ -92,8 +90,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "price_book": {"date": "2026-10-08", "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
                        "standard_short_context_usd_per_million": dict(codex.PRICE_USD_PER_MTOK),
                        "conditional": True, "actual_billed_usd": None},
-        "compiler_source_commit": compiler_commit,
-        "source_binary_sha256": shiftsim.common.digest(binary),
+        "compiler_source_commit": qualification["compiler_source_commit"],
+        "source_binary_sha256": binary_sha256,
         "codex_capabilities": codex.capabilities(args.codex_binary),
         "codex_execution": {
             "command_configuration": command_for({"codex_binary": args.codex_binary}, "<benchmark prompt>")[:-1],

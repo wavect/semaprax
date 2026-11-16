@@ -172,9 +172,13 @@ class CodexShiftSimTests(unittest.TestCase):
             self.assertEqual(settings["benchmark_inputs_sha256"], adapter.shiftsim.FROZEN_BENCHMARK_SHA256)
             self.assertTrue(settings["qualification"]["scored_trials_allowed"])
             self.assertFalse((root / "artifacts").exists())
-            with patch.object(adapter.shiftsim, "resolve_commit", side_effect=[settings["repository_commit"], "b" * 40]), \
-                 patch.object(adapter.shiftsim.common, "digest", return_value="a" * 64):
-                with self.assertRaisesRegex(ValueError, "qualified compiler source"):
+            commit_command = ["git", "-c", "user.name=Benchmark Test",
+                              "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false",
+                              "commit", "--quiet", "--allow-empty", "-m"]
+            subprocess.run([*commit_command, "Foreign compiler with the same frozen inputs"], cwd=repo, check=True)
+            args.base_ref = settings["repository_commit"]
+            with patch.object(adapter.shiftsim.common, "digest", return_value="a" * 64):
+                with self.assertRaisesRegex(ValueError, "pinned compiler source"):
                     adapter.plan(args)
             args.max_budget_usd = 1
             with self.assertRaisesRegex(ValueError, "monetary cap"):
@@ -499,7 +503,14 @@ class CodexShiftSimTests(unittest.TestCase):
                 "inventory_sha256", "package_json_sha256", "package_lock_sha256", "helper_sha256",
                 "dependency_helper_sha256")}
             receipt.update({"runtime": {"node_binary_sha256": "b" * 64}, "packages": {"typescript": "5.9.3"}})
-            args = Namespace(repo=str(repo), base_ref="HEAD", compiler_source_ref="HEAD",
+            compiler_commit = adapter.shiftsim.resolve_commit(repo, "HEAD")
+            commit_command = ["git", "-c", "user.name=Benchmark Test",
+                              "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false",
+                              "commit", "--quiet"]
+            subprocess.run([*commit_command, "--allow-empty", "-m", "Independent frozen seed"],
+                           cwd=repo, check=True)
+            seed_commit = adapter.shiftsim.resolve_commit(repo, "HEAD")
+            args = Namespace(repo=str(repo), base_ref=seed_commit, compiler_source_ref=compiler_commit,
                 semaprax_bin=str(binary), qualification_evidence=str(evidence), artifacts=str(root / "artifacts"),
                 round=6, authoring_profile=adapter.shiftsim.AUTHORING_PROFILE_SHIFTSIM_V31,
                 trials_per_arm=5, model=adapter.MODEL, effort=adapter.EFFORT, timeout_seconds=1800,
@@ -526,10 +537,29 @@ class CodexShiftSimTests(unittest.TestCase):
             self.assertEqual(settings["trial_order"].count("semaprax"), 5)
             self.assertEqual(settings["trial_order"].count("typescript"), 5)
             self.assertEqual(settings["qualification"]["acceptance_cases_passed"], 15)
+            self.assertNotEqual(seed_commit, compiler_commit)
+            self.assertEqual(settings["repository_commit"], seed_commit)
+            self.assertEqual(settings["compiler_source_commit"], compiler_commit)
+            self.assertEqual(settings["qualification"]["compiler_source_commit"], compiler_commit)
             self.assertEqual(settings["language_setup"]["typescript"]["prompt_condition"],
                              adapter.shiftsim.AUTHORING_PROFILE_V27)
             self.assertEqual(settings["typescript_bootstrap"]["runtime"], receipt["runtime"])
             adapter.shiftsim.require_authoring_eligibility(settings, binary)
+            with self.assertRaisesRegex(ValueError, "pinned compiler source"):
+                adapter.shiftsim.require_authoring_eligibility(
+                    {**settings, "compiler_source_commit": seed_commit}, binary)
+            oracle = repo / adapter.shiftsim.ORACLE_RELATIVE
+            oracle.write_bytes(oracle.read_bytes() + b"\n# changed oracle\n")
+            subprocess.run(["git", "add", str(oracle)], cwd=repo, check=True)
+            subprocess.run([*commit_command, "-m", "Changed seed oracle"], cwd=repo, check=True)
+            changed_commit = adapter.shiftsim.resolve_commit(repo, "HEAD")
+            with self.assertRaisesRegex(ValueError, "unchanged frozen SPEC, corpus, and oracle"):
+                adapter.shiftsim.require_authoring_eligibility(
+                    {**settings, "repository_commit": changed_commit}, binary)
+            args.base_ref = changed_commit
+            with self.assertRaisesRegex(ValueError, "unchanged frozen SPEC, corpus, and oracle"):
+                adapter.plan(args)
+            args.base_ref = seed_commit
             self.assertFalse((root / "artifacts").exists())
             args.typescript_bootstrap_receipt = None
             with patch.object(adapter.shiftsim.common, "tokenizer_metadata", return_value=None), \

@@ -330,7 +330,7 @@ def validate_qualification_evidence(
     if evidence.get("acceptance_corpus_sha256") != expected_corpus:
         raise ValueError("qualification evidence corpus hash does not match the pinned compiler commit")
     if evidence.get("compiler_source_commit") != commit:
-        raise ValueError("qualification evidence compiler source commit does not match --base-ref")
+        raise ValueError("qualification evidence does not match the pinned compiler source commit")
     binary_hash = evidence.get("compiler_binary_sha256")
     if not isinstance(binary_hash, str) or len(binary_hash) != 64 or any(c not in "0123456789abcdef" for c in binary_hash):
         raise ValueError("qualification evidence must contain a lowercase SHA-256 compiler binary hash")
@@ -678,9 +678,16 @@ def require_authoring_eligibility(settings: dict[str, Any], semaprax_bin: Path) 
         raise ValueError(f"{version} authoring requires fresh source/binary/profile-bound all-15 qualification")
     if semaprax_bin.is_symlink() or not semaprax_bin.is_file():
         raise ValueError(f"{version} authoring compiler must remain a regular file")
+    repo = Path(settings["qualification_repository"])
+    seed_commit = settings["repository_commit"]
+    compiler_commit = settings.get("compiler_source_commit", seed_commit)
+    if not isinstance(compiler_commit, str):
+        raise ValueError(f"{version} authoring requires a pinned compiler source commit")
+    if compiler_commit != seed_commit:
+        round_identity(repo, seed_commit, expected_round)
+        round_identity(repo, compiler_commit, expected_round)
     fresh = validate_qualification_evidence(
-        Path(qualification["evidence_path"]), Path(settings["qualification_repository"]),
-        settings["repository_commit"], common.digest(semaprax_bin), selected)
+        Path(qualification["evidence_path"]), repo, compiler_commit, common.digest(semaprax_bin), selected)
     copied_bindings = {
         "evidence_artifact": "evidence_sha256",
         "acceptance_report_artifact": "acceptance_report_sha256",
@@ -828,11 +835,15 @@ def retain_fixed_harness_context(row: dict[str, Any], settings: dict[str, Any], 
         }
 
 
-def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) -> dict[str, Any]:
+def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None, *,
+         compiler_source_ref: str | None = None) -> dict[str, Any]:
     repo = Path(args.repo).resolve(strict=True)
     commit = resolve_commit(repo, args.base_ref)
+    compiler_commit = resolve_commit(repo, compiler_source_ref) if compiler_source_ref is not None else commit
     round_number = getattr(args, "round", 1)
     benchmark_hashes = round_identity(repo, commit, round_number)
+    if compiler_commit != commit:
+        round_identity(repo, compiler_commit, round_number)
     authoring_profile, profile = select_authoring_profile(
         round_number, getattr(args, "authoring_profile", None))
     artifacts = Path(args.artifacts).expanduser().resolve()
@@ -889,7 +900,7 @@ def plan(args: argparse.Namespace, semaprax_binary_sha256: str | None = None) ->
                 raise ValueError("semaprax-bin must be a regular file")
             semaprax_binary_sha256 = common.digest(binary_path)
         qualification = validate_qualification_evidence(
-            Path(evidence_argument), repo, commit, semaprax_binary_sha256, authoring_profile,
+            Path(evidence_argument), repo, compiler_commit, semaprax_binary_sha256, authoring_profile,
         )
     else:
         qualification = {

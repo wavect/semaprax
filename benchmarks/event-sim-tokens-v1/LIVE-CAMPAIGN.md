@@ -252,3 +252,9 @@ to ShiftSim `plan` or `run` (including `codex_campaign.py`). The plan binds the
 receipt, exact dependency tree, package lock, and observed Node/npm/TypeScript
 versions. Setup context remains unknown; the trial receives only `node_modules`
 before its prompt and must author all application files itself.
+
+For the Codex adapter, `--base-ref` selects the frozen task seed and
+`--compiler-source-ref` selects the exact source that produced
+`--semaprax-bin`. The refs may differ when the SPEC, acceptance corpus, and
+oracle match their frozen digests at both commits. Qualification receipts
+must match the compiler ref and binary, including during dispatch.

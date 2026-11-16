@@ -27,6 +27,8 @@ fn semantic_cache_charges_two_exact_hir_bundles_without_duplicating_arc_carriers
     let authored = crate::workspace_graph::index_authored(&programs).unwrap();
     let parsed = summed(&programs, &authored, Retention::Parsed).unwrap();
     let semantic = summed(&programs, &authored, Retention::Semantic).unwrap();
+    let shared = summed(&programs, &authored, Retention::SharedProject).unwrap();
+    assert_eq!(shared, parsed);
     // Independently known AST: two modules, each Block/Binary/Int/Int. Only the
     // Binary and two Int roots omit their four proved-absent storage footprints;
     // as block tail and operands they also omit their six auxiliary carriers.
@@ -62,7 +64,11 @@ fn semantic_cache_charges_two_exact_hir_bundles_without_duplicating_arc_carriers
 fn cached_exact_forecast_uses_all_module_sums_and_exact_one_short_limit() {
     let programs = programs();
     let authored = crate::workspace_graph::index_authored(&programs).unwrap();
-    for retention in [Retention::Parsed, Retention::Semantic] {
+    for retention in [
+        Retention::Parsed,
+        Retention::Semantic,
+        Retention::SharedProject,
+    ] {
         let full = summed(&programs, &authored, retention).unwrap();
         let parts: Vec<_> = programs
             .iter()

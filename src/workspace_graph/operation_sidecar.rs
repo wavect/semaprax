@@ -61,10 +61,10 @@ pub(crate) fn project_operation_sidecar(
         .iter()
         .map(|module| OperationModule {
             path: module.path(),
-            types: crate::hir::items::View::slice(module.types()),
+            types: module.types(),
             interfaces: module.interfaces(),
-            functions: crate::hir::items::View::slice(module.functions()),
-            function_templates: crate::hir::items::View::slice(module.function_templates()),
+            functions: module.functions(),
+            function_templates: module.function_templates(),
         })
         .collect::<Vec<_>>();
     build_sidecar(programs, sources, &modules, &authored, false)

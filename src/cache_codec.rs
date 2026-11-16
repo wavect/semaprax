@@ -52,25 +52,83 @@ pub(crate) fn encode_prefixed<T: Codec>(
     byte_limit: usize,
     prefix: &[&[u8]],
 ) -> Result<Vec<u8>> {
+    encode_inner(value, byte_limit, prefix, false).map_err(EncodeRejection::into_diagnostics)
+}
+
+const COMPACT_LOAN_SNAPSHOT: &[u8; 8] = b"SPXL0001";
+pub(crate) fn is_compact_snapshot(bytes: &[u8]) -> bool {
+    bytes.starts_with(COMPACT_LOAN_SNAPSHOT)
+}
+
+pub(crate) fn encode_snapshot_wire<T: Codec>(value: &T) -> Result<Vec<u8>> {
+    // The legacy attempt drops its partial byte vector before the one
+    // alternate encoding at the same byte, depth and node limits.
+    match encode_inner(value, MAX_BYTES, &[], false) {
+        Err(EncodeRejection::NodeLimit(_)) => {
+            encode_inner(value, MAX_BYTES, &[COMPACT_LOAN_SNAPSHOT], true)
+                .map_err(EncodeRejection::into_diagnostics)
+        }
+        outcome => outcome.map_err(EncodeRejection::into_diagnostics),
+    }
+}
+
+enum EncodeRejection {
+    NodeLimit(Vec<Diagnostic>),
+    Other(Vec<Diagnostic>),
+}
+
+impl EncodeRejection {
+    fn into_diagnostics(self) -> Vec<Diagnostic> {
+        match self {
+            Self::NodeLimit(errors) | Self::Other(errors) => errors,
+        }
+    }
+}
+
+fn encode_inner<T: Codec>(
+    value: &T,
+    byte_limit: usize,
+    prefix: &[&[u8]],
+    compact_loan_rows: bool,
+) -> std::result::Result<Vec<u8>, EncodeRejection> {
     if byte_limit > MAX_BYTES {
-        return Err(capacity(
+        return Err(EncodeRejection::Other(capacity(
             "cache codec supplied byte limit exceeds its maximum",
-        ));
+        )));
     }
     let mut encoder = Encoder {
         bytes: Vec::new(),
         nodes: 0,
         depth: 0,
         byte_limit,
+        compact_loan_rows,
+        node_limit_reached: false,
     };
     for bytes in prefix {
-        encoder.raw(bytes)?;
+        encoder.raw(bytes).map_err(EncodeRejection::Other)?;
     }
-    value.encode(&mut encoder)?;
-    Ok(encoder.bytes)
+    match value.encode(&mut encoder) {
+        Ok(()) => Ok(encoder.bytes),
+        Err(errors) if encoder.node_limit_reached => Err(EncodeRejection::NodeLimit(errors)),
+        Err(errors) => Err(EncodeRejection::Other(errors)),
+    }
+}
+
+pub(crate) fn decode_snapshot_wire<T: Codec>(bytes: &[u8]) -> Result<T> {
+    if bytes.len() > MAX_BYTES {
+        return Err(capacity("cache codec wire exceeds its byte limit"));
+    }
+    match bytes.strip_prefix(COMPACT_LOAN_SNAPSHOT) {
+        Some(compact) => decode_inner(compact, true),
+        None => decode(bytes),
+    }
 }
 
 pub(crate) fn decode<T: Codec>(bytes: &[u8]) -> Result<T> {
+    decode_inner(bytes, false)
+}
+
+fn decode_inner<T: Codec>(bytes: &[u8], compact_loan_rows: bool) -> Result<T> {
     if bytes.len() > MAX_BYTES {
         return Err(capacity("cache codec wire exceeds its byte limit"));
     }
@@ -80,6 +138,7 @@ pub(crate) fn decode<T: Codec>(bytes: &[u8]) -> Result<T> {
         nodes: 0,
         depth: 0,
         allocation: 0,
+        compact_loan_rows,
     };
     decoder.allocate(std::mem::size_of::<T>())?;
     let result = T::decode(&mut decoder)?;
@@ -94,6 +153,8 @@ pub(crate) struct Encoder {
     byte_limit: usize,
     nodes: usize,
     depth: usize,
+    compact_loan_rows: bool,
+    node_limit_reached: bool,
 }
 impl Encoder {
     pub(crate) fn nested<T>(
@@ -111,6 +172,7 @@ impl Encoder {
     }
     fn node(&mut self) -> Result<()> {
         if self.nodes >= MAX_NODES {
+            self.node_limit_reached = true;
             return Err(capacity("cache codec exceeds its node limit"));
         }
         self.nodes += 1;
@@ -155,6 +217,7 @@ pub(crate) struct Decoder<'a> {
     nodes: usize,
     depth: usize,
     allocation: usize,
+    compact_loan_rows: bool,
 }
 impl<'a> Decoder<'a> {
     pub(crate) fn nested<T>(

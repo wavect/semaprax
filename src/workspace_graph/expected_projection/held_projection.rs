@@ -325,7 +325,7 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
                 .and_then(|old| prior_fixed_hir_upper.checked_sub(old))
                 .and_then(|base| {
                     count
-                        .checked_mul(if retention == cached_exact::Retention::Semantic {
+                        .checked_mul(if retention != cached_exact::Retention::Parsed {
                             2
                         } else {
                             1
@@ -339,7 +339,7 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
     super::super::forecast_observation::record_components_with_proofs(
         &program.path,
         layout_mode,
-        retention == cached_exact::Retention::Semantic,
+        retention != cached_exact::Retention::Parsed,
         include_imports,
         [
             raw.total,

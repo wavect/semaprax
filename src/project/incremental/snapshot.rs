@@ -140,7 +140,7 @@ pub(crate) fn encode_snapshot(cache: &ProjectFrontendCache) -> Result<Vec<u8>> {
     require_warm(&built)?;
     // Borrow the exact current checked owner directly into the bounded encoder.
     // The wire remains owned; no temporary AST/HIR snapshot tree is copied.
-    cache_codec::encode(&borrowed_encoding::SnapshotView {
+    cache_codec::encode_snapshot_wire(&borrowed_encoding::SnapshotView {
         cache,
         built: &built,
     })
@@ -149,7 +149,8 @@ pub(crate) fn encode_snapshot(cache: &ProjectFrontendCache) -> Result<Vec<u8>> {
 /// The caller must authenticate the complete bounded payload and executing
 /// compiler binding before invoking this private constructor.
 pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
-    let snapshot: Snapshot = cache_codec::decode(bytes)?;
+    let snapshot: Snapshot = cache_codec::decode_snapshot_wire(bytes)?;
+    let funded_replay = cache_codec::is_compact_snapshot(bytes);
     let manifest = manifest(&snapshot.context)?;
     if snapshot.graph_json.len() > 16 * 1024 * 1024 {
         return Err(capacity(
@@ -207,7 +208,11 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
                 field_update::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
                 vec_field::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
                 field_unique::replay_source(&entry.source, &entry.synthetic, &entry.resolved)?;
-                loan_replay::reconstruct(&mut entry.resolved)?;
+                if funded_replay {
+                    loan_replay::reconstruct_funded(&mut entry.resolved)?;
+                } else {
+                    loan_replay::reconstruct(&mut entry.resolved)?;
+                }
                 decoded_current_owner(std::mem::take(&mut entry.source), program, reserve)
             },
         );

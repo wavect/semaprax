@@ -281,6 +281,24 @@ all-input owned sidecar oracle with exact/one-short/sticky controls. These are
 source controls pending qualification; they do not establish total diagnostic
 funding or an application fit/performance result.
 
+### Shared Project projection and compact snapshots
+
+The Project semantic image moves checked selections of local types, functions,
+and templates into a single view of their existing checked module. These views
+keep the module and its source key alive until the last Project revision
+releases them. Sparse selections move their paid ordinal backing. The receiver
+uses the existing three-vector layout allowance, and the final cached retry
+prices one shared expression bundle. Earlier retry modes retain their existing
+debits. The mutable instance overlay and linked backend programs remain owned.
+
+Authenticated snapshot writes first try the existing wire. The private compact
+loan encoding is selected only after the encoder reaches its existing node
+limit. Each loan ID still consumes a node and decoded storage is reserved before
+allocation. The existing byte, depth, and compiler-binding limits apply to both
+encodings. For a compact payload, the production planner reserves reconstruction
+work on the existing per-module replay budget and requires exact equality with
+the decoded proof before the ordinary source and HIR validation proceeds.
+
 ### Package scalar publication discovery (source-only followup)
 
 `WorkspaceGraphBuild::linked_package_scalar_exports` borrows current retained

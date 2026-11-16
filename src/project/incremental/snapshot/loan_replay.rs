@@ -1,6 +1,7 @@
 //! Reconstruct private decoded proof storage without changing proof values.
+use crate::bounded_output::cfg_reservation::CfgReservation;
 use crate::hir::{ResolvedFunction, ResolvedProgram};
-use crate::loan_plan::LoanPlan;
+use crate::loan_plan::{FundedError, LoanPlan};
 
 use super::{capacity, invalid, Result, MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND};
 
@@ -8,6 +9,83 @@ mod bound;
 
 pub(super) fn reconstruct(program: &mut ResolvedProgram) -> Result<()> {
     reconstruct_with_limit(program, MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND).map(|_| ())
+}
+
+/// Reconstruct compact proofs on a single caller ledger using the production
+/// planner which reserves its working storage as it is formed.
+pub(super) fn reconstruct_funded(program: &mut ResolvedProgram) -> Result<()> {
+    if functions(program).all(|function| function.loan_plan.loans.is_empty()) {
+        return Ok(());
+    }
+    let (result, overflowed, _) =
+        crate::bounded_output::with_limit_usage(MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND, || {
+            let mut previous = 0usize;
+            for function in
+                functions(program).filter(|function| !function.loan_plan.loans.is_empty())
+            {
+                previous = previous
+                    .checked_add(physical_bytes(&function.loan_plan)?)
+                    .ok_or_else(|| capacity("decoded loan proof peak accounting overflows"))?;
+            }
+            if !crate::bounded_output::reserve_active_required(previous) {
+                return Err(capacity(
+                    "decoded loan proof reconstruction exceeds its builder bound",
+                ));
+            }
+            let owner = CfgReservation::acquire().map_err(|_| {
+                capacity("decoded loan proof reconstruction exceeds its builder bound")
+            })?;
+            for index in 0..program.functions.len() {
+                let function = &program.functions[index];
+                if !function.loan_plan.loans.is_empty() {
+                    let rebuilt = rebuild_funded(program, function, &owner)?;
+                    program.functions[index].loan_plan = rebuilt;
+                }
+            }
+            for index in 0..program.function_instances.len() {
+                let function = &program.function_instances[index].function;
+                if !function.loan_plan.loans.is_empty() {
+                    let rebuilt = rebuild_funded(program, function, &owner)?;
+                    program.function_instances[index].function.loan_plan = rebuilt;
+                }
+            }
+            Ok(())
+        });
+    if overflowed {
+        return Err(capacity(
+            "decoded loan proof reconstruction exceeds its builder bound",
+        ));
+    }
+    result
+}
+
+fn rebuild_funded(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    owner: &CfgReservation,
+) -> Result<LoanPlan> {
+    const RECEIVING_BYTES: usize =
+        std::mem::size_of::<std::result::Result<LoanPlan, FundedError>>()
+            + 2 * std::mem::size_of::<LoanPlan>()
+            + std::mem::size_of::<Result<LoanPlan>>();
+    owner
+        .reserve(RECEIVING_BYTES)
+        .map_err(|_| capacity("decoded loan proof reconstruction exceeds its builder bound"))?;
+    let rebuilt = match crate::loan_plan::build_plan_with_reservation(program, function, owner) {
+        Ok(plan) => plan,
+        Err(FundedError::Physical(_)) => {
+            return Err(capacity(
+                "decoded loan proof reconstruction exceeds its builder bound",
+            ));
+        }
+        Err(FundedError::Semantic(error)) => return Err(vec![error]),
+    };
+    if rebuilt != function.loan_plan {
+        return Err(invalid(
+            "decoded loan proof disagrees with independent reconstruction",
+        ));
+    }
+    Ok(rebuilt)
 }
 
 fn functions(program: &ResolvedProgram) -> impl Iterator<Item = &ResolvedFunction> {

@@ -3,12 +3,14 @@ use super::*;
 use crate::hir::items::{ItemSource, Iter, View};
 use crate::project::incremental::checked_hir::CheckedModuleLease;
 use std::ops::{Index, Range};
+mod project_rows;
+pub(super) use project_rows::ProjectRows;
 mod retain;
 pub(super) use retain::retain_checked_module;
 
 pub(super) enum Selection {
     Range(Range<usize>),
-    Ordinals(Vec<usize>),
+    Ordinals(Box<[usize]>),
 }
 pub(super) enum Retained<T> {
     Owned(Vec<T>),
@@ -141,7 +143,12 @@ impl<T> Retained<T> {
                 }
             }
             debug_assert_eq!(ordinals.len(), count);
-            Selection::Ordinals(ordinals)
+            if ordinals.capacity() != count {
+                // A box shrink may request a replacement while the paid
+                // vector is still live. Reserve before converting it.
+                reserve_builder_structure(payload)?;
+            }
+            Selection::Ordinals(ordinals.into_boxed_slice())
         };
         Ok(Self::Checked {
             owner,

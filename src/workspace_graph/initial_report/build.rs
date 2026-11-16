@@ -170,7 +170,7 @@ pub(in crate::workspace_graph) fn build_owned_inner<E: super::Policy>(
         .as_deref()
         .is_some_and(|cache| cache.retains_checked_hir())
     {
-        expected_projection::cached_exact::Retention::Semantic
+        expected_projection::cached_exact::Retention::SharedProject
     } else {
         expected_projection::cached_exact::Retention::Parsed
     };

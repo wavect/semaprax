@@ -3,6 +3,7 @@
 
 use super::*;
 use crate::ast::{Type, TypeDeclaration};
+use crate::hir::items::View;
 use crate::hir::{
     FunctionExecutionId, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedProgram,
@@ -130,8 +131,8 @@ fn compare_call_targets(
 fn program_call_targets(program: &ResolvedProgram) -> CallTargets {
     let mut targets = CallTargets::new();
     collect_call_targets(
-        &program.functions,
-        &program.function_templates,
+        View::slice(&program.functions),
+        View::slice(&program.function_templates),
         &program.function_instances,
         &mut targets,
     );
@@ -139,8 +140,8 @@ fn program_call_targets(program: &ResolvedProgram) -> CallTargets {
 }
 
 fn collect_call_targets(
-    functions: &[ResolvedFunction],
-    templates: &[ResolvedFunctionTemplate],
+    functions: View<'_, ResolvedFunction>,
+    templates: View<'_, ResolvedFunctionTemplate>,
     instances: &[ResolvedFunctionInstance],
     targets: &mut CallTargets,
 ) {

@@ -462,7 +462,7 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
                 }
             };
             let copies = match retention {
-                Retention::Parsed => 1,
+                Retention::Parsed | Retention::SharedProject => 1,
                 Retention::Semantic => 2,
             };
             let auxiliary = size_of::<crate::hir::ResolvedBinding>()

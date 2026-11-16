@@ -10,15 +10,11 @@ pub(in crate::workspace_graph) const MODE: u8 = 7;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::workspace_graph) enum Retention {
     Parsed,
+    SharedProject,
+    // The independent historical forecast tests still price the old
+    // materialized checked projection.
+    #[cfg(test)]
     Semantic,
-}
-impl Retention {
-    fn copies(self) -> usize {
-        match self {
-            Self::Parsed => 1,
-            Self::Semantic => 2,
-        }
-    }
 }
 fn overflow() -> Vec<Diagnostic> {
     vec![limit_error("builder_bytes", active_builder_limit())]
@@ -28,8 +24,8 @@ fn overflow() -> Vec<Diagnostic> {
 // stays in the original conservative ceiling. ExpressionId clone shares Arc.
 // Proved-absent literal/unary/binary root storage, and the auxiliary carriers
 // of carrier-free roots, are excluded from each copy: the semantic cache
-// retains a `clone()` of the same resolved module, whose HIR, inventory and
-// plan vectors hold exactly the original's nodes and slots.
+// and Project projection share one resolved owner and fit the original
+// receiver layout.
 pub(super) fn fixed_upper(
     upper: usize,
     raw: &StructuralCost,
@@ -45,10 +41,15 @@ pub(super) fn fixed_upper(
         .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))
         .ok_or_else(overflow)?;
     let absent = cost::exact_absent_storage(raw)?;
+    let copies = match retention {
+        Retention::Parsed | Retention::SharedProject => 1,
+        #[cfg(test)]
+        Retention::Semantic => 2,
+    };
     let exact = count
         .checked_mul(super::super::HIR_EXPR_FIXED_BUNDLE)
         .and_then(|n| n.checked_sub(absent))
-        .and_then(|n| n.checked_mul(retention.copies()))
+        .and_then(|n| n.checked_mul(copies))
         .ok_or_else(overflow)?;
     upper
         .checked_sub(old)

@@ -493,6 +493,9 @@ mod plan {
     });
 }
 
+#[path = "compact_loan_rows.rs"]
+mod compact_rows;
+
 mod loan {
     use crate::cache_codec::{codec_enum, codec_struct, codec_tuple};
     use crate::loan_plan::*;
@@ -511,14 +514,63 @@ mod loan {
         end_edges,
         cause
     });
-    codec_struct!(LoanEndpoint {
-        point,
-        live_before,
-        starts,
-        kills,
-        live_after
-    });
-    codec_struct!(LoanEdge { from, to, live });
+    use super::compact_rows::{CompactEdge, CompactEndpoint};
+
+    impl crate::cache_codec::Codec for LoanEndpoint {
+        fn encode(&self, out: &mut crate::cache_codec::Encoder) -> crate::cache_codec::Result<()> {
+            if out.compact_loan_rows {
+                return CompactEndpoint::encode(self, out);
+            }
+            out.nested(|out| {
+                self.point.encode(out)?;
+                self.live_before.encode(out)?;
+                self.starts.encode(out)?;
+                self.kills.encode(out)?;
+                self.live_after.encode(out)
+            })
+        }
+
+        fn decode(input: &mut crate::cache_codec::Decoder<'_>) -> crate::cache_codec::Result<Self> {
+            if input.compact_loan_rows {
+                return CompactEndpoint::decode(input);
+            }
+            input.nested(|input| {
+                Ok(Self {
+                    point: crate::cache_codec::Codec::decode(input)?,
+                    live_before: crate::cache_codec::Codec::decode(input)?,
+                    starts: crate::cache_codec::Codec::decode(input)?,
+                    kills: crate::cache_codec::Codec::decode(input)?,
+                    live_after: crate::cache_codec::Codec::decode(input)?,
+                })
+            })
+        }
+    }
+
+    impl crate::cache_codec::Codec for LoanEdge {
+        fn encode(&self, out: &mut crate::cache_codec::Encoder) -> crate::cache_codec::Result<()> {
+            if out.compact_loan_rows {
+                return CompactEdge::encode(self, out);
+            }
+            out.nested(|out| {
+                self.from.encode(out)?;
+                self.to.encode(out)?;
+                self.live.encode(out)
+            })
+        }
+
+        fn decode(input: &mut crate::cache_codec::Decoder<'_>) -> crate::cache_codec::Result<Self> {
+            if input.compact_loan_rows {
+                return CompactEdge::decode(input);
+            }
+            input.nested(|input| {
+                Ok(Self {
+                    from: crate::cache_codec::Codec::decode(input)?,
+                    to: crate::cache_codec::Codec::decode(input)?,
+                    live: crate::cache_codec::Codec::decode(input)?,
+                })
+            })
+        }
+    }
     codec_struct!(LoanPlan {
         schema,
         loans,

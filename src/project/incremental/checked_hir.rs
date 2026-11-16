@@ -10,6 +10,10 @@ impl CheckedModuleLease {
     pub(super) fn new(owner: Arc<CheckedModule>) -> Self {
         Self(owner)
     }
+    /// Confirm that grouped views borrow the same existing allocation.
+    pub(crate) fn same_backing(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
 }
 impl Deref for CheckedModuleLease {
     type Target = ResolvedProgram;

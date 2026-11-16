@@ -50,7 +50,7 @@ mod static_text;
 use retain_module::retain_workspace_module;
 mod checked_retention;
 use crate::project::incremental::checked_hir::ResolvedModuleInput;
-use checked_retention::Retained;
+use checked_retention::{ProjectRows, Retained};
 mod validation;
 use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
@@ -449,10 +449,8 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     source_digest: String,
     dependency_depth: usize,
     permits: Vec<String>,
-    types: Vec<hir::ResolvedTypeDeclaration>,
+    rows: ProjectRows,
     interfaces: Vec<hir::ResolvedInterface>,
-    functions: Vec<hir::ResolvedFunction>,
-    function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
     /// Canonical facts of this module's own declared session protocols
@@ -464,6 +462,7 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     /// (`render_graph_json` partitions on it).
     session_protocol_facts: Vec<String>,
 }
+
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
     id: String,
     kind: hir::DeclarationKind,
@@ -640,17 +639,17 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn permits(&self) -> &[String] {
         &self.permits
     }
-    pub(crate) fn types(&self) -> &[hir::ResolvedTypeDeclaration] {
-        &self.types
+    pub(crate) fn types(&self) -> hir::items::View<'_, hir::ResolvedTypeDeclaration> {
+        self.rows.views().0
     }
     pub(crate) fn interfaces(&self) -> &[hir::ResolvedInterface] {
         &self.interfaces
     }
-    pub(crate) fn functions(&self) -> &[hir::ResolvedFunction] {
-        &self.functions
+    pub(crate) fn functions(&self) -> hir::items::View<'_, hir::ResolvedFunction> {
+        self.rows.views().1
     }
-    pub(crate) fn function_templates(&self) -> &[hir::ResolvedFunctionTemplate] {
-        &self.function_templates
+    pub(crate) fn function_templates(&self) -> hir::items::View<'_, hir::ResolvedFunctionTemplate> {
+        self.rows.views().2
     }
     pub(crate) fn function_instances(&self) -> &[hir::ResolvedFunctionInstance] {
         &self.function_instances
@@ -1958,10 +1957,8 @@ impl WorkspaceGraphBuild {
                 source_digest: source.source_digest,
                 dependency_depth,
                 permits: module.permits,
-                types: module.types.into_owned(),
+                rows: ProjectRows::new(module.types, module.functions, module.function_templates)?,
                 interfaces: module.interfaces,
-                functions: module.functions.into_owned(),
-                function_templates: module.function_templates.into_owned(),
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
                 session_protocol_facts: module.session_protocol_facts,
@@ -2625,10 +2622,8 @@ impl WorkspaceGraphChangeView {
                     .iter()
                     .map(|permit| crate::bounded_output::budgeted_clone(permit))
                     .collect(),
-                types: Vec::new(),
+                rows: ProjectRows::empty(),
                 interfaces: Vec::new(),
-                functions: Vec::new(),
-                function_templates: Vec::new(),
                 function_instances: Vec::new(),
                 signature_types: BTreeMap::new(),
                 session_protocol_facts: Vec::new(),
@@ -3155,10 +3150,8 @@ impl AuthenticatedWorkspaceGraphBuild {
                 source_digest: source.source_digest,
                 dependency_depth,
                 permits: module.permits,
-                types: module.types.into_owned(),
+                rows: ProjectRows::new(module.types, module.functions, module.function_templates)?,
                 interfaces: module.interfaces,
-                functions: module.functions.into_owned(),
-                function_templates: module.function_templates.into_owned(),
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
                 session_protocol_facts: module.session_protocol_facts,

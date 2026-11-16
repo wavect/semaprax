@@ -3167,6 +3167,7 @@
         "src/workspace_graph.rs",
         "src/workspace_graph/constructor_failure.rs",
         "src/workspace_graph/constructor_failure/receiving.rs",
+        "src/workspace_graph/constructor_failure/report.rs",
         "src/workspace_graph/constructor_failure/typed.rs",
         "src/workspace_graph/diagnostics.rs",
         "src/workspace_graph/diagnostics/invocation.rs",
@@ -3241,9 +3242,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "c638a42c680e90e1a481d11f3983eb8363ae39753a4496e44ba29bc0eeaacee2",
-      "full_raw_sha256": "f9211e36358951a2bf58e39a7ab74485dc356e0b6f25ca39158c73ee8945f7cf",
-      "full_authenticated_production_sha256": "3e2f4bf2a3e23688d74a08dd44de7faa652b7ee00878d8e01e6f7d6568f8ec5e"
+      "full_manifest_sha256": "6e7acf2ae494b202cd63f32c5b915a3c859fbce7c80179d67eb31e54b09d1f6c",
+      "full_raw_sha256": "9a825669d7306783e552442d4ef6e3c3a4e0df627326133ed43c0d5ff2f4316e",
+      "full_authenticated_production_sha256": "38490441a7607d2bbcc32622937642cd10b5b5320e7681e220184f61dac2a61c"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3605,6 +3606,7 @@
         "src/workspace_graph/expected_projection/mode6_identity/locals.rs",
         "src/workspace_graph/expected_projection/mode6_identity/mod.rs",
         "src/workspace_graph/expected_projection/mode6_identity/names.rs",
+        "src/workspace_graph/expected_projection/mode6_identity/tests.rs",
         "src/workspace_graph/expected_projection/prelude_forecast.rs",
         "src/workspace_graph/expected_projection/prelude_forecast_original.rs",
         "src/workspace_graph/expected_projection/prelude_forecast_tests.rs",
@@ -4533,9 +4535,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "3dfa47fc72d6874bd19c98c62b098ee456c1b2a32f72fd49788a301566fe0b29",
-      "full_raw_sha256": "359b3cc11dd81109577f3ddfe627d86547983f7e45f94cc1771b09483d2fc004",
-      "full_authenticated_production_sha256": "7fae251e0a776d8d02d806df5a8f39ee8c1a4e1011217eada5479b28f3889e9f"
+      "full_manifest_sha256": "4f58c220eab30bcbf491d743ff20be1dd0948ec57e4a6f11e4c19909fe196769",
+      "full_raw_sha256": "e59abd50ac70ae9c0007c805e88932544a15fec25bd5ab32be67f07c771fe596",
+      "full_authenticated_production_sha256": "49f2093cf0b7d9b6ee4976c841e80b94ce7d12997d964fff56d80eabfa0995f4"
     }
   }
 }

@@ -50,6 +50,16 @@ const ACKNOWLEDGED: &[(&str, &str, &str)] = &[
         "binds exact historical prefix placement; production delegates to original::production and boundary::production, which authenticate and join the complete current registered descendants from the full source manifest",
     ),
     (
+        "tests/support/production_source_inventory.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs",
+        "the exact prefix check binds this one file; the full HIR and projection inputs join the children before production source authentication",
+    ),
+    (
+        "tests/support/production_source_inventory.rs",
+        "src/source_reflows_merge/main_e177_overlay_digests_v13.rs",
+        "the prefix check binds the sources acquired in that historical prefix; the complete manifests authenticate the later typed-reference reader separately",
+    ),
+    (
         "tests/documentation/held_auth_sources.rs",
         "src/cleanup_plan/replay/allocation/oracle.rs",
         "checks the fixed owner path membership in three audit unions and nonempty owner bytes; production bodies are scanned by those complete unions",
@@ -120,6 +130,26 @@ const ACKNOWLEDGED: &[(&str, &str, &str)] = &[
         "source_inventory_controls::verify recursively joins every actual owned module and explicit path, then checks exact ordered union bytes and complete owned projection",
     ),
     (
+        "tests/workspace/semantic_graph.rs",
+        "src/workspace_graph/expected_projection.rs",
+        "the full projection and its children are joined by the source_inventory macros and authenticated against the projection manifest; the direct read also checks the root-private call-edge verifier",
+    ),
+    (
+        "tests/workspace/semantic_graph.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903.rs",
+        "the projection inventory joins the saved builder and its children; the direct read counts occurrences of the exact saved builder file",
+    ),
+    (
+        "tests/workspace.rs",
+        "tests/workspace.rs",
+        "assert_complete_main44_entries checks the byte-for-byte physical and compiled harness file, whose children are not part of that file identity",
+    ),
+    (
+        "tests/workspace.rs",
+        "workspace.rs",
+        "relative spelling of the same byte-for-byte compiled harness file",
+    ),
+    (
         "tests/hir_module_boundaries.rs",
         "src/hir.rs",
         "binds the root's own macro/`mod` ordering, not resolver bodies",
@@ -140,6 +170,31 @@ const ACKNOWLEDGED: &[(&str, &str, &str)] = &[
         "positive existence checks for the public facade; every required name \
          resolves in the root or public_sdk/, and the private stage submodules \
          carry none of them",
+    ),
+];
+
+// These literal reads are fixed whole-file inputs to checked historical
+// inverses. Joining another file into an input would change the authenticated
+// byte offsets and hashes. The normal source-role audits cover compiler bodies.
+const PREDECESSOR_INPUTS: &[(&str, &[&str])] = &[
+    (
+        "tests/support/main44_wasm_entries.rs",
+        &[
+            "src/cleanup_plan/replay.rs",
+            "src/cleanup_plan/replay/factored.rs",
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+            "src/hir/validation/lexical_exit.rs",
+        ],
+    ),
+    (
+        "tests/workspace.rs",
+        &[
+            "src/cleanup_plan/replay.rs",
+            "src/cleanup_plan/replay/factored.rs",
+            "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+            "src/hir/validation/lexical_exit.rs",
+        ],
     ),
 ];
 
@@ -292,6 +347,9 @@ fn a_contract_that_reads_a_module_root_also_reads_its_submodules() {
             if ACKNOWLEDGED
                 .iter()
                 .any(|(who, what, _)| *who == reader_relative && what == candidate)
+                || PREDECESSOR_INPUTS.iter().any(|(who, sources)| {
+                    *who == reader_relative && sources.contains(&candidate.as_str())
+                })
             {
                 continue;
             }

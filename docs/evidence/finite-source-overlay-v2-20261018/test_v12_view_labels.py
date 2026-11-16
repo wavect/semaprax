@@ -18,7 +18,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1995247, 'sha256': 'e7bab0c97d6eb41b3173d166a294066edcc764196d0e51562c1e14a0fd730e85'}
+_FRONT_PIN = {'length': 2092141, 'sha256': '955ef216c1b6181404b2a81b248150847f13d0f12ba2ca1e2a110a1cd1946d7d'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -1204,6 +1204,21 @@ class CompactDictionaryV20(unittest.TestCase):
         codec._v19_successor(outer)
         logical=codec.expand_v19_indexed_fragment_refs(outer['page'])
         return codec.encode_v20_compact_rows(logical)
+
+    def test_base92_groups_tails_and_exact_bounds(self):
+        for width in range(27):
+            for byte in (0, 1, 127, 128, 254, 255):
+                raw = bytes([byte]) * width
+                encoded = codec.encode_base92(raw)
+                self.assertEqual(codec.decode_base92(encoded), raw)
+                self.assertNotIn(b'"', encoded)
+                self.assertNotIn(b'\\', encoded)
+        for bad in (b'!', b'!!!!!!', b'!!!!!!!!!!!', b'~~', b'~' * 16,
+                    b'a"', b'a\\', b'a ', b'!' * (codec.PAGE_CAP + 1)):
+            with self.subTest(length=len(bad)), self.assertRaises(AssertionError):
+                codec.decode_base92(bad)
+        self.assertEqual(len(codec.decode_base92(b'!' * codec.PAGE_CAP)),
+                         codec.PAGE_CAP // 16 * 13)
 
     def test_current_whole_inverse_and_dictionary_canonicality(self):
         wire=self.current();logical=codec.expand_v20_compact_fragment_refs(wire)

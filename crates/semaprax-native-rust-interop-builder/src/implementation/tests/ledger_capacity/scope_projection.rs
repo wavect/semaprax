@@ -9,9 +9,21 @@ pub(super) const TEXT: &str = concat!(
     include_str!("../../../../../../src/hir/validation/scope_checkpoint/views.rs"),
     concat!(
         include_str!("../../../../../../src/hir/validation/scope_checkpoint/merge.rs"),
+        include_str!("../../../../../../src/hir/validation/scope_checkpoint/merge/moved_direct.rs"),
+        include_str!(
+            "../../../../../../src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs"
+        ),
+        include_str!(
+            "../../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs"
+        ),
+        include_str!(
+            "../../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs"
+        ),
         include_str!("../../../../../../src/hir/validation/scope_checkpoint/merge/saved.rs"),
     ),
     include_str!("../../../../../../src/hir/validation/scope_checkpoint/marks.rs"),
+    include_str!("../../../../../../src/hir/validation/scope_checkpoint/marks/before.rs"),
+    include_str!("../../../../../../src/hir/validation/scope_checkpoint/marks/direct_before.rs"),
     include_str!("../../../../../../src/hir/validation/scope_checkpoint/storage.rs"),
     include_str!("../../../../../../src/hir/validation/scope_checkpoint/paths.rs"),
     include_str!("../../../../../../src/hir/validation/scope_checkpoint/tests.rs"),

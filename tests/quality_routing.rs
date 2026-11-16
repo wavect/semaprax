@@ -812,7 +812,9 @@ impl Repository {
                 "\n",
                 include_str!("../src/graph/revision_digest.rs"),
                 "\n",
-                include_str!("../src/graph/evidence_schema.rs")
+                include_str!("../src/graph/evidence_schema.rs"),
+                "\n",
+                include_str!("../src/graph/byte_partition.rs")
             ),
         )
         .unwrap();
@@ -824,6 +826,7 @@ impl Repository {
                 "\n",
                 concat!(
                     include_str!("../src/cli/help/authoring.rs"),
+                    include_str!("../src/cli/help/authoring/contract_owners.rs"),
                     include_str!("../src/cli/help/authoring/discovery.rs"),
                     include_str!("../src/cli/help/authoring/tasks.rs"),
                 ),

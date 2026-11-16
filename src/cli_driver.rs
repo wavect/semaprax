@@ -650,7 +650,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             match &options.input {
                 cli::build::BuildInput::Source(input) => build_source(&options, input)?,
                 cli::build::BuildInput::Project(manifest_path) => {
-                    let output = project::with_authenticated_project_reporting(manifest_path, |snapshot| {
+                    let build = |snapshot: &mut project::ProjectSnapshot| {
                         snapshot.check()?;
                         snapshot.manifest().admit_build_target(&options.target)?;
                         let mut output = options.output.clone().unwrap_or_else(|| {
@@ -717,14 +717,26 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                             "npm" => snapshot.build_npm(&output)?,
                             "oci" => snapshot.build_oci(&output)?,
                             "native" => snapshot.build_native(&output)?,
-                            "rust" => (host.expect("private target admitted above").build_rust)(snapshot, &output)?,
+                            "rust" => (host.expect("private target admitted above").build_rust)(
+                                snapshot, &output,
+                            )?,
                             _ => unreachable!("validated project target"),
                         }
                         if let Some(parent) = &mut output_parent {
                             parent.retain().map_err(|error| vec![error])?;
                         }
                         Ok((output, snapshot.manifest().project_profile()))
-                    }, |errors| cli::manifest_hint::hint_missing_manifest(errors, manifest_path))
+                    };
+                    let hints =
+                        |errors| cli::manifest_hint::hint_missing_manifest(errors, manifest_path);
+                    // Package descriptors bind the ordinary Project graph. Its
+                    // digest covers the builder bill, including transport costs.
+                    let output = if options.target == "native" {
+                        project::with_authenticated_project_reporting(manifest_path, build, hints)
+                    } else {
+                        project::with_authenticated_project(manifest_path, build)
+                            .map_err(|errors| hints(errors).into())
+                    }
                     .map_err(|failure| report_workspace(&failure, options.json))?;
                     cli::project_runtime::report_build_success(
                         &options.target,

@@ -505,11 +505,11 @@ def refresh_strict_module_pins(repo, guard, updates):
 
 
 def encode_overlay_page(overlay, page, schema):
-    if schema != overlay['V22_SCHEMA']:
+    if schema not in (overlay['V22_SCHEMA'], overlay['V23_SCHEMA']):
         return overlay['encode_compressed_page'](page, schema)
     from importlib.metadata import PackageNotFoundError, version
 
-    required = ('V22 repacking requires zopfli==0.4.3; run with '
+    required = ('V22/V23 repacking requires zopfli==0.4.3; run with '
                 'uv run --no-project --with zopfli==0.4.3 python')
     try:
         installed = version('zopfli')
@@ -524,16 +524,17 @@ def encode_overlay_page(overlay, page, schema):
     assert len(raw) <= overlay['V21_OUTPUT_CAP']
     # Retain the established encoding whenever it fits the one-page cap.
     digest = sha(raw)
+    encode = base64.b85encode if schema == overlay['V22_SCHEMA'] else overlay['encode_base92']
     # If bounded block splitting cannot fit, let the compressor choose
     # additional block boundaries before reporting that the page is full.
     for iterations, split_limit in ((20, 15), (80, 15), (160, 0)):
         compressed = compress(raw, numiterations=iterations, blocksplittingmax=split_limit)
-        payload = base64.b85encode(compressed).decode('ascii')
+        payload = encode(compressed).decode('ascii')
         wire = dict(schema=schema, length=len(raw), sha256=digest, payload=payload)
         if len(overlay['canonical'](wire)) <= overlay['PAGE_CAP']:
             assert overlay['expand_compressed_page'](wire) == page
             return wire
-    raise AssertionError('V22 compressed page exceeds its one-page cap')
+    raise AssertionError(f'{schema} compressed page exceeds its one-page cap')
 
 
 def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_fragments=None):
@@ -650,7 +651,7 @@ def refresh_overlay_v21(repo, guard, before, policy, wire, label, admit, attach_
     # page below still enforce their own decoded and physical transport caps.
     v12 = ov['encode_v12_view_labels'](v11, ov['SOURCE_CAP'])
     v20 = ov['encode_v20'](ov['encode_v20_compact_inner'](v12, cap), successor, cap)
-    page = ov['canonical'](encode_overlay_page(ov, v20, ov['V22_SCHEMA']))
+    page = ov['canonical'](encode_overlay_page(ov, v20, ov['V23_SCHEMA']))
     policy['page'] = dict(path=PAGE, length=len(page), sha256=sha(page))
     policy_bytes = ov['canonical'](policy)
     assert len(policy_bytes) <= ov['PAGE_CAP']

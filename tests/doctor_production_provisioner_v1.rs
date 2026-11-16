@@ -198,6 +198,7 @@ impl Sources {
                     [
                         [
                             read(repository, "src/cli/help/authoring.rs"),
+                            read(repository, "src/cli/help/authoring/contract_owners.rs"),
                             read(repository, "src/cli/help/authoring/tasks.rs"),
                         ]
                         .join("\n"),

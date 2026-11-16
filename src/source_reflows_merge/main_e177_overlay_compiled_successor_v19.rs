@@ -316,10 +316,14 @@ pub(super) fn authenticate_using(
 pub(super) const SCHEMA_V20: &str = "semaprax.finite-source-overlay-page.v20";
 pub(super) const SCHEMA_V21: &str = "semaprax.finite-source-overlay-page.v21";
 pub(super) const SCHEMA_V22: &str = "semaprax.finite-source-overlay-page.v22";
+const SCHEMA_V23: &str = "semaprax.finite-source-overlay-page.v23";
 const V21_OUTPUT_CAP: usize = 524_288;
 
 fn is_compressed(page: &Value) -> bool {
-    matches!(page["schema"].as_str(), Some(SCHEMA_V21 | SCHEMA_V22))
+    matches!(
+        page["schema"].as_str(),
+        Some(SCHEMA_V21 | SCHEMA_V22 | SCHEMA_V23)
+    )
 }
 
 const BASE85_ALPHABET: &[u8; 85] =
@@ -381,10 +385,41 @@ fn base85_digits(mut value: u32) -> [u8; 5] {
     encoded
 }
 
+// Thirteen bytes fit in sixteen JSON-safe ASCII digits. Each partial group
+// has a unique width, with excess values refused rather than truncated.
+const BASE92_WIDTHS: [usize; 14] = [0, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 16];
+
+fn decode_base92(encoded: &str) -> Result<Vec<u8>, &'static str> {
+    const INVALID: &str = "v23 canonical base92";
+    require!(encoded.len() <= PAGE_CAP, "v23 encoded bound");
+    let mut decoded = Vec::with_capacity(encoded.len() / 16 * 13 + 12);
+    for group in encoded.as_bytes().chunks(16) {
+        let width = BASE92_WIDTHS
+            .iter()
+            .position(|&digits| digits == group.len())
+            .ok_or(INVALID)?;
+        let mut value = 0u128;
+        for &symbol in group {
+            let digit = match symbol {
+                b'!' => 0,
+                b'#'..=b'[' => symbol - 34,
+                b']'..=b'~' => symbol - 35,
+                _ => return Err(INVALID),
+            };
+            value = value * 92 + u128::from(digit);
+        }
+        if value >= 1u128 << (width * 8) {
+            return Err(INVALID);
+        }
+        decoded.extend_from_slice(&value.to_be_bytes()[16 - width..]);
+    }
+    Ok(decoded)
+}
+
 pub(super) fn is_successor20(page: &Value) -> bool {
     matches!(
         page["schema"].as_str(),
-        Some(SCHEMA_V20 | SCHEMA_V21 | SCHEMA_V22)
+        Some(SCHEMA_V20 | SCHEMA_V21 | SCHEMA_V22 | SCHEMA_V23)
     )
 }
 
@@ -408,6 +443,8 @@ pub(super) fn decoded20(page: &Value) -> Result<(Cow<'_, Value>, usize), &'stati
     let encoded = page["payload"].as_str().ok_or("v21 payload type")?;
     let compressed = if page["schema"] == SCHEMA_V22 {
         decode_base85(encoded)?
+    } else if page["schema"] == SCHEMA_V23 {
+        decode_base92(encoded)?
     } else {
         let engine = base64::engine::general_purpose::STANDARD;
         let compressed = engine.decode(encoded).map_err(|_| "v21 canonical base64")?;

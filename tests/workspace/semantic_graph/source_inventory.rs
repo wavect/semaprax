@@ -912,6 +912,23 @@ macro_rules! semantic_graph_projection_child_source_inventory {
                 "../../src/workspace_graph/expected_projection/defaults/error_custody_tests.rs"
             ),
             include_str!("../../src/workspace_graph/expected_projection/defaults/original.rs"), include_str!("../../src/cleanup_plan/replay/continuation_storage/boxed_frames.rs"), include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/reference_coverage.rs"), include_str!("../../src/cleanup_plan/replay/factored/unpaid_continuation_receiver.rs"),
+            include_str!("../../src/cleanup_plan/replay/continuation_storage/tests/nested_pool.rs"),
+            include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/after_structure_release.rs"),
+            include_str!("../../src/cleanup_plan/replay/fact_preflight/phase_measurement.rs"),
+            include_str!("../../src/cleanup_plan/replay/path_join/selected/execution/byte_iterator.rs"),
+            include_str!("../../src/cleanup_plan/replay/schema/paid_summary/iterator_presence.rs"),
+            include_str!("../../src/cleanup_plan/replay/schema/paid_summary/renewal_selectors.rs"),
+            include_str!("../../src/cleanup_plan/replay/schema/paid_summary/before_selectors.rs"),
+            include_str!("../../src/cleanup_plan/replay/schema/paid_summary/positive_schema_controls.rs"),
+            include_str!("../../src/cleanup_plan/replay/schema/paid_summary/shipping_controls.rs"),
+            include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_renewal.rs"),
+            include_str!("../../src/hir/byte_partition/cache.rs"),
+            include_str!("../../src/workspace_graph/tests/cache_stage_debits.rs"),
+            include_str!("../../src/workspace_graph/tests/checked_values.rs"),
+            include_str!("../../src/workspace_graph/tests/record_traversal.rs"),
+            include_str!("../../src/workspace_graph/tests/source_repair.rs"),
+            include_str!("../../src/workspace_graph/tests/static_protocol.rs"),
+            concat!(include_str!("../../src/workspace_graph/tests/package_link_borrowed.rs"),include_str!("../../src/workspace_graph/tests/package_link_borrowed/old.rs")),
         )
     };
     (import_stub) => {

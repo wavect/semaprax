@@ -628,18 +628,56 @@ fn current_manifest_source(row: &serde_json::Value) -> String {
 }
 
 fn current_source(path: &str, row: &serde_json::Value) -> String {
+    const NATIVE: &str = "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs";
+    const ACTUAL: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    const PRIOR: &str = include_str!("../../e/04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f");
+    const ACTUAL_SHA: &str = "d6b89a848e4a41888a3dfeae92e5739909661e4eb05ddb64e2741ca3d960b251";
+    const PRIOR_SHA: &str = "04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f";
+    if path != NATIVE
+        || row["length"].as_u64() != Some(ACTUAL.len() as u64)
+        || row["sha256"].as_str() != Some(ACTUAL_SHA)
+    {
+        return current_source_before_latest_native_join(path, row);
+    }
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let authenticate = || {
+        assert_eq!(joint_reader::read(&root.join(NATIVE), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(joint_reader::read(&root.join("e/d6b89a848e4a41888a3dfeae92e5739909661e4eb05ddb64e2741ca3d960b251"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
+    };
+    authenticate();
+    let edits = joint_reader::read(&root.join("e/bd1e53f932c629947eab7df4d5c08cac995580fa0201f805ea03a7140373c3da"), 4100, "bd1e53f932c629947eab7df4d5c08cac995580fa0201f805ea03a7140373c3da", 2_097_152).unwrap();
+    let edits: Vec<(usize, usize, String, String)> = serde_json::from_str(&edits).unwrap();
+    assert_eq!(edits.len(), 27);
+    let mut restored = ACTUAL.to_owned();
+    let mut next = restored.len();
+    for (lo, hi, after, before) in edits.into_iter().rev() {
+        assert!(lo <= hi && hi <= next);
+        assert_eq!(restored.get(lo..hi), Some(after.as_str()));
+        restored.replace_range(lo..hi, &before);
+        assert!(restored.len() <= 2_097_152);
+        next = lo;
+    }
+    assert_eq!(restored, PRIOR, "whole previous native source inventory");
+    let mut prior_row = row.clone();
+    prior_row["length"] = (PRIOR.len() as u64).into();
+    prior_row["sha256"] = PRIOR_SHA.into();
+    assert_eq!(current_source_before_latest_native_join(path, &prior_row), PRIOR);
+    authenticate();
+    ACTUAL.to_owned()
+}
+
+fn current_source_before_latest_native_join(path: &str, row: &serde_json::Value) -> String {
     if path == "Cargo.toml" {
         return current_manifest_source(row);
     }
     if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_native_rebind(path, row); }
-    const ACTUAL: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    const ACTUAL: &str = include_str!("../../e/04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f");
     const PREVIOUS: &str = include_str!("../../e/f477df4692424e3526a712ba4b880d21f6f58a42f8c570f976bf6af6b942d0ef");
     const ACTUAL_SHA: &str = "04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f";
     const PREVIOUS_SHA: &str = "f477df4692424e3526a712ba4b880d21f6f58a42f8c570f976bf6af6b942d0ef";
     assert_eq!(ACTUAL.len(), 247455);
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let authenticate = || {
-        assert_eq!(joint_reader::read(&root.join(path), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
         assert_eq!(joint_reader::read(&root.join("e/04162d3e9e7b6a35e5d1c1262e6ff76bc53efd5f236b1aa4834c61d7d5e9811f"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
         assert_eq!(joint_reader::read(&root.join("e/f477df4692424e3526a712ba4b880d21f6f58a42f8c570f976bf6af6b942d0ef"), PREVIOUS.len(), PREVIOUS_SHA, 2_097_152).unwrap(), PREVIOUS);
     };

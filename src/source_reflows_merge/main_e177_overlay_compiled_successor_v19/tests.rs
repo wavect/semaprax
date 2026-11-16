@@ -799,6 +799,16 @@ fn compressed_overlay_keeps_both_whole_histories_and_refuses_damaged_streams() {
                 "3702f3b3e89e58bb66cd205f312792b75ec7469487dc5a0a22cd27f70767cfa3",
             ),
         ),
+        (
+            sealed(
+                262042,
+                "f42e91c0698e73a770426a36813a6d3d946e5546fec3a96f5d72058c379f1af5",
+            ),
+            sealed(
+                212143,
+                "96dd625261d6ff5d531e6a914f0d972477368638a71a0febf1526abb1f723460",
+            ),
+        ),
     ] {
         let prior = compose_values(before.clone(), &old_policy, &page).unwrap();
         for old in prior["rows"].as_array().unwrap() {
@@ -821,24 +831,28 @@ fn compressed_overlay_keeps_both_whole_histories_and_refuses_damaged_streams() {
 
     let engine = base64::engine::general_purpose::STANDARD;
     let payload = wire["payload"].as_str().unwrap();
-    let base85 = wire["schema"] == SCHEMA_V22;
-    let mut compressed = if base85 {
-        decode_base85(payload).unwrap()
-    } else {
-        engine.decode(payload).unwrap()
+    let schema = wire["schema"].as_str().unwrap();
+    let mut compressed = match schema {
+        SCHEMA_V23 => decode_base92(payload).unwrap(),
+        SCHEMA_V22 => decode_base85(payload).unwrap(),
+        SCHEMA_V21 => engine.decode(payload).unwrap(),
+        _ => panic!("expected compressed page"),
     };
     compressed.push(0);
-    let damaged = if base85 {
-        let mut encoded = Vec::new();
-        for chunk in compressed.chunks(4) {
-            let mut bytes = [0; 4];
-            bytes[..chunk.len()].copy_from_slice(chunk);
-            let digits = base85_digits(u32::from_be_bytes(bytes));
-            encoded.extend_from_slice(&digits[..chunk.len() + 1]);
+    let damaged = match schema {
+        SCHEMA_V23 => encode_base92(&compressed),
+        SCHEMA_V22 => {
+            let mut encoded = Vec::new();
+            for chunk in compressed.chunks(4) {
+                let mut bytes = [0; 4];
+                bytes[..chunk.len()].copy_from_slice(chunk);
+                let digits = base85_digits(u32::from_be_bytes(bytes));
+                encoded.extend_from_slice(&digits[..chunk.len() + 1]);
+            }
+            String::from_utf8(encoded).unwrap()
         }
-        String::from_utf8(encoded).unwrap()
-    } else {
-        engine.encode(compressed)
+        SCHEMA_V21 => engine.encode(compressed),
+        _ => panic!("expected compressed page"),
     };
     for (key, value) in [
         ("length", 0.into()),
@@ -870,4 +884,51 @@ fn base85_enforces_canonical_groups_and_tails() {
     for encoded in ["0", "01", "0001", "~~~~~", "00/00", "0 000"] {
         assert!(decode_base85(encoded).is_err(), "{encoded}");
     }
+}
+
+fn encode_base92(bytes: &[u8]) -> String {
+    let alphabet: Vec<_> = (b'!'..=b'~')
+        .filter(|&symbol| !matches!(symbol, b'"' | b'\\'))
+        .collect();
+    let mut encoded = Vec::new();
+    for group in bytes.chunks(13) {
+        let mut padded = [0; 16];
+        padded[16 - group.len()..].copy_from_slice(group);
+        let mut value = u128::from_be_bytes(padded);
+        let mut digits = [0; 16];
+        let width = BASE92_WIDTHS[group.len()];
+        for digit in digits[..width].iter_mut().rev() {
+            *digit = alphabet[(value % 92) as usize];
+            value /= 92;
+        }
+        encoded.extend_from_slice(&digits[..width]);
+    }
+    String::from_utf8(encoded).unwrap()
+}
+
+#[test]
+fn base92_enforces_canonical_groups_and_tails() {
+    for width in 0..=26 {
+        for byte in [0, 1, 127, 128, 254, 255] {
+            let input = vec![byte; width];
+            assert_eq!(decode_base92(&encode_base92(&input)).unwrap(), input);
+        }
+    }
+    for encoded in [
+        "!",
+        "!!!!!!",
+        "!!!!!!!!!!!",
+        "~~",
+        "~~~~~~~~~~~~~~~~",
+        "a\\",
+        "a\"",
+        "a ",
+    ] {
+        assert!(decode_base92(encoded).is_err(), "{encoded}");
+    }
+    assert_eq!(
+        decode_base92(&"!".repeat(PAGE_CAP)).unwrap().len(),
+        PAGE_CAP / 16 * 13
+    );
+    assert!(decode_base92(&"!".repeat(PAGE_CAP + 1)).is_err());
 }

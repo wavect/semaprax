@@ -184,3 +184,17 @@ predecessor authentication and full source/compiled/archive checks. V11 restores
 the entire V10-shaped intermediate, including all unknown fields and ordering;
 older wire readers, their bounds and their independent controls are unchanged.
 Run-specific qualification is source-codec evidence only.
+
+## V23 compressed transport
+
+V23 uses the existing compressed envelope and single zlib stream over the
+complete canonical V20 page. Its payload encodes each 13-byte big-endian
+group in 16 digits from printable ASCII in ascending order, excluding the
+JSON quote and backslash. Partial groups use the shortest digit width that
+can represent every value in their byte width. The readers reject invalid
+digits, unassigned group widths and values that exceed the group's extent.
+
+The physical page limit remains 262144 bytes and the decompressed limit
+remains 524288 bytes. The readers authenticate the exact decompressed length
+and SHA-256 before composing the complete V20 page. V21 and V22 remain
+independently readable.

@@ -1491,8 +1491,42 @@ def encode_v20(page,compiled_successor,transport_cap=PAGE_CAP):
 # cap is unchanged and the decompressor has a separate finite output bound.
 V21_SCHEMA = 'semaprax.finite-source-overlay-page.v21'
 V22_SCHEMA = 'semaprax.finite-source-overlay-page.v22'
-COMPRESSED_SCHEMAS = (V21_SCHEMA,V22_SCHEMA)
+V23_SCHEMA = 'semaprax.finite-source-overlay-page.v23'
+COMPRESSED_SCHEMAS = (V21_SCHEMA,V22_SCHEMA,V23_SCHEMA)
 V21_OUTPUT_CAP = 524288
+
+# Encode thirteen bytes in sixteen JSON-safe ASCII digits. Each shorter group
+# has a distinct width and rejects values outside its original byte extent.
+_BASE92_ALPHABET = bytes(byte for byte in range(33, 127) if byte not in (34, 92))
+_BASE92_WIDTHS = (0, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 16)
+
+def encode_base92(raw):
+ result = bytearray()
+ for offset in range(0, len(raw), 13):
+  block = raw[offset:offset+13]
+  value = int.from_bytes(block, 'big')
+  digits = bytearray(_BASE92_WIDTHS[len(block)])
+  for index in reversed(range(len(digits))):
+   value, digit = divmod(value, 92)
+   digits[index] = _BASE92_ALPHABET[digit]
+  result.extend(digits)
+ return bytes(result)
+
+def decode_base92(encoded):
+ assert len(encoded) <= PAGE_CAP, 'v23 encoded bound'
+ result = bytearray()
+ for offset in range(0, len(encoded), 16):
+  digits = encoded[offset:offset+16]
+  assert len(digits) in _BASE92_WIDTHS, 'v23 canonical base92 width'
+  width = _BASE92_WIDTHS.index(len(digits))
+  value = 0
+  for symbol in digits:
+   digit = _BASE92_ALPHABET.find(symbol)
+   assert digit >= 0, 'v23 canonical base92 digit'
+   value = value * 92 + digit
+  assert value < 1 << (width * 8), 'v23 canonical base92 extent'
+  result.extend(value.to_bytes(width, 'big'))
+ return bytes(result)
 
 def expand_compressed_page(page):
  import zlib
@@ -1505,9 +1539,11 @@ def expand_compressed_page(page):
  if page['schema']==V21_SCHEMA:
   compressed=base64.b64decode(encoded,validate=True)
   assert base64.b64encode(compressed).decode()==encoded, 'v21 canonical base64'
- else:
+ elif page['schema']==V22_SCHEMA:
   compressed=base64.b85decode(encoded)
   assert base64.b85encode(compressed).decode()==encoded, 'v22 canonical base85'
+ else:
+  compressed=decode_base92(encoded.encode('utf-8'))
  stream=zlib.decompressobj()
  raw=stream.decompress(compressed,length+1)
  assert stream.eof and not stream.unused_data and not stream.unconsumed_tail, 'v21 complete single stream'
@@ -1522,7 +1558,7 @@ def encode_compressed_page(page,schema=V22_SCHEMA):
  raw=canonical(page)
  assert len(raw)<=V21_OUTPUT_CAP, 'v21 output bound'
  assert schema in COMPRESSED_SCHEMAS, 'closed compression schema'
- encode=base64.b64encode if schema==V21_SCHEMA else base64.b85encode
+ encode={V21_SCHEMA:base64.b64encode,V22_SCHEMA:base64.b85encode,V23_SCHEMA:encode_base92}[schema]
  def envelope(compressed):
   return dict(schema=schema,length=len(raw),sha256=H(raw),
               payload=encode(compressed).decode())

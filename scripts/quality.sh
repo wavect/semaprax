@@ -157,7 +157,7 @@ while IFS="$tab" read -r kind gate _rest; do
     # on a clean checkout. The proof gate is outside the validated Rust plan.
     if [ "$gate" = test-workspace ]; then
         printf '==> kernel0-lean-proof\n' >&2
-        python3 scripts/kernel0-lean-gate.py
+        python3 scripts/kernel0-lean-gate.py --workspace-test-build
     fi
     printf '==> %s\n' "$gate" >&2
     case "$gate" in

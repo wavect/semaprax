@@ -310,7 +310,11 @@ the exact behavior; the summary follows:
   check.
 - **Invoked from `scripts/quality.sh full`** before `test-workspace`, so a
   clean checkout has the compiled modules that the Rust Lean witness tests
-  import. The proof gate runs outside the `semaprax.quality-route.v2` schema.
+  import. In that route the gate uses the workspace all-features library
+  test build for the exact transaction fixture. The following workspace test
+  step can reuse those Cargo artifacts. The standalone proof command uses the
+  package's default features. The proof gate runs outside the
+  `semaprax.quality-route.v2` schema.
   It also runs in the `kernel0-lean-proof-gate` CI job in `.github/workflows/ci.yml`, which
   **is** in `release-gate`'s blocker set.
 

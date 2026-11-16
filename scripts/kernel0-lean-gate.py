@@ -924,7 +924,7 @@ theorem victim : False := by
     return failures
 
 
-def check_build_level(require_kernel: bool) -> tuple[list[str], bool]:
+def check_build_level(require_kernel: bool, workspace_test_build: bool) -> tuple[list[str], bool]:
     """Runs `lake build` and audits its output. Returns (failures, ran) --
     `ran` is False when no toolchain was available at all, in which case
     `failures` is empty unless `require_kernel` was asked for, which turns
@@ -1025,23 +1025,29 @@ def check_build_level(require_kernel: bool) -> tuple[list[str], bool]:
                 environment = dict(os.environ)
                 environment["SEMAPRAX_TRANSACTION_LEAN"] = lean
                 environment["SEMAPRAX_TRANSACTION_FIXTURE"] = str(fixture)
+                selection = (
+                    ["--workspace", "--all-features"]
+                    if workspace_test_build
+                    else ["-p", "semaprax"]
+                )
+                test_name = (
+                    "kernel_zero::transaction::lean::tests::"
+                    "exact_rename_and_replace_fixtures_are_deterministic_and_kernel_checkable"
+                )
                 transaction = subprocess.run(
-                    [
-                        cargo,
-                        "test",
-                        "--locked",
-                        "-p",
-                        "semaprax",
-                        "--lib",
-                        "exact_rename_and_replace_fixtures_are_deterministic_and_kernel_checkable",
-                    ],
+                    [cargo, "test", "--locked", *selection, "--lib", test_name, "--", "--exact"],
                     cwd=str(REPO_ROOT),
                     env=environment,
                     capture_output=True,
                     text=True,
                 )
+                fixture_written = fixture.is_file() and fixture.stat().st_size > 0
             output = transaction.stdout + transaction.stderr
-            if transaction.returncode != 0 or "1 passed" not in output:
+            passed = sum(
+                int(count)
+                for count in re.findall(r"^test result: ok\. ([0-9]+) passed;", output, re.MULTILINE)
+            )
+            if transaction.returncode != 0 or passed != 1 or not fixture_written:
                 failures.append(
                     "transaction replay fixture gate did not execute exactly one passing test:\n"
                     + output
@@ -1169,6 +1175,11 @@ def main() -> int:
             "skip, so PASS-PARTIAL can never be reported as a pass"
         ),
     )
+    parser.add_argument(
+        "--workspace-test-build",
+        action="store_true",
+        help="use the workspace all-features library build for the Rust fixture",
+    )
     arguments = parser.parse_args()
 
     if not SOURCE.is_file():
@@ -1226,7 +1237,9 @@ def main() -> int:
         )
 
     source_failures = check_source_level(source_text)
-    build_failures, build_ran = check_build_level(arguments.require_kernel)
+    build_failures, build_ran = check_build_level(
+        arguments.require_kernel, arguments.workspace_test_build
+    )
 
     all_failures = (
         self_test_failures

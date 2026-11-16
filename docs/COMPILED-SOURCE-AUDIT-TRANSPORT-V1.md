@@ -298,3 +298,23 @@ The build's exact binaries passed 27 literal-format tests and 15
 selected-file tests, including the original LogLens acceptance corpus
 at native O0 and O2. The all-target inventory reports discovery, while the
 focused results report execution.
+
+## Secondary byte traversal scalar-root recheck
+
+The paid root selector from `9ae1e5e42` is present in main
+`251292f72a22c5bbdfdf0e05d5d4623cd475a103`. The measured test build used
+`d479cb1d4f676c2a3b3efe2c4f4fbc49cbf7bc44` with byte-identical Rust,
+test and Cargo inputs, Rust 1.97.1, and the private macOS arm64 target
+described above.
+
+In the mixed fixture the original secondary receiver initialized its
+fixed frame array 13 times. The current receiver initialized it eight
+times. The selector was reached 11 times and charged 405 bytes each,
+adding 4,455 bytes of cumulative reservation. Both receivers allocated
+zero heap bytes in the observed replay window. These setup counts
+leave wall-time impact and application admission unmeasured.
+
+All 37 focused checks passed. They covered the whole immediate-predecessor
+source inverse, paid and hostile replay, exact and short budgets, loan
+precedence, the interpreter, native and Core Wasm traversal owners, and
+warm-cache replay. The full quality gate remains outstanding for #935.

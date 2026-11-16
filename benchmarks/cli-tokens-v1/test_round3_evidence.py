@@ -42,8 +42,10 @@ class Round3EvidenceTests(unittest.TestCase):
 
     def test_live_results_add_round_three_without_replacing_prior_rounds(self):
         runs = LIVE_RESULTS["runs"]
-        self.assertEqual([run["round"] for run in runs], [1, 2, 3])
-        round3 = runs[-1]
+        rounds = [run["round"] for run in runs]
+        self.assertEqual(rounds[:3], [1, 2, 3])
+        self.assertEqual(rounds, sorted(set(rounds)))
+        round3 = runs[2]
         self.assertEqual(round3["original_full_corpus_acceptance"],
                          "0/5 per arm; accepted-task cost is null")
         self.assertIsNone(round3["semaprax"]["cost_per_accepted_task_usd"])

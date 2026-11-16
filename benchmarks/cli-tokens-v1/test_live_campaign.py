@@ -902,6 +902,7 @@ class LiveCampaignTests(unittest.TestCase):
                 "timeout_seconds": 30,
                 "max_budget_usd": None,
                 "authored_source_tokenizer": None,
+                "price_book": {"per_million_tokens": live_campaign.PRICE_USD_PER_MTOK},
             }
 
             def fake_cli(_command, cwd, _env, stream_path, stderr_path, _timeout):
@@ -1634,6 +1635,7 @@ sys.stdout.write(json_line(report) if as_json else text(report))
             "observed_model_id": live_campaign.MODEL,
             "seed_files_sha256": seed_hashes,
             "authored_source_tokenizer": None,
+            "price_book": {"per_million_tokens": live_campaign.PRICE_USD_PER_MTOK},
         }
 
         def add_worktree(_seed, path, _commit):
@@ -1655,7 +1657,8 @@ sys.stdout.write(json_line(report) if as_json else text(report))
                 (workspace / "unexpected.txt").write_text("outside candidate\n", encoding="utf-8")
             return {"accepted": True}
 
-        def archive_candidate(_candidate, _archive):
+        def archive_candidate(_candidate, _archive, *, exclude_verified_node_modules):
+            self.assertFalse(exclude_verified_node_modules)
             if mutation_stage == "during_archive":
                 (workspace / mutated_path).write_bytes(b"changed public input\n")
             return {}, []

@@ -190,6 +190,18 @@ scope. Reports sum evidence across attempts, including failures, when every
 attempt has a count. Delivered bytes and tokens require model request evidence
 linked to those items and remain unavailable in the exec transcript.
 
+In an offline HTTP test with Codex CLI `0.167.0-alpha.4.1` and the exact
+`e49a24a6d` compiler candidate, a scripted provider requested either the
+full language reference or the bounded web guide, then the same authoring
+route index. With a 1,024-token tool output limit, the full reference's
+81,938 captured bytes yielded 4,096 original stdout bytes in each of two
+subsequent requests. All 995 captured web-guide bytes appeared in both.
+The route index contributed the same 2,039 bytes in the final request.
+That gives 10,231 and 4,029 original help stdout bytes across requests,
+respectively, excluding the tool wrapper and truncation notice. The fixture
+measures client serialization over loopback. Live provider context, token
+attribution, and cost remain unmeasured.
+
 ### Receipt accounting maintenance (OPT606)
 
 The shared Claude parser requires every deduplicated message bucket before

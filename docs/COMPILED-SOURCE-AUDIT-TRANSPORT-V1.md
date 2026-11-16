@@ -231,3 +231,56 @@ v0 binary hashes are
 `64b022c058ad4e212ac4f4995b0ae7daa86797e74bbb52f78aecae392cb4d099`
 and `29572840b1f946a158f9477c4929db0556e8be1b7fd95fe0d933df12290e7831`.
 The experiment did not change the build profile.
+
+## Matched workspace library tests at `d479cb1d4`
+
+Two default builds and two builds with 32 codegen units completed the
+`semaprax` library-test compile on the same 18 GiB macOS arm64 host.
+Each used Rust 1.97.1, one Cargo worker, optimization level 0, zero debug
+info and no incremental compilation. Dependencies were warm and each
+primary compiler invocation was fresh. The 32-unit builds used the same
+library-test dependency bytes as the workspace-first default build.
+Their primary rustc arguments differed in the codegen-unit setting and
+Cargo output identities and paths.
+
+| Test codegen profile | rustc wall seconds | Peak physical footprint (bytes) | Peak RSS (bytes) |
+| --- | ---: | ---: | ---: |
+| Default, repeat 1 | 424.44 | 17,533,630,600 | 5,847,400,448 |
+| Default, repeat 2 | 459.85 | 17,530,452,080 | 5,691,179,008 |
+| 32 units, repeat 1 | 455.38 | 17,205,704,576 | 5,750,702,080 |
+| 32 units, repeat 2 | 409.03 | 17,209,587,584 | 4,965,203,968 |
+
+The 32-unit builds lowered peak physical footprint by 306–313 MiB
+compared with the default builds on this host. Stack samples at 15 GiB
+placed the high-footprint interval in LLVM code generation. These are
+primary compiler measurements under shared-host load. The repeat changed
+only the library-test unit's freshness. Workspace setup and application
+token usage are outside the measurement.
+
+All four workspace builds listed the same 12,799 tests across 15 library
+test executables, with identical registered and ignored inventories.
+Both 32-unit builds passed 58 focused assertions and generated the
+identical 402,200-byte checked Lean transaction fixture, SHA-256
+`495f770fcd168863a398554322ee12b62d71af2efb73b0ad62254c4dd1be1827`.
+The complete Lean gate also reused the repeat build, checked all 53 axiom
+sets and passed all four negative controls.
+
+Separately, reusing the workspace library-test build for the Lean gate
+saved 376.62 seconds of root compiler time by removing a duplicate
+compile on this source.
+
+For a one-worker library-test build, use a private target on the external
+SSD and the pinned compiler:
+
+```sh
+CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 \
+  CARGO_PROFILE_TEST_DEBUG=0 CARGO_TARGET_DIR="$PWD/target/opt798" \
+  cargo --config 'profile.test.package.semaprax.codegen-units=32' \
+  test --locked --workspace --all-features --lib --no-run
+```
+
+The override changes 3 of 315 Cargo units for this library-test route.
+The all-target test plan has the same unit graph and 160 roots as the
+default plan, with the codegen override applied to 95 of 480 units. The
+270-unit release build plan is byte-identical under the override. The
+timing and memory comparison covers the root library-test compiler.

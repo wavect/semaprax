@@ -23,8 +23,11 @@ MAX_SEAL_BYTES = 512
 
 def publication_seal(raw, nonce, receipt):
     if (type(raw) is not bytes or not raw.endswith(b'\n')
-            or len(raw) > MAX_SEAL_BYTES or raw.count(b'\n') != 1):
+            or len(raw) > MAX_SEAL_BYTES or raw.count(b'\n') != 1 or b'\r' in raw):
         raise Refusal('compiler stdout is not one complete bounded seal')
+    if (type(receipt) is not bytes or not receipt.endswith(b'\n')
+            or receipt.count(b'\n') != 1 or b'\r' in receipt):
+        raise Refusal('compiler receipt must be one byte record with a terminal LF')
     seal = closed(decode(raw), ['schema', 'nonce', 'receipt_bytes', 'receipt_sha256'])
     if (seal['schema'] != 'semaprax.json-codec-publication-seal.v1'
             or seal['nonce'] != nonce or type(seal['receipt_bytes']) is not int

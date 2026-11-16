@@ -83,11 +83,25 @@ class SharedRuntimeChecks(unittest.TestCase):
             'receipt_bytes': len(artifact), 'receipt_sha256': 'sha256:' + hashlib.sha256(artifact).hexdigest()}
         raw = encode(seal)
         self.assertEqual(broker.publication_seal(raw, 'runner-owned', artifact), seal)
-        for changed in [raw[:-1], raw + raw, raw + b'garbage', raw.replace(b'runner-owned', b'foreign'),
+        for changed in [raw[:-1], raw[:-1] + b'\r\n', raw + raw, raw + b'garbage',
+                raw.replace(b'runner-owned', b'foreign'),
                 encode(dict(seal, receipt_bytes=True)), encode(dict(seal, receipt_bytes=len(artifact)+1)),
                 encode(dict(seal, receipt_sha256='sha256:'+'0'*64)), encode(dict(seal, extra=True))]:
             self.assertRaises(Refusal, broker.publication_seal, changed, 'runner-owned', artifact)
         self.assertRaises(Refusal, broker.publication_seal, raw, 'runner-owned', artifact + b' ')
+
+    def test_matching_seal_requires_exactly_one_terminal_lf_in_the_receipt(self):
+        for artifact in (b'{"retained":"exact"}', b'{"retained":"exact"}\n\n',
+                         b'{"retained":"exact"}\r\n', b'{\n"retained":"exact"}\n'):
+            with self.subTest(artifact=artifact):
+                seal = encode({
+                    'schema': 'semaprax.json-codec-publication-seal.v1',
+                    'nonce': 'runner-owned',
+                    'receipt_bytes': len(artifact),
+                    'receipt_sha256': 'sha256:' + hashlib.sha256(artifact).hexdigest(),
+                })
+                with self.assertRaisesRegex(Refusal, 'terminal LF'):
+                    broker.publication_seal(seal, 'runner-owned', artifact)
 
     def test_closed_request_has_no_caller_nonce_binary_policy_or_environment(self):
         authority = SimpleNamespace(workspace_root='/workspace/candidate', authorize_cwd=lambda _: None)

@@ -217,6 +217,11 @@ impl Fixture {
                 include_str!("../../e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2"), 55786, &[
                     (2115, ";\n#[cfg(test)]\npub(super) use paired::tests::{\n    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,\n}", ""),
                 ][..]),
+            ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", "0aac14bdb3c69a167151e5861a187b1ca3d45001716c9bffb3988651ee1495b8") => (
+                include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"), 11934, "68de564b89f8432e4d0d84d18f9f2358b84c2e7d39382a23051e7e1804ac2faf",
+                include_str!("../../e/0aac14bdb3c69a167151e5861a187b1ca3d45001716c9bffb3988651ee1495b8"), 11443, &[
+                    (6159, "const SOURCE: &str = \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs\";\n        const BEFORE_FORMAT: &str =\n            \"a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1\";\n        restored = crate::source_reflows_merge::main_e177_final_inputs::declared_history_inputs::expected_value(\n            SOURCE,\n            BEFORE_FORMAT,\n            current,\n        )\n        .expect(\"complete pre-format PLAN comparison owner\");\n        ", ""),
+                ][..]),
             ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d") => (
                 include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"), 11443, "0aac14bdb3c69a167151e5861a187b1ca3d45001716c9bffb3988651ee1495b8",
                 include_str!("../../e/c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d"), 10608, &[
@@ -268,6 +273,9 @@ impl Fixture {
             && expected == "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0";
         let has_export_epoch = source == "src/cleanup_plan/replay/factored.rs"
             && expected == "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4";
+        let has_frontier_epoch = source
+            == "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"
+            && expected == "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d";
         let has_declared_epoch = matches!(
             (source, sha),
             (
@@ -296,6 +304,8 @@ impl Fixture {
                 })
                 .collect();
             (std::borrow::Cow::Owned(predecessor), edits)
+        } else if has_frontier_epoch {
+            Self::closure_epoch(source, sha, supplied)
         } else if has_paired_epoch {
             Self::closure_epoch(
                 source,
@@ -343,7 +353,9 @@ impl Fixture {
             Self::prior_source(source, &actual).expect("exact late arm-context source")
         } else {
             current_file(
-                &if has_paired_epoch {
+                &if has_frontier_epoch {
+                    root.join("e").join(sha)
+                } else if has_paired_epoch {
                     root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
                 } else if has_current_epoch {
                     root.join("e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4")

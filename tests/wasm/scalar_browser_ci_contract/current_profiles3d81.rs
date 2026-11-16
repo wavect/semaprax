@@ -18,11 +18,11 @@ const NATIVE_E127: [&str; 2] = [
 ];
 
 // These are the ordinary authenticated Project graphs shared by current Web builds.
-pub(super) const HOSTED_CURRENT: [&str; 2] = [
+const HOSTED_PREVIOUS_CURRENT: [&str; 2] = [
     include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-baseline.json"),
     include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-renamed.json"),
 ];
-const NATIVE_CURRENT: [&str; 2] = [
+const NATIVE_PREVIOUS_CURRENT: [&str; 2] = [
     include_str!(
         "../../../docs/evidence/browser-capture-6b66-20261113/native-calculator-baseline.json"
     ),
@@ -31,10 +31,33 @@ const NATIVE_CURRENT: [&str; 2] = [
     ),
 ];
 
-fn current_role(graph: &str, role: &str) -> Option<usize> {
-    if !HOSTED_CURRENT
+// These are the ordinary authenticated Project graphs shared by current Web builds.
+pub(super) const HOSTED_CURRENT: [&str; 2] = [
+    include_str!(
+        "../../../docs/evidence/browser-web-current-d18b9ce-20261116/calculator-baseline.json"
+    ),
+    include_str!(
+        "../../../docs/evidence/browser-web-current-d18b9ce-20261116/calculator-renamed.json"
+    ),
+];
+const NATIVE_CURRENT: [&str; 2] = [
+    include_str!(
+        "../../../docs/evidence/browser-web-current-d18b9ce-20261116/native-calculator-baseline.json"
+    ),
+    include_str!(
+        "../../../docs/evidence/browser-web-current-d18b9ce-20261116/native-calculator-renamed.json"
+    ),
+];
+
+fn profile_role(
+    graph: &str,
+    role: &str,
+    hosted: [&'static str; 2],
+    native: [&'static str; 2],
+) -> Option<usize> {
+    if !hosted
         .into_iter()
-        .chain(NATIVE_CURRENT)
+        .chain(native)
         .any(|raw| graph == wire(raw))
     {
         return None;
@@ -45,14 +68,25 @@ fn current_role(graph: &str, role: &str) -> Option<usize> {
         _ => panic!("unknown exact current fixture role"),
     };
     assert!(
-        graph == wire(HOSTED_CURRENT[index]) || graph == wire(NATIVE_CURRENT[index]),
+        graph == wire(hosted[index]) || graph == wire(native[index]),
         "complete exact current role/profile wire required"
     );
     Some(index)
 }
 
 pub(super) fn latest_previous(graph: &str, role: &str) -> Option<&'static str> {
-    if let Some(index) = current_role(graph, role) {
+    if let Some(index) = profile_role(graph, role, HOSTED_CURRENT, NATIVE_CURRENT) {
+        let previous = wire(HOSTED_PREVIOUS_CURRENT[index]);
+        assert_eq!(restore_bill(graph, previous), previous);
+        assert_eq!(pinned(previous, role), previous);
+        return Some(previous);
+    }
+    if let Some(index) = profile_role(
+        graph,
+        role,
+        HOSTED_PREVIOUS_CURRENT,
+        NATIVE_PREVIOUS_CURRENT,
+    ) {
         let previous = wire(HOSTED_E127[index]);
         assert_eq!(restore_bill(graph, previous), previous);
         assert_eq!(pinned(previous, role), previous);
@@ -138,6 +172,8 @@ pub(super) fn recognizes(graph: &str) -> bool {
         .chain(NATIVE_A281)
         .chain(HOSTED_E127)
         .chain(NATIVE_E127)
+        .chain(HOSTED_PREVIOUS_CURRENT)
+        .chain(NATIVE_PREVIOUS_CURRENT)
         .chain(HOSTED_CURRENT)
         .chain(NATIVE_CURRENT)
         .any(|text| graph == wire(text))
@@ -175,9 +211,18 @@ fn restore_bill(graph: &str, previous: &str) -> String {
 }
 
 pub(super) fn pinned(graph: &str, role: &str) -> &'static str {
-    if let Some(index) = current_role(graph, role) {
+    if let Some(index) = profile_role(graph, role, HOSTED_CURRENT, NATIVE_CURRENT) {
         assert!(latest_previous(graph, role).is_some());
         return wire(HOSTED_CURRENT[index]);
+    }
+    if let Some(index) = profile_role(
+        graph,
+        role,
+        HOSTED_PREVIOUS_CURRENT,
+        NATIVE_PREVIOUS_CURRENT,
+    ) {
+        assert!(latest_previous(graph, role).is_some());
+        return wire(HOSTED_PREVIOUS_CURRENT[index]);
     }
     if latest_previous(graph, role).is_some() {
         return wire(HOSTED_E127[if role == "baseline" { 0 } else { 1 }]);
@@ -273,14 +318,26 @@ fn before(source: &str) -> &'static str {
 }
 
 // Apply this capture's inverse before entering the sealed older source bridge.
+fn before_funding_capture(source: &str, current: &str) -> Option<String> {
+    restore_capture(
+        include_str!(
+            "../../../docs/evidence/browser-web-current-d18b9ce-20261116/source-inverses.json"
+        ),
+        source,
+        current,
+    )
+}
+
 fn before_current_capture(source: &str, current: &str) -> Option<String> {
+    let previous = before_funding_capture(source, current);
     let previous = restore_capture(
         include_str!(
             "../../../docs/evidence/browser-web-ordinary-347f-20261116/source-inverses.json"
         ),
         source,
-        current,
-    );
+        previous.as_deref().unwrap_or(current),
+    )
+    .or(previous);
     restore_capture(
         include_str!("../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json"),
         source,
@@ -410,6 +467,18 @@ pub(super) fn prior_owner(current: &str) -> Cow<'_, str> {
 }
 
 pub(super) fn runner_for_graph(graph: &str, runner: &str) -> Option<String> {
+    if runner == compiled("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs")
+        && HOSTED_PREVIOUS_CURRENT
+            .into_iter()
+            .chain(NATIVE_PREVIOUS_CURRENT)
+            .any(|raw| graph == wire(raw))
+    {
+        return before_funding_capture(
+            "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+            runner,
+        );
+    }
+
     if runner == compiled("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs")
         && HOSTED_A281
             .into_iter()
@@ -692,30 +761,41 @@ mod tests {
 
 #[test]
 fn latest_profiles_preserve_complete_predecessors_and_refuse_every_semantic_drift() {
-    for (index, role) in ["baseline", "renamed"].into_iter().enumerate() {
-        for raw in [HOSTED_E127[index], NATIVE_E127[index]] {
-            let graph = wire(raw);
-            assert_eq!(pinned(graph, role), wire(HOSTED_E127[index]));
-            assert_eq!(latest_previous(graph, role), Some(wire(HOSTED_A281[index])));
-            let opposite = if role == "baseline" {
-                "renamed"
-            } else {
-                "baseline"
-            };
-            assert!(std::panic::catch_unwind(|| pinned(graph, opposite)).is_err());
-            let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
-            for (field, changed) in [("used_call_sites", 11), ("used_builder_bytes", 1)] {
-                let from = format!("\"{field}\":{}", parsed["budget"][field]);
-                let to = format!("\"{field}\":{changed}");
-                assert_eq!(graph.matches(&from).count(), 1);
-                let altered = graph.replacen(&from, &to, 1);
-                let from = format!("\"graph_digest\":{}", parsed["graph_digest"]);
-                let digest = graph_digest(&altered);
-                let altered = altered.replacen(&from, &format!("\"graph_digest\":\"{digest}\""), 1);
-                assert!(
-                    std::panic::catch_unwind(|| super::pinned_fixture_graph(&altered, role))
-                        .is_err()
-                );
+    for (hosted, native, previous) in [
+        (HOSTED_CURRENT, NATIVE_CURRENT, HOSTED_PREVIOUS_CURRENT),
+        (
+            HOSTED_PREVIOUS_CURRENT,
+            NATIVE_PREVIOUS_CURRENT,
+            HOSTED_E127,
+        ),
+        (HOSTED_E127, NATIVE_E127, HOSTED_A281),
+    ] {
+        for (index, role) in ["baseline", "renamed"].into_iter().enumerate() {
+            for raw in [hosted[index], native[index]] {
+                let graph = wire(raw);
+                assert_eq!(pinned(graph, role), wire(hosted[index]));
+                assert_eq!(latest_previous(graph, role), Some(wire(previous[index])));
+                let opposite = if role == "baseline" {
+                    "renamed"
+                } else {
+                    "baseline"
+                };
+                assert!(std::panic::catch_unwind(|| pinned(graph, opposite)).is_err());
+                let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+                for (field, changed) in [("used_call_sites", 11), ("used_builder_bytes", 1)] {
+                    let from = format!("\"{field}\":{}", parsed["budget"][field]);
+                    let to = format!("\"{field}\":{changed}");
+                    assert_eq!(graph.matches(&from).count(), 1);
+                    let altered = graph.replacen(&from, &to, 1);
+                    let from = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+                    let digest = graph_digest(&altered);
+                    let altered =
+                        altered.replacen(&from, &format!("\"graph_digest\":\"{digest}\""), 1);
+                    assert!(std::panic::catch_unwind(|| super::pinned_fixture_graph(
+                        &altered, role
+                    ))
+                    .is_err());
+                }
             }
         }
     }

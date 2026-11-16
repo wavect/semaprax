@@ -43,6 +43,7 @@ const expectedFunctions = [
 // Linux 1.88 digests replay actual run 39606073000 at 7b46f47b1a.
 // Complete graphs and job provenance: docs/evidence/browser-capture-7b46-20261021;
 // prior full captures remain in docs/evidence/browser-pins-487-20261018/browser-capture.
+// Current exact profiles and source bridge: docs/evidence/browser-web-current-d18b9ce-20261116.
 // Browser runtime remains an executable CI gate.
 const fixtureSpecs = [
   { name: "direct-source", schema: "semaprax.web.v4" },
@@ -51,22 +52,22 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:cfaa4109c85b3ef68ac90e28c824a520b3e9e567aaaf98fc715bfaa6ee45679d",
+    project_graph_digest: "sha256:d16e18b7234b7f2e08e3092c1e924c5c29f6d909128ea8024a9b64c1702aa9bb",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:a1780351ac50b424d4c39a6b1db98f0069c0d961b4a4eb3805f684b8db134b58",
+    project_graph_digest: "sha256:281b0fed456b01fcda05a7721ef5ff248febc99f83b3f1bb78546c7177f648dc",
   },
 ];
 // Explicit exact profile for local Rust 1.97 builds. The hosted CI default
 // keeps the Linux Rust 1.88 pins above; no caller-supplied digest is accepted.
 const graphProfile = process.env.SEMAPRAX_BROWSER_GRAPH_PROFILE ?? "hosted-rust-1.88";
 if (graphProfile === "native-rust-1.97") {
-  fixtureSpecs[1].project_graph_digest = "sha256:8737e377209c925660afa9770d8abf52958858b42d2e7873a63780164fdf8571";
-  fixtureSpecs[2].project_graph_digest = "sha256:2961a7f340668069579447033685244b61f7894cf5f9d738a629e0c7561b871f";
+  fixtureSpecs[1].project_graph_digest = "sha256:22dd11f20a6b747e8ec02d46c0be48401600047df7008bc55e138a0faba45862";
+  fixtureSpecs[2].project_graph_digest = "sha256:e12b0bec718103080e280bbccedb62e891ae454bba6a7f362695d803e5d177f7";
 } else if (graphProfile !== "hosted-rust-1.88") {
   throw new Error(`unknown exact compiler graph profile: ${graphProfile}`);
 }

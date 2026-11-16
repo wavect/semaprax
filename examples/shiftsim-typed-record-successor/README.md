@@ -34,29 +34,38 @@ cases and original invalid-input checks. Qualification is pending. Conversion
 vector removal changes allocation-failure ordinals; no allocation gain is claimed.
 
 The request and response schemas are authored in `src/request.spx` and
-`src/response.spx`. Bootstrap the ordinary compiler-generated helpers in a
-copy of this directory. Derive the paired codecs as one complete checked,
-reviewable bundle against the unchanged authored revision:
+`src/response.spx`. From this example directory, use the full toolchain to
+generate both codecs and select the real command in a fresh directory.
+
+```sh
+(
+  set -e
+  example="$(pwd -P)"
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/shiftsim.XXXXXXXX")"
+  output="$scratch/shiftsim-app"
+  semaprax-full new "$output" --from "$example" --codec-plan codec-plan.json \
+    --command-profile language-command-io.collection-record.v1 \
+    --command-path src/app.spx --command-source src/app.command.spx
+  cd "$output"
+  semaprax-full check .
+  semaprax-full test . --target native-collection-record-pure.v1
+  semaprax-full build . --target native -o shiftsim
+  ./shiftsim < "$example/fixtures/request.json"
+)
+```
+
+The generated README records the codec plan, command activation, source
+inventory and graph digest. A fresh destination leaves the example sources
+available for review. You can also inspect the paired codec bundle independently.
 
 ```sh
 semaprax json-codec . --plan codec-plan.json --output codecs.candidate.json
 ```
 
-`codec-plan.json` selects the original streaming request and bounded collection
-response profiles. The bundle retains original authored schemas separately from
-all candidate sources and exact per-entry receipts. Review the complete candidate
-before installation through ordinary source or managed transaction authority;
-there is no user-managed derive/replay order between the two codecs. The command
-never overwrites source and the bundle grants no mutation authority. After
-installing the reviewed candidate in the copy, activate the real command:
-
-```sh
-cp src/app.command.spx src/app.spx
-semaprax check .
-semaprax test .
-semaprax build . --target native -o shiftsim
-./shiftsim < fixtures/request.json
-```
+`codec-plan.json` selects the streaming request and bounded collection
+response profiles. The review bundle retains the authored schema bytes,
+complete candidate sources and exact per-entry receipts. It grants no
+source mutation authority.
 
 For retained schema snapshots, exact compiler/build-log bindings, replay of
 both derivations and a regular installation tree, use the shared

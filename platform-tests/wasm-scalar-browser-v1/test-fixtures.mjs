@@ -51,22 +51,22 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:ba6b662c8f800cd550d8e7f21ece64ffb7537d30d030503d61dfa803aab9845a",
+    project_graph_digest: "sha256:cfaa4109c85b3ef68ac90e28c824a520b3e9e567aaaf98fc715bfaa6ee45679d",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:8eca6dcc9d78f11be6fa774af00a56dca46233c0ae65ec66e20cb8d968a13381",
+    project_graph_digest: "sha256:a1780351ac50b424d4c39a6b1db98f0069c0d961b4a4eb3805f684b8db134b58",
   },
 ];
 // Explicit exact profile for local Rust 1.97 builds. The hosted CI default
 // keeps the Linux Rust 1.88 pins above; no caller-supplied digest is accepted.
 const graphProfile = process.env.SEMAPRAX_BROWSER_GRAPH_PROFILE ?? "hosted-rust-1.88";
 if (graphProfile === "native-rust-1.97") {
-  fixtureSpecs[1].project_graph_digest = "sha256:d7cb2176e40c2b4d312470b9d82dd66b45c3f8c13ed07cc2f9b1051744df1add";
-  fixtureSpecs[2].project_graph_digest = "sha256:275ce4980b009d2fb565a9488ba398db299c38d4b6742b81f96fbe12ae61ec9c";
+  fixtureSpecs[1].project_graph_digest = "sha256:8737e377209c925660afa9770d8abf52958858b42d2e7873a63780164fdf8571";
+  fixtureSpecs[2].project_graph_digest = "sha256:2961a7f340668069579447033685244b61f7894cf5f9d738a629e0c7561b871f";
 } else if (graphProfile !== "hosted-rust-1.88") {
   throw new Error(`unknown exact compiler graph profile: ${graphProfile}`);
 }

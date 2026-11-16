@@ -17,8 +17,7 @@ const NATIVE_E127: [&str; 2] = [
     ),
 ];
 
-// These are the ordinary authenticated Project graphs. The CLI Web build
-// takes the reporting route and publishes its own distinct manifest subject.
+// These are the ordinary authenticated Project graphs shared by current Web builds.
 pub(super) const HOSTED_CURRENT: [&str; 2] = [
     include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-baseline.json"),
     include_str!("../../../docs/evidence/browser-capture-6b66-20261113/calculator-renamed.json"),
@@ -275,10 +274,23 @@ fn before(source: &str) -> &'static str {
 
 // Apply this capture's inverse before entering the sealed older source bridge.
 fn before_current_capture(source: &str, current: &str) -> Option<String> {
-    let records: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json"
-    ))
-    .unwrap();
+    let previous = restore_capture(
+        include_str!(
+            "../../../docs/evidence/browser-web-ordinary-347f-20261116/source-inverses.json"
+        ),
+        source,
+        current,
+    );
+    restore_capture(
+        include_str!("../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json"),
+        source,
+        previous.as_deref().unwrap_or(current),
+    )
+    .or(previous)
+}
+
+fn restore_capture(records: &str, source: &str, current: &str) -> Option<String> {
+    let records: serde_json::Value = serde_json::from_str(records).unwrap();
     assert_eq!(
         records["schema"],
         "semaprax.browser-complete-source-bridge.v1"

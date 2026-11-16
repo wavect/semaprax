@@ -1,0 +1,43 @@
+{
+  "schema": "semaprax.browser-complete-source-bridge.v1",
+  "rows": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "current_sha256": "b816ff594c16feff7c480a88fe28f49ced9f158581d0c802247705134154c849",
+      "previous_sha256": "3d4d8ed8f095e74e369e5ea682636a9cb47028459a6269274fa8c2cde77e452f",
+      "inverse": [
+        {
+          "current": "sha256:cfaa4109c85b3ef68ac90e28c824a520b3e9e567aaaf98fc715bfaa6ee45679d",
+          "previous": "sha256:ba6b662c8f800cd550d8e7f21ece64ffb7537d30d030503d61dfa803aab9845a"
+        },
+        {
+          "current": "sha256:a1780351ac50b424d4c39a6b1db98f0069c0d961b4a4eb3805f684b8db134b58",
+          "previous": "sha256:8eca6dcc9d78f11be6fa774af00a56dca46233c0ae65ec66e20cb8d968a13381"
+        },
+        {
+          "current": "sha256:8737e377209c925660afa9770d8abf52958858b42d2e7873a63780164fdf8571",
+          "previous": "sha256:d7cb2176e40c2b4d312470b9d82dd66b45c3f8c13ed07cc2f9b1051744df1add"
+        },
+        {
+          "current": "sha256:2961a7f340668069579447033685244b61f7894cf5f9d738a629e0c7561b871f",
+          "previous": "sha256:275ce4980b009d2fb565a9488ba398db299c38d4b6742b81f96fbe12ae61ec9c"
+        }
+      ]
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs",
+      "current_sha256": "134ca491b4a0a01b2fe5a5a33cb695e243440fb338efb49ad1edf6058d671889",
+      "previous_sha256": "7ca0358d88a1e9b79cae9f20166e5dd243347a9944c8f959f6b009ab3b29a15d",
+      "inverse": [
+        {
+          "current": "// These are the ordinary authenticated Project graphs shared by current Web builds.\n",
+          "previous": "// These are the ordinary authenticated Project graphs. The CLI Web build\n// takes the reporting route and publishes its own distinct manifest subject.\n"
+        },
+        {
+          "current": "fn before_current_capture(source: &str, current: &str) -> Option<String> {\n    let previous = restore_capture(\n        include_str!(\n            \"../../../docs/evidence/browser-web-ordinary-347f-20261116/source-inverses.json\"\n        ),\n        source,\n        current,\n    );\n    restore_capture(\n        include_str!(\"../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json\"),\n        source,\n        previous.as_deref().unwrap_or(current),\n    )\n    .or(previous)\n}\n\nfn restore_capture(records: &str, source: &str, current: &str) -> Option<String> {\n    let records: serde_json::Value = serde_json::from_str(records).unwrap();\n    assert_eq!(\n        records[\"schema\"],\n        \"semaprax.browser-complete-source-bridge.v1\"\n    );\n    let row = records[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|row| row[\"source\"] == source)?;\n    assert_eq!(sha(current), row[\"current_sha256\"]);\n    let mut previous = current.to_owned();\n    for edit in row[\"inverse\"].as_array().unwrap().iter().rev() {\n        let new = edit[\"current\"].as_str().unwrap();\n        assert!(!new.is_empty());\n        assert_eq!(previous.matches(new).count(), 1);\n        previous = previous.replacen(new, edit[\"previous\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(sha(&previous), row[\"previous_sha256\"]);\n    Some(previous)\n}\n\n",
+          "previous": "fn before_current_capture(source: &str, current: &str) -> Option<String> {\n    let records: serde_json::Value = serde_json::from_str(include_str!(\n        \"../../../docs/evidence/browser-capture-6b66-20261113/source-inverses.json\"\n    ))\n    .unwrap();\n    assert_eq!(\n        records[\"schema\"],\n        \"semaprax.browser-complete-source-bridge.v1\"\n    );\n    let row = records[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|row| row[\"source\"] == source)?;\n    assert_eq!(sha(current), row[\"current_sha256\"]);\n    let mut previous = current.to_owned();\n    for edit in row[\"inverse\"].as_array().unwrap().iter().rev() {\n        let new = edit[\"current\"].as_str().unwrap();\n        assert!(!new.is_empty());\n        assert_eq!(previous.matches(new).count(), 1);\n        previous = previous.replacen(new, edit[\"previous\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(sha(&previous), row[\"previous_sha256\"]);\n    Some(previous)\n}\n\n"
+        }
+      ]
+    }
+  ]
+}

@@ -28,6 +28,7 @@ import cli_typescript_bootstrap as ts_bootstrap
 import campaign_resources as resources
 import live_campaign_common as common
 import compiler_input_capture as compiler_capture
+import codex_help_evidence
 import selected_file_setup
 
 BENCHMARK = Path(__file__).resolve().parent
@@ -46,6 +47,7 @@ HARNESS_SOURCE_FILES = (
     "benchmarks/cli-tokens-v1/boundary-audit-v1/audit.py",
     "benchmarks/cli-tokens-v1/boundary-audit-v1/corpus.json",
     "benchmarks/cli-tokens-v1/codex_campaign.py",
+    "benchmarks/codex_help_evidence.py",
     "benchmarks/cli-tokens-v1/codex_report.py",
     "benchmarks/cli-tokens-v1/live_campaign.py",
     "benchmarks/cli-tokens-v1/measurement_evidence.py",
@@ -660,6 +662,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
         common.require_authored_source_tokenizer(settings)
         process = run_codex(_command(settings, prompt), workspace, authoring_env, transcript, stderr, settings["timeout_seconds"])
     row.update(process); row.update({"transcript": str(transcript), "stderr_path": str(stderr)})
+    row["help_output"] = codex_help_evidence.capture(transcript)
     exec_usage = parse_exec_jsonl(transcript)
     copied = copy_task_rollout(exec_usage["thread_ids"], workspace, trace)
     trace_result = trace_usage(exec_usage, copied) if copied else {"reconciled": False, "model_request_count": None, "model_observed": None}

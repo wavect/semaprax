@@ -93,6 +93,8 @@ def summarize(data: dict, rows: list[dict]) -> dict:
                 'model_requests', 'raw_input_tokens', 'cached_input_tokens', 'cache_write_input_tokens',
                 'legacy_net_input_tokens', 'output_tokens', 'final_authored_tokens_proxy', 'agent_wall_seconds', 'acceptance_wall_seconds')},
         }
+        if any('help_output' in row for row in rows):
+            arms[arm]['help_output'] = campaign.codex_help_evidence.summarize(attempted, accepted)
     return {'complete': len(rows) == len(order), 'arms': arms,
             'resource_contaminated_attempts': sum(bool(row.get('resource_assessment', {}).get('contaminated')) for row in rows),
             'clean_comparison_eligible': len(rows) == len(order) and all(counts[arm] >= campaign.MIN_TRIALS_PER_ARM for arm in campaign.ARMS)
@@ -158,6 +160,10 @@ def recount(path: Path) -> dict:
             'conditional_api_equivalent_usd': price['standard_short_context_api_equivalent_usd'],
             'evidence_sha256': {key: digest(value) for key, value in (('exec', stream), ('rollout', trace)) if value is not None and value.is_file()},
         })
+        if 'help_output' in original:
+            help_output = campaign.codex_help_evidence.capture(stream) if stream else None
+            require(help_output == original['help_output'], f'{label}: saved help evidence differs from transcript')
+            rows[-1]['help_output'] = help_output
         if 'acceptance' not in original:
             rows[-1]['acceptance_wall_seconds'] = None
     result = summarize(data, rows)

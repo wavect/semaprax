@@ -180,6 +180,16 @@ Wall per accepted task includes all attempted tasks, including rejected ones;
 a zero accepted denominator or incomplete measurements remains unavailable.
 These accounting fields do not revise any retained campaign or imply a gain.
 
+### Captured compiler help output (OPT722)
+
+New LogLens, ShiftSim and TeamDesk Codex runs retain completed direct compiler
+help calls by transcript line and item ID, with the output's UTF-8 byte count
+and SHA-256. The count covers simple invocations, including shell wrappers
+around a single command. Compound commands and shell aliases are outside its
+scope. Reports sum evidence across attempts, including failures, when every
+attempt has a count. Delivered bytes and tokens require model request evidence
+linked to those items and remain unavailable in the exec transcript.
+
 ### Receipt accounting maintenance (OPT606)
 
 The shared Claude parser requires every deduplicated message bucket before

@@ -33,6 +33,7 @@ spec.loader.exec_module(codex)
 sys.path.insert(0, str(BENCHMARK))
 import campaign as shiftsim
 import compiler_input_capture as compiler_capture
+import codex_help_evidence
 
 MODEL, EFFORT, TIMEOUT_SECONDS = codex.MODEL, codex.EFFORT, codex.TIMEOUT_SECONDS
 ARMS, MIN_TRIALS_PER_ARM = shiftsim.ARMS, shiftsim.MIN_TRIALS_PER_ARM
@@ -242,6 +243,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
             shiftsim.common.require_authored_source_tokenizer(settings)
             row.update(codex.run_codex(command_for(settings, prompt), workspace,
                                        authoring_env, stream, stderr, settings["timeout_seconds"]))
+        row["help_output"] = codex_help_evidence.capture(stream)
         row.update(observe(workspace, artifacts, label, stream, settings.get("price_book", {})))
         observed = row["observed"]
         row["telemetry_valid"] = (observed.get("reconciled") is True

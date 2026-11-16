@@ -103,6 +103,9 @@ def summarize(data: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any
             "cost_note": "Conditional standard short-context API-equivalent estimate; actual billing is unavailable.",
         }
 
+        if any("help_output" in row for row in rows):
+            arms[arm]["help_output"] = campaign.codex_help_evidence.summarize(selected, accepted)
+
     complete = len(rows) == len(order)
     all_arms_complete = all(arms[arm]["recorded"] >= campaign.MIN_TRIALS_PER_ARM for arm in campaign.ARMS)
     resource_clean = all(row.get("resource_assessment", {}).get("clean_comparison_eligible") is True for row in rows)
@@ -184,7 +187,7 @@ def _recount_trial(original: dict[str, Any], price_book: dict[str, Any] | None =
         authored = None
     elapsed = original.get("elapsed_seconds") if _number(original.get("elapsed_seconds")) else None
     acceptance = _acceptance_seconds(original)
-    return {
+    row = {
         "retained_compiler_file_inventories": original.get("retained_compiler_file_inventories"),
         "arm": original.get("arm"), "number": original.get("number"),
         "status": original.get("status"), "failure": original.get("failure"),
@@ -209,6 +212,11 @@ def _recount_trial(original: dict[str, Any], price_book: dict[str, Any] | None =
         "actual_billed_usd": None,
         "evidence_sha256": evidence,
     }
+    if "help_output" in original:
+        help_output = campaign.codex_help_evidence.capture(stream) if stream else None
+        require(help_output == original["help_output"], f"{label}: saved help evidence differs from transcript")
+        row["help_output"] = help_output
+    return row
 
 
 def recount(path: Path) -> dict[str, Any]:

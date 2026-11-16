@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from codex_report import acceptance_times, completed_items, input_slices, recount, summarize
+import codex_help_evidence
 
 
 def row(arm, number, status='accepted', cost=1):
@@ -13,6 +14,31 @@ def row(arm, number, status='accepted', cost=1):
 
 
 class ReportTests(unittest.TestCase):
+    def test_recount_binds_help_evidence_to_retained_exec(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stream = root / "trial.jsonl"
+            item = {"type": "command_execution", "command": "./tools/semaprax help authoring",
+                    "id": "item_4", "aggregated_output": "bounded help"}
+            event = {"type": "item.completed", "item": item}
+            stream.write_text(json.dumps(event) + "\n", encoding="utf-8")
+            results = root / "results.json"
+            capture = codex_help_evidence.capture(stream)
+            results.write_text(json.dumps({
+                "calibration": {}, "campaign": {"trial_order": ["semaprax"]},
+                "trials": [{"arm": "semaprax", "number": 1, "status": "failed",
+                            "failure": "missing rollout", "transcript": str(stream),
+                            "help_output": capture}],
+            }), encoding="utf-8")
+            report = recount(results)
+            self.assertEqual(report["trials"][0]["help_output"], capture)
+            self.assertEqual(report["arms"]["semaprax"]["help_output"]["captured_help_calls"][
+                "total_all_attempts"], 1)
+            item["aggregated_output"] = "edited output"
+            stream.write_text(json.dumps(event) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "help evidence differs"):
+                recount(results)
+
     def test_uncached_complement_is_not_task_only_net_or_double_counted_cache_write(self):
         self.assertEqual(input_slices({'input_tokens':100,'cached_input_tokens':30,
             'cache_write_input_tokens':20}), {

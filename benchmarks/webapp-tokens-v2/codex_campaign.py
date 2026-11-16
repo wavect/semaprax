@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import live_campaign_common as common
 import campaign_resources as resources
 import compiler_input_capture as compiler_capture
+import codex_help_evidence
 
 # Direct file loading works for external spec_from_file_location callers and
 # never resolves these trusted siblings through cwd or ambient sys.modules.
@@ -85,6 +86,7 @@ CANONICAL_INVENTORY_SHA256 = "53e074183ef714e17d88418e14b9520ab0c175744ff1814953
 HARNESS_SOURCE_FILES = (
     CANONICAL_INVENTORY,
     "benchmarks/webapp-tokens-v2/codex_campaign.py",
+    "benchmarks/codex_help_evidence.py",
     "benchmarks/webapp-tokens-v2/codex_rescore.py",
     "benchmarks/authored_source_recount.py",
     "benchmarks/compiler_output_provenance.py",
@@ -1069,6 +1071,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
             process = run_codex(_command(settings, prompt), workspace, trial_environment(authoring_binary),
                                 transcript, stderr, settings["timeout_seconds"])
         row.update(process)
+        row["help_output"] = codex_help_evidence.capture(transcript)
         exec_usage = parse_exec_jsonl(transcript)
         copied = copy_task_rollout(exec_usage["thread_ids"], workspace, trace)
         trace_result = (trace_usage(exec_usage, copied) if copied else
@@ -1204,6 +1207,11 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     summary = _summarize(rows)
     summary["by_arm"] = {arm: _summarize([row for row in rows if row.get("arm") == arm], (arm,))
                          for arm in ARMS}
+    if any("help_output" in row for row in rows):
+        summary["help_output"] = codex_help_evidence.summarize(rows, summary["accepted_attempts"])
+        for arm, arm_summary in summary["by_arm"].items():
+            selected = [row for row in rows if row.get("arm") == arm]
+            arm_summary["help_output"] = codex_help_evidence.summarize(selected, arm_summary["accepted_attempts"])
     return summary
 
 

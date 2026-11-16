@@ -84,6 +84,12 @@ as the merged release. Its 105 contiguous review ranges contain at most
 path and blob inventory for every range and reported each base as its merge
 base. Ranges 1, 7, and 105 also passed a fresh hosted recheck.
 
+A fresh shallow Git fetch from GitHub reproduced all four archive checkpoint
+trees from their 990 path changes. The same repository fetched all 265
+distinct changed blobs, totaling 1,306,743,752 bytes. The verifier recalculated
+each Git blob ID from the retrieved content in an isolated object store with
+lazy fetching disabled.
+
 The full PR diff still returns HTTP 406. Four archive comparisons also
 failed to return a raw diff after a split and retry. GitHub's tree API
 supplied the exact changes for those four ranges, and applying the returned

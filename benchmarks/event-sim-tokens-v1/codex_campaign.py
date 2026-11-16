@@ -103,6 +103,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     })
     if base["codex_capabilities"]["status"] != "ready":
         raise ValueError("installed Codex CLI lacks required isolation controls")
+    if getattr(args, "stable_prompt_paths", False):
+        base["stable_prompt_paths"] = True
     return base
 
 
@@ -177,6 +179,15 @@ def observe(workspace: Path, artifacts: Path, label: str, stream: Path, price_bo
             "provider_receipt_actual_usd": None}
 
 
+def trial_prompt(settings: dict[str, Any], arm: str, workspace: Path, candidate: Path,
+                 compiler: Path | None) -> str:
+    if settings.get("stable_prompt_paths"):
+        candidate = candidate.relative_to(workspace)
+        compiler = None
+    profile = settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24)
+    return shiftsim.prompt_for(arm, candidate, compiler, profile)
+
+
 @codex.resources.guarded_attempt
 def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict[str, Any],
                  settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
@@ -218,8 +229,7 @@ def launch_trial(seed_repo: Path, artifacts: Path, seed_commit: str, trial: dict
     try:
         with compiler_capture.authoring_compiler(trial["arm"], candidate, workspace, artifacts,
                 label, settings, semaprax_bin, row) as authoring_binary:
-            prompt = shiftsim.prompt_for(trial["arm"], candidate, authoring_binary,
-                settings.get("authoring_profile", shiftsim.AUTHORING_PROFILE_V24))
+            prompt = trial_prompt(settings, trial["arm"], workspace, candidate, authoring_binary)
             if tooling:
                 prompt += "\n\n" + shiftsim.ts_bootstrap.prompt_note(receipt)
             (artifacts / "prompts").mkdir(exist_ok=True)
@@ -485,6 +495,8 @@ def main() -> int:
         p.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS); p.add_argument("--max-budget-usd", type=float, default=None)
         p.add_argument("--tokenizer-dir", default=None); p.add_argument("--codex-binary", default="codex")
         p.add_argument("--typescript-bootstrap-receipt", default=None)
+        p.add_argument("--stable-prompt-paths", action="store_true",
+                       help="use workspace-relative paths and SEMAPRAX_BIN for matched compiler comparisons")
         p.add_argument("--node-binary", default="node"); p.add_argument("--npm-binary", default="npm")
         if action == "run": p.add_argument("--acknowledge-paid-attempts", action="store_true")
     args = parser.parse_args()

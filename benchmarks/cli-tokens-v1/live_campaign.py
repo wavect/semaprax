@@ -175,8 +175,12 @@ def sha_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def prompt_for(arm: str, candidate: Path, semaprax_bin: Path) -> str:
+def prompt_for(arm: str, candidate: Path, semaprax_bin: Path | None) -> str:
     language = "SEMAPRAX" if arm == "semaprax" else "TypeScript with Node.js"
+    compiler = (
+        f"at `{semaprax_bin}` (also\navailable as `$SEMAPRAX_BIN`)."
+        if semaprax_bin is not None else "named by `$SEMAPRAX_BIN`."
+    )
     return f"""Implement an idiomatic, complete LogLens command-line application specified in
 `benchmarks/cli-tokens-v1/SPEC.md` using {language}. The entire implementation
 must live under `{candidate}`. Do not change compiler or harness files.
@@ -188,8 +192,7 @@ implementation. The run script must implement
 tests, including the two exact sample golden cases in the specification and
 checks for exit statuses 0, 1, and 2; it must exit nonzero if any test fails.
 Use the public sample input at `../sample.log` from the candidate directory.
-For SEMAPRAX, use the verified compiler executable at `{semaprax_bin}` (also
-available as `$SEMAPRAX_BIN`). For TypeScript, use Node from `PATH`.
+For SEMAPRAX, use the verified compiler executable {compiler} For TypeScript, use Node from `PATH`.
 
 Read the specification and public sample input. The trial checkout contains
 only those two benchmark files; the independent acceptance corpus and oracle

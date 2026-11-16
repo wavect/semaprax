@@ -45,6 +45,12 @@ The Claude adapter can explicitly select the same round-6 qualification with
 `--round 6`; its legacy default remains round 3. Preparing this code authorizes
 no new paid campaign.
 
+For matched compiler comparisons, pass `--stable-prompt-paths` to both Codex
+plans and launches. The new prompt condition uses a workspace-relative candidate
+path and identifies the bound compiler by `$SEMAPRAX_BIN`. Use the same optional
+guidance and tooling in both conditions. The recorded prompt digests then let
+reviewers verify corresponding trials received identical prompt bytes.
+
 `live_campaign.py` is the launch and collection path for matched LogLens trials.
 It defaults to five trials per arm and pins Claude Code to `claude-sonnet-5-5`
 at medium effort. Each trial uses a detached worktree from a fresh one-commit

@@ -698,7 +698,7 @@ def require_authoring_eligibility(settings: dict[str, Any], semaprax_bin: Path) 
                 raise ValueError(f"{version} retained qualification copy changed before dispatch")
 
 
-def prompt_for(arm: str, candidate: Path, semaprax_bin: Path,
+def prompt_for(arm: str, candidate: Path, semaprax_bin: Path | None,
                authoring_profile: str = AUTHORING_PROFILE_V24) -> str:
     if authoring_profile == AUTHORING_PROFILE_SHIFTSIM_V31:
         historical = prompt_for(arm, candidate, semaprax_bin, AUTHORING_PROFILE_V30)
@@ -765,6 +765,8 @@ def prompt_for(arm: str, candidate: Path, semaprax_bin: Path,
             "`language-command-io.stream-data.v1`", "`language-command-io.owned-data.v1`").replace(
             old_guidance, new_guidance)
     language = "SEMAPRAX native Project" if arm == "semaprax" else "TypeScript on Node.js"
+    compiler = (f"compiler at `{semaprax_bin}`\n(also available as `$SEMAPRAX_BIN`)"
+                if semaprax_bin is not None else "compiler supplied in `$SEMAPRAX_BIN`")
     prompt = f"""Implement a complete, idiomatic ShiftSim application in {language} according to
 `benchmarks/event-sim-tokens-v1/SPEC.md`. The whole implementation belongs under
 `{candidate}`. Do not change compiler or benchmark files. The checkout contains
@@ -776,8 +778,7 @@ or validate the implementation without network access. `run.sh` must accept
 one JSON request on stdin, emit the exact report plus one newline on stdout,
 and produce the specified status-2 diagnostic for invalid requests. `test.sh`
 must run your own automated tests and fail nonzero on errors. The SEMAPRAX arm
-must use a native Project v24 manifest and the compiler at `{semaprax_bin}`
-(also available as `$SEMAPRAX_BIN`), with Project profile
+must use a native Project v24 manifest and the {compiler}, with Project profile
 `language-command-io.stream.v2`, input `argv-utf8+stdin-stream.v1`, and an
 explicit command function returning `i64` process status in the range 0..255.
 Return 0 for valid requests and 2 for invalid requests, writing the specified

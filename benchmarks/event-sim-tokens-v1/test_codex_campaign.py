@@ -13,6 +13,22 @@ from test_campaign_resources import healthy_host
 
 
 class CodexShiftSimTests(unittest.TestCase):
+    def test_stable_prompts_match_across_worktrees(self):
+        profile = adapter.shiftsim.AUTHORING_PROFILE_SHIFTSIM_V31
+        settings = {"authoring_profile": profile, "stable_prompt_paths": True}
+        relative = Path("benchmarks/event-sim-tokens-v1/candidate")
+        first, second = Path("/ssd/before"), Path("/ssd/after")
+        for arm in ("semaprax", "typescript"):
+            actual = adapter.trial_prompt(settings, arm, first, first / relative, first / "tools/semaprax")
+            self.assertEqual(actual, adapter.trial_prompt(settings, arm, second, second / relative,
+                second / "tools/semaprax"))
+            self.assertNotIn("/ssd/", actual)
+            self.assertIn(str(relative), actual)
+            self.assertIn("`$SEMAPRAX_BIN`", actual)
+            original = adapter.shiftsim.prompt_for(arm, first / relative, first / "tools/semaprax", profile)
+            self.assertEqual(original, adapter.trial_prompt({"authoring_profile": profile}, arm, first,
+                first / relative, first / "tools/semaprax"))
+
     def setUp(self):
         # Declare the same pinned fake tokenizer as the isolated fake authoring
         # environment. Real missing/drifted prerequisites have independent controls.

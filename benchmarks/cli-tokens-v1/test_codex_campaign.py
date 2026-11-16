@@ -17,6 +17,28 @@ class CodexCampaignTests(unittest.TestCase):
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
 
+    def test_stable_prompt_paths_keep_each_arm_identical_across_workspaces_and_compilers(self):
+        task = Path("benchmarks/cli-tokens-v1/candidate")
+        baseline = Path("/fixture/baseline/worktree")
+        candidate = Path("/fixture/candidate/worktree")
+        baseline_compiler = Path("/fixture/baseline/bin/semaprax")
+        candidate_compiler = Path("/fixture/candidate/bin/semaprax")
+        for arm in ("semaprax", "typescript"):
+            with self.subTest(arm=arm):
+                stable = {"stable_prompt_paths": True}
+                first = codex_campaign.trial_prompt(
+                    stable, arm, baseline, baseline / task, baseline_compiler)
+                second = codex_campaign.trial_prompt(
+                    stable, arm, candidate, candidate / task, candidate_compiler)
+                self.assertEqual(first, second)
+                self.assertIn(f"under `{task}`", first)
+                self.assertIn("named by `$SEMAPRAX_BIN`", first)
+                self.assertNotIn("/fixture/", first)
+                historical = codex_campaign.trial_prompt(
+                    {}, arm, baseline, baseline / task, baseline_compiler)
+                self.assertIn(f"under `{baseline / task}`", historical)
+                self.assertIn(f"at `{baseline_compiler}`", historical)
+
     def compiler_build_settings(self, root, binary):
         binary_sha256 = codex_campaign.common.digest(binary)
         log = root / "build.log"

@@ -25,6 +25,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class WebappCampaignTests(unittest.TestCase):
+    def test_stable_prompts_match_across_worktrees(self):
+        settings = {"stable_prompt_paths": True}
+        first, second = Path("/ssd/before"), Path("/ssd/after")
+        for arm in ("semaprax", "typescript"):
+            actual = campaign.trial_prompt(settings, arm, first, first / "candidate", first / "tools/semaprax", None)
+            self.assertEqual(actual, campaign.trial_prompt(settings, arm, second, second / "candidate",
+                second / "tools/semaprax", None))
+            self.assertNotIn("/ssd/", actual)
+            self.assertIn("implementation root candidate", actual)
+            if arm == "semaprax":
+                self.assertIn("`$SEMAPRAX_BIN`", actual)
+            original = campaign.prompt_for(arm, first / "candidate", first / "tools/semaprax")
+            self.assertEqual(original, campaign.trial_prompt({}, arm, first, first / "candidate",
+                first / "tools/semaprax", None))
+
     def setUp(self):
         # Declare the same pinned fake tokenizer as the isolated fake authoring
         # environment. Real missing/drifted prerequisites have independent controls.

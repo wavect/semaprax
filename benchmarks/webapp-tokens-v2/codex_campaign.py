@@ -768,6 +768,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
     if explicit_receipt:
         settings["current_qualification_receipt"] = current_qualification_binding(
             receipt_path, receipt_raw, receipt, settings)
+    if getattr(args, "stable_prompt_paths", False):
+        settings["stable_prompt_paths"] = True
     return settings
 
 
@@ -922,10 +924,11 @@ def trial_environment(compiler: Path | None) -> dict[str, str]:
     return env
 
 
-def prompt_for(arm: str, candidate: Path, compiler: Path, tooling: dict[str, Any] | None = None) -> str:
+def prompt_for(arm: str, candidate: Path, compiler: Path | None, tooling: dict[str, Any] | None = None) -> str:
     language = "TypeScript/React" if arm == "typescript" else "SEMAPRAX"
     root_note = f"Create the new implementation root {candidate}, then work only inside it."
-    compiler_note = (f"Use the supplied compiler at {compiler} for the webapp projection; do not build or fetch a compiler."
+    compiler_path = f"at {compiler}" if compiler is not None else "in `$SEMAPRAX_BIN`"
+    compiler_note = (f"Use the supplied compiler {compiler_path} for the webapp projection; do not build or fetch a compiler."
                      if arm == "semaprax" else "Do not use SEMAPRAX or substitute another language.")
     if arm == "typescript" and tooling is not None:
         root_note = (f"The implementation root {candidate} already exists with private dependency tools; "
@@ -937,6 +940,15 @@ You are writing the {language} arm. {root_note} Create build.sh, test.sh, and ru
 Implement every requirement: all 20 entities and fields, validation, references, unique keys, workflows, computed fields and rollups, accounts, sessions, role and row permissions, audit history, CSV export, REST CRUD API, persistence, and the browser UI. The independent gate is authoritative and covers all 912 obligations; do not weaken, edit, or bypass it. Keep the API and UI on loopback using TEAMDESK_HOST, TEAMDESK_PORT, TEAMDESK_UI_PORT, TEAMDESK_DATA_DIR, and make run.sh stay in the foreground while emitting the required readiness JSON line.
 
 Use only the files and tools available in this isolated workspace. Run your own build and tests before reporting completion. Do not edit files outside the candidate directory. When finished, leave all implementation files in {candidate} and briefly report the commands and results."""
+
+
+
+def trial_prompt(settings: dict[str, Any], arm: str, workspace: Path, candidate: Path,
+                 compiler: Path | None, tooling: dict[str, Any] | None) -> str:
+    if settings.get("stable_prompt_paths"):
+        candidate = candidate.relative_to(workspace)
+        compiler = None
+    return prompt_for(arm, candidate, compiler, tooling)
 
 
 def check_candidate(candidate: Path, output: Path, arm: str, settings: dict[str, Any], compiler: Path) -> dict[str, Any]:
@@ -1047,7 +1059,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     try:
         with compiler_capture.authoring_compiler(arm, candidate, workspace, artifacts, label,
                 settings, semaprax_bin, row) as authoring_binary:
-            prompt = prompt_for(arm, candidate, authoring_binary, tooling)
+            prompt = trial_prompt(settings, arm, workspace, candidate, authoring_binary, tooling)
             (artifacts / "prompts").mkdir(parents=True, exist_ok=True)
             (artifacts / "prompts" / f"{label}.txt").write_text(prompt, encoding="utf-8")
             row["prompt_sha256"] = hashlib.sha256(prompt.encode()).hexdigest()
@@ -1290,6 +1302,8 @@ def main() -> int:
         current.add_argument("--node-binary", default="node")
         current.add_argument("--typescript-bootstrap-receipt",
                              help="opt-in pinned dependency-only private tooling for a new campaign")
+        current.add_argument("--stable-prompt-paths", action="store_true",
+                             help="use workspace-relative paths and SEMAPRAX_BIN for matched compiler comparisons")
         current.add_argument("--playwright-root", default=str(BENCHMARK / "acceptance"))
         current.add_argument("--effort", default=EFFORT); current.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
         current.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS)

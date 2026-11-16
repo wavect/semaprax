@@ -544,6 +544,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
 
     if getattr(args, "selected_file_resource_v1", False):
         settings["selected_file_setup"] = selected_file_setup.capability(Path(args.semaprax_bin).resolve(strict=True))
+    if getattr(args, "stable_prompt_paths", False):
+        settings["stable_prompt_paths"] = True
     return settings
 
 
@@ -598,6 +600,12 @@ def cleanup_trial(repo: Path, workspace: Path, settings: dict[str, Any], row: di
         row["cleanup_error"] = legacy.bounded_text(removed.stderr)
 
 
+def trial_prompt(settings: dict[str, Any], arm: str, workspace: Path, candidate: Path, compiler: Path) -> str:
+    if settings.get("stable_prompt_paths"):
+        return legacy.prompt_for(arm, candidate.relative_to(workspace), None)
+    return legacy.prompt_for(arm, candidate, compiler)
+
+
 @resources.guarded_attempt
 def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any], settings: dict[str, Any], semaprax_bin: Path) -> dict[str, Any]:
     """Run one paid attempt. Every attempted trial remains in the result denominator."""
@@ -637,7 +645,7 @@ def launch_trial(repo: Path, artifacts: Path, commit: str, trial: dict[str, Any]
     transcript.parent.mkdir(parents=True, exist_ok=True)
     with compiler_capture.authoring_compiler(arm, candidate, workspace, artifacts, label,
                                              settings, semaprax_bin, row) as authoring_binary:
-        prompt = legacy.prompt_for(arm, candidate, authoring_binary)
+        prompt = trial_prompt(settings, arm, workspace, candidate, authoring_binary)
         selected_note = selected_file_setup.prompt_note(settings, arm, semaprax_bin)
         if selected_note:
             prompt += "\n\n" + selected_note
@@ -757,6 +765,8 @@ def main() -> int:
         current.add_argument("--tokenizer-dir", required=True)
         current.add_argument("--selected-file-resource-v1", action="store_true",
                              help="opt in to capability-authenticated selected-file guidance; keep frozen CLI49 and TypeScript task")
+        current.add_argument("--stable-prompt-paths", action="store_true",
+                             help="use workspace-relative paths and SEMAPRAX_BIN for matched compiler comparisons")
         current.add_argument("--typescript-bootstrap-receipt", default=None)
         current.add_argument("--node-binary", default="node"); current.add_argument("--npm-binary", default="npm")
         current.add_argument("--codex-binary", default="codex"); current.add_argument("--model", default=MODEL)

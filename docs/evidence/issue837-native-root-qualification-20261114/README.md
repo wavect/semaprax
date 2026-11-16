@@ -120,3 +120,37 @@ Scoped test-harness Clippy (`--no-deps`, `-D warnings`) passed with exit 0
 at 10:00 UTC (2m18s). `rustfmt --check` on the changed test file and
 `git diff --check` passed. The original ShiftSim corpus and LogLens receiver,
 launcher and unit fixture hashes are unchanged. No generated pins changed.
+
+## Recheck after merge on macOS arm64
+
+The three library tests requested in #837 passed using Rust 1.97.1
+(`8bab26f4f`) on the external SSD. The executable was built from
+`d479cb1d4f676c2a3b3efe2c4f4fbc49cbf7bc44`. The compiler's Rust source files,
+tests and Cargo inputs match published main `f4a5eeeda0eaddb772547b5d21b6701433919ce1`.
+The installer and its test sources also match the contributor's reference
+`34cae336d`.
+
+| Library test | Result |
+| --- | --- |
+| `complete_old_starter_matches_every_final_file_receipt_and_distinct_revision` | Pass |
+| `old_starter_error_order_stale_activation_and_mixed_member_publish_nothing` | Pass |
+| `whole_starter_allocation_observation_counts_complete_drop_without_gain_assumption` | Pass |
+
+The three tests took 99.09 seconds. The SHA-256 of the
+library-test executable is
+`4589da79cf67a5b828e707dcab08768f3a3e3050d48777b5c24dbf81e8078a7e`.
+This run reused the [32-codegen-unit library-test build](../../COMPILED-SOURCE-AUDIT-TRANSPORT-V1.md#matched-workspace-library-tests-at-d479cb1d4).
+The measured peak for that compile was still about 16 GiB.
+
+The five native starter tests above also passed in 353.28
+seconds at the same source. They exercised fresh typed ShiftSim through
+declared native tests and all 15 original cases, plus the selected-file
+LogLens starter and its 49-case receiver. The SHA-256 of the
+`cli_new_project_v1` test executable is
+`ff8b5564182cb838593418d4f47c64d57e189aded209eb07b5eefc40e53af155`.
+The `semaprax-full` CLI it used has SHA-256
+`cfd0dea5509be0e13f9da95e2391fd95a535b04e1913fb675897c57bcd0ecbe8`.
+Scoped Clippy 0.1.97 passed for `semaprax-toolchain --test
+cli_new_project_v1` with `--no-deps` and `-D warnings`.
+
+The matched authoring trials are still outstanding.

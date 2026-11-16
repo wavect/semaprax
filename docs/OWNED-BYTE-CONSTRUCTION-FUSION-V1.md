@@ -1,22 +1,22 @@
 # Owned Bytes finite construction fusion v1
 
-Status: local executable qualification of the explicit source profile for
-OPT [#747](https://github.com/wavect/semaprax/issues/747). The private
-partition dependency and its broader lifetime, failure and publication
-checks remain open under [#746](https://github.com/wavect/semaprax/issues/746).
-[Source profile v1](FUSED-SOURCE-PROFILE-V1.md)
+Status: the explicit [source profile v1](FUSED-SOURCE-PROFILE-V1.md) has
+passed local and hosted executable checks for
+[#747](https://github.com/wavect/semaprax/issues/747). The prerequisite
+partition work [#746](https://github.com/wavect/semaprax/issues/746) and
+record-traversal work [#733](https://github.com/wavect/semaprax/issues/733)
+are closed.
 
 Audience: source, ownership, cleanup and runtime contributors and reviewers.
 
 ## Summary
 
-An exact finite construction loop may eventually allocate one backing and issue
-independent affine child leases while retaining the source's row construction
-and publication order. The compiler must prove this strategy independently;
-counting one source site as one physical allocation is not that proof.
-[Partition v1](OWNED-BYTE-PARTITION-V1.md) and a complete selected Bytes owner
-domain remain prerequisites. The original 4,096-row fixture and its acceptance
-gates are unchanged and remain an open OPT #733 obligation.
+In the selected source profile, an authenticated finite construction loop
+allocates one backing and issues independent affine child leases while
+preserving the source's row construction and publication order. The compiler
+derives the strategy independently from source and typed HIR. The profile uses
+[Partition v1](OWNED-BYTE-PARTITION-V1.md) in its selected Bytes owner domain.
+The original 4,096-row fixture remains the maximum-size acceptance control.
 
 ## Authored source candidate inventory
 
@@ -198,8 +198,17 @@ The [same 39-test selection at `ab2dec272`](https://github.com/wavect/semaprax/a
 also passed with scoped production Clippy after the shared partition iterator
 change.
 
-The full #746 dependency, the remaining cross-backend ownership cases, and
-matched agent costs remain open qualification work.
+An exact macOS arm64 CLI replay at compiler source `e49a24a6d` returned
+`8386560` from the unchanged fixture. The interpreter accepted its exact
+898,568-byte managed account and refused one byte short. The native route
+accepted 292,848 bytes and refused one byte short. The paired Wasm package
+passed three cumulative invocations and refused the fourth at the same
+account limit. The ordinary check and run retained their `SPX-T267` and
+`SPX-T252` diagnostics, respectively.
+
+Matched agent authoring costs for the explicit profile remain unmeasured.
+The executable acceptance above establishes the covered ownership and resource
+boundaries for that profile.
 
 ## Separate ordinary finite capacity prerequisite
 

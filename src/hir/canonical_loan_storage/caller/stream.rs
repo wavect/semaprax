@@ -33,7 +33,7 @@ pub(super) struct Receiver<'a, 's, 'p> {
 }
 impl<'a, 'p> Receiver<'a, '_, 'p> {
     pub(super) fn receive(
-        self,
+        &mut self,
         source: Option<&mut Source<'a, 'p>>,
         matched: bool,
     ) -> Result<(), Diagnostic> {

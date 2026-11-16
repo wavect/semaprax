@@ -403,3 +403,46 @@ fn actual_canonical_caller_funds_rebuild_append_and_drop_on_one_invocation() {
     assert_eq!(isolated.live, 0);
     assert!(!isolated.invalid);
 }
+
+#[path = "../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod source_reader;
+
+// Bind the physical successor before passing exact predecessor bytes to the
+// existing independent empty-terminal and earlier source-stage controls.
+pub(super) fn restore_owned_receiver_sources(path: &str, compiled: &str) -> String {
+    let (length, digest, edits): (usize, &str, &[(usize, &str, &str)]) = match path {
+        "src/hir/canonical_loan_storage/caller.rs" => (29679, "566fcb1a91a576f5422e0d1278ba84de0eb77c2af57785d3ceeacf49b8613751", &[
+            (10511, "                        + stream::BRANCH_SELECTION_BYTES\n                        // Retain all old caller-owned\n                        // roles. Reserve for the local and transported receiver loan\n                        // and the two projected append reborrows separately.\n                        + 4 * std::mem::size_of::<&mut stream::Receiver<'_, '_, '_>>()\n                        + 2 * std::mem::size_of::<(&mut Storage<'_>, &mut Deferred<'_>)>(),\n", "                        + stream::BRANCH_SELECTION_BYTES,\n"),
+            (10986, "                let mut receiver = stream::Receiver {\n", "                let receiver = stream::Receiver {\n"),
+            (11204, "                let held_receiver = &mut receiver;\n", ""),
+            (11398, "                    move |source, matched| held_receiver.receive(source, matched),\n", "                    move |source, matched| receiver.receive(source, matched),\n"),
+        ]),
+        "src/hir/canonical_loan_storage/caller/stream.rs" => (17186, "6871bba711362f0d36b9a252b972ad3aead38faba80948210f4596a1bf4a069f", &[
+            (1814, "        &mut self,\n", "        self,\n"),
+        ]),
+        _ => unreachable!("only canonical-loan receiver owners have an inverse"),
+    };
+    let physical = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+    assert_eq!(
+        source_reader::read(&physical, length, digest, 2 * 1024 * 1024).unwrap(),
+        compiled,
+    );
+    let mut restored = compiled.to_owned();
+    for &(offset, after, prior) in edits.iter().rev() {
+        assert_eq!(restored.get(offset..offset + after.len()), Some(after));
+        restored.replace_range(offset..offset + after.len(), prior);
+    }
+    restored
+}
+
+pub(super) fn borrowed_gateway_saving<Receiver>() -> usize {
+    use std::mem::{align_of, size_of};
+
+    // All other EmitArgs members have at most pointer alignment. The two
+    // EmitArgs roles and eight callback roles move the same smaller payload.
+    assert_eq!(align_of::<Receiver>(), align_of::<&mut Receiver>());
+    let loan_width = size_of::<&mut Receiver>();
+    10 * (size_of::<Receiver>() - loan_width)
+        - 4 * loan_width
+        - 2 * size_of::<(&mut Storage<'static>, &mut Deferred<'static>)>()
+}

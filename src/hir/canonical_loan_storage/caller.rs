@@ -264,19 +264,25 @@ fn prepare_sealed<'a, T>(
                         + 8 * std::mem::size_of::<
                             Option<&mut crate::loan_plan::canonical_sink::Source<'_, '_>>,
                         >()
-                        + stream::BRANCH_SELECTION_BYTES,
+                        + stream::BRANCH_SELECTION_BYTES
+                        // Retain all old caller-owned
+                        // roles. Reserve for the local and transported receiver loan
+                        // and the two projected append reborrows separately.
+                        + 4 * std::mem::size_of::<&mut stream::Receiver<'_, '_, '_>>()
+                        + 2 * std::mem::size_of::<(&mut Storage<'_>, &mut Deferred<'_>)>(),
                 )?;
-                let receiver = stream::Receiver {
+                let mut receiver = stream::Receiver {
                     storage: &mut storage,
                     deferred: &mut deferred,
                     function,
                     payer,
                 };
+                let held_receiver = &mut receiver;
                 match crate::loan_plan::build_canonical(
                     program,
                     function,
                     owner,
-                    move |source, matched| receiver.receive(source, matched),
+                    move |source, matched| held_receiver.receive(source, matched),
                 ) {
                     Ok(()) => (),
                     Err(crate::loan_plan::FundedError::Physical(reason)) => {

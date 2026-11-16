@@ -277,7 +277,10 @@ fn complete_old_callers_storage_and_tests_remain_exact_and_all_current_hooks_are
         "e368abf524b313f744b7ae4d7b8aeacae3e3d0079cc67a0af300b036c95a6b13"
     );
     let hooks: serde_json::Value = serde_json::from_str(hooks).unwrap();
-    let mut projected = include_str!("../caller.rs").to_owned();
+    let mut projected = super::restore_owned_receiver_sources(
+        "src/hir/canonical_loan_storage/caller.rs",
+        include_str!("../caller.rs"),
+    );
     // The streamed caller adds complete receivers around the legacy source.
     // Bind the live compiled bytes, then remove exactly those additions.
     assert_eq!(projected.len(), 29222);
@@ -571,8 +574,31 @@ fn complete_old_callers_storage_and_tests_remain_exact_and_all_current_hooks_are
     );
     let registration = "mod reuse;\n// The existing literal from_plans controls below retain the complete saved\n// allocation receiver. reuse tests exercise the actual production append path.\n";
     let tests = include_str!("../tests.rs");
+    let tests_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/hir/canonical_loan_storage/tests.rs");
+    let read_current_tests = || {
+        super::source_reader::read(
+            &tests_path,
+            19417,
+            "6bb2b4d3acac0201f61ff5af053b8c184526b61c505d72324ae90592fdd8a798",
+            2 * 1024 * 1024,
+        )
+        .unwrap()
+    };
+    assert_eq!(read_current_tests(), tests);
+    // Separate the appended receiver inverse and tariff probe. The exact
+    // predecessor still feeds the original reuse-registration inverse.
+    let marker = "\n#[path = \"../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs\"]\nmod source_reader;\n";
+    assert_eq!(tests.matches(marker).count(), 1);
+    let (tests, _) = tests.split_once(marker).unwrap();
+    assert_eq!(tests.len(), 16587);
+    assert_eq!(
+        digest(tests),
+        "d1a31bd500e69cb4aac4fbd957e7a20ed4a63832f983776d214f370cbb94a9a3"
+    );
     assert_eq!(tests.matches(registration).count(), 1);
     assert_eq!(tests.replacen(registration, "", 1), old_tests);
+    assert_eq!(read_current_tests(), include_str!("../tests.rs"));
 }
 
 #[test]

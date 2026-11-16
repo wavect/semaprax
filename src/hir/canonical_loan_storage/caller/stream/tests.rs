@@ -1,4 +1,5 @@
 //! Complete receiving controls. All are authored, not qualification evidence.
+use super::super::super::tests::{borrowed_gateway_saving, restore_owned_receiver_sources};
 use super::*;
 use crate::bounded_output::{self, with_limit_usage_refusal};
 use crate::test_allocation_observer::{measure, Metrics};
@@ -925,8 +926,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         source_reader::read(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("src/hir/canonical_loan_storage/caller.rs"),
-            29222,
-            "9c655467b74a931fb99abc5f16ccc4d40731ffb1d5362f7afb912483773db75f",
+            29679,
+            "566fcb1a91a576f5422e0d1278ba84de0eb77c2af57785d3ceeacf49b8613751",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -936,8 +937,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         source_reader::read(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("src/hir/canonical_loan_storage/caller/stream.rs"),
-            17181,
-            "a8f2ad0d44856faeb5a1070ba4114168640a170d0a98e38e4893f316f644e1e2",
+            17186,
+            "6871bba711362f0d36b9a252b972ad3aead38faba80948210f4596a1bf4a069f",
             2 * 1024 * 1024
         )
         .unwrap(),
@@ -1114,7 +1115,11 @@ fn authenticated_empty_terminal_has_whole_scalar_caller_net_after_all_new_branch
         let count = program.functions.len();
         assert_eq!(
             old + count * (BRANCH_SELECTION_BYTES + EMPTY_CLEAR_BYTES),
-            current + count * (APPEND_PRESENT_BYTES + EMPTY_RETAINED_ORDINAL_REWRITE)
+            current
+                + count
+                    * (APPEND_PRESENT_BYTES
+                        + EMPTY_RETAINED_ORDINAL_REWRITE
+                        + borrowed_gateway_saving::<Receiver<'_, '_, '_>>())
         );
         assert!(
             current < old,
@@ -1241,7 +1246,9 @@ fn actual_some_and_some_none_some_keep_whole_immediate_rows_scratch_and_cold_sur
         // two real None results remove it; every function pays branch controls.
         assert_eq!(
             old + 4 * BRANCH_SELECTION_BYTES + 2 * EMPTY_CLEAR_BYTES,
-            current + 2 * (APPEND_PRESENT_BYTES + EMPTY_RETAINED_ORDINAL_REWRITE)
+            current
+                + 2 * (APPEND_PRESENT_BYTES + EMPTY_RETAINED_ORDINAL_REWRITE)
+                + 4 * borrowed_gateway_saving::<Receiver<'_, '_, '_>>()
         );
         for (old, exact) in [(true, old), (false, current)] {
             assert_eq!(
@@ -1331,16 +1338,12 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
         _ => unreachable!("matched complete source owner above"),
     };
     assert_eq!(supplied, compiled);
-    assert_eq!(compiled.len(), live_length);
-    assert_eq!(hash(compiled.as_bytes()), live_sha);
+    let mut restored = restore_owned_receiver_sources(path, compiled);
+    assert_eq!(restored.len(), live_length);
+    assert_eq!(hash(restored.as_bytes()), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(
-        source_reader::read(&root.join(path), live_length, live_sha, 2 * 1024 * 1024).unwrap(),
-        compiled
-    );
     assert_eq!(before.len(), before_length);
     assert_eq!(hash(before.as_bytes()), before_sha);
-    let mut restored = compiled.to_owned();
     for &(at, after, prior) in live_edits.iter().rev() {
         assert_eq!(restored.get(at..at + after.len()), Some(after));
         restored.replace_range(at..at + after.len(), prior);
@@ -1362,10 +1365,7 @@ fn before_empty_terminal_source<'a>(path: &str, supplied: &'a str) -> std::borro
         .unwrap(),
         before
     );
-    assert_eq!(
-        source_reader::read(&root.join(path), live_length, live_sha, 2 * 1024 * 1024).unwrap(),
-        compiled
-    );
+    drop(restore_owned_receiver_sources(path, compiled));
     std::borrow::Cow::Owned(restored)
 }
 

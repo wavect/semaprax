@@ -35,6 +35,7 @@ mod generic_record_component_v7;
 mod host_output;
 mod http_io;
 pub mod internal_strings;
+mod legacy_web_output;
 mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
@@ -2039,26 +2040,6 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
     }
     let wasm_bytes = emit_resolved_module(&resolved)?;
     web_import_inventory::admit(&wasm_bytes, !owned_plans.is_empty())?;
-    std::fs::create_dir(output).map_err(|error| {
-        let code = if error.kind() == std::io::ErrorKind::AlreadyExists {
-            "SPX-I307"
-        } else {
-            "SPX-I301"
-        };
-        Diagnostic::io(
-            code,
-            format!(
-                "cannot create fresh web output {}: {error}",
-                output.display()
-            ),
-        )
-    })?;
-    std::fs::write(output.join("app.wasm"), &wasm_bytes).map_err(|error| {
-        Diagnostic::io(
-            "SPX-I302",
-            format!("cannot write WebAssembly module: {error}"),
-        )
-    })?;
     let runtime_exports = owned_plans
         .iter()
         .map(owned::OwnedPlan::runtime_json)
@@ -2076,22 +2057,6 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
                 crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
             ),
         );
-    std::fs::write(output.join("semaprax.js"), runtime).map_err(|error| {
-        Diagnostic::io("SPX-I303", format!("cannot write browser runtime: {error}"))
-    })?;
-    std::fs::write(output.join("index.html"), browser_html()).map_err(|error| {
-        Diagnostic::io("SPX-I304", format!("cannot write web entry page: {error}"))
-    })?;
-    std::fs::write(
-        output.join("package.json"),
-        "{\"private\":true,\"type\":\"module\"}\n",
-    )
-    .map_err(|error| {
-        Diagnostic::io(
-            "SPX-I306",
-            format!("cannot write web package metadata: {error}"),
-        )
-    })?;
     let owned_manifest = owned_plans
         .iter()
         .map(|plan| plan.manifest_json(&resolved.functions[plan.function_index]))
@@ -2104,10 +2069,36 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         json_strings(&program.permits),
         owned_manifest,
     );
-    std::fs::write(output.join("semaprax.manifest.json"), manifest).map_err(|error| {
-        Diagnostic::io("SPX-I305", format!("cannot write web manifest: {error}"))
-    })?;
-    Ok(())
+    legacy_web_output::publish(
+        output,
+        &[
+            ("app.wasm", &wasm_bytes, "SPX-I302", "WebAssembly module"),
+            (
+                "semaprax.js",
+                runtime.as_bytes(),
+                "SPX-I303",
+                "browser runtime",
+            ),
+            (
+                "index.html",
+                browser_html().as_bytes(),
+                "SPX-I304",
+                "web entry page",
+            ),
+            (
+                "package.json",
+                b"{\"private\":true,\"type\":\"module\"}\n",
+                "SPX-I306",
+                "web package metadata",
+            ),
+            (
+                "semaprax.manifest.json",
+                manifest.as_bytes(),
+                "SPX-I305",
+                "web manifest",
+            ),
+        ],
+    )
 }
 
 /// Build a fresh, exact-inventory Public Scalar Export Profile v1 package.
@@ -2988,31 +2979,7 @@ fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<
             "Public Scalar Export package output must name one directory",
         )
     })?;
-    let parent_path = output
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    let parent_metadata = fs::symlink_metadata(parent_path).map_err(|error| {
-        let diagnostic = Diagnostic::io(
-            "SPX-I301",
-            format!(
-                "cannot inspect Public Scalar Export output parent {}: {error}",
-                output_parent::shown(parent_path)
-            ),
-        );
-        match output_parent::missing_directory_help(parent_path, &error) {
-            Some(help) => diagnostic.with_help(help),
-            None => diagnostic,
-        }
-    })?;
-    if !is_plain_directory(&parent_metadata) {
-        return Err(output_parent::rejected_directory(
-            "Public Scalar Export output parent",
-            parent_path,
-            output,
-            &parent_metadata,
-        ));
-    }
+    let parent_path = inspect_package_output_parent(output, "Public Scalar Export output parent")?;
     let parent_identity = Handle::from_path(parent_path).map_err(|error| {
         Diagnostic::io(
             "SPX-I301",
@@ -3105,6 +3072,37 @@ fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<
         return Err(error);
     }
     Ok(())
+}
+fn inspect_package_output_parent<'a>(
+    output: &'a Path,
+    subject: &str,
+) -> Result<&'a Path, Diagnostic> {
+    let parent_path = output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let parent_metadata = fs::symlink_metadata(parent_path).map_err(|error| {
+        let diagnostic = Diagnostic::io(
+            "SPX-I301",
+            format!(
+                "cannot inspect {subject} {}: {error}",
+                output_parent::shown(parent_path)
+            ),
+        );
+        match output_parent::missing_directory_help(parent_path, &error) {
+            Some(help) => diagnostic.with_help(help),
+            None => diagnostic,
+        }
+    })?;
+    if !is_plain_directory(&parent_metadata) {
+        return Err(output_parent::rejected_directory(
+            subject,
+            parent_path,
+            output,
+            &parent_metadata,
+        ));
+    }
+    Ok(parent_path)
 }
 fn is_plain_directory(metadata: &fs::Metadata) -> bool {
     metadata.is_dir() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)

@@ -342,6 +342,75 @@ fn main() -> i64
 }
 
 #[test]
+fn resource_rename_uses_the_outer_return_arrow_with_function_parameters() {
+    let source = r#"module patch.resource;
+
+@id("buffer.type")
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
+
+@id("buffer.callback_first")
+fn callback_first(callback: fn(i64) -> i64, Buffer: i64, buffer: own Buffer) -> Buffer
+{
+    buffer
+}
+
+@id("buffer.callback_last")
+fn callback_last(buffer: own Buffer, callback: fn(i64) -> i64) -> Buffer
+{
+    buffer
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    42
+}
+"#;
+    let sequence = NEXT_A0_FIXTURE.fetch_add(1, Ordering::Relaxed);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-resource-callback-{}-{sequence}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    let revision = graph::revision(&parse(source, &source_path).unwrap());
+    for schema in ["", "schema semaprax.semantic-patch.v2\n"] {
+        std::fs::write(&source_path, source).unwrap();
+        std::fs::write(
+            &patch_path,
+            format!("{schema}base {revision}\nrename buffer.type to ByteBuffer\n"),
+        )
+        .unwrap();
+        let report = semaprax::impact::preview(
+            &source_path,
+            &patch_path,
+            &semaprax::impact::SemanticImpactOptions::default(),
+        )
+        .unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
+        assert_eq!(report["source_graph_schema"], "semaprax.graph.v36");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+        patch::apply(&source_path, &patch_path).unwrap();
+        let changed = std::fs::read_to_string(&source_path).unwrap();
+        assert!(changed.contains("resource ByteBuffer {"));
+        assert!(changed.contains(
+            "fn callback_first(callback: fn(i64) -> i64, Buffer: i64, buffer: own ByteBuffer) -> ByteBuffer"
+        ));
+        assert!(changed.contains(
+            "fn callback_last(buffer: own ByteBuffer, callback: fn(i64) -> i64) -> ByteBuffer"
+        ));
+        assert!(changed.contains(r#"@id("buffer.type")"#));
+        assert!(changed.contains(r#"@id("buffer.type.drop")"#));
+        semaprax::check(&changed, &source_path).unwrap();
+    }
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
 fn resource_rename_does_not_retarget_record_initializer_values() {
     let source = r#"module patch.record_resource;
 
@@ -880,6 +949,54 @@ fn function_rename_without_capture_preserves_resolved_call_targets() {
 }
 
 #[test]
+fn function_rename_updates_ordinary_calls_inside_class_methods() {
+    let source = r#"module demo;
+
+@id("demo.counter")
+class Counter {
+    @id("demo.counter.start")
+    start: i64,
+
+    @id("demo.counter.get")
+    fn get(self: Counter) -> i64
+        requires helper() > 0
+        ensures result > 0
+    {
+        helper() + self.start
+    }
+}
+
+@id("demo.helper")
+fn helper() -> i64
+{
+    42
+}
+
+@id("demo.main")
+fn main() -> i64
+{
+    let c = Counter { start: 1 };
+    c.get() + helper()
+}
+"#;
+    for schema in ["", "schema semaprax.semantic-patch.v2\n"] {
+        let (source_path, patch_path) = rename_fixture("method", source, "demo.helper to computed");
+        let instructions = std::fs::read_to_string(&patch_path).unwrap();
+        std::fs::write(&patch_path, format!("{schema}{instructions}")).unwrap();
+        patch::apply(&source_path, &patch_path).unwrap();
+        let changed = std::fs::read_to_string(&source_path).unwrap();
+        assert!(changed.contains("computed() + self.start"));
+        assert!(changed.contains("requires computed() > 0"));
+        assert!(changed.contains("ensures result > 0"));
+        assert!(changed.contains("c.get() + computed()"));
+        assert!(changed.contains(r#"@id("demo.helper")"#));
+        assert!(!changed.contains("helper()"));
+        semaprax::check(&changed, &source_path).unwrap();
+        assert_no_owned_artifacts(&source_path);
+    }
+}
+
+#[test]
 fn cli_function_rename_capture_fails_without_changing_the_source() {
     let (source_path, patch_path) = rename_fixture("cli-capture", LET_CAPTURE_SOURCE, "t.one to f");
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -906,4 +1023,85 @@ fn cli_function_rename_capture_fails_without_changing_the_source() {
         .unwrap();
     assert!(run.status.success(), "{run:?}");
     assert_eq!(run.stdout, b"12\n");
+}
+
+#[test]
+fn v2_member_rename_joins_field_writes_reads_and_match_guards() {
+    let source = r#"module patch.member;
+
+@id("patch.box")
+record Box {
+    @id("patch.box.value")
+    value: i64,
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut b = Box {value: 1};
+    while b.value < 2 {
+        b.value = 2;
+        false
+    }
+    match b.value {2 | 3 if b.value == 2 => b.value, n => n,}
+}
+"#;
+    let (source_path, patch_path, _) = a0_fixture("write-and-guard");
+    std::fs::write(&source_path, source).unwrap();
+    let revision = graph::revision(&parse(source, &source_path).unwrap());
+    std::fs::write(
+        &patch_path,
+        format!(
+            "schema semaprax.semantic-patch.v2\nbase {revision}\nrename-member owner patch.box member patch.box.value to payload\n"
+        ),
+    )
+    .unwrap();
+    patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    for spelling in [
+        "payload: i64",
+        "payload: 1",
+        "while b.payload < 2",
+        "b.payload = 2",
+        "match b.payload",
+        "if b.payload == 2 => b.payload",
+    ] {
+        assert!(changed.contains(spelling), "missing {spelling}: {changed}");
+    }
+    semaprax::check(&changed, &source_path).unwrap();
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[test]
+fn v2_function_rename_accepts_the_existing_i32_and_refutable_match_examples() {
+    for (label, source, target, name) in [
+        (
+            "i32-sum",
+            include_str!("../../examples/integers_i32.spx"),
+            "sum.pair",
+            "pair_sum",
+        ),
+        (
+            "refutable-match",
+            include_str!("../../examples/refutable_match.spx"),
+            "refutable.sign_class",
+            "sign_kind",
+        ),
+    ] {
+        let (source_path, patch_path, _) = a0_fixture(label);
+        std::fs::write(&source_path, source).unwrap();
+        let revision = graph::revision(&parse(source, &source_path).unwrap());
+        std::fs::write(
+            &patch_path,
+            format!(
+                "schema semaprax.semantic-patch.v2\nbase {revision}\nrename {target} to {name}\n"
+            ),
+        )
+        .unwrap();
+        patch::apply(&source_path, &patch_path).unwrap();
+        let changed = std::fs::read_to_string(&source_path).unwrap();
+        assert!(changed.contains(&format!("fn {name}(")));
+        semaprax::check(&changed, &source_path).unwrap();
+        assert_no_owned_artifacts(&source_path);
+    }
 }

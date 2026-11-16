@@ -3,7 +3,7 @@ use std::fmt::Write;
 use crate::ast::Program;
 #[path = "agents/embedded.rs"]
 mod embedded;
-pub(super) use embedded::write_function;
+pub(super) use embedded::{write_contracts, write_function};
 
 pub(super) fn write_agents(
     program: &Program,

@@ -92,10 +92,12 @@ affected_functions entry:
 or `automatic`; compiler-owned consumers reject rather than appearing in the
 report. Arrays of `operation_indices` are ascending.
 
-The report binds the program-selected Graph v10/v11/v12/v13/v14 schema, exact
-preflight base and candidate revisions, input patch schema, and exact processed
-patch bytes. `operations` preserve authored instruction order, including
-requirements. `changes` preserve the first contributing operation order while
+The report binds the program-selected Graph schema, exact preflight base and
+candidate revisions, input patch schema, and exact processed patch bytes.
+Standalone resource-rename preview also admits Graph v36 for verified
+function-value signatures.
+Review builds its complete Impact report against the legacy Graph projection.
+`operations` preserve authored instruction order, including requirements. `changes` preserve the first contributing operation order while
 coalescing exact duplicate renames and all selected argument changes for one
 call expression. Every change carries its contributing `operation_indices`.
 

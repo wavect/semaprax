@@ -1,7 +1,8 @@
-//! Schema-less (v1) function rename source positions and the resolved
-//! call-target check that keeps such renames from retargeting a call site.
+//! Source positions for function and resource renames, plus the resolved
+//! call-target check for schema-less function renames.
 
 use super::*;
+use crate::ast::{Type, TypeDeclaration};
 use crate::hir::{
     FunctionExecutionId, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedProgram,
@@ -14,25 +15,38 @@ pub(super) fn function_name_positions(
     target: &crate::ast::Function,
 ) -> BTreeSet<(usize, usize)> {
     let mut positions = BTreeSet::from([(target.name_span.start, target.name_span.end)]);
-    for function in &program.functions {
-        let mut collect = |callee: &str, span: crate::ast::Span| {
-            if callee != target.name {
-                return;
-            }
-            if let Some(token) = tokens.iter().find(|token| {
-                token.span.start == span.start
-                    && matches!(&token.kind, lexer::TokenKind::Ident(name) if name == callee)
-            }) {
-                positions.insert((token.span.start, token.span.end));
-            }
-        };
-        for contract in &function.requires {
-            contract.visit_calls(&mut collect);
+    let methods = program
+        .types
+        .iter()
+        .flat_map(|declaration| match &declaration.kind {
+            TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
+            _ => &[],
+        });
+    let mut collect = |callee: &str, span: crate::ast::Span| {
+        if callee != target.name {
+            return;
         }
-        for contract in &function.ensures {
-            contract.visit_calls(&mut collect);
+        if let Some(token) = tokens.iter().find(|token| {
+            token.span.start == span.start
+                && matches!(&token.kind, lexer::TokenKind::Ident(name) if name == callee)
+        }) {
+            positions.insert((token.span.start, token.span.end));
         }
-        function.body.visit_calls(&mut collect);
+    };
+    let expressions = program
+        .functions
+        .iter()
+        .chain(methods)
+        .flat_map(|function| {
+            function
+                .requires
+                .iter()
+                .chain(&function.ensures)
+                .chain(std::iter::once(&function.body))
+        })
+        .chain(program.types.iter().flat_map(TypeDeclaration::invariants));
+    for expression in expressions {
+        expression.visit_calls(&mut collect);
     }
     positions
 }
@@ -186,5 +200,127 @@ fn collect_call_targets(
             }
             hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
         }
+    }
+}
+
+pub(super) fn resource_type_positions(
+    program: &crate::ast::Program,
+    tokens: &[lexer::Token],
+    resource: &TypeDeclaration,
+) -> BTreeSet<(usize, usize)> {
+    let mut positions = BTreeSet::from([(resource.name_span.start, resource.name_span.end)]);
+    let resource_type = Type::Named {
+        name: resource.name.clone(),
+        arguments: Vec::new(),
+    };
+
+    for declaration in &program.types {
+        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+            continue;
+        };
+        for field in fields {
+            if field.ty == resource_type {
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    field.name_span.end,
+                    field.span.end,
+                    &resource.name,
+                );
+            }
+        }
+    }
+
+    for interface in &program.interfaces {
+        for import in &interface.imports {
+            for param in &import.params {
+                if param.ty != resource_type {
+                    continue;
+                }
+                let end = tokens
+                    .iter()
+                    .find(|token| {
+                        token.span.start >= param.span.end
+                            && token.span.end <= import.span.end
+                            && matches!(
+                                token.kind,
+                                lexer::TokenKind::Comma | lexer::TokenKind::RParen
+                            )
+                    })
+                    .map_or(import.span.end, |token| token.span.start);
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    param.span.end,
+                    end,
+                    &resource.name,
+                );
+            }
+        }
+    }
+
+    for function in &program.functions {
+        for param in &function.params {
+            if param.ty != resource_type {
+                continue;
+            }
+            let end = tokens
+                .iter()
+                .find(|token| {
+                    token.span.start >= param.span.end
+                        && matches!(
+                            token.kind,
+                            lexer::TokenKind::Comma | lexer::TokenKind::RParen
+                        )
+                })
+                .map_or(function.body.span.start, |token| token.span.start);
+            insert_named_type_token(&mut positions, tokens, param.span.end, end, &resource.name);
+        }
+
+        if function.return_type == resource_type {
+            let mut parentheses = 0;
+            let mut signature = tokens.iter().filter(|token| {
+                token.span.start >= function.name_span.end
+                    && token.span.end <= function.body.span.start
+            });
+            if let Some(arrow) = signature.find(|token| match token.kind {
+                lexer::TokenKind::LParen => {
+                    parentheses += 1;
+                    false
+                }
+                lexer::TokenKind::RParen => {
+                    parentheses -= 1;
+                    false
+                }
+                lexer::TokenKind::Arrow => parentheses == 0,
+                _ => false,
+            }) {
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    arrow.span.end,
+                    function.body.span.start,
+                    &resource.name,
+                );
+            }
+        }
+    }
+
+    positions
+}
+
+fn insert_named_type_token(
+    positions: &mut BTreeSet<(usize, usize)>,
+    tokens: &[lexer::Token],
+    start: usize,
+    end: usize,
+    name: &str,
+) {
+    if let Some(token) = tokens.iter().find(|token| {
+        token.span.start >= start
+            && token.span.end <= end
+            && matches!(&token.kind, lexer::TokenKind::Ident(candidate) if candidate == name)
+    }) {
+        positions.insert((token.span.start, token.span.end));
     }
 }

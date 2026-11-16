@@ -134,9 +134,11 @@ pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
                     for param in &method.params {
                         total = total.saturating_add(param.name.len());
                     }
-                    total = total.saturating_add(
-                        legacy_expr_temporary_bytes(&method.body, 0).saturating_mul(2),
-                    );
+                    total = total
+                        .saturating_add(contract_temporary_bytes(method))
+                        .saturating_add(
+                            legacy_expr_temporary_bytes(&method.body, 0).saturating_mul(2),
+                        );
                 }
             }
             TypeDeclarationKind::Variant { cases } => {
@@ -186,12 +188,7 @@ pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
         if !function.effects.is_empty() {
             total = total.saturating_add(legacy_string_join_bytes(&function.effects));
         }
-        for contract in function.requires.iter().chain(&function.ensures) {
-            total = total.saturating_add(legacy_expr_temporary_bytes(contract, 0));
-            if contains_record_construction(contract) {
-                total = total.saturating_add(rendered_expr_len(contract, 0).saturating_add(2));
-            }
-        }
+        total = total.saturating_add(contract_temporary_bytes(function));
         if let ExprKind::Block { statements, tail } = &function.body.kind {
             for statement in statements {
                 let child_count = statement.child_count();
@@ -204,6 +201,17 @@ pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
             total = total.saturating_add(legacy_expr_temporary_bytes(tail, 0));
         } else {
             total = total.saturating_add(legacy_expr_temporary_bytes(&function.body, 0));
+        }
+    }
+    total
+}
+
+fn contract_temporary_bytes(function: &crate::ast::Function) -> usize {
+    let mut total = 0_usize;
+    for contract in function.requires.iter().chain(&function.ensures) {
+        total = total.saturating_add(legacy_expr_temporary_bytes(contract, 0));
+        if contains_record_construction(contract) {
+            total = total.saturating_add(rendered_expr_len(contract, 0).saturating_add(2));
         }
     }
     total

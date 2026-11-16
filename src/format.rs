@@ -444,6 +444,7 @@ pub(crate) fn write_canonical_commented(
                         writeln!(output, " }}").unwrap();
                     }
                     let _expression_scope = expression_statement::whole_function_scope(method);
+                    agents::write_contracts(method, output, 2);
                     write_indented_function_body(output, &method.body, 2, placement);
                     placement.trailing(output, method.span.start, 1);
                 }

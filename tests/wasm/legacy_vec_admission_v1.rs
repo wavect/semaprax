@@ -158,8 +158,8 @@ fn scalar_calculator_still_builds_a_loadable_legacy_web_package() {
     let result = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("build")
         .arg(&input)
-        .args(["--target", "web", "-o"])
-        .arg(&output)
+        .args(["--target", "web", "-o", "calculator"])
+        .current_dir(&root)
         .output()
         .unwrap();
     assert!(
@@ -210,9 +210,38 @@ fn emission_failure_leaves_no_legacy_web_output() {
     let program = semaprax::check(source, "http_app_routing.spx").unwrap();
     let root = temporary();
     let missing = root.join("missing");
-    let error = wasm::build_web(&program, &missing).unwrap_err();
-    assert_eq!(error.code, "SPX-W110");
-    assert_missing(&missing);
-    assert_inventory(&root, &[]);
+    for _ in 0..2 {
+        let error = wasm::build_web(&program, &missing).unwrap_err();
+        assert_eq!(error.code, "SPX-W110");
+        assert_missing(&missing);
+        assert_inventory(&root, &[]);
+    }
     fs::remove_dir(&root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn legacy_web_refuses_a_symlinked_output_parent_and_an_existing_leaf() {
+    let program = semaprax::check(
+        include_str!("../../examples/calculator.spx"),
+        "calculator.spx",
+    )
+    .unwrap();
+    let root = temporary();
+    let real = root.join("real");
+    let link = root.join("link");
+    fs::create_dir(&real).unwrap();
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let error = wasm::build_web(&program, &link.join("calculator")).unwrap_err();
+    assert_eq!(error.code, "SPX-I301");
+    assert!(error.message.contains("symbolic link"));
+    assert_inventory(&real, &[]);
+    assert_eq!(fs::read_link(&link).unwrap(), real);
+
+    let existing = real.join("existing");
+    fs::create_dir(&existing).unwrap();
+    let error = wasm::build_web(&program, &existing).unwrap_err();
+    assert_eq!(error.code, "SPX-I307");
+    assert_inventory(&existing, &[]);
+    fs::remove_dir_all(root).unwrap();
 }

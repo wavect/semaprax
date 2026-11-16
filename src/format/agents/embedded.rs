@@ -49,20 +49,7 @@ pub(in super::super) fn write_function(
         write_escaped(output, &follows.protocol_id);
         writeln!(output, "\"").unwrap();
     }
-    for contract in &function.requires {
-        let _expression_scope = expression_statement::function_scope(contract, &function.params);
-        write_indent(output, depth + 1);
-        write!(output, "requires ").unwrap();
-        write_record_literal_delimited_expr(output, contract);
-        writeln!(output).unwrap();
-    }
-    for contract in &function.ensures {
-        let _expression_scope = expression_statement::function_scope(contract, &function.params);
-        write_indent(output, depth + 1);
-        write!(output, "ensures ").unwrap();
-        write_record_literal_delimited_expr(output, contract);
-        writeln!(output).unwrap();
-    }
+    write_contracts(function, output, depth + 1);
     let _expression_scope = expression_statement::function_scope(&function.body, &function.params);
     write_indent(output, depth);
     if depth == 0 {
@@ -72,4 +59,25 @@ pub(in super::super) fn write_function(
     }
 
     placement.trailing(output, function.span.start, depth);
+}
+
+pub(in super::super) fn write_contracts(
+    function: &crate::ast::Function,
+    output: &mut impl std::fmt::Write,
+    depth: usize,
+) {
+    for contract in &function.requires {
+        let _expression_scope = expression_statement::function_scope(contract, &function.params);
+        write_indent(output, depth);
+        write!(output, "requires ").unwrap();
+        write_record_literal_delimited_expr(output, contract);
+        writeln!(output).unwrap();
+    }
+    for contract in &function.ensures {
+        let _expression_scope = expression_statement::function_scope(contract, &function.params);
+        write_indent(output, depth);
+        write!(output, "ensures ").unwrap();
+        write_record_literal_delimited_expr(output, contract);
+        writeln!(output).unwrap();
+    }
 }

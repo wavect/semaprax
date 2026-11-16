@@ -14,7 +14,7 @@ use crate::graph;
 use crate::hir::{self, DeclarationId, IdentityOrigin, ResolvedProgram, ResolvedType};
 use crate::patch::{
     self, PatchPreflight, PreflightChange, PreflightOperation, SourceConsumerKey,
-    SourceConsumerRole,
+    SourceConsumerKind, SourceConsumerRole,
 };
 
 macro_rules! bformat {
@@ -122,7 +122,27 @@ fn preview_with_hook(
             "semantic impact preflight source differs from its authenticated snapshot",
         )]);
     }
-    let report = build_report(&preflight, options)?.json;
+    let changes = preflight.changes();
+    let resource_rename = !changes.is_empty()
+        && changes.iter().all(|change| {
+            matches!(
+                change,
+                PreflightChange::Rename {
+                    target_kind: SourceConsumerKind::Resource,
+                    ..
+                }
+            )
+        });
+    let report = build_report(
+        &preflight,
+        options,
+        if resource_rename {
+            resource_rename_graph_schema
+        } else {
+            graph::legacy_graph_schema
+        },
+    )?
+    .json;
     hook(
         PreviewPhase::BeforeFinalCheck,
         &canonical_source_path,
@@ -179,16 +199,28 @@ struct BuiltImpactReport {
     used_nodes: usize,
 }
 
+fn resource_rename_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if hir::function_value::requires_function_values(program) {
+        let schema = graph::graph_schema(program)?;
+        if schema == "semaprax.graph.v36" {
+            return Ok(schema);
+        }
+    }
+    graph::legacy_graph_schema(program)
+}
+
 fn build_report(
     preflight: &PatchPreflight,
     options: &SemanticImpactOptions,
+    graph_schema: fn(&ResolvedProgram) -> Result<&'static str, Diagnostic>,
 ) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
-    build_report_with_complete_limits(preflight, options, usize::MAX, usize::MAX)
+    build_report_with_complete_limits(preflight, options, graph_schema, usize::MAX, usize::MAX)
 }
 
 fn build_report_with_complete_limits(
     preflight: &PatchPreflight,
     options: &SemanticImpactOptions,
+    graph_schema: fn(&ResolvedProgram) -> Result<&'static str, Diagnostic>,
     max_complete_nodes: usize,
     max_complete_bytes: usize,
 ) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
@@ -198,8 +230,8 @@ fn build_report_with_complete_limits(
     hir::validate(&candidate).map_err(|error| vec![error])?;
     graph::reject_native_rust_imports(&before).map_err(|error| vec![error])?;
     graph::reject_native_rust_imports(&candidate).map_err(|error| vec![error])?;
-    let base_schema = graph::legacy_graph_schema(&before).map_err(|error| vec![error])?;
-    let candidate_schema = graph::legacy_graph_schema(&candidate).map_err(|error| vec![error])?;
+    let base_schema = graph_schema(&before).map_err(|error| vec![error])?;
+    let candidate_schema = graph_schema(&candidate).map_err(|error| vec![error])?;
     if base_schema != candidate_schema {
         return Err(vec![impact_invariant_error(format!(
             "semantic impact base graph schema `{base_schema}` differs from candidate `{candidate_schema}`"
@@ -276,7 +308,11 @@ pub(crate) fn complete_review_evidence(
 ) -> Result<CompleteImpactEvidence, Vec<Diagnostic>> {
     let options =
         SemanticImpactOptions::new(1024, 16 * 1024 * 1024, 1024).map_err(|error| vec![error])?;
-    complete_review_result(build_report(preflight, &options)?)
+    complete_review_result(build_report(
+        preflight,
+        &options,
+        graph::legacy_graph_schema,
+    )?)
 }
 
 pub(crate) fn complete_review_evidence_bounded(
@@ -289,6 +325,7 @@ pub(crate) fn complete_review_evidence_bounded(
     let report = build_report_with_complete_limits(
         preflight,
         &options,
+        graph::legacy_graph_schema,
         max_complete_nodes,
         max_complete_bytes,
     )?;

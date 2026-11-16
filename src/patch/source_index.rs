@@ -108,7 +108,14 @@ impl SemanticSourceIndex {
             }
         }
 
-        for function in &program.functions {
+        let methods = program
+            .types
+            .iter()
+            .flat_map(|declaration| match &declaration.kind {
+                TypeDeclarationKind::Class { methods, .. } => methods.as_slice(),
+                _ => &[],
+            });
+        for function in program.functions.iter().chain(methods) {
             let (requires, ensures, body) = if function.type_parameters.is_empty() {
                 let resolved = resolved
                     .functions
@@ -303,6 +310,21 @@ impl SemanticSourceIndex {
                 self.expr_pairs(args, resolved_args, tokens)?;
             }
             (
+                ExprKind::MethodCall { receiver, type_arguments, args, .. },
+                ResolvedExprKind::Call { args: resolved_args, .. },
+            ) if type_arguments.is_empty() => {
+                let (resolved_receiver, resolved_args) = resolved_args.split_first()?;
+                self.expr(receiver, resolved_receiver, tokens)?;
+                self.expr_pairs(args, resolved_args, tokens)?;
+            }
+            (
+                ExprKind::SuperMethod { args, .. },
+                ResolvedExprKind::Call { args: resolved_args, .. },
+            ) => {
+                let (_, resolved_args) = resolved_args.split_first()?;
+                self.expr_pairs(args, resolved_args, tokens)?;
+            }
+            (
                 ExprKind::VecConstructor { value, .. } | ExprKind::Unary { value, .. },
                 ResolvedExprKind::Unary {
                     value: resolved_value,
@@ -352,14 +374,49 @@ impl SemanticSourceIndex {
                                 value: resolved_value,
                                 ..
                             },
-                        )
-                        | (
-                            Statement::Assign { value, .. },
+                        ) => self.expr(value, resolved_value, tokens)?,
+                        (
+                            Statement::Assign { field, value, .. },
                             ResolvedStatement::Assign {
+                                binding,
+                                field: resolved_field,
                                 value: resolved_value,
                                 ..
                             },
-                        ) => self.expr(value, resolved_value, tokens)?,
+                        ) => {
+                            match (field, resolved_field) {
+                                (Some(field), Some(resolved_field)) => {
+                                    let owner = binding.ty.nominal_id()?;
+                                    let identity = resolved_field.as_str();
+                                    if self.member_names.get(identity)? != &field.name
+                                        || self.member_owners.get(identity)? != owner.as_str()
+                                        || self.ambiguous_member_fields.contains(identity)
+                                    {
+                                        return None;
+                                    }
+                                    self.member(owner.as_str(), identity, field.span, None);
+                                }
+                                (None, None) => {}
+                                _ => return None,
+                            }
+                            self.expr(value, resolved_value, tokens)?;
+                        }
+                        (
+                            Statement::While { condition, body, .. },
+                            ResolvedStatement::While {
+                                condition: resolved_condition,
+                                body: resolved_body,
+                                ..
+                            }
+                            | ResolvedStatement::LexicalWhile {
+                                condition: resolved_condition,
+                                body: resolved_body,
+                                ..
+                            },
+                        ) => {
+                            self.expr(condition, resolved_condition, tokens)?;
+                            self.expr(body, resolved_body, tokens)?;
+                        }
                         (
                             Statement::Unsafe { body, .. },
                             ResolvedStatement::Unsafe {
@@ -448,6 +505,11 @@ impl SemanticSourceIndex {
                 }
                 for (arm, resolved_arm) in arms.iter().zip(resolved_arms) {
                     self.pattern(&arm.pattern, &resolved_arm.pattern)?;
+                    match (&arm.guard, &resolved_arm.guard) {
+                        (Some(guard), Some(resolved)) => self.expr(guard, resolved, tokens)?,
+                        (None, None) => {}
+                        _ => return None,
+                    }
                     self.expr(&arm.value, &resolved_arm.value, tokens)?;
                 }
             }
@@ -504,6 +566,12 @@ impl SemanticSourceIndex {
                 }
             }
             (ExprKind::Int(_), ResolvedExprKind::Int(_))
+            | (ExprKind::Int32(_), ResolvedExprKind::Int32(_))
+            | (ExprKind::Char(_), ResolvedExprKind::Char(_))
+            | (ExprKind::Uint8(_), ResolvedExprKind::Uint8(_))
+            | (ExprKind::Usize(_), ResolvedExprKind::Usize(_))
+            | (ExprKind::Float32(_), ResolvedExprKind::Float32(_))
+            | (ExprKind::Float64(_), ResolvedExprKind::Float64(_))
             | (ExprKind::String(_), ResolvedExprKind::String(_))
             | (ExprKind::BorrowedUtf8Literal(_), ResolvedExprKind::BorrowedUtf8Literal(_))
             | (ExprKind::Bool(_), ResolvedExprKind::Bool(_))
@@ -566,6 +634,18 @@ impl SemanticSourceIndex {
                 },
             ) => self.record_pattern(record.as_str(), fields, resolved_fields)?,
             (MatchPattern::Wildcard { .. }, ResolvedMatchPattern::Wildcard) => {}
+            (MatchPattern::Literal { value, .. }, ResolvedMatchPattern::Literal(resolved))
+                if crate::hir::PatternValue::from_ast(*value) == *resolved => {}
+            (MatchPattern::Binding { name, .. }, ResolvedMatchPattern::Binding(binding))
+                if name == &binding.name => {}
+            (MatchPattern::Or { alternatives, .. }, ResolvedMatchPattern::Or(resolved)) => {
+                if alternatives.len() != resolved.len() {
+                    return None;
+                }
+                for (source, resolved) in alternatives.iter().zip(resolved) {
+                    self.pattern(source, resolved)?;
+                }
+            }
             _ => return None,
         }
         Some(())

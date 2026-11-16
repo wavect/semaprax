@@ -1,3 +1,8 @@
+## Standalone semantic patches and Web output (2026-11-16)
+
+- Index while loops, ordinary method calls, match guards and refutable patterns during semantic patch preflight. Rewrite verified field assignment targets and ordinary calls inside class methods, and locate resource return types after the outer parameter list.
+- Require a real immediate parent for legacy Web output. Roll back files owned by a failed build so the same output path can be retried, preserving the original diagnostic.
+
 ## Finite Bytes iterator support in the import-free Wasm provider (2026-11-14)
 
 - Replay reachable Vec construction demand before selecting a fixed Bytes iterator table. Exercise both continue sites, break, return and failure reentry through the existing provider ABI. Verify settlement at 32 allocations and 2,097,152 payload bytes.

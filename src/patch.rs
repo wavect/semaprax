@@ -2,7 +2,7 @@ mod direct_apply;
 mod operations;
 mod rename_targets;
 mod source_index;
-use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
+use crate::ast::{Program, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use crate::{graph, hir, lexer, parse, verify};
 use std::collections::{BTreeMap, BTreeSet};
@@ -1459,7 +1459,8 @@ fn preflight_parsed_owned(
                 after: rename.new_name.to_owned(),
                 operation_indices: operation_indices.clone(),
             });
-            for (start, end) in resource_type_positions(&before, &tokens, resource) {
+            for (start, end) in rename_targets::resource_type_positions(&before, &tokens, resource)
+            {
                 let replacement = rename.new_name.to_owned();
                 planned_edits.push(planned_edit(
                     start,
@@ -2746,10 +2747,20 @@ fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Di
         )
         .chain(patch.case_renames().map(|rename| rename.case.to_owned()))
         .collect::<BTreeSet<_>>();
-    let before_graph =
-        normalized_semantic_graph(before, &targeted, &allowed_instances, &renamed_declarations)?;
-    let after_graph =
-        normalized_semantic_graph(after, &targeted, &allowed_instances, &renamed_declarations)?;
+    let before_graph = normalized_semantic_graph(
+        before,
+        before_resolved,
+        &targeted,
+        &allowed_instances,
+        &renamed_declarations,
+    )?;
+    let after_graph = normalized_semantic_graph(
+        after,
+        after_resolved,
+        &targeted,
+        &allowed_instances,
+        &renamed_declarations,
+    )?;
     if before_graph != after_graph {
         return Err(vec![Diagnostic::io(
             "SPX-G108",
@@ -2830,11 +2841,16 @@ fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Di
 
 fn normalized_semantic_graph(
     program: &crate::ast::Program,
+    resolved: &hir::ResolvedProgram,
     targeted_calls: &BTreeSet<String>,
     allowed_instances: &BTreeSet<String>,
     renamed_declarations: &BTreeSet<String>,
 ) -> Result<serde_json::Value, Vec<Diagnostic>> {
-    let source = graph::to_legacy_json(program)?;
+    let source = if hir::function_value::requires_function_values(resolved) {
+        graph::to_json(program)?
+    } else {
+        graph::to_legacy_json(program)?
+    };
     let mut value: serde_json::Value = serde_json::from_str(&source).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-G108",
@@ -2927,116 +2943,6 @@ fn scrub_semantic_graph(
         | serde_json::Value::Bool(_)
         | serde_json::Value::Number(_)
         | serde_json::Value::String(_) => {}
-    }
-}
-
-fn resource_type_positions(
-    program: &crate::ast::Program,
-    tokens: &[lexer::Token],
-    resource: &TypeDeclaration,
-) -> BTreeSet<(usize, usize)> {
-    let mut positions = BTreeSet::from([(resource.name_span.start, resource.name_span.end)]);
-    let resource_type = Type::Named {
-        name: resource.name.clone(),
-        arguments: Vec::new(),
-    };
-
-    for declaration in &program.types {
-        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
-            continue;
-        };
-        for field in fields {
-            if field.ty == resource_type {
-                insert_named_type_token(
-                    &mut positions,
-                    tokens,
-                    field.name_span.end,
-                    field.span.end,
-                    &resource.name,
-                );
-            }
-        }
-    }
-
-    for interface in &program.interfaces {
-        for import in &interface.imports {
-            for param in &import.params {
-                if param.ty != resource_type {
-                    continue;
-                }
-                let end = tokens
-                    .iter()
-                    .find(|token| {
-                        token.span.start >= param.span.end
-                            && token.span.end <= import.span.end
-                            && matches!(
-                                token.kind,
-                                lexer::TokenKind::Comma | lexer::TokenKind::RParen
-                            )
-                    })
-                    .map_or(import.span.end, |token| token.span.start);
-                insert_named_type_token(
-                    &mut positions,
-                    tokens,
-                    param.span.end,
-                    end,
-                    &resource.name,
-                );
-            }
-        }
-    }
-
-    for function in &program.functions {
-        for param in &function.params {
-            if param.ty != resource_type {
-                continue;
-            }
-            let end = tokens
-                .iter()
-                .find(|token| {
-                    token.span.start >= param.span.end
-                        && matches!(
-                            token.kind,
-                            lexer::TokenKind::Comma | lexer::TokenKind::RParen
-                        )
-                })
-                .map_or(function.body.span.start, |token| token.span.start);
-            insert_named_type_token(&mut positions, tokens, param.span.end, end, &resource.name);
-        }
-
-        if function.return_type == resource_type {
-            if let Some(arrow) = tokens.iter().find(|token| {
-                token.span.start >= function.name_span.end
-                    && token.span.end <= function.body.span.start
-                    && matches!(token.kind, lexer::TokenKind::Arrow)
-            }) {
-                insert_named_type_token(
-                    &mut positions,
-                    tokens,
-                    arrow.span.end,
-                    function.body.span.start,
-                    &resource.name,
-                );
-            }
-        }
-    }
-
-    positions
-}
-
-fn insert_named_type_token(
-    positions: &mut BTreeSet<(usize, usize)>,
-    tokens: &[lexer::Token],
-    start: usize,
-    end: usize,
-    name: &str,
-) {
-    if let Some(token) = tokens.iter().find(|token| {
-        token.span.start >= start
-            && token.span.end <= end
-            && matches!(&token.kind, lexer::TokenKind::Ident(candidate) if candidate == name)
-    }) {
-        positions.insert((token.span.start, token.span.end));
     }
 }
 

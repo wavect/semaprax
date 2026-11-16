@@ -54,8 +54,9 @@ arguments, and exact selected old/new materialized instance declarations. All
 other declaration IDs, owner/index/type facts, binding names and IDs, places,
 layouts, call facts, and CleanupPlan bytes must remain equal. Generic edits must
 produce the grouped final argument vector and derived instance, and no other
-reachable instance may change. The Graph lattice maximum remains v14,
-lower-schema programs remain v10-v13, and CleanupPlan selection is unchanged.
+reachable instance may change. The delta check retains the legacy Graph
+projection for existing inputs and uses the canonical Function Values
+projection when checked signatures require it. CleanupPlan selection is unchanged.
 
 ## Stable diagnostics
 

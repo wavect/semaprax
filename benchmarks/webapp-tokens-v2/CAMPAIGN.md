@@ -91,6 +91,10 @@ python3 benchmarks/webapp-tokens-v2/codex_campaign.py plan \
   --timeout-seconds 1800
 ```
 
+Use `--playwright-browsers-path /absolute/cache` when Chromium lives outside
+the default Playwright cache. Preflight launches headless Chromium and the
+acceptance subprocess uses the cache path recorded in the plan.
+
 After reviewing the plan and supplying the exact compiler binary, the live
 command is the same invocation with `run` and
 `--acknowledge-paid-attempts`. The live command was not run while developing

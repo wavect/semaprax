@@ -220,7 +220,8 @@ def capabilities(binary: str = "codex") -> dict[str, Any]:
     }
 
 
-def acceptance_capabilities(node_binary: str, playwright_root: Path) -> dict[str, Any]:
+def acceptance_capabilities(node_binary: str, playwright_root: Path,
+                            browsers_path: Path | None = None) -> dict[str, Any]:
     """Check the exact local Node/Playwright runtime before any paid request."""
     script = r"""
 const fs=require('node:fs');
@@ -229,10 +230,27 @@ const {createRequire}=require('node:module');
 const root=process.argv[1];
 const requireFromRoot=createRequire(path.join(root,'package.json'));
 const version=requireFromRoot('@playwright/test/package.json').version;
-const executable=requireFromRoot('@playwright/test').chromium.executablePath();
-process.stdout.write(JSON.stringify({version,executable,executable_exists:fs.existsSync(executable)}));
+const { chromium }=requireFromRoot('@playwright/test');
+const executable=chromium.executablePath();
+const result={version,executable,executable_exists:fs.existsSync(executable),headless_launch_ok:false};
+(async () => {
+    if (version==='1.62.0') {
+        const browser=await chromium.launch({headless:true});
+        await browser.close();
+        result.headless_launch_ok=true;
+    }
+})().catch(error => { console.error(error); process.exitCode=1; })
+    .finally(() => process.stdout.write(JSON.stringify(result)));
     """
     root = playwright_root.expanduser().resolve()
+    env = dict(os.environ)
+    if browsers_path is not None:
+        browser_root = browsers_path.expanduser().resolve(strict=True)
+        if not browser_root.is_dir():
+            raise ValueError("playwright browsers path must be a directory")
+        env["PLAYWRIGHT_BROWSERS_PATH"] = str(browser_root)
+    elif env.get("PLAYWRIGHT_BROWSERS_PATH") not in (None, "", "0"):
+        env["PLAYWRIGHT_BROWSERS_PATH"] = str(Path(env["PLAYWRIGHT_BROWSERS_PATH"]).expanduser().resolve())
     resolved_node = shutil.which(node_binary)
     if resolved_node is None:
         return {"status": "unsupported", "node_binary": node_binary,
@@ -246,14 +264,16 @@ process.stdout.write(JSON.stringify({version,executable,executable_exists:fs.exi
                                  check=False, timeout=15)
         match = re.fullmatch(r"v(\d+)\.\d+\.\d+", version.stdout.strip())
         package = subprocess.run([resolved_node, "-e", script, str(root)], text=True,
-                                 capture_output=True, check=False, timeout=30)
-        detail = json.loads(package.stdout) if package.returncode == 0 else {}
+                                 capture_output=True, check=False, timeout=30, env=env)
+        detail = json.loads(package.stdout) if package.stdout else {}
+        if not isinstance(detail, dict):
+            detail = {}
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
         return {"status": "unsupported", "node_binary": resolved_node,
                 "playwright_root": str(root), "error": str(error)}
     ready = (version.returncode == 0 and match is not None and int(match.group(1)) >= 24
              and package.returncode == 0 and detail.get("version") == "1.62.0"
-             and detail.get("executable_exists") is True)
+             and detail.get("headless_launch_ok") is True)
     return {
         "status": "ready" if ready else "unsupported",
         "node_binary": resolved_node,
@@ -262,6 +282,8 @@ process.stdout.write(JSON.stringify({version,executable,executable_exists:fs.exi
         "playwright_version": detail.get("version"),
         "chromium_executable": detail.get("executable"),
         "chromium_executable_exists": detail.get("executable_exists", False),
+        "chromium_headless_launch_ok": detail.get("headless_launch_ok", False),
+        "playwright_browsers_path": env.get("PLAYWRIGHT_BROWSERS_PATH"),
         "probe_stderr": common.bounded_text(package.stderr),
     }
 
@@ -764,7 +786,8 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
         "capabilities": capabilities(args.codex_binary),
         "acceptance": {"runner": "benchmarks/webapp-tokens-v2/acceptance/run.mjs", "node_major": 24,
                        "playwright": "1.62.0", "required_cases": 912, "fresh_evidence": True,
-                       "capabilities": acceptance_capabilities(args.node_binary, Path(args.playwright_root))},
+                       "capabilities": acceptance_capabilities(
+                           args.node_binary, Path(args.playwright_root), getattr(args, "playwright_browsers_path", None))},
     }
 
     if explicit_receipt:
@@ -960,6 +983,12 @@ def check_candidate(candidate: Path, output: Path, arm: str, settings: dict[str,
     gate_relative = settings["acceptance"]["runner"]
     gate = Path(settings["artifacts"]) / settings["harness_source_snapshot"]["path"] / gate_relative
     runtime = settings["acceptance"]["capabilities"]
+    if "playwright_browsers_path" in runtime:
+        browsers_path = runtime["playwright_browsers_path"]
+        if browsers_path is None:
+            env.pop("PLAYWRIGHT_BROWSERS_PATH", None)
+        else:
+            env["PLAYWRIGHT_BROWSERS_PATH"] = browsers_path
     command = [runtime["node_binary"], str(gate), "--arm", arm, "--candidate", str(candidate),
                "--output", str(output), "--playwright-root", runtime["playwright_root"]]
     if arm == "semaprax":
@@ -1313,6 +1342,8 @@ def main() -> int:
         current.add_argument("--stable-prompt-paths", action="store_true",
                              help="use workspace-relative paths and SEMAPRAX_BIN for matched compiler comparisons")
         current.add_argument("--playwright-root", default=str(BENCHMARK / "acceptance"))
+        current.add_argument("--playwright-browsers-path", type=Path,
+                             help="pin the Chromium cache directory used by preflight and the acceptance gate")
         current.add_argument("--effort", default=EFFORT); current.add_argument("--trials-per-arm", type=int, default=MIN_TRIALS_PER_ARM)
         current.add_argument("--timeout-seconds", type=int, default=TIMEOUT_SECONDS)
     run_parser.add_argument("--acknowledge-paid-attempts", action="store_true")

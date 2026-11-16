@@ -814,6 +814,37 @@ class WebappCampaignTests(unittest.TestCase):
             self.assertEqual((hashes, omitted), ({}, []))
             self.assertEqual(list((root / "archive").iterdir()), [])
 
+    def test_browser_preflight_pins_external_cache_and_requires_a_headless_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            playwright = root / "playwright"
+            cache = root / "browsers"
+            playwright.mkdir()
+            cache.mkdir()
+            (playwright / "package.json").write_text("{}")
+
+            def probe(command, **kwargs):
+                if command[1] == "--version":
+                    return subprocess.CompletedProcess(command, 0, "v24.15.0", "")
+                self.assertEqual(kwargs["env"]["PLAYWRIGHT_BROWSERS_PATH"], str(cache.resolve()))
+                self.assertIn("chromium.launch({headless:true})", command[2])
+                result = {"version": "1.62.0", "executable": str(cache / "chromium"),
+                          "executable_exists": True, "headless_launch_ok": headless_ok}
+                return subprocess.CompletedProcess(command, int(not headless_ok), json.dumps(result), "")
+
+            with (patch.dict(os.environ, {"PLAYWRIGHT_BROWSERS_PATH": "/ambient"}),
+                 patch.object(campaign.shutil, "which", return_value="/pinned/node"),
+                 patch.object(campaign.subprocess, "run", side_effect=probe)):
+                headless_ok = False
+                failed = campaign.acceptance_capabilities("node", playwright, cache)
+                self.assertEqual(failed["status"], "unsupported")
+                self.assertTrue(failed["chromium_executable_exists"])
+                headless_ok = True
+                ready = campaign.acceptance_capabilities("node", playwright, cache)
+                self.assertEqual(ready["status"], "ready")
+                self.assertEqual(ready["playwright_browsers_path"], str(cache.resolve()))
+                self.assertTrue(ready["chromium_headless_launch_ok"])
+
     def test_candidate_check_runs_one_snapshotted_gate_and_requires_exact_report_schema(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); candidate = root / "candidate"; candidate.mkdir()
@@ -826,6 +857,7 @@ class WebappCampaignTests(unittest.TestCase):
                 "harness_source_snapshot": {"path": "harness-source", "files_sha256": {gate_relative: gate_hash}},
                 "acceptance": {"runner": gate_relative, "capabilities": {
                     "node_binary": "/pinned/node", "playwright_root": "/pinned/playwright",
+                    "playwright_browsers_path": "/pinned/browsers",
                 }},
                 "qualification": {"spec_sha256": "a" * 64},
                 "compiler_source_commit": "b" * 40, "source_binary_sha256": "c" * 64,
@@ -834,6 +866,7 @@ class WebappCampaignTests(unittest.TestCase):
 
             def run_gate(command, **kwargs):
                 self.assertEqual(command[0], "/pinned/node")
+                self.assertEqual(kwargs["env"]["PLAYWRIGHT_BROWSERS_PATH"], "/pinned/browsers")
                 self.assertNotIn("/bin/sh", command)
                 output = Path(command[command.index("--output") + 1]); output.mkdir(parents=True)
                 report = {

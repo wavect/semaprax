@@ -173,8 +173,9 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
                 (workspace / "benchmarks/event-sim-tokens-v1/SPEC.md").write_text("# Changed spec\n")
             return {"timed_out": False, "process_exit_code": 0, "elapsed_seconds": 0.1}
 
-        def check_program(_candidate, _timeout, _env, qualification_mode):
+        def check_program(_candidate, _timeout, _env, qualification_mode, *, exclude_verified_node_modules):
             self.assertEqual(qualification_mode, "preflight_only")
+            self.assertFalse(exclude_verified_node_modules)
             if edit_stage == "during_acceptance":
                 (workspace / "benchmarks/event-sim-tokens-v1/SPEC.md").write_text("# Changed spec\n")
             return {"accepted": True}
@@ -238,7 +239,7 @@ required = ["process.args.read", "process.stderr.write", "process.stdin.read", "
             self.assertEqual(common.rate_card_estimate_details(
                 usage, current["price_book"]["per_million_tokens"],
             )["usd"], 0.1)
-            for invalid_round in (0, 5, True):
+            for invalid_round in (0, 7, True):
                 args.round = invalid_round
                 with self.assertRaisesRegex(ValueError, "unsupported ShiftSim round"):
                     live_campaign.plan(args)

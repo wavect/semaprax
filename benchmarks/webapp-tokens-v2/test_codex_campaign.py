@@ -18,6 +18,7 @@ import codex_campaign as campaign
 import codex_rescore as rescore
 import typescript_bootstrap as bootstrap
 import dependency_bundle as dependencies
+from test_campaign_resources import healthy_host
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +40,7 @@ class WebappCampaignTests(unittest.TestCase):
         # independently exercised with low-space and ENOSPC controls.
         self.enterContext(patch("campaign_resources.snapshot", return_value=[
             {"device": 1, "path": "/fixture", "free_bytes": 10 * 1024**3}]))
+        self.enterContext(patch("campaign_resources.host_snapshot", side_effect=healthy_host))
 
     def bootstrap_fixture(self, root):
         self.enterContext(patch.object(bootstrap, "runtime_identity", return_value={

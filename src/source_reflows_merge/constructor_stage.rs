@@ -69,7 +69,32 @@ pub(super) fn after(domain: &str, source: &str, current: &str, projected: String
 
 pub(super) fn retained_function847_input(source: &str, current: &str) -> String {
     let projected = super::retained_function847_previous(source, current);
-    after("retained847", source, current, projected)
+    const SOURCE: &str = "src/workspace_graph/checked_retention.rs";
+    const PREDECESSOR: &str = "ef25ec01b0a83b4b6c3b3a01ba03421eb0d226c2cb4e77afe66806e2eebaadc2";
+    if source != SOURCE || super::source_sha(&projected) == PREDECESSOR {
+        return after("retained847", source, current, projected);
+    }
+
+    // The published ProjectRows change and boxed ordinal carrier were added
+    // after this consumer's sealed checked-retention input.
+    let compiled = include_str!("../workspace_graph/checked_retention.rs");
+    assert_eq!(current, compiled);
+    assert_eq!(projected, compiled);
+    assert_eq!(
+        super::source_sha(compiled),
+        "b46c9e953f7e53e57e28ba1a8bf0316aca268e3ffcdc4862cab09d0453275674"
+    );
+    let mut restored = projected;
+    for (after, before) in [
+        ("mod project_rows;\npub(super) use project_rows::ProjectRows;\n", ""),
+        ("    Ordinals(Box<[usize]>),\n", "    Ordinals(Vec<usize>),\n"),
+        ("            if ordinals.capacity() != count {\n                // A box shrink may request a replacement while the paid\n                // vector is still live. Reserve before converting it.\n                reserve_builder_structure(payload)?;\n            }\n            Selection::Ordinals(ordinals.into_boxed_slice())\n", "            Selection::Ordinals(ordinals)\n"),
+    ] {
+        assert_eq!(restored.matches(after).count(), 1);
+        restored = restored.replacen(after, before, 1);
+    }
+    assert_eq!(super::source_sha(&restored), PREDECESSOR);
+    restored
 }
 
 // A complete historical cursor is DATA, not a replacement current-source

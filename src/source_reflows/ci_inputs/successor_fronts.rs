@@ -672,6 +672,22 @@ fn next_custody_front(
         assert_eq!(row["source"], pair.1);
     }
     let row = &rows[index];
+    let compiled = actual;
+    let predecessor;
+    let actual = if (owner, source) == PAIRS[0] && actual.len() as u64 != row["length"] {
+        // The live inventory gained the ProjectRows child. Retain it in the
+        // audit while recovering the complete prior inventory for this epoch.
+        assert_eq!(
+            digest(compiled),
+            "7d7254747ae4d95c055e23ac1b2a3ce8e0cc902335e7ef54904830ecf91cdcb0"
+        );
+        let child = "                include_str!(\"../../src/workspace_graph/checked_retention/project_rows.rs\"),\n";
+        assert_eq!(compiled.matches(child).count(), 1);
+        predecessor = compiled.replacen(child, "", 1);
+        predecessor.as_str()
+    } else {
+        compiled
+    };
     assert_eq!(actual.len() as u64, row["length"]);
     assert_eq!(digest(actual), row["sha256"]);
     fn project(actual: &str, stage: &serde_json::Value) -> String {
@@ -696,15 +712,21 @@ fn next_custody_front(
     }
     let middle = (!row["middle"].is_null()).then(|| project(actual, &row["middle"]));
     assert!(
-        supplied == actual || middle.as_deref() == Some(supplied),
+        supplied == compiled || middle.as_deref() == Some(supplied),
         "only the same actual source or its exact bound V13 intermediate"
     );
     assert_eq!(row["target"]["length"], old["current_length"]);
     assert_eq!(row["target"]["sha256"], old["current_sha256"]);
     let restored = project(actual, &row["target"]);
     assert_eq!(
-        reader::read(&root.join(source), actual.len(), &digest(actual), 2_097_152).unwrap(),
-        actual
+        reader::read(
+            &root.join(source),
+            compiled.len(),
+            &digest(compiled),
+            2_097_152
+        )
+        .unwrap(),
+        compiled
     );
     assert_eq!(
         reader::read(

@@ -145,12 +145,50 @@ fn run(
     sources: Vec<WorkspaceSource>,
     limit: usize,
 ) -> Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>> {
+    let expected_sources = sources.len();
+    let build =
+        || build_owned_retaining_sources_with_frontend_limit(sources, limit, None, false, None);
     if old {
-        before::build_owned_retaining_sources_with_frontend_limit(sources, limit, None, false, None)
+        let (result, formatted) = format::comments::with_materialized_control(build);
+        if result.is_ok() {
+            assert_eq!(
+                formatted, expected_sources,
+                "materialized control covers every module"
+            );
+        }
+        result
     } else {
-        build_owned_retaining_sources_with_frontend_limit(sources, limit, None, false, None)
+        build()
     }
 }
+
+// Keep the complete historical builder executable with its own report tariff.
+#[test]
+fn complete_frozen_cold_builder_still_authenticates_original_inputs() {
+    let input = sources(2);
+    let (build, observed) = before::build_owned_retaining_sources_with_frontend_limit(
+        input.clone(),
+        MAX_BUILDER_BYTES,
+        None,
+        false,
+        None,
+    )
+    .unwrap();
+    assert_eq!(observed.len(), input.len());
+    for (source, expected) in observed.iter().zip(input) {
+        assert_eq!(source.input().path, expected.path);
+        assert_eq!(source.input().source, expected.source);
+    }
+    assert_eq!(
+        build
+            .linked_scalar_program("cold.app")
+            .unwrap()
+            .entrypoint
+            .as_str(),
+        "cold.main"
+    );
+}
+
 fn assert_same(
     old: &Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>>,
     current: &Result<(WorkspaceGraphBuild, current_source::SourceFacts), Vec<Diagnostic>>,

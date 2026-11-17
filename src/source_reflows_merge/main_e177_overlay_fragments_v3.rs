@@ -715,7 +715,7 @@ mod tests {
             compose_values(before.clone(), &policy, &compact).unwrap(),
             compose_values_v2(before, &policy, &page).unwrap()
         );
-        let source = include_str!("main_e177_overlay_v2.rs");
+        let source = crate::source_reflows::base_v2_composer_source();
         let body = source
             .split_once("fn compose_values_v2(")
             .unwrap()

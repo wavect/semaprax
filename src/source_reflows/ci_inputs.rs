@@ -1440,3 +1440,15 @@ use successor_fronts::constructor903_before;
 pub(super) use successor_fronts::{
     batch_913_entry, compact_frontier_entry, lifecycle_visibility_entry, next_custody_before,
 };
+
+#[allow(
+    dead_code,
+    reason = "the historical Wasm fixture compiles this reader without the current composer test"
+)]
+pub(crate) fn base_v2_composer_source() -> String {
+    next_custody_before(
+        "v12-root",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        include_str!("../source_reflows_merge/main_e177_overlay_v2.rs"),
+    )
+}

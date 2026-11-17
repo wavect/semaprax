@@ -46,11 +46,43 @@ impl std::fmt::Write for Compare<'_> {
     }
 }
 
+// The owning cold builder supplies both arms' exact current report controls.
+#[cfg(test)]
+thread_local! {
+    static MATERIALIZED_CONTROL: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+#[cfg(test)]
+pub(crate) fn with_materialized_control<T>(operation: impl FnOnce() -> T) -> (T, usize) {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            MATERIALIZED_CONTROL.set(None);
+        }
+    }
+    assert!(MATERIALIZED_CONTROL.get().is_none());
+    MATERIALIZED_CONTROL.set(Some(0));
+    let reset = Reset;
+    let output = operation();
+    let calls = MATERIALIZED_CONTROL.get().unwrap();
+    drop(reset);
+    (output, calls)
+}
+
 pub(crate) fn canonical_comparison(
     program: &Program,
     comments: &Comments,
     expected: &str,
 ) -> Comparison {
+    #[cfg(test)]
+    if let Some(calls) = MATERIALIZED_CONTROL.get() {
+        MATERIALIZED_CONTROL.set(Some(calls + 1));
+        let output = super::canonical_with_comments(program, comments);
+        return Comparison {
+            bytes: Some(output.len()),
+            matches: output == expected,
+        };
+    }
     let placement = Placement::new(program, comments);
     let mut output = Compare::new(expected);
     super::super::write_canonical_commented(program, &placement, &mut output);

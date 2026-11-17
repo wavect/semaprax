@@ -37,6 +37,8 @@ pub use crate::lexer::{Comment, Comments};
 #[path = "comments/compare.rs"]
 mod compare;
 pub(crate) use compare::canonical_comparison;
+#[cfg(test)]
+pub(crate) use compare::with_materialized_control;
 
 /// Where every comment of one source file goes in its canonical rendering.
 #[derive(Debug, Default)]

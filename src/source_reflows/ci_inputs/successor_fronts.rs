@@ -685,6 +685,42 @@ fn next_custody_front(
         assert_eq!(compiled.matches(child).count(), 1);
         predecessor = compiled.replacen(child, "", 1);
         predecessor.as_str()
+    } else if (owner, source) == PAIRS[1] && digest(compiled) != row["sha256"] {
+        let expected = row["sha256"].as_str().unwrap();
+        let length = row["length"].as_u64().unwrap().try_into().unwrap();
+        let archived = reader::read(&root.join("e").join(expected), length, expected, 2_097_152)
+            .expect("complete prior V12 root carrying the original policy pin");
+        let policy_path = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
+        let policy = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/finite-source-overlay-v2-20261018/policy.json"
+        ));
+        let policy_sha = digest(policy);
+        assert_eq!(
+            reader::read(
+                &root.join(policy_path),
+                policy.len(),
+                &policy_sha,
+                2_097_152
+            )
+            .unwrap(),
+            policy
+        );
+        let current_pin = format!("const POLICY_SHA256: &str = \"{policy_sha}\";");
+        let prior_pin = archived
+            .lines()
+            .find(|line| line.starts_with("const POLICY_SHA256: &str = "))
+            .unwrap();
+        assert_eq!(compiled.matches(&current_pin).count(), 1);
+        predecessor = compiled.replacen(&current_pin, prior_pin, 1);
+        assert_eq!(predecessor, archived, "exact V12 policy-pin inverse");
+        predecessor.as_str()
+    } else if (owner, source) == PAIRS[3] && digest(compiled) != row["sha256"] {
+        let live = "        let source = crate::source_reflows::base_v2_composer_source();\n";
+        let old = "        let source = include_str!(\"main_e177_overlay_v2.rs\");\n";
+        assert_eq!(compiled.matches(live).count(), 1);
+        predecessor = compiled.replacen(live, old, 1);
+        predecessor.as_str()
     } else {
         compiled
     };

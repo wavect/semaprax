@@ -232,7 +232,7 @@ pub(crate) fn project_before(source: &str, expected: &str, current: &str) -> Str
         )
         .expect("complete workspace projector predecessor")
     } else {
-        main_e177_final_inputs::value_direct(source, expected, current)
+        constructor_stage::project_entry(source, expected, current)
     };
     assert_eq!(
         source_sha(&entry),
@@ -418,7 +418,7 @@ pub(crate) fn receiver_fixture_entry(
     entry
 }
 pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
-    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let interface = constructor_stage::consumer_entry(domain, source, current);
     let current = interface.as_str();
     let entry = if domain == "lexical832" {
         receiver_fixture_entry(ReceiverFixture::LexicalOperands, source, current)
@@ -512,7 +512,7 @@ pub(crate) fn receiver_child_entry(source: &str, current: &str) -> String {
     inverse
 }
 pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> String {
-    let entry = receiver_child_entry(source, current);
+    let entry = constructor_stage::consumer_child_entry(domain, source, current);
     let current = entry.as_str();
     let branch = final_fix_input(source, current);
     let current = branch.as_str();

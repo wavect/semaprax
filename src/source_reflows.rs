@@ -437,3 +437,5 @@ pub(crate) fn historical_project_entry(source: &str, expected: &str, supplied: &
 pub(crate) fn next_custody_before(owner: &str, source: &str, current: &str) -> String {
     ci_inputs::next_custody_before(owner, source, current)
 }
+
+pub(crate) use ci_inputs::base_v2_composer_source;

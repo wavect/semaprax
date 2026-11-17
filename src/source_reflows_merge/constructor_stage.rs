@@ -1,6 +1,24 @@
 //! Whole current cache-compatible prefilter input before the unchanged constructor inverse.
 use sha2::{Digest, Sha256};
 
+#[path = "cold835_report_control.rs"]
+mod cold835_report_control;
+
+pub(super) fn consumer_entry(domain: &str, source: &str, current: &str) -> String {
+    let input = cold835_report_control::entry(domain, source, current);
+    crate::source_reflows::next_custody_before("interface754", source, &input)
+}
+
+pub(super) fn consumer_child_entry(domain: &str, source: &str, current: &str) -> String {
+    let input = cold835_report_control::entry(domain, source, current);
+    super::receiver_child_entry(source, &input)
+}
+
+pub(super) fn project_entry(source: &str, expected: &str, current: &str) -> String {
+    cold835_report_control::historical_project_entry(source, expected, current)
+        .unwrap_or_else(|| super::main_e177_final_inputs::value_direct(source, expected, current))
+}
+
 // Closed final cost825 and retained847 bindings are added here. The entire original
 // consumer and its immutable tables run before this adapter. Both the producer
 // output and the fresh physical/compiled/archive source channels stay bound.

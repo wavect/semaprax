@@ -160,10 +160,22 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 }
 /// Optional evidence sink for the actual owning producers. Existing assertions
 /// still execute, and an existing evidence file is never replaced.
-fn capture_pin_candidate(name: &str, bytes: &[u8]) {
-    assert_merged_measured_host_history(name, bytes);
-    super::pin_capture::record(name, bytes);
-    super::pin_capture::write_local(name, bytes);
+fn capture_pin_candidates(wires: &[(&str, &[u8])]) {
+    for &(name, bytes) in wires {
+        super::pin_capture::record(name, bytes);
+        super::pin_capture::write_local(name, bytes);
+    }
+    for &(name, bytes) in wires {
+        if captured_wires::MACOS_ACTIVE {
+            let previous = captured_wires::MACOS.assert_history(name, bytes);
+            assert_merged_measured_host_history(name, previous.as_bytes());
+        } else {
+            assert_merged_measured_host_history(name, bytes);
+            if captured_wires::LINUX_GNU_ACTIVE {
+                captured_wires::LINUX_GNU.assert_history(name, bytes);
+            }
+        }
+    }
 }
 #[allow(dead_code)]
 fn assert_public_edge_getter_surface(edge: &WorkspaceSemanticGraphEdge) {
@@ -619,7 +631,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     let shared = fixture.lock();
     fs2::FileExt::try_lock_shared(&shared).unwrap();
     let graph = workspace_graph::snapshot(&fixture.root, "public.app").unwrap();
-    capture_pin_candidate("public-graph.json", graph.to_json().as_bytes());
+    capture_pin_candidates(&[("public-graph.json", graph.to_json().as_bytes())]);
     assert_eq!(graph.workspace_revision(), fixture.revision);
     assert_eq!(
         graph.workspace_manifest_schema(),
@@ -1035,18 +1047,16 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         serde_json::from_str::<serde_json::Value>(&capability_review).unwrap()["target"]["kind"],
         "capability"
     );
-    for (name, wire) in [
-        ("context.json", &context),
-        ("forward.json", &forward),
-        ("capability-context.json", &capability_context),
-        ("type-context.json", &type_context),
-        ("impact.json", &impact),
-        ("custom-impact.json", &custom_impact),
-        ("review.json", &review),
-        ("capability-review.json", &capability_review),
-    ] {
-        capture_pin_candidate(name, wire.as_bytes());
-    }
+    capture_pin_candidates(&[
+        ("context.json", context.as_bytes()),
+        ("forward.json", forward.as_bytes()),
+        ("capability-context.json", capability_context.as_bytes()),
+        ("type-context.json", type_context.as_bytes()),
+        ("impact.json", impact.as_bytes()),
+        ("custom-impact.json", custom_impact.as_bytes()),
+        ("review.json", review.as_bytes()),
+        ("capability-review.json", capability_review.as_bytes()),
+    ]);
     // Full old/current reports retain identical semantic fields; the exact
     // accounting and nested digest transition is verified in
     // docs/evidence/public-wire-accounting-20261104/verify.py.

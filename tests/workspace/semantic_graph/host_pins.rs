@@ -1,5 +1,9 @@
 // Exact raw-wire known answers for the measured native builder layouts.
 // Semantic facts, full bytes, counters, CLI parity and locking remain checked.
+mod captured_wires {
+    include!("host_pins/captured_wires.rs");
+}
+
 const MACOS_AARCH64_WIRES: [&str; 9] = [
     "sha256:2ec54e800d9e5f542855404a209238219786d92b62d1e518b303522877a2faba",
     "sha256:d68f77b6d1c2beaf031520b0bfe05493e9d32cb16954f1f9fbfe64aca61cf34e",
@@ -13,8 +17,11 @@ const MACOS_AARCH64_WIRES: [&str; 9] = [
 ];
 macro_rules! wire_pin {
     ($slot:literal, $portable:literal) => {
-        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[$slot]
+        if captured_wires::MACOS_ACTIVE {
+            let previous = OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required");
+            captured_wires::MACOS.current_pin($slot, previous[$slot])
+        } else if captured_wires::LINUX_GNU_ACTIVE {
+            captured_wires::LINUX_GNU.current_pin($slot, $portable)
         } else {
             $portable
         }
@@ -22,8 +29,10 @@ macro_rules! wire_pin {
 }
 macro_rules! graph_builder_bytes {
     () => {
-        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            732_686
+        if captured_wires::MACOS_ACTIVE {
+            captured_wires::MACOS.builder_bytes
+        } else if captured_wires::LINUX_GNU_ACTIVE {
+            captured_wires::LINUX_GNU.builder_bytes
         } else {
             732_542
         }
@@ -32,17 +41,14 @@ macro_rules! graph_builder_bytes {
 
 macro_rules! wire_pins {
     ($portable:expr) => {
-        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            [
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[1],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[2],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[3],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[4],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[5],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[6],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[7],
-                OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[8],
-            ]
+        if captured_wires::MACOS_ACTIVE {
+            let previous = OCT27B_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required");
+            std::array::from_fn(|index| {
+                captured_wires::MACOS.current_pin(index + 1, previous[index + 1])
+            })
+        } else if captured_wires::LINUX_GNU_ACTIVE {
+            let previous = $portable;
+            std::array::from_fn(|index| captured_wires::LINUX_GNU.current_pin(index + 1, previous[index]))
         } else {
             $portable
         }
@@ -152,6 +158,7 @@ fn assert_measured_host_history(name: &str, bytes: &[u8]) {
         restored.replace_range(start..end, before);
         next = start;
     }
+    let restored = captured_wires::join_macos_accounting(slot, name, restored);
     assert_eq!(
         document_digest(restored.as_bytes()),
         MACOS_AARCH64_WIRES[slot],

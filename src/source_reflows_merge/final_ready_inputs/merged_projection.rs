@@ -3,10 +3,10 @@ use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::{
     declared_history_inputs, ProjectionInvocation,
 };
-const CURRENT_LENGTH: usize = 2364741;
+const CURRENT_LENGTH: usize = 2367694;
 const SUPERSEDED_CURRENT_LENGTH: usize = 2336970;
 const PRIOR_CURRENT_LENGTH: usize = 2283501;
-const CURRENT_SHA: &str = "6b66456d03df63f70b029ac4c5d6e865b21bc234ee8c2f7489e9dababf750f23";
+const CURRENT_SHA: &str = "35b55537aa6cdb18e33e9ffeeeddbe25df419553103299d0d52789404359745f";
 const SUPERSEDED_CURRENT_SHA: &str =
     "ad72070c326f26dbd7d3a77f6fafa3a2d3e7a7a2742da33ff9e5a34c21777013";
 const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
@@ -14,7 +14,7 @@ const PRIOR_CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3
 #[rustfmt::skip]
 const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("tests/wasm/scalar_browser_ci_contract/current_profiles573.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles573.rs")), 10600, "06638e2675d38575c33c43743a3a50ab6d6d6f6b9edf6a68dde51198a1078e69"),
-    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 28396, "7ca0358d88a1e9b79cae9f20166e5dd243347a9944c8f959f6b009ab3b29a15d"),
+    ("tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")), 31353, "92c81f89e21b85504a964e486657bd2bb626ab821facb63f2cf2e657f2215673"),
     ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")), 10570, "99bd84045f4423e206abc44257935150d225ec18abbd53bee583bd4613f24ec6"),
     ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs")), 15950, "e4ad639ff6378b8d37a89fdddd90798d5aa7bd420f5ea2755a76c904d1d46602"),
     ("src/cleanup_plan/replay/selected_owner/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/selected_owner/ordinary.rs")), 4718, "fb794e530da2d722c135a4e2a9ac5bccd755bbd12fc0114f8ed9b6f5fd0e5eaf"),
@@ -97,7 +97,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/tests.rs")), 9854, "0d9e2b1cbb7abeafd4a1f7b4d5f059f6d96e781ef044fee6f2680f8dc801c314"),
     ("src/workspace_graph/expected_projection/shared_local_callees/walk.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/walk.rs")), 9350, "fafdcb7e6743647fcd1ad787ea98731a159fc155e0a8d35b02541f60dd74ce17"),
     ("src/workspace_graph/expected_projection/vec_constructor.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/vec_constructor.rs")), 13779, "4831e29cce4d39b5c263ffd3743d3cb2227ffc9c57f94e28763994cd78721e10"),
-    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23255, "b27785fa42383add26a2cef8de4d43ca2a78d2cea9ecf989336364d62770fa25"),
+    ("src/workspace_graph/expected_projection/held_projection.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")), 23251, "768b1e9a56f574c07ced64477ef9bd92ab5eefe70d8b20111bcf3906383d86bb"),
     ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers.rs")), 24858, "8a015ce328f793cfe6c27eb4e726ad0fd02ba3069e0afb7f04c7dd294882c272"),
     ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_joint.rs")), 55403, "9c86a40b949491ed805caee83f4f5fbb390c0947b431b716f4f86737351167e1"),
     ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_tests.rs")), 53639, "8e4392620fddd82a84bdfeab2886f1c663aa50c608502ba090f3dbe710a3b711"),
@@ -890,11 +890,29 @@ pub(super) fn stages(
         actual, supplied,
         "entire actual owning join before either old normalization"
     );
+    // Rebuild the last merged join, including the two members that changed
+    // after it was sealed. Both were authenticated as current above.
+    let mut before_refresh = String::new();
     let mut superseded_current = String::new();
     let mut previous_merged = String::new();
     let mut prior_current = String::new();
     let mut immediate = String::new();
     for &(source, compiled, _, _) in CURRENT_PARTS {
+        match source {
+            "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs" => {
+                before_refresh.push_str(&read_superseded_current(
+                    28396,
+                    "7ca0358d88a1e9b79cae9f20166e5dd243347a9944c8f959f6b009ab3b29a15d",
+                ));
+            }
+            "src/workspace_graph/expected_projection/held_projection.rs" => {
+                before_refresh.push_str(&read_superseded_current(
+                    23255,
+                    "b27785fa42383add26a2cef8de4d43ca2a78d2cea9ecf989336364d62770fa25",
+                ));
+            }
+            _ => before_refresh.push_str(compiled),
+        }
         let normalized = declared_history_inputs::expected_value(
             source,
             match source {
@@ -940,6 +958,14 @@ pub(super) fn stages(
             immediate.push_str(&prior);
         }
     }
+    assert_eq!(
+        (before_refresh.len(), digest(&before_refresh)),
+        (
+            2364741,
+            "6b66456d03df63f70b029ac4c5d6e865b21bc234ee8c2f7489e9dababf750f23".to_owned(),
+        ),
+        "entire merged join before the two source refreshes"
+    );
     assert_eq!(
         (superseded_current.len(), digest(&superseded_current)),
         (SUPERSEDED_CURRENT_LENGTH, SUPERSEDED_CURRENT_SHA.to_owned()),

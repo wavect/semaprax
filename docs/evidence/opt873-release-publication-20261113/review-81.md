@@ -1,5 +1,10 @@
 # Evidence archive range 81
 
+Status: Verified per-file index and hosted patch replay.
+Audience: Release reviewers and maintainers.
+
+[Browse the bounded review commits](https://github.com/wavect/semaprax/commits/bdc80da26a0e931141db0753c1da0ade1983333d). Each of the 169 hosted commit diffs applied to its exact base and reproduced its expected tree.
+
 252 path changes reconstructed the target tree `06b5c501cc4e6092f212c8caac403d0d6abdaa17`.
 [Compare the published commits](https://github.com/wavect/semaprax/compare/c151a6caae2c6d6d8fa4a098f8b904f86df75fef...efa89b14707a8f6eb5987000aaf80c572d5c0617)
 

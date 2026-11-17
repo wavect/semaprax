@@ -677,6 +677,7 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/wasm/scalar_call_admission.rs"),
         include_str!("../../src/wasm/web_import_inventory.rs"),
         include_str!("../../src/wasm/output_parent.rs"),
+        include_str!("../../src/wasm/legacy_web_output.rs"),
         include_str!("../../src/wasm/partition_package.rs")
     );
 

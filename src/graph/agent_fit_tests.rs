@@ -12,8 +12,9 @@ use sha2::{Digest, Sha256};
 
 use super::work_counter::{count, measure, Work};
 use super::{
-    agent_context_json, agent_context_v2_json, AgentContextDirection, AgentContextFilter,
-    AgentContextOptions, AgentContextV2Options, MAX_AGENT_CONTEXT_BYTES, MIN_AGENT_CONTEXT_BYTES,
+    agent_context_json, agent_context_v2_json, prepare_agent_context_hir,
+    prepare_agent_context_v2_hir, AgentContextDirection, AgentContextFilter, AgentContextOptions,
+    AgentContextV2Options, MAX_AGENT_CONTEXT_BYTES, MIN_AGENT_CONTEXT_BYTES,
 };
 
 const CORE_FILTERS: [AgentContextFilter; 4] = [
@@ -90,12 +91,41 @@ const STRINGS_SOURCE: &str = "module test.agent_fit_strings;\n@id(\"app.main\") 
 
 fn sweep(source: &str, root: &str, step: usize) -> String {
     let program = crate::parse(source, Path::new("agent-fit.spx")).unwrap();
+    // Each renderer validates and borrows this one immutable HIR.
+    // Request options and budget fitting are still evaluated independently.
+    super::reject_source_native_rust_imports(&program).unwrap();
+    let source_revision = super::revision(&program);
+    let resolved = crate::hir::resolve(&program).unwrap();
+    super::reject_native_rust_imports(&resolved).unwrap();
+    let render_v1 = prepare_agent_context_hir(&resolved, &source_revision).unwrap();
+    let render_v2 = prepare_agent_context_v2_hir(&resolved, &source_revision).unwrap();
+    let prepare_options = |options: &AgentContextOptions| {
+        super::session_protocol_decl::context_options(&program, &resolved, options)
+            .and_then(|options| {
+                super::session_protocol_follows::context_options(&program, &options)
+            })
+            .map_err(|diagnostic| vec![diagnostic])
+    };
+    let v1 = |options: &AgentContextOptions| {
+        let options = prepare_options(options)?;
+        render_v1(root, &options).map_err(|diagnostic| vec![diagnostic])
+    };
+    let v2 = |mut options: AgentContextV2Options| {
+        options.base = prepare_options(&options.base)?;
+        render_v2(root, &options).map_err(|diagnostic| vec![diagnostic])
+    };
     let mut transcript = String::new();
     let full = AgentContextOptions::new(8, MAX_AGENT_CONTEXT_BYTES, 65_536, CORE_FILTERS).unwrap();
-    let full_v1 = agent_context_json(&program, root, &full)
-        .unwrap()
-        .unwrap()
-        .len();
+    let full_output = agent_context_json(&program, root, &full).unwrap().unwrap();
+    let full_v1 = full_output.len();
+    assert_eq!(v1(&full), Ok(Some(full_output)));
+    for direction in AgentContextDirection::ALL {
+        let options =
+            AgentContextV2Options::new(8, MIN_AGENT_CONTEXT_BYTES, 1, CORE_FILTERS, direction)
+                .unwrap();
+        let expected = agent_context_v2_json(&program, root, &options);
+        assert_eq!(v2(options), expected);
+    }
     let mut budgets = (MIN_AGENT_CONTEXT_BYTES..full_v1 + 256)
         .step_by(step)
         .collect::<Vec<_>>();
@@ -106,7 +136,7 @@ fn sweep(source: &str, root: &str, step: usize) -> String {
             writeln!(
                 transcript,
                 "v1 {budget} {max_nodes} {}",
-                render(agent_context_json(&program, root, &options))
+                render(v1(&options))
             )
             .unwrap();
             for direction in AgentContextDirection::ALL {
@@ -116,7 +146,7 @@ fn sweep(source: &str, root: &str, step: usize) -> String {
                 writeln!(
                     transcript,
                     "v2 {budget} {max_nodes} {direction:?} {}",
-                    render(agent_context_v2_json(&program, root, &options))
+                    render(v2(options))
                 )
                 .unwrap();
             }

@@ -448,7 +448,9 @@ pub fn agent_context_json(
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     session_protocol_decl::context_options(program, &resolved, options)
         .and_then(|options| session_protocol_follows::context_options(program, &options))
-        .and_then(|options| agent_context_hir_json(&resolved, &source_revision, symbol, &options))
+        .and_then(|options| {
+            prepare_agent_context_hir(&resolved, &source_revision)?(symbol, &options)
+        })
         .map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -467,7 +469,8 @@ pub fn agent_context_v2_json(
     options.base = session_protocol_decl::context_options(program, &resolved, &options.base)
         .and_then(|options| session_protocol_follows::context_options(program, &options))
         .map_err(|diagnostic| vec![diagnostic])?;
-    agent_context_v2_hir_json(&resolved, &source_revision, symbol, &options)
+    prepare_agent_context_v2_hir(&resolved, &source_revision)
+        .and_then(|render| render(symbol, &options))
         .map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -522,22 +525,31 @@ struct AgentRenderSelection<'a> {
 struct SourceGraphIdentity<'a> {
     schema: &'a str,
     revision: &'a str,
-    static_text: bool,
+    prelude: &'a prelude_binding::ContextPrelude<'a>,
 }
 
-fn agent_context_hir_json(
+fn prepare_agent_context_hir<'a>(
+    program: &'a ResolvedProgram,
+    source_revision: &'a str,
+) -> Result<
+    impl Fn(&str, &AgentContextOptions) -> Result<Option<String>, Diagnostic> + 'a,
+    Diagnostic,
+> {
+    hir::validate(program)?;
+    let schema = legacy_graph_schema(program)?;
+    let prelude = prelude_binding::ContextPrelude::new(program, false);
+    Ok(move |symbol: &str, options: &AgentContextOptions| {
+        let identity = prelude.identity(schema, source_revision);
+        render_agent_context_hir(program, identity, symbol, options)
+    })
+}
+
+fn render_agent_context_hir(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     symbol: &str,
     options: &AgentContextOptions,
 ) -> Result<Option<String>, Diagnostic> {
-    hir::validate(program)?;
-    let source_graph_schema = legacy_graph_schema(program)?;
-    let source_identity = SourceGraphIdentity {
-        schema: source_graph_schema,
-        revision: source_revision,
-        static_text: false,
-    };
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
@@ -577,7 +589,7 @@ fn agent_context_hir_json(
                 program,
                 function,
                 &options.filters,
-                source_graph_schema,
+                source_identity.schema,
                 &calls,
             )?;
             (calls, json)
@@ -642,19 +654,28 @@ fn agent_context_hir_json(
     }
 }
 
-fn agent_context_v2_hir_json(
+fn prepare_agent_context_v2_hir<'a>(
+    program: &'a ResolvedProgram,
+    source_revision: &'a str,
+) -> Result<
+    impl Fn(&str, &AgentContextV2Options) -> Result<Option<String>, Diagnostic> + 'a,
+    Diagnostic,
+> {
+    let static_text = hir::validate_with_static_text(program)?;
+    let schema = static_text::graph_schema_validated(program, static_text)?;
+    let prelude = prelude_binding::ContextPrelude::new(program, static_text);
+    Ok(move |symbol: &str, options: &AgentContextV2Options| {
+        let identity = prelude.identity(schema, source_revision);
+        render_agent_context_v2_hir(program, identity, symbol, options)
+    })
+}
+
+fn render_agent_context_v2_hir(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     symbol: &str,
     options: &AgentContextV2Options,
 ) -> Result<Option<String>, Diagnostic> {
-    let static_text = hir::validate_with_static_text(program)?;
-    let source_graph_schema = static_text::graph_schema_validated(program, static_text)?;
-    let source_identity = SourceGraphIdentity {
-        schema: source_graph_schema,
-        revision: source_revision,
-        static_text,
-    };
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
@@ -663,7 +684,7 @@ fn agent_context_v2_hir_json(
     let calls_by_id = call_index.calls_by_owner();
     let callers_by_id = call_index.callers_by_callee();
     let index = AgentContextV2Index {
-        source_revision,
+        source_revision: source_identity.revision,
         program,
         calls_by_id,
         callers_by_id,
@@ -3120,13 +3141,14 @@ fn render_agent_context(
     } else {
         String::new()
     };
+    let (prelude_schema, prelude_digest) = source_identity.prelude.selected();
     let render = |used_bytes: usize| {
         format!(
             "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}}{},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_identity.schema),
             quote_json(source_identity.revision),
-            quote_json(prelude_binding::schema_selected(program, source_identity.static_text)),
-            quote_json(&prelude_binding::digest_selected(program, source_identity.static_text)),
+            quote_json(prelude_schema),
+            quote_json(prelude_digest),
             quote_json(&program.module),
             quote_json(root.as_str()),
             options.depth,
@@ -3361,13 +3383,14 @@ fn render_agent_context_v2(
     } else {
         String::new()
     };
+    let (prelude_schema, prelude_digest) = source_identity.prelude.selected();
     let render = |used_bytes: usize| {
         format!(
             "{{\"schema\":\"semaprax.agent-context.v2\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"direction\":{},\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"reference_closure\":{{\"referenced_unselected_nodes\":{}}},\"resume_contract\":{{\"direction\":\"query.direction\",\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":{{\"traversal\":\"frontier.resume.min_bytes\",\"reference\":\"reference_frontier.resume.min_bytes\"}}}}{},\"frontier\":[{}],\"reference_frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_identity.schema),
             quote_json(source_identity.revision),
-            quote_json(prelude_binding::schema_selected(program, source_identity.static_text)),
-            quote_json(&prelude_binding::digest_selected(program, source_identity.static_text)),
+            quote_json(prelude_schema),
+            quote_json(prelude_digest),
             quote_json(&program.module),
             quote_json(root.as_str()),
             quote_json(options.direction().name()),

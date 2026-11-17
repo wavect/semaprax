@@ -633,12 +633,16 @@
     },
     {
       "source": "tests/workspace/semantic_graph/source_inventory.rs",
-      "length": 263378,
-      "sha256": "0303cdf9c20f4848e55ab5384c95c5692b4d082ca7ade9f30432a6b88c0ffd3c",
+      "length": 263471,
+      "sha256": "7d7254747ae4d95c055e23ac1b2a3ce8e0cc902335e7ef54904830ecf91cdcb0",
       "checkpoint_length": 166104,
       "checkpoint_sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
       "archive": "e/949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
       "inverse": [
+        [
+          "                include_str!(\"../../src/workspace_graph/checked_retention/project_rows.rs\"),\n",
+          ""
+        ],
         [
           "            include_str!(\"../../src/cleanup_plan/replay/continuation_storage/tests/nested_pool.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/retained/after_structure_release.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/fact_preflight/phase_measurement.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/path_join/selected/execution/byte_iterator.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/schema/paid_summary/iterator_presence.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/schema/paid_summary/renewal_selectors.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/schema/paid_summary/before_selectors.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/schema/paid_summary/positive_schema_controls.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/schema/paid_summary/shipping_controls.rs\"),\n            include_str!(\"../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_renewal.rs\"),\n            include_str!(\"../../src/hir/byte_partition/cache.rs\"),\n            include_str!(\"../../src/workspace_graph/tests/cache_stage_debits.rs\"),\n            include_str!(\"../../src/workspace_graph/tests/checked_values.rs\"),\n            include_str!(\"../../src/workspace_graph/tests/record_traversal.rs\"),\n            include_str!(\"../../src/workspace_graph/tests/source_repair.rs\"),\n            include_str!(\"../../src/workspace_graph/tests/static_protocol.rs\"),\n            concat!(include_str!(\"../../src/workspace_graph/tests/package_link_borrowed.rs\"),include_str!(\"../../src/workspace_graph/tests/package_link_borrowed/old.rs\")),\n",
           ""

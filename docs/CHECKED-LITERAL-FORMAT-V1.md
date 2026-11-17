@@ -115,3 +115,22 @@ The changed LogLens source file measured 10,771 bytes with concatenation and
 9,207 bytes with nine checked-format calls. The two changed ShiftSim files
 measured 6,858 and 6,829 bytes respectively, with two checked-format calls
 in the latter.
+
+
+### Matched source token counts
+
+The native LogLens recheck at `0533102dd` passed all 33 historical cases
+and all 16 SPEC boundary checks in each arm. A fresh native ShiftSim
+qualification with compiler source `138ec8772` reproduced the two binary
+hashes above and all 15 original results in each arm. The matched inputs
+differed only in `loglens.spx` and in ShiftSim's `src/app.spx` plus
+`src/tests.spx`.
+
+| Application | Acceptance in each arm | `cl100k_base` | `o200k_base` |
+| --- | ---: | ---: | ---: |
+| LogLens | 49/49 | 3,449 → 3,056 | 3,445 → 3,052 |
+| ShiftSim | 15/15 | 1,738 → 1,730 | 1,780 → 1,772 |
+
+Counts sum the complete changed files, tokenized individually with pinned
+`tiktoken==0.12.0` and cached vocabulary tables. These are static counts for
+manually matched sources. Live authoring and provider billing remain unmeasured.

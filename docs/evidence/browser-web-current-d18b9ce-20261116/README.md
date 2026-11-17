@@ -1,5 +1,8 @@
 # Calculator browser graph funding refresh
 
+Status: Hosted and local qualification receipts.
+Audience: Compiler contributors and release reviewers.
+
 The [hosted Rust 1.88 job](https://github.com/wavect/semaprax/actions/runs/43963457945/job/133637397602) captured both graphs and Web manifests at `d18b9ce32`. The native captures use Rust 1.97.1 on macOS arm64 with byte-identical compiler source. Both profiles preserve the exact calculator sources, revisions, scalar ABI and Web artifact checksums.
 
 | Profile | Fixture | Previous builder bytes | Current builder bytes |

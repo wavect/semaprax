@@ -599,6 +599,7 @@ include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/inl
                 include_str!("../../src/workspace_graph/import_validation.rs"),
                 include_str!("../../src/workspace_graph/retain_module.rs"),
                 include_str!("../../src/workspace_graph/checked_retention.rs"),
+                include_str!("../../src/workspace_graph/checked_retention/project_rows.rs"),
                 include_str!("../../src/hir/items.rs"),
                 include_str!("../../src/workspace_graph/checked_retention/retain.rs"),
                 include_str!("../../src/workspace_graph/owned_generics/available.rs"),

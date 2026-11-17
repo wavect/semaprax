@@ -353,6 +353,45 @@ pub(super) fn digest_selected(program: &ResolvedProgram, selected: bool) -> Stri
     }
 }
 
+/// Lazily selects the prelude identity for one validated, immutable context input.
+pub(super) struct ContextPrelude<'a> {
+    program: &'a ResolvedProgram,
+    static_text: bool,
+    selected: std::cell::OnceCell<(&'static str, String)>,
+}
+
+impl<'program> ContextPrelude<'program> {
+    pub(super) fn new(program: &'program ResolvedProgram, static_text: bool) -> Self {
+        Self {
+            program,
+            static_text,
+            selected: std::cell::OnceCell::new(),
+        }
+    }
+
+    pub(super) fn identity<'a>(
+        &'a self,
+        schema: &'a str,
+        revision: &'a str,
+    ) -> super::SourceGraphIdentity<'a> {
+        super::SourceGraphIdentity {
+            schema,
+            revision,
+            prelude: self,
+        }
+    }
+
+    pub(super) fn selected(&self) -> (&'static str, &str) {
+        let (schema, digest) = self.selected.get_or_init(|| {
+            (
+                schema_selected(self.program, self.static_text),
+                digest_selected(self.program, self.static_text),
+            )
+        });
+        (*schema, digest)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

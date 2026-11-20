@@ -165,15 +165,25 @@ mod tests {
             TEST_PROJECT_LIMIT.with(|limit| limit.replace(workspace_graph::MAX_BUILDER_BYTES));
         let _restore = RestoreLimit(old);
         // Establish that the whole real source route is admitted at the unchanged max.
+        let _ = crate::bounded_output::stage_debits::take_last_completed();
         with_authenticated_project_reporting(
             &manifest,
             |snapshot| snapshot.check(),
             |report| report,
         )
         .unwrap();
+        let completed = crate::bounded_output::stage_debits::take_last_completed()
+            .expect("successful Project captured its real core reservation trace");
+        let exact_short = completed
+            .consumed
+            .checked_sub(1)
+            .expect("positive core debit");
+        let limits = (0..=12)
+            .rev()
+            .map(|shift| workspace_graph::MAX_BUILDER_BYTES >> shift)
+            .chain([exact_short]);
         let mut found_paid = false;
-        for shift in (0..=12).rev() {
-            let limit = workspace_graph::MAX_BUILDER_BYTES >> shift;
+        for limit in limits {
             TEST_PROJECT_LIMIT.with(|slot| slot.set(limit));
             let hints = Cell::new(0usize);
             let original_pointer = Cell::new(0usize);

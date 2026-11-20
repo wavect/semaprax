@@ -204,14 +204,15 @@ impl PhaseCensus {
     }
 }
 thread_local! {
-    static PHASES: RefCell<Option<PhaseCensus>> = const { RefCell::new(None) };
+    static PHASES: RefCell<Option<Box<PhaseCensus>>> = const { RefCell::new(None) };
 }
-/// Run `operation` with the phase census enabled; censuses do not nest.
+/// Allocate the census before `operation` so only the observed work is measured.
+/// Censuses do not nest.
 pub(super) fn phase_census<T>(operation: impl FnOnce() -> T) -> (T, PhaseCensus) {
     PHASES.with(|phases| {
         let mut phases = phases.borrow_mut();
         assert!(phases.is_none(), "phase censuses cannot nest");
-        *phases = Some(PhaseCensus::EMPTY);
+        *phases = Some(Box::new(PhaseCensus::EMPTY));
     });
     struct Restore;
     impl Drop for Restore {
@@ -225,7 +226,7 @@ pub(super) fn phase_census<T>(operation: impl FnOnce() -> T) -> (T, PhaseCensus)
         .with(|phases| phases.borrow_mut().take())
         .expect("census active");
     drop(restore);
-    (value, census)
+    (value, *census)
 }
 fn record_phase(phase: &str, requested: usize) {
     let _ = PHASES.try_with(|phases| {

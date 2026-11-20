@@ -43,7 +43,7 @@ impl PhaseTrace {
     }
 }
 thread_local! {
-    static PHASE_TRACE: RefCell<Option<PhaseTrace>> = const { RefCell::new(None) };
+    static PHASE_TRACE: RefCell<Option<Box<PhaseTrace>>> = const { RefCell::new(None) };
 }
 
 pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics, usize)>);
@@ -121,11 +121,11 @@ pub(crate) fn with_phase_trace<T>(operation: impl FnOnce() -> T) -> (T, PhaseTra
     PHASE_TRACE.with(|trace| {
         let mut trace = trace.borrow_mut();
         assert!(trace.is_none(), "phase traces cannot nest");
-        *trace = Some(PhaseTrace {
+        *trace = Some(Box::new(PhaseTrace {
             intervals: [None; 64],
             local_intervals: [None; 64],
             overflow: false,
-        });
+        }));
     });
     struct Restore;
     impl Drop for Restore {
@@ -139,7 +139,7 @@ pub(crate) fn with_phase_trace<T>(operation: impl FnOnce() -> T) -> (T, PhaseTra
     let value = operation();
     let trace = PHASE_TRACE.with(|trace| trace.borrow_mut().take().unwrap());
     drop(restore);
-    (value, trace)
+    (value, *trace)
 }
 #[cfg(test)]
 mod tests {

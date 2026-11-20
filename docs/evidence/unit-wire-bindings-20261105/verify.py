@@ -76,3 +76,80 @@ for (family, host, kind), (body, value, _) in rows.items():
     payload=body.replace(fragment,b'',1)
     assert sha((value['schema'][:-3]+'.artifact-digest.v1\0').encode()+len(payload).to_bytes(8,'little')+payload)==value[field]
 print('PASS: 54 complete fixture bodies, 25 literal tuples, complete graph/analysis domains, Operations bindings and declared builder deltas')
+
+successor = json.loads((HERE / 'projection-successor.json').read_bytes())
+assert successor['schema'] == 'semaprax.unit-wire-projection-successor.v1'
+assert set(successor['captures']) == {'Linux', 'Windows', 'macOS'}
+assert len({capture['head'] for capture in successor['captures'].values()}) == 1
+assert len({capture['profile'] for capture in successor['captures'].values()}) == 1
+
+
+def projection_leaves(before, after, path=()):
+    assert type(before) is type(after), path
+    if isinstance(before, dict):
+        assert list(before) == list(after), path
+        for key in before:
+            yield from projection_leaves(before[key], after[key], (*path, key))
+    elif isinstance(before, list):
+        assert len(before) == len(after), path
+        for index, (left, right) in enumerate(zip(before, after)):
+            yield from projection_leaves(left, right, (*path, index))
+    elif before != after:
+        yield path, before, after
+
+
+def verify_projection_domain(body, value, field):
+    fragment = (',"'+field+'":"'+value[field]+'"').encode()
+    assert body.count(fragment) == 1
+    pay = body.replace(fragment, b'', 1)
+    domain = (value['schema'][:-3] + '.artifact-digest.v1\0').encode()
+    assert sha(domain + len(pay).to_bytes(8, 'little') + pay) == value[field]
+
+
+projection_fields = {
+    'graph': {('graph_digest',), ('budget', 'used_builder_bytes')},
+    'analysis': {
+        prefix + field
+        for prefix in [(), ('context',), ('impact',)]
+        for field in [
+            ('workspace_graph_digest',),
+            ('artifact_digest',),
+            ('budget', 'workspace', 'used_builder_bytes'),
+        ]
+    },
+}
+projection_rows = {}
+for row in successor['wires']:
+    family, host, kind = key = row['family'], row['host'], row['kind']
+    assert key not in projection_rows
+    path = HERE / row['file']
+    assert not path.is_symlink()
+    body = path.read_bytes()
+    assert len(body) == row['bytes'] and sha(body) == row['raw_sha256']
+    value = json.loads(body)
+    changes = list(projection_leaves(rows[key][1], value))
+    assert changes, key
+    for field, before, after in changes:
+        assert field in projection_fields[family], (key, field)
+        if field[-1].endswith('digest'):
+            assert re.fullmatch(r'sha256:[0-9a-f]{64}', before)
+            assert re.fullmatch(r'sha256:[0-9a-f]{64}', after)
+        else:
+            assert 0 < before < after <= 67108864
+    field = 'graph_digest' if family == 'graph' else 'artifact_digest'
+    verify_projection_domain(body, value, field)
+    projection_rows[key] = row['raw_sha256']
+
+expected = {(p['family'], p['kind']): p for p in packet['pins'] if p['family'] in projection_fields}
+assert len(projection_rows) == 16
+assert len(successor['pins']) == len(expected) == 8
+for p in successor['pins']:
+    family, kind = key = p['family'], p['kind']
+    assert p['previous_literal'] == expected.pop(key)['previous_literal']
+    for host in ['macos', 'portable']:
+        assert p[host] == projection_rows[family, host, kind]
+assert not expected
+successor_literals = re.findall(r'"(sha256:[0-9a-f]{64})"\s*=>\s*\[\s*"(sha256:[0-9a-f]{64})",\s*"(sha256:[0-9a-f]{64})",?\s*\]', code)
+assert len(successor_literals) == 8
+assert set(successor_literals) == {(p['previous_literal'], p['macos'], p['portable']) for p in successor['pins']}
+print('PASS: 16 complete successor projection bodies, eight literal tuples, exact domains and reviewed builder deltas')

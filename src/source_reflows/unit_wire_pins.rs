@@ -1,5 +1,48 @@
 //! Literal whole-wire pins for the two CI-native builder layouts.
 pub(crate) fn unit_wire_pin(previous: &str) -> &'static str {
+    let [macos, portable] = match previous {
+        "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3" => [
+            "sha256:710700c30796da4e1166705d4df51d2fb33bd144e3172a2e0998b53f2bfee9d3",
+            "sha256:7a5528c28ef532688f1e735857989faff24fd8cbcc3f70538b1668ad9d00d086",
+        ],
+        "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b" => [
+            "sha256:9777130aa847af35bd989efbd0ccd42fb11b3b241909495b64f9fca820bf4178",
+            "sha256:7cd4e72f9923781b95cc0e34a718e8fd11e82bba87c9bb166b9556a8ce41d58c",
+        ],
+        "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105" => [
+            "sha256:4ef6607ff3e10aaf9e9ecb0f2ff9b08015a9b32f2a636caa44344113a8232e48",
+            "sha256:ab2b9489d2b7e5bece81d1336c8309d74a4b76d84a2c5624a5873aaf3b3f4cb8",
+        ],
+        "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc" => [
+            "sha256:e87a8a1ed1f0f16fba56bc822f2cafe63a38f9b68ce29f0084e37d8baa371bb6",
+            "sha256:92af6f698eac02314a290a8d1de735b5725eb42b8203c02d8b5428170a8440bc",
+        ],
+        "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7" => [
+            "sha256:b4381b363ada2481eee810d1e081796ec789eef40fccafb0501348e4a35f6a62",
+            "sha256:8cd0df45a3e1aa246493593535cfc3000f291005213f753a66f3532225a93b83",
+        ],
+        "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1" => [
+            "sha256:bcfe4141444fe9d1b119fb7fff56cdbf91bce378d4caf6b88c8ccffbfc40d9a0",
+            "sha256:0ef9c8852e1d5596f1373065df70574019450f40c90f85004b6f0dc8333f2743",
+        ],
+        "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98" => [
+            "sha256:0709ca2361f9d8c0001a01be4364bb893a3f11e5336848de9a7f0be83c13344a",
+            "sha256:904cea16437829e79c0ea528f7784b9484f7f69dd982c5c77bd7f6314e2679b9",
+        ],
+        "sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8" => [
+            "sha256:51aa6b4580d40cf49002caa8847c4ecb928fa9d7d7470be93c1c2ed29b2fe8bd",
+            "sha256:22bf53a04f6b50d09869f6585d9e418a15448fc98c085262b5d0e62e73f0aac7",
+        ],
+        _ => previous_layout_pins(previous),
+    };
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        macos
+    } else {
+        portable
+    }
+}
+
+fn previous_layout_pins(previous: &str) -> [&'static str; 2] {
     let (macos, portable) = match previous {
         "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d" => (
             "sha256:0667599bf492ae9859b1e916be0ca6b921f33501814a9dc07ca3909ceb86ed6d",
@@ -103,9 +146,5 @@ pub(crate) fn unit_wire_pin(previous: &str) -> &'static str {
         ),
         _ => panic!("unknown whole-wire fixture pin"),
     };
-    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        macos
-    } else {
-        portable
-    }
+    [macos, portable]
 }

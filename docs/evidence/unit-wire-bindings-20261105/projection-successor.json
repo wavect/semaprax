@@ -1,0 +1,230 @@
+{
+  "schema": "semaprax.unit-wire-projection-successor.v1",
+  "captures": {
+    "Linux": {
+      "head": "decabbb4edb0947186c33975e52b494e85e9887d",
+      "run_id": "44763490926",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "80012c4f5b74db3b3ba3544fb5563f521350ff98e64429245e63c47da71163e8"
+    },
+    "Windows": {
+      "head": "decabbb4edb0947186c33975e52b494e85e9887d",
+      "run_id": "44763498832",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-pc-windows-msvc\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "f119a162041cd013460bba384891eeb2ff6b6b00befc02a1ccc6e1e2e748add4"
+    },
+    "macOS": {
+      "head": "decabbb4edb0947186c33975e52b494e85e9887d",
+      "run_id": "local-ssd",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "12648c519150d123b8932d82a62d0287bde452aa185632a37086c0fbaf502d52"
+    }
+  },
+  "wires": [
+    {
+      "family": "analysis",
+      "kind": "context-0",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/context-0.json",
+      "bytes": 3169,
+      "raw_sha256": "sha256:710700c30796da4e1166705d4df51d2fb33bd144e3172a2e0998b53f2bfee9d3",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-0",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/context-0.json",
+      "bytes": 3169,
+      "raw_sha256": "sha256:7a5528c28ef532688f1e735857989faff24fd8cbcc3f70538b1668ad9d00d086",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-1",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/context-1.json",
+      "bytes": 3987,
+      "raw_sha256": "sha256:9777130aa847af35bd989efbd0ccd42fb11b3b241909495b64f9fca820bf4178",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-1",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/context-1.json",
+      "bytes": 3987,
+      "raw_sha256": "sha256:7cd4e72f9923781b95cc0e34a718e8fd11e82bba87c9bb166b9556a8ce41d58c",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-2",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/context-2.json",
+      "bytes": 3984,
+      "raw_sha256": "sha256:4ef6607ff3e10aaf9e9ecb0f2ff9b08015a9b32f2a636caa44344113a8232e48",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-2",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/context-2.json",
+      "bytes": 3984,
+      "raw_sha256": "sha256:ab2b9489d2b7e5bece81d1336c8309d74a4b76d84a2c5624a5873aaf3b3f4cb8",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-3",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/context-3.json",
+      "bytes": 4342,
+      "raw_sha256": "sha256:e87a8a1ed1f0f16fba56bc822f2cafe63a38f9b68ce29f0084e37d8baa371bb6",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-3",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/context-3.json",
+      "bytes": 4342,
+      "raw_sha256": "sha256:92af6f698eac02314a290a8d1de735b5725eb42b8203c02d8b5428170a8440bc",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-0",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/impact-0.json",
+      "bytes": 4156,
+      "raw_sha256": "sha256:b4381b363ada2481eee810d1e081796ec789eef40fccafb0501348e4a35f6a62",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-0",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/impact-0.json",
+      "bytes": 4156,
+      "raw_sha256": "sha256:8cd0df45a3e1aa246493593535cfc3000f291005213f753a66f3532225a93b83",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-1",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/impact-1.json",
+      "bytes": 4572,
+      "raw_sha256": "sha256:bcfe4141444fe9d1b119fb7fff56cdbf91bce378d4caf6b88c8ccffbfc40d9a0",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-1",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/impact-1.json",
+      "bytes": 4572,
+      "raw_sha256": "sha256:0ef9c8852e1d5596f1373065df70574019450f40c90f85004b6f0dc8333f2743",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "review",
+      "host": "macos",
+      "file": "projection-successor/analysis/macos/review.json",
+      "bytes": 12707,
+      "raw_sha256": "sha256:0709ca2361f9d8c0001a01be4364bb893a3f11e5336848de9a7f0be83c13344a",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "analysis",
+      "kind": "review",
+      "host": "portable",
+      "file": "projection-successor/analysis/portable/review.json",
+      "bytes": 12707,
+      "raw_sha256": "sha256:904cea16437829e79c0ea528f7784b9484f7f69dd982c5c77bd7f6314e2679b9",
+      "selector": "workspace_analysis::tests::capture_complete_context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay"
+    },
+    {
+      "family": "graph",
+      "kind": "document",
+      "host": "macos",
+      "file": "projection-successor/graph/macos/document.json",
+      "bytes": 5530,
+      "raw_sha256": "sha256:51aa6b4580d40cf49002caa8847c4ecb928fa9d7d7470be93c1c2ed29b2fe8bd",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::capture_complete_rendered_document_has_literal_sha_exact_wire_order_and_digest_binding"
+    },
+    {
+      "family": "graph",
+      "kind": "document",
+      "host": "portable",
+      "file": "projection-successor/graph/portable/document.json",
+      "bytes": 5530,
+      "raw_sha256": "sha256:22bf53a04f6b50d09869f6585d9e418a15448fc98c085262b5d0e62e73f0aac7",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::capture_complete_rendered_document_has_literal_sha_exact_wire_order_and_digest_binding"
+    }
+  ],
+  "pins": [
+    {
+      "family": "analysis",
+      "kind": "context-0",
+      "previous_literal": "sha256:a1cb0196ef7e84fc78b150168b21a1bb5b23cc72ca3453743247c7e5360ca3b3",
+      "macos": "sha256:710700c30796da4e1166705d4df51d2fb33bd144e3172a2e0998b53f2bfee9d3",
+      "portable": "sha256:7a5528c28ef532688f1e735857989faff24fd8cbcc3f70538b1668ad9d00d086"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-1",
+      "previous_literal": "sha256:a1f0eadf7e7f71e7d1b5c016db7b591ef0346a9a7b6f94bc384d2c366b6bcf6b",
+      "macos": "sha256:9777130aa847af35bd989efbd0ccd42fb11b3b241909495b64f9fca820bf4178",
+      "portable": "sha256:7cd4e72f9923781b95cc0e34a718e8fd11e82bba87c9bb166b9556a8ce41d58c"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-2",
+      "previous_literal": "sha256:3562c4b8b1deb6dea7759f52597ddcdc394003a7e453a3ce461c862fbf076105",
+      "macos": "sha256:4ef6607ff3e10aaf9e9ecb0f2ff9b08015a9b32f2a636caa44344113a8232e48",
+      "portable": "sha256:ab2b9489d2b7e5bece81d1336c8309d74a4b76d84a2c5624a5873aaf3b3f4cb8"
+    },
+    {
+      "family": "analysis",
+      "kind": "context-3",
+      "previous_literal": "sha256:e6fac2d40d845e127a840bddaa1fd69b930aa3b3ce21697a325791d0e7de97cc",
+      "macos": "sha256:e87a8a1ed1f0f16fba56bc822f2cafe63a38f9b68ce29f0084e37d8baa371bb6",
+      "portable": "sha256:92af6f698eac02314a290a8d1de735b5725eb42b8203c02d8b5428170a8440bc"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-0",
+      "previous_literal": "sha256:d420ee5d912069e742d065ab9f183ef4395c7816e5b3f0fda935e81ecdd792a7",
+      "macos": "sha256:b4381b363ada2481eee810d1e081796ec789eef40fccafb0501348e4a35f6a62",
+      "portable": "sha256:8cd0df45a3e1aa246493593535cfc3000f291005213f753a66f3532225a93b83"
+    },
+    {
+      "family": "analysis",
+      "kind": "impact-1",
+      "previous_literal": "sha256:9d8053909227718fb450912ec82d966c0d6f7058dfaac5e83ce524216639a1d1",
+      "macos": "sha256:bcfe4141444fe9d1b119fb7fff56cdbf91bce378d4caf6b88c8ccffbfc40d9a0",
+      "portable": "sha256:0ef9c8852e1d5596f1373065df70574019450f40c90f85004b6f0dc8333f2743"
+    },
+    {
+      "family": "analysis",
+      "kind": "review",
+      "previous_literal": "sha256:780ce3ad9551e57b4fd00ecf91c679e70382112ae87e7d1ced2f03805201df98",
+      "macos": "sha256:0709ca2361f9d8c0001a01be4364bb893a3f11e5336848de9a7f0be83c13344a",
+      "portable": "sha256:904cea16437829e79c0ea528f7784b9484f7f69dd982c5c77bd7f6314e2679b9"
+    },
+    {
+      "family": "graph",
+      "kind": "document",
+      "previous_literal": "sha256:984fee4043bfb3f5d784fa11cc4132a64b39962def07ea28eefec08dce7646c8",
+      "macos": "sha256:51aa6b4580d40cf49002caa8847c4ecb928fa9d7d7470be93c1c2ed29b2fe8bd",
+      "portable": "sha256:22bf53a04f6b50d09869f6585d9e418a15448fc98c085262b5d0e62e73f0aac7"
+    }
+  ]
+}

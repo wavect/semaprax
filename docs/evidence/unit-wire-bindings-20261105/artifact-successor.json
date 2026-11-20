@@ -1,0 +1,491 @@
+{
+  "schema": "semaprax.unit-wire-artifact-successor.v1",
+  "captures": {
+    "Linux": {
+      "head": "32c6e56a31a9e5ec83a5ee36348a878bd55ced41",
+      "run_id": "44778560540",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "2818906fdf6394a33198a69ded80557bca5dd7769a03f0b39b836bea51f47fec"
+    },
+    "Windows": {
+      "head": "32c6e56a31a9e5ec83a5ee36348a878bd55ced41",
+      "run_id": "44778566990",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-pc-windows-msvc\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "1766dd034b141fe9c58d52f0ebe27e4ff28a4de83c3b31939896aaabf0970412"
+    },
+    "macOS": {
+      "head": "32c6e56a31a9e5ec83a5ee36348a878bd55ced41",
+      "run_id": "local-ssd",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "profile": "test-semaprax-opt0-dependencies-opt1-debug0-incremental0-all-features",
+      "binary_sha256": "dc834230eaaaa53be6145039085a696dcc9fa9f34e4ef1c4821a6a81aac0b427"
+    }
+  },
+  "wires": [
+    {
+      "family": "change",
+      "kind": "preview",
+      "host": "portable",
+      "file": "artifact-successor/change/portable/preview.json",
+      "bytes": 11526,
+      "raw_sha256": "sha256:82324cc76bb6d6500075e25ef362e8fb8db8e4cbddfeea30c440e33f4d4d2429",
+      "domain_digest": "sha256:80850c3157ddae3856a7224efa8ee887efabd924c13fc8c743e30e18cad77dd6"
+    },
+    {
+      "family": "change",
+      "kind": "context",
+      "host": "portable",
+      "file": "artifact-successor/change/portable/context.json",
+      "bytes": 6230,
+      "raw_sha256": "sha256:2720d139394537703fb5f6bea0bbf4914393159b3982646cd3ab55fd45dee7e5",
+      "domain_digest": "sha256:0343c68980db569ca38ce9b35fa6f44a2d0fb42682836b85e292bcfe6214fc16"
+    },
+    {
+      "family": "change",
+      "kind": "impact",
+      "host": "portable",
+      "file": "artifact-successor/change/portable/impact.json",
+      "bytes": 12301,
+      "raw_sha256": "sha256:4cf1acce06d5d408baeac23d2fc0472f387a3dfe6a47be18617b6d22f78d1b93",
+      "domain_digest": "sha256:f88e0311b25133990ee49ddb6145a875ad5d114970a90aabf704bd4d06d5abfe"
+    },
+    {
+      "family": "change",
+      "kind": "review",
+      "host": "portable",
+      "file": "artifact-successor/change/portable/review.json",
+      "bytes": 10629,
+      "raw_sha256": "sha256:65df15f3411fcfc0f96ec43dd0989adfe1fd99d7419bb39606c1d5e2a258ebda",
+      "domain_digest": "sha256:773a9464041a455f521fbf755fdcfab6d8595fd332c52f17a3ad23824f5603cc"
+    },
+    {
+      "family": "change",
+      "kind": "evidence",
+      "host": "portable",
+      "file": "artifact-successor/change/portable/evidence.json",
+      "bytes": 5181,
+      "raw_sha256": "sha256:9f548e8bb3325bcd42419c76b218260955a4738be268025f1eabda969eb129c9",
+      "domain_digest": "sha256:c64390a854a1dc128e52872ec1947f1f6659d5d0d71f5dbf55b8a426f35eb235"
+    },
+    {
+      "family": "structural",
+      "kind": "proposal",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/proposal.json",
+      "bytes": 1782,
+      "raw_sha256": "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8",
+      "domain_digest": "sha256:96977efe401f5d4aed6c313fd7213e96bfc426159255e8922227e0b113ab47d1"
+    },
+    {
+      "family": "structural",
+      "kind": "preview",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/preview.json",
+      "bytes": 19422,
+      "raw_sha256": "sha256:7bf9f45fdd658e9a9658ee4de1d43cd8951e45e629be0b8666e85b85314f8552",
+      "domain_digest": "sha256:134d3cfef484bb0099a850318f49821310892be3f64a3628606bb50fcf0796cd"
+    },
+    {
+      "family": "structural",
+      "kind": "context",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/context.json",
+      "bytes": 8829,
+      "raw_sha256": "sha256:e186a4c01888158f2842739b8d7a3b1203acc6a2ea380d2dbf0d13883b699a61",
+      "domain_digest": "sha256:f49d35dea45f04a1590b08729d973342afcfc880d64807e88fae72373a8e88cd"
+    },
+    {
+      "family": "structural",
+      "kind": "impact",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/impact.json",
+      "bytes": 13221,
+      "raw_sha256": "sha256:f865ae2088efec1161ec75b33bf480aa34d4bea931690f66a65f39f4940f8a22",
+      "domain_digest": "sha256:1d6ecd180a79c386d28da3d02090b45b9eb59ffda119e0f03ddc2655d39729ad"
+    },
+    {
+      "family": "structural",
+      "kind": "review",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/review.json",
+      "bytes": 14423,
+      "raw_sha256": "sha256:9624115291ceb9cde5b93a1c4e3213b16026af06c5badb22f97279a7655a2b21",
+      "domain_digest": "sha256:ed89a6e08efc75b5c14fc606a11674840740e7488bf89530157e9b097545689b"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/evidence.json",
+      "bytes": 6942,
+      "raw_sha256": "sha256:ae39a9214c0ba164c999c0eea64bd6307a6e4b13b2f15495fd38eca1c6bbeae0",
+      "domain_digest": "sha256:463f1e81f1b84b93d4b92ea33518910e0faa0b96d32b38f97a36c0e65a6edfea"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-verification",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/evidence-verification.json",
+      "bytes": 7188,
+      "raw_sha256": "sha256:b6d5b70341e48d1d71090910b86baaf136dac7a186d87cae3a53002037ff894a",
+      "domain_digest": "sha256:f6181ee7b7a7ccd15edb107bc8eb487b77d3e8a12feab7ff9a0456c4d70496ab"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-application",
+      "host": "portable",
+      "file": "artifact-successor/structural/portable/evidence-application.json",
+      "bytes": 7182,
+      "raw_sha256": "sha256:c236bf12bb09fa818b36655ca7f281516fafa910449359cc7ad72e06eefedbbf",
+      "domain_digest": "sha256:43f7487f95b0d2509cc2adf869b6240a80dd948c8b92e7a1f9aee5418f97bd35"
+    },
+    {
+      "family": "operations",
+      "kind": "derivation",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:8598fbe7cc90567fbc216a9243c2e42ba437deb1ee9b145aed62ab18ad9abd43",
+      "domain_digest": "sha256:27b6197790e460da8a5ed5c1c43e0e624102be7bb825ae94cc662770d0c80153"
+    },
+    {
+      "family": "operations",
+      "kind": "child-evidence",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:f02c2d68ebe0e339809096cf056673b6ac858ae33c2ee5012811fe5f1ce0210e",
+      "domain_digest": "sha256:f768818cca88494815cf19be46ae6b78cd59ba3e7a8ab980edddf92fea8f27ce"
+    },
+    {
+      "family": "operations",
+      "kind": "evidence",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:55a8cd2f4ec2381e95d03f4aee9907bcb2d22577c976f1d0dc3f5ddd13990010",
+      "domain_digest": "sha256:7700c92f75d68d5b83155c4d2493cfe149f75bfa318c1006aaaac663bdd1f57a"
+    },
+    {
+      "family": "operations",
+      "kind": "verification",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:85e796ad0b547af7906b6ab1b2980e900a078eae3506538a92f303f729c241e4",
+      "domain_digest": "sha256:dddf9a6d91040cfc9986ed516f845f93232573aa209f77cd5a1dbed607e6affb"
+    },
+    {
+      "family": "operations",
+      "kind": "application",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:52e1053f88f26104ebe3ae6e2dfde5bc8f20a878bf8b362b9053387bce6c9aa7",
+      "domain_digest": "sha256:fd2532cb78ece06ad4fa4f07481b17a23986a0309253fae259cf18858364b2c7"
+    },
+    {
+      "family": "operations",
+      "kind": "change",
+      "host": "portable",
+      "file": "artifact-successor/operations/portable/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "domain_digest": "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86"
+    },
+    {
+      "family": "change",
+      "kind": "preview",
+      "host": "macos",
+      "file": "artifact-successor/change/macos/preview.json",
+      "bytes": 11526,
+      "raw_sha256": "sha256:783fe14690d04b2093e33e14c5c70735907181f288fd69e6bf1b0c6be4841802",
+      "domain_digest": "sha256:f2295d286ed0ceabdedaa6b1756a78c4cb37c2452018aac6fe10c8315bed5d65"
+    },
+    {
+      "family": "change",
+      "kind": "context",
+      "host": "macos",
+      "file": "artifact-successor/change/macos/context.json",
+      "bytes": 6230,
+      "raw_sha256": "sha256:59680fda4dfd8f1a1a1afedc190a61d25992cc7c4e2f4b7efd3d0451917f9a48",
+      "domain_digest": "sha256:664cf69a49015f8b83017fdee6ceeeb090b2337d8caf1bd3b25895d184273572"
+    },
+    {
+      "family": "change",
+      "kind": "impact",
+      "host": "macos",
+      "file": "artifact-successor/change/macos/impact.json",
+      "bytes": 12301,
+      "raw_sha256": "sha256:918a4c0c2805263b8edd630088e33c15cd45f1747b5e2faa0f0eae52390425fc",
+      "domain_digest": "sha256:ff965c06cbf37f2e3121838d1ce40b775a1a8971d94bcf58f9066f4ff84f58d8"
+    },
+    {
+      "family": "change",
+      "kind": "review",
+      "host": "macos",
+      "file": "artifact-successor/change/macos/review.json",
+      "bytes": 10629,
+      "raw_sha256": "sha256:23c4c1bf7e6b1f510147cf2a175dc69b94550554da3c511542c09aed82c5ee46",
+      "domain_digest": "sha256:e00077e69b99a023620dc0446141ad76740d8c2df6491d4ed4ddda2a91bb62f3"
+    },
+    {
+      "family": "change",
+      "kind": "evidence",
+      "host": "macos",
+      "file": "artifact-successor/change/macos/evidence.json",
+      "bytes": 5181,
+      "raw_sha256": "sha256:6342640e95dee6316f2a24777d9bc44e38ff1358c70f9d7edba695e40825c05c",
+      "domain_digest": "sha256:5c58cda62ab177473e85a94f059c7a34320ce4602c78da51eacb442549636b40"
+    },
+    {
+      "family": "structural",
+      "kind": "proposal",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/proposal.json",
+      "bytes": 1782,
+      "raw_sha256": "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8",
+      "domain_digest": "sha256:96977efe401f5d4aed6c313fd7213e96bfc426159255e8922227e0b113ab47d1"
+    },
+    {
+      "family": "structural",
+      "kind": "preview",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/preview.json",
+      "bytes": 19422,
+      "raw_sha256": "sha256:d863dfafc3a4d5514e3d6b605b7836b6d5d3778600c1f10e1dedbee999926ca9",
+      "domain_digest": "sha256:bf65337bbcffe3c19f2f7f89547f0557cabcc9fc72e253ffc72c4cccf16b2cbe"
+    },
+    {
+      "family": "structural",
+      "kind": "context",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/context.json",
+      "bytes": 8829,
+      "raw_sha256": "sha256:c64ad1a9557b9602574984fcda8681b968fdd5aeb477044544d017fae6a3a559",
+      "domain_digest": "sha256:cd70304303a91e2bb529fcd5dfc2acf202ca186595416c518738f5b7571951cb"
+    },
+    {
+      "family": "structural",
+      "kind": "impact",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/impact.json",
+      "bytes": 13221,
+      "raw_sha256": "sha256:facd7b824e20aadc86639b012d43cc16e6cff63380b8e95cc32be61a43264d3a",
+      "domain_digest": "sha256:fff51509ab6364d10fdfedb81184d50f8c9f9a9a12c583252ee1220b94815010"
+    },
+    {
+      "family": "structural",
+      "kind": "review",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/review.json",
+      "bytes": 14423,
+      "raw_sha256": "sha256:0063bf36c4f59d0d9a7c0364b37d74e475faad1eb4daf69155f44fea69b175d5",
+      "domain_digest": "sha256:5b31d33221328e594ada6594c50b639726a7e19be5ad1ce784d1e525cfb97199"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/evidence.json",
+      "bytes": 6942,
+      "raw_sha256": "sha256:3d2602305c3f474f05305d5896140563f43827f095a31a1535ce0d81790e13af",
+      "domain_digest": "sha256:60143308605a6f9b067e50cb5f0500bf75b3424dbf8a81abc50260c36a5639df"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-verification",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/evidence-verification.json",
+      "bytes": 7188,
+      "raw_sha256": "sha256:ef418a44abbac2499e5c32649d9351cfbe83f115d54e2827fcad5b116238ecd1",
+      "domain_digest": "sha256:5f903301bcf27ed406f02c69df1cf2353fb465f7d043c16c0dc34e3716641589"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-application",
+      "host": "macos",
+      "file": "artifact-successor/structural/macos/evidence-application.json",
+      "bytes": 7182,
+      "raw_sha256": "sha256:23ceaac00f3fe8532fe491474636b2cb454c7deac1e57d31dcb83066799c8c1a",
+      "domain_digest": "sha256:9b990ff03dc85d923cbb769edf8a72b04fe72e4c87b1553fecd730332f8dc703"
+    },
+    {
+      "family": "operations",
+      "kind": "derivation",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/derivation.json",
+      "bytes": 2988,
+      "raw_sha256": "sha256:619bf0a8a0640bc99949ab5f008a22f8eeabe8465b413da082c265a8892f3d46",
+      "domain_digest": "sha256:412a6fa08a8fb12ee563934ca0deb440ab3268f97de8cad068be65c2e68bb6b8"
+    },
+    {
+      "family": "operations",
+      "kind": "child-evidence",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/child-evidence.json",
+      "bytes": 5170,
+      "raw_sha256": "sha256:6391592bc0525920aa03a5fe3befdcf56f8bb141f60670b698eda33f7616d4f3",
+      "domain_digest": "sha256:33621d5dfb31dd41de58fa065ac684b176a06f11d7a4d8292cbd6f302a569eaa"
+    },
+    {
+      "family": "operations",
+      "kind": "evidence",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/evidence.json",
+      "bytes": 8264,
+      "raw_sha256": "sha256:4e9d1450e05b863d6ec08fd9c58ef2a4960612e48c93e88f301b170c48b1e5ee",
+      "domain_digest": "sha256:2f76db0316b80c034b0e837f4a457807cf7bd26925e478c7ec899d819527c934"
+    },
+    {
+      "family": "operations",
+      "kind": "verification",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/verification.json",
+      "bytes": 2985,
+      "raw_sha256": "sha256:dc6e5245694a843173f627ed9de092607ba31a677295120290d5aeb9ba2fdb30",
+      "domain_digest": "sha256:fdfe35e107633a1d9ba31086fe317a22c6975d69732be21d4d7eafd65ac7cc70"
+    },
+    {
+      "family": "operations",
+      "kind": "application",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/application.json",
+      "bytes": 2979,
+      "raw_sha256": "sha256:c877b34b072ef348faf084b3ddcfc2cfd76ca01c06e42f098a18ac218b0e99a3",
+      "domain_digest": "sha256:35a07651c0e5dc78e1b892ff99dc105947f93c2335366cdd716d0505ea9eed8b"
+    },
+    {
+      "family": "operations",
+      "kind": "change",
+      "host": "macos",
+      "file": "artifact-successor/operations/macos/change.json",
+      "bytes": 1001,
+      "raw_sha256": "sha256:31c0122a4e2bf040dd4430cbdd3278d2a36229946cd7d71ca0e61b3cca32fafe",
+      "domain_digest": "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86"
+    }
+  ],
+  "pins": [
+    {
+      "family": "change",
+      "kind": "preview",
+      "previous_literal": "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d",
+      "macos": "sha256:783fe14690d04b2093e33e14c5c70735907181f288fd69e6bf1b0c6be4841802",
+      "portable": "sha256:82324cc76bb6d6500075e25ef362e8fb8db8e4cbddfeea30c440e33f4d4d2429"
+    },
+    {
+      "family": "change",
+      "kind": "context",
+      "previous_literal": "sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822",
+      "macos": "sha256:59680fda4dfd8f1a1a1afedc190a61d25992cc7c4e2f4b7efd3d0451917f9a48",
+      "portable": "sha256:2720d139394537703fb5f6bea0bbf4914393159b3982646cd3ab55fd45dee7e5"
+    },
+    {
+      "family": "change",
+      "kind": "impact",
+      "previous_literal": "sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b",
+      "macos": "sha256:918a4c0c2805263b8edd630088e33c15cd45f1747b5e2faa0f0eae52390425fc",
+      "portable": "sha256:4cf1acce06d5d408baeac23d2fc0472f387a3dfe6a47be18617b6d22f78d1b93"
+    },
+    {
+      "family": "change",
+      "kind": "review",
+      "previous_literal": "sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b",
+      "macos": "sha256:23c4c1bf7e6b1f510147cf2a175dc69b94550554da3c511542c09aed82c5ee46",
+      "portable": "sha256:65df15f3411fcfc0f96ec43dd0989adfe1fd99d7419bb39606c1d5e2a258ebda"
+    },
+    {
+      "family": "change",
+      "kind": "evidence",
+      "previous_literal": "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03",
+      "macos": "sha256:6342640e95dee6316f2a24777d9bc44e38ff1358c70f9d7edba695e40825c05c",
+      "portable": "sha256:9f548e8bb3325bcd42419c76b218260955a4738be268025f1eabda969eb129c9"
+    },
+    {
+      "family": "operations",
+      "kind": "derivation",
+      "previous_literal": "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768",
+      "macos": "sha256:412a6fa08a8fb12ee563934ca0deb440ab3268f97de8cad068be65c2e68bb6b8",
+      "portable": "sha256:27b6197790e460da8a5ed5c1c43e0e624102be7bb825ae94cc662770d0c80153"
+    },
+    {
+      "family": "operations",
+      "kind": "child-evidence",
+      "previous_literal": "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9",
+      "macos": "sha256:6391592bc0525920aa03a5fe3befdcf56f8bb141f60670b698eda33f7616d4f3",
+      "portable": "sha256:f02c2d68ebe0e339809096cf056673b6ac858ae33c2ee5012811fe5f1ce0210e"
+    },
+    {
+      "family": "operations",
+      "kind": "evidence",
+      "previous_literal": "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1",
+      "macos": "sha256:4e9d1450e05b863d6ec08fd9c58ef2a4960612e48c93e88f301b170c48b1e5ee",
+      "portable": "sha256:55a8cd2f4ec2381e95d03f4aee9907bcb2d22577c976f1d0dc3f5ddd13990010"
+    },
+    {
+      "family": "operations",
+      "kind": "verification",
+      "previous_literal": "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034",
+      "macos": "sha256:dc6e5245694a843173f627ed9de092607ba31a677295120290d5aeb9ba2fdb30",
+      "portable": "sha256:85e796ad0b547af7906b6ab1b2980e900a078eae3506538a92f303f729c241e4"
+    },
+    {
+      "family": "operations",
+      "kind": "application",
+      "previous_literal": "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f",
+      "macos": "sha256:c877b34b072ef348faf084b3ddcfc2cfd76ca01c06e42f098a18ac218b0e99a3",
+      "portable": "sha256:52e1053f88f26104ebe3ae6e2dfde5bc8f20a878bf8b362b9053387bce6c9aa7"
+    },
+    {
+      "family": "structural",
+      "kind": "preview",
+      "previous_literal": "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953",
+      "macos": "sha256:d863dfafc3a4d5514e3d6b605b7836b6d5d3778600c1f10e1dedbee999926ca9",
+      "portable": "sha256:7bf9f45fdd658e9a9658ee4de1d43cd8951e45e629be0b8666e85b85314f8552"
+    },
+    {
+      "family": "structural",
+      "kind": "context",
+      "previous_literal": "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd",
+      "macos": "sha256:c64ad1a9557b9602574984fcda8681b968fdd5aeb477044544d017fae6a3a559",
+      "portable": "sha256:e186a4c01888158f2842739b8d7a3b1203acc6a2ea380d2dbf0d13883b699a61"
+    },
+    {
+      "family": "structural",
+      "kind": "impact",
+      "previous_literal": "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a",
+      "macos": "sha256:facd7b824e20aadc86639b012d43cc16e6cff63380b8e95cc32be61a43264d3a",
+      "portable": "sha256:f865ae2088efec1161ec75b33bf480aa34d4bea931690f66a65f39f4940f8a22"
+    },
+    {
+      "family": "structural",
+      "kind": "review",
+      "previous_literal": "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8",
+      "macos": "sha256:0063bf36c4f59d0d9a7c0364b37d74e475faad1eb4daf69155f44fea69b175d5",
+      "portable": "sha256:9624115291ceb9cde5b93a1c4e3213b16026af06c5badb22f97279a7655a2b21"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence",
+      "previous_literal": "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966",
+      "macos": "sha256:3d2602305c3f474f05305d5896140563f43827f095a31a1535ce0d81790e13af",
+      "portable": "sha256:ae39a9214c0ba164c999c0eea64bd6307a6e4b13b2f15495fd38eca1c6bbeae0"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-verification",
+      "previous_literal": "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82",
+      "macos": "sha256:ef418a44abbac2499e5c32649d9351cfbe83f115d54e2827fcad5b116238ecd1",
+      "portable": "sha256:b6d5b70341e48d1d71090910b86baaf136dac7a186d87cae3a53002037ff894a"
+    },
+    {
+      "family": "structural",
+      "kind": "evidence-application",
+      "previous_literal": "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961",
+      "macos": "sha256:23ceaac00f3fe8532fe491474636b2cb454c7deac1e57d31dcb83066799c8c1a",
+      "portable": "sha256:c236bf12bb09fa818b36655ca7f281516fafa910449359cc7ad72e06eefedbbf"
+    }
+  ]
+}

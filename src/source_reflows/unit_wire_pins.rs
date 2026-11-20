@@ -33,6 +33,74 @@ pub(crate) fn unit_wire_pin(previous: &str) -> &'static str {
             "sha256:51aa6b4580d40cf49002caa8847c4ecb928fa9d7d7470be93c1c2ed29b2fe8bd",
             "sha256:22bf53a04f6b50d09869f6585d9e418a15448fc98c085262b5d0e62e73f0aac7",
         ],
+        "sha256:1a8aa6c12947c96d1adb1ff01bf0df47b44ae3da6a7a7c00de294008e1ff3f3d" => [
+            "sha256:783fe14690d04b2093e33e14c5c70735907181f288fd69e6bf1b0c6be4841802",
+            "sha256:82324cc76bb6d6500075e25ef362e8fb8db8e4cbddfeea30c440e33f4d4d2429",
+        ],
+        "sha256:19b5d32b46a89d5db591037d56d4e56051827eefda2a4efca086e2cc9e353822" => [
+            "sha256:59680fda4dfd8f1a1a1afedc190a61d25992cc7c4e2f4b7efd3d0451917f9a48",
+            "sha256:2720d139394537703fb5f6bea0bbf4914393159b3982646cd3ab55fd45dee7e5",
+        ],
+        "sha256:fb442feaa785f66b280e98e019e6b84ae0626d76643ed2d7fe3f4675f36a703b" => [
+            "sha256:918a4c0c2805263b8edd630088e33c15cd45f1747b5e2faa0f0eae52390425fc",
+            "sha256:4cf1acce06d5d408baeac23d2fc0472f387a3dfe6a47be18617b6d22f78d1b93",
+        ],
+        "sha256:8b916f85723b506089076716d00ba18c5dead37fc990bec42a7a82bad7935d7b" => [
+            "sha256:23c4c1bf7e6b1f510147cf2a175dc69b94550554da3c511542c09aed82c5ee46",
+            "sha256:65df15f3411fcfc0f96ec43dd0989adfe1fd99d7419bb39606c1d5e2a258ebda",
+        ],
+        "sha256:6168a7d5ca2d0d76828f9a94f5b36e283d3a2eb4a855c8b32210ae80fa887a03" => [
+            "sha256:6342640e95dee6316f2a24777d9bc44e38ff1358c70f9d7edba695e40825c05c",
+            "sha256:9f548e8bb3325bcd42419c76b218260955a4738be268025f1eabda969eb129c9",
+        ],
+        "sha256:6b4aff6f4a51fe0e8dd384e48ed8047e7fe730a48611e94caf70553e38f0c768" => [
+            "sha256:412a6fa08a8fb12ee563934ca0deb440ab3268f97de8cad068be65c2e68bb6b8",
+            "sha256:27b6197790e460da8a5ed5c1c43e0e624102be7bb825ae94cc662770d0c80153",
+        ],
+        "sha256:c3a7834f9a9c41b7000cd4707ede5aa438bc88e30d88f807e5e63a2cfdfa37f9" => [
+            "sha256:6391592bc0525920aa03a5fe3befdcf56f8bb141f60670b698eda33f7616d4f3",
+            "sha256:f02c2d68ebe0e339809096cf056673b6ac858ae33c2ee5012811fe5f1ce0210e",
+        ],
+        "sha256:8c16f86e0a668ef523f2a4d4d3cc7a74d803ab8102726baf117e4d7a6e84f7f1" => [
+            "sha256:4e9d1450e05b863d6ec08fd9c58ef2a4960612e48c93e88f301b170c48b1e5ee",
+            "sha256:55a8cd2f4ec2381e95d03f4aee9907bcb2d22577c976f1d0dc3f5ddd13990010",
+        ],
+        "sha256:9faff8393c8f2911cc59c09109a031d6cefbb33ec1b4d0beeaa945a2f731f034" => [
+            "sha256:dc6e5245694a843173f627ed9de092607ba31a677295120290d5aeb9ba2fdb30",
+            "sha256:85e796ad0b547af7906b6ab1b2980e900a078eae3506538a92f303f729c241e4",
+        ],
+        "sha256:7bcd3cbd739609fee3784a07643e3d94c06c068c4e35c6881ec1bc99c796b52f" => [
+            "sha256:c877b34b072ef348faf084b3ddcfc2cfd76ca01c06e42f098a18ac218b0e99a3",
+            "sha256:52e1053f88f26104ebe3ae6e2dfde5bc8f20a878bf8b362b9053387bce6c9aa7",
+        ],
+        "sha256:fd7544470260739ba38560c7c274b304d4a6ae32d6c656e64eb5b24a1a9fb953" => [
+            "sha256:d863dfafc3a4d5514e3d6b605b7836b6d5d3778600c1f10e1dedbee999926ca9",
+            "sha256:7bf9f45fdd658e9a9658ee4de1d43cd8951e45e629be0b8666e85b85314f8552",
+        ],
+        "sha256:28460bcf94dc4911599db4c466321333c2a3946e23a887a71e4ac6d0843767bd" => [
+            "sha256:c64ad1a9557b9602574984fcda8681b968fdd5aeb477044544d017fae6a3a559",
+            "sha256:e186a4c01888158f2842739b8d7a3b1203acc6a2ea380d2dbf0d13883b699a61",
+        ],
+        "sha256:c37c02763ce4bea3bfb33ceb045a1fdcfa45a6aa5bf8d564e609c90025a0584a" => [
+            "sha256:facd7b824e20aadc86639b012d43cc16e6cff63380b8e95cc32be61a43264d3a",
+            "sha256:f865ae2088efec1161ec75b33bf480aa34d4bea931690f66a65f39f4940f8a22",
+        ],
+        "sha256:867e580049b569e350766fb309be0f946a270da651ecfcf9f1aa466bd96bdcd8" => [
+            "sha256:0063bf36c4f59d0d9a7c0364b37d74e475faad1eb4daf69155f44fea69b175d5",
+            "sha256:9624115291ceb9cde5b93a1c4e3213b16026af06c5badb22f97279a7655a2b21",
+        ],
+        "sha256:c311f8b226472c1600c23f09b77e850d88ef96cb4c04d398091c0cf78a23b966" => [
+            "sha256:3d2602305c3f474f05305d5896140563f43827f095a31a1535ce0d81790e13af",
+            "sha256:ae39a9214c0ba164c999c0eea64bd6307a6e4b13b2f15495fd38eca1c6bbeae0",
+        ],
+        "sha256:382721cd8b7265ffc3491970e080791be754622451e6aa1895fbf76a95259c82" => [
+            "sha256:ef418a44abbac2499e5c32649d9351cfbe83f115d54e2827fcad5b116238ecd1",
+            "sha256:b6d5b70341e48d1d71090910b86baaf136dac7a186d87cae3a53002037ff894a",
+        ],
+        "sha256:a762b6061e6a7ffa60562df25c364def7094dcf2eaa9a31e21a76e2da7e88961" => [
+            "sha256:23ceaac00f3fe8532fe491474636b2cb454c7deac1e57d31dcb83066799c8c1a",
+            "sha256:c236bf12bb09fa818b36655ca7f281516fafa910449359cc7ad72e06eefedbbf",
+        ],
         _ => previous_layout_pins(previous),
     };
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {

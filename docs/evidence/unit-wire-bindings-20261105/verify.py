@@ -150,6 +150,105 @@ for p in successor['pins']:
         assert p[host] == projection_rows[family, host, kind]
 assert not expected
 successor_literals = re.findall(r'"(sha256:[0-9a-f]{64})"\s*=>\s*\[\s*"(sha256:[0-9a-f]{64})",\s*"(sha256:[0-9a-f]{64})",?\s*\]', code)
-assert len(successor_literals) == 8
-assert set(successor_literals) == {(p['previous_literal'], p['macos'], p['portable']) for p in successor['pins']}
+projection_literals = {(p['previous_literal'], p['macos'], p['portable']) for p in successor['pins']}
+assert projection_literals <= set(successor_literals)
 print('PASS: 16 complete successor projection bodies, eight literal tuples, exact domains and reviewed builder deltas')
+
+artifacts = json.loads((HERE / 'artifact-successor.json').read_bytes())
+assert artifacts['schema'] == 'semaprax.unit-wire-artifact-successor.v1'
+assert set(artifacts['captures']) == {'Linux', 'Windows', 'macOS'}
+assert len({capture['head'] for capture in artifacts['captures'].values()}) == 1
+assert len({capture['profile'] for capture in artifacts['captures'].values()}) == 1
+artifact_rows = {}
+artifact_fields = {
+    ('base_workspace_graph', 'digest'),
+    ('candidate_workspace_graph', 'digest'),
+    ('change_preview', 'digest'),
+    ('structural_change_preview', 'digest'),
+    ('context', 'digest'),
+    ('impact', 'digest'),
+    ('review', 'digest'),
+    ('operations_derivation', 'digest'),
+    ('workspace_change_evidence', 'digest'),
+    ('workspace_operations_evidence', 'digest'),
+    ('workspace_structural_change_evidence', 'digest'),
+    ('budget', 'used_analysis_builder_bytes'),
+    ('budget', 'used_candidate_graph_builder_bytes'),
+    ('budget', 'used_operations_builder_bytes'),
+}
+for row in artifacts['wires']:
+    family, host, kind = key = row['family'], row['host'], row['kind']
+    assert key not in artifact_rows
+    path = HERE / row['file']
+    assert not path.is_symlink()
+    body = path.read_bytes()
+    assert len(body) == row['bytes'] and sha(body) == row['raw_sha256']
+    value = json.loads(body)
+    suffix = '.proposal-digest.v1\0' if kind in ['proposal', 'change'] else '.artifact-digest.v1\0'
+    domain = (value['schema'][:-3] + suffix).encode()
+    assert sha(domain + body) == row['domain_digest']
+    for field, before, after in projection_leaves(rows[key][1], value):
+        if field == ('workspace_change_evidence', 'document'):
+            changed = projection_leaves(json.loads(before), json.loads(after))
+        else:
+            changed = [(field, before, after)]
+        for leaf, old, new in changed:
+            assert leaf in artifact_fields, (key, field, leaf)
+            if leaf[-1] == 'digest':
+                assert re.fullmatch(r'sha256:[0-9a-f]{64}', old)
+                assert re.fullmatch(r'sha256:[0-9a-f]{64}', new)
+            else:
+                assert 0 < old < new <= 67108864
+    if kind in ['proposal', 'change']:
+        assert body == rows[key][0]
+    artifact_rows[key] = body, value, row
+
+assert len(artifact_rows) == 38
+
+
+def verify_reference(family, host, subject, field, target):
+    value = artifact_rows[family, host, subject][1][field]
+    _, artifact, receipt = artifact_rows[family, host, target]
+    assert value['schema'] == artifact['schema']
+    assert value['digest'] == receipt['domain_digest']
+    assert value['bytes'] == receipt['bytes']
+
+
+for host in ['macos', 'portable']:
+    for subject in ['derivation', 'evidence', 'verification', 'application']:
+        verify_reference('operations', host, subject, 'derived_workspace_change_proposal', 'change')
+    for subject in ['evidence', 'verification', 'application']:
+        verify_reference('operations', host, subject, 'operations_derivation', 'derivation')
+        verify_reference('operations', host, subject, 'workspace_change_evidence', 'child-evidence')
+    for subject in ['verification', 'application']:
+        verify_reference('operations', host, subject, 'workspace_operations_evidence', 'evidence')
+    evidence = artifact_rows['operations', host, 'evidence'][1]
+    assert evidence['workspace_change_evidence']['document'].encode() == artifact_rows['operations', host, 'child-evidence'][0]
+    for family in ['change', 'structural']:
+        preview_field = 'change_preview' if family == 'change' else 'structural_change_preview'
+        for kind, required in {
+            'context': [(preview_field, 'preview')],
+            'impact': [(preview_field, 'preview'), ('context', 'context')],
+            'review': [(preview_field, 'preview'), ('context', 'context'), ('impact', 'impact')],
+            'evidence': [(preview_field, 'preview'), ('context', 'context'), ('impact', 'impact'), ('review', 'review')],
+        }.items():
+            for field, target in required:
+                verify_reference(family, host, kind, field, target)
+    for kind in ['preview', 'context', 'impact', 'review', 'evidence', 'evidence-verification', 'evidence-application']:
+        verify_reference('structural', host, kind, 'proposal', 'proposal')
+    for kind in ['evidence-verification', 'evidence-application']:
+        verify_reference('structural', host, kind, 'workspace_structural_change_evidence', 'evidence')
+
+expected = {(p['family'], p['kind']): p for p in packet['pins'] if p['family'] not in projection_fields}
+assert len(artifacts['pins']) == len(expected) == 17
+for p in artifacts['pins']:
+    family, kind = key = p['family'], p['kind']
+    assert p['previous_literal'] == expected.pop(key)['previous_literal']
+    for host in ['macos', 'portable']:
+        row = artifact_rows[family, host, kind][2]
+        field = 'domain_digest' if key == ('operations', 'derivation') else 'raw_sha256'
+        assert p[host] == row[field]
+assert not expected
+assert len(successor_literals) == 25
+assert set(successor_literals) == {(p['previous_literal'], p['macos'], p['portable']) for p in successor['pins'] + artifacts['pins']}
+print('PASS: 38 complete successor documents, 17 literal tuples, checked builder deltas and artifact reference digests')

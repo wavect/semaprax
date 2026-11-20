@@ -546,12 +546,8 @@ fn base_fixture_with_extra_sources(reverse_sources: bool, extra_sources: usize) 
         sources.reverse();
     }
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
-    let preflight = semantic_workspace::preflight_owned_for_change(
-        &path_set,
-        sources,
-        semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
-    )
-    .unwrap();
+    let preflight =
+        semantic_workspace::preflight_owned_for_change_base_fixture(&path_set, sources).unwrap();
     let (files, manifest, revision, graph) = preflight.into_snapshot_parts();
     let sources = files
         .into_iter()

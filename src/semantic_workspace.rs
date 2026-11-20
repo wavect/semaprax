@@ -207,6 +207,15 @@ pub(crate) fn preflight_owned_with_frontend(
     preflight_owned_inner_mode::<false>(path_set_source, sources, None, false, None, Some(frontend))
 }
 
+#[cfg(test)]
+pub(crate) fn preflight_owned_for_change_base_fixture(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    // Use the same base accounting as authenticated managed manifest replay.
+    preflight_owned_inner(path_set_source, sources, Some(MAX_CHANGE_BUILDER_BYTES))
+}
+
 pub(crate) fn preflight_owned_for_change(
     path_set_source: &str,
     sources: Vec<SemanticWorkspaceSource>,

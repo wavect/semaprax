@@ -2,6 +2,10 @@
 use std::fmt::Write as _;
 use std::io::Write as _;
 
+mod macos_reporting {
+    include!("pin_capture/macos_reporting.rs");
+}
+
 const MAX_CAPTURE_BYTES: usize = 64 * 1024;
 
 pub(super) fn sha(bytes: &[u8]) -> String {
@@ -73,7 +77,7 @@ pub(super) fn write_local(name: &str, bytes: &[u8]) {
 /// Literal whole-wire expectations for the two measured native builder layouts.
 pub(super) fn native_wire_pin(macos: &'static str, portable: &'static str) -> &'static str {
     if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        macos
+        macos_reporting::current_pin(macos)
     } else {
         portable
     }

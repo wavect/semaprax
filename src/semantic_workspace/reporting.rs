@@ -3,6 +3,39 @@
 //! reports. This API does not acquire a workspace lock or publish ACTIVE.
 use super::*;
 use crate::workspace_report::WorkspaceReportFailure;
+use std::mem::size_of;
+
+const LIMIT_SELECTION_CONTROLS: usize = 2 * size_of::<Option<usize>>() // unwrap_or actual/formal receiver
+    + 2 * size_of::<usize>() // unwrap_or actual/formal default
+    + 2 * size_of::<usize>() // unwrap_or return and received graph limit
+    + 2 * size_of::<usize>() // checked_add actual/formal bank receiver
+    + 2 * size_of::<usize>() // checked_add actual/formal added bank
+    + size_of::<Option<usize>>() // checked_add returned Option
+    + size_of::<Option<usize>>() // match receiving Option
+    + size_of::<usize>() // selected sum binding
+    + size_of::<usize>(); // new report_controls receiving slot
+
+const TYPED_FORWARDING_CONTROLS: usize = 2 * size_of::<Result<SemanticWorkspacePreflight, WorkspaceReportFailure>>()
+    + 2 * size_of::<&str>()
+    + 2 * size_of::<Vec<SemanticWorkspaceSource>>()
+    + 2 * size_of::<Option<usize>>() // change limit
+    + 2 * size_of::<bool>()
+    + 2 * size_of::<Option<usize>>() // graph limit
+    + 2 * size_of::<Option<&mut crate::project::incremental::FrontendPass>>()
+    + 2 * size_of::<usize>(); // report-controls actual/formal
+
+// The same proposal must bind the same candidate graph through both public
+// error interfaces. A single upper bound covers the forwarding frames of either
+// interface and remains charged at the original Graph phase.
+pub(super) const CHANGE_REPORT_FORWARDING_CONTROLS: usize = {
+    let legacy = workspace_graph::graph_forwarding_controls::<Vec<Diagnostic>>();
+    let typed = TYPED_FORWARDING_CONTROLS + LIMIT_SELECTION_CONTROLS;
+    if legacy > typed {
+        legacy
+    } else {
+        typed
+    }
+};
 
 /// Opaque checked source facts. No mutable HIR, graph or report authority leaks.
 pub struct CheckedPreflight(SemanticWorkspacePreflight);
@@ -49,18 +82,7 @@ fn preflight_typed(
         retain_operations,
         graph_builder_limit,
         frontend,
-        const {
-            use std::mem::size_of;
-            size_of::<Result<SemanticWorkspacePreflight, WorkspaceReportFailure>>()
-                + size_of::<Result<SemanticWorkspacePreflight, WorkspaceReportFailure>>()
-                + 2 * size_of::<&str>()
-                + 2 * size_of::<Vec<SemanticWorkspaceSource>>()
-                + 2 * size_of::<Option<usize>>() // change limit
-                + 2 * size_of::<bool>()
-                + 2 * size_of::<Option<usize>>() // graph limit
-                + 2 * size_of::<Option<&mut crate::project::incremental::FrontendPass>>()
-                + 2 * size_of::<usize>() // report-controls actual/formal
-        },
+        CHANGE_REPORT_FORWARDING_CONTROLS - LIMIT_SELECTION_CONTROLS,
     )
 }
 
@@ -76,18 +98,6 @@ fn preflight_typed_with_report_controls(
     // This shared route newly selects a finite ordinary graph limit. The exact
     // unwrap_or receiver/default/return ABI and THIS checked composition are
     // paid by both Project and original typed callers at the original gate.
-    const LIMIT_SELECTION_CONTROLS: usize = {
-        use std::mem::size_of;
-        2 * size_of::<Option<usize>>() // unwrap_or actual/formal receiver
-            + 2 * size_of::<usize>() // unwrap_or actual/formal default
-            + 2 * size_of::<usize>() // unwrap_or return and received graph limit
-            + 2 * size_of::<usize>() // checked_add actual/formal bank receiver
-            + 2 * size_of::<usize>() // checked_add actual/formal added bank
-            + size_of::<Option<usize>>() // checked_add returned Option
-            + size_of::<Option<usize>>() // match receiving Option
-            + size_of::<usize>() // selected sum binding
-            + size_of::<usize>() // new report_controls receiving slot
-    };
     let report_controls = match report_controls.checked_add(LIMIT_SELECTION_CONTROLS) {
         Some(total) => total,
         None => usize::MAX,

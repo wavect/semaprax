@@ -1,0 +1,153 @@
+use sha2::{Digest, Sha256};
+
+struct WirePin {
+    previous_pin: &'static str,
+    current_pin: &'static str,
+    previous_wire: &'static str,
+    current_wire: &'static str,
+    derivation: bool,
+}
+
+const PINS: [WirePin; 16] = [
+    WirePin {
+        previous_pin: "sha256:55c93db0af71880fb640b7684aa21d43dc3f5d9a2dbf393b3391e9d6467536ba",
+        current_pin: "sha256:563d1fb7dfa241c94ae3a2e80c05135310490eefaa211f8108f2948887dd2e93",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/change/macos/semaprax.workspace-semantic-change-preview.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/change/preview.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:c17632b3b6c8def49caef0150dfd2621455abc2be9baf8e84acb9f5b3dc87f14",
+        current_pin: "sha256:cb33d68bfef4cf55e8adba59d4295857467cc5e18df2f1bc0d139348af142f3f",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/change/macos/semaprax.workspace-semantic-change-evidence.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/change/evidence.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:29cc4fdc7542cbbecae80432d6a75aca3ccf5bf838c21ff421b7ee208f65b548",
+        current_pin: "sha256:cc6fd95cd400195935fff3851ec5dc1eb9c655fe37e0c1feed5e916ea1a4eec4",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/change/macos/semaprax.workspace-semantic-change-evidence-verification.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/change/verification.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:701af5dc988316d5250661f382af3a50f984c1f87684f4842a5de83695cd3340",
+        current_pin: "sha256:f05b33df8e90e4b4a99baaa8b0688263a7a4a262fe6432e6702a2de9a9939ab9",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/change/macos/semaprax.workspace-semantic-change-evidence-application.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/change/application.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:b684001e6c8045b42fb69bfa7f4d62c0154eaadffae92fd0139340f461b2dca6",
+        current_pin: "sha256:eb2838266caa4d00021a4a27e9a41096556ac23262a88a7661ef8ec2e7c95eb6",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-preview.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/preview.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:c707884d3b79beb4387362355f53aaf599ee01f5e13b06bd15b430ac8b1c226e",
+        current_pin: "sha256:6c23b7802f611e9690a12ca5936039d364c3f0f933e3a779ae3a3505c2dd096e",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-context.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/context.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:b21f1b4b39ae21e4ac9e87bbc98d50b7185629c387efb8f0d7628d86b0fe6821",
+        current_pin: "sha256:dbf12b0df4f8076dc19960ea88b3e2c2d44f6d07db3cefbde881f0d970ab7b1f",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-impact.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/impact.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:9716979215b19e3614dc7f0dfb8689035b94f930e3ad99d78fa077cb7eda09db",
+        current_pin: "sha256:6f44e9c90be3bcb382c2af3fe020ce5287611612a8abad5184fda028f33073f6",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-review.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/review.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:6c5a19ca476a7dc7d9ac46d024d7df594cadb579a7a78b83ea75d6acab932308",
+        current_pin: "sha256:08fddeff289f4d325c749f95fcdd05db1c3c443064e2b6d476a047485aa51184",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-evidence.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/evidence.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:31f2cd70570922e175ba571d9a5539e5c44ca0e5f3c1018639a63bc7ae79081f",
+        current_pin: "sha256:ff699858a6ea2618b3376dd10fe6e1061a26d0862a2892d6e010ac3cac9cc467",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-evidence-verification.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/verification.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:d9750ce45b783ff17902e2251acb5e3cbb9a2b8e6e6ef1ee12be39ad5b1ecec5",
+        current_pin: "sha256:2be8eba39cd6207557e7ea7f4c6121bf6536a3d15b3c67eee51072e7ab1e8068",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/change-wire-bindings-20261104/structural/macos/semaprax.workspace-semantic-structural-change-evidence-application.v1.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/structural/application.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:0db2a5420fe0e0ebaa4db06a16142504df48bcf0c9990f7fda9d8b55ef433dd7",
+        current_pin: "sha256:5e3cb9a56a8f2cbc390dcff4b649a1123615d1bd6c904cffaf2580118a010244",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/operations-wire-bindings-20261105/macos/derivation.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/operations/derivation.json")),
+        derivation: true,
+    },
+    WirePin {
+        previous_pin: "sha256:b6ef2b450daa6c9a09e730e28a3079976f00fa9b37b2a6abe26e17fa91f81138",
+        current_pin: "sha256:fccab77641c35b1bc03024ce81be2c4f0ff41399c83b47b9d0004866df97cc4e",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/operations-wire-bindings-20261105/macos/child-evidence.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/operations/child-evidence.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:d675be31765bba093f04c3b0a89216a4ad9e1472bfffa63574b003d2e94f78bb",
+        current_pin: "sha256:a51d877f46f2569f90305d17a733b7232864564cc0c27c4bef20ed5abc94f2ea",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/operations-wire-bindings-20261105/macos/evidence.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/operations/evidence.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:6d2fa7c230113135205b36e9fa1bf873e0020ff061b22795d21dad70060d65c7",
+        current_pin: "sha256:cd51743a5a4051111f62df4893ab07c262f45fa182ec4c9b25c0a8871e6562aa",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/operations-wire-bindings-20261105/macos/verification.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/operations/verification.json")),
+        derivation: false,
+    },
+    WirePin {
+        previous_pin: "sha256:2b21276016d0af2f15503b82d42a8ec9e462590597fed808d2273f7131ccc049",
+        current_pin: "sha256:c0aff0b1c0bdd98855f546c6d74d31f7e454ffc6e86312118281190d18e7a784",
+        previous_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/operations-wire-bindings-20261105/macos/application.json")),
+        current_wire: include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/reporting-wire-parity-20261117/operations/application.json")),
+        derivation: false,
+    },
+];
+
+pub(super) fn current_pin(previous: &'static str) -> &'static str {
+    let pin = PINS
+        .iter()
+        .find(|pin| pin.previous_pin == previous)
+        .expect("the original public fixture pin has a captured successor");
+    let digest = |body: &str| {
+        let mut hasher = Sha256::new();
+        if pin.derivation {
+            hasher
+                .update(b"semaprax.semantic-workspace-operations-derivation.artifact-digest.v1\0");
+        }
+        hasher.update(body);
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(hasher.finalize())
+        )
+    };
+    assert_eq!(digest(pin.previous_wire), pin.previous_pin);
+    assert_eq!(digest(pin.current_wire), pin.current_pin);
+    pin.current_pin
+}
+
+#[test]
+fn current_macos_reporting_pins_bind_both_complete_wires() {
+    for pin in PINS {
+        assert_eq!(current_pin(pin.previous_pin), pin.current_pin);
+    }
+}

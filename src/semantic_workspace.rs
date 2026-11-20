@@ -204,7 +204,7 @@ pub(crate) fn preflight_owned_with_frontend(
     sources: Vec<SemanticWorkspaceSource>,
     frontend: &mut crate::project::incremental::FrontendPass,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
-    preflight_owned_inner_mode(path_set_source, sources, None, false, None, Some(frontend))
+    preflight_owned_inner_mode::<false>(path_set_source, sources, None, false, None, Some(frontend))
 }
 
 pub(crate) fn preflight_owned_for_change(
@@ -212,7 +212,14 @@ pub(crate) fn preflight_owned_for_change(
     sources: Vec<SemanticWorkspaceSource>,
     change_builder_limit: usize,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
-    preflight_owned_inner(path_set_source, sources, Some(change_builder_limit))
+    preflight_owned_inner_mode::<true>(
+        path_set_source,
+        sources,
+        Some(change_builder_limit),
+        false,
+        None,
+        None,
+    )
 }
 
 pub(crate) fn preflight_owned_for_operations(
@@ -225,7 +232,23 @@ pub(crate) fn preflight_owned_for_operations(
         operations_builder_limit <= 67_108_864,
         "private Semantic Workspace Operations builder limit cannot exceed the production maximum"
     );
-    preflight_owned_inner_mode(
+    preflight_owned_inner_mode::<false>(
+        path_set_source,
+        sources,
+        Some(operations_builder_limit),
+        true,
+        Some(graph_builder_limit),
+        None,
+    )
+}
+
+pub(crate) fn preflight_owned_for_operations_candidate(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    graph_builder_limit: usize,
+    operations_builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    preflight_owned_inner_mode::<true>(
         path_set_source,
         sources,
         Some(operations_builder_limit),
@@ -240,7 +263,7 @@ fn preflight_owned_inner(
     sources: Vec<SemanticWorkspaceSource>,
     change_builder_limit: Option<usize>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
-    preflight_owned_inner_mode(
+    preflight_owned_inner_mode::<false>(
         path_set_source,
         sources,
         change_builder_limit,
@@ -250,7 +273,7 @@ fn preflight_owned_inner(
     )
 }
 
-fn preflight_owned_inner_mode(
+fn preflight_owned_inner_mode<const ALIGN_TYPED_CANDIDATE_REPORT: bool>(
     path_set_source: &str,
     sources: Vec<SemanticWorkspaceSource>,
     change_builder_limit: Option<usize>,
@@ -300,7 +323,20 @@ fn preflight_owned_inner_mode(
         })
         .collect();
     let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {
-        if retain_operations {
+        if ALIGN_TYPED_CANDIDATE_REPORT {
+            workspace_graph::build_owned_retaining_sources_with_report_controls::<Vec<Diagnostic>>(
+                graph_sources,
+                if retain_operations {
+                    graph_builder_limit.expect("operations preflight supplies Graph limit")
+                } else {
+                    workspace_graph::MAX_BUILDER_BYTES
+                },
+                Some(change_builder_limit),
+                retain_operations,
+                None,
+                reporting::CHANGE_REPORT_FORWARDING_CONTROLS,
+            )?
+        } else if retain_operations {
             workspace_graph::build_owned_retaining_sources_for_operations(
                 graph_sources,
                 graph_builder_limit.expect("operations preflight supplies Graph limit"),
@@ -369,7 +405,7 @@ pub(crate) fn replay_manifest_owned_for_change(
         .map(|file| file.path.clone())
         .collect::<Vec<_>>();
     let path_set = render_path_set(&paths)?;
-    let preflight = preflight_owned_for_change(&path_set, sources, change_builder_limit)?;
+    let preflight = preflight_owned_inner(&path_set, sources, Some(change_builder_limit))?;
     if preflight.manifest != manifest {
         return Err(invariant(
             "semantic workspace change manifest replay changed authenticated facts",

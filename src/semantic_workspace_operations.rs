@@ -1547,7 +1547,7 @@ fn prepare_owned_inner(
     let candidate_graph_limit = MAX_CANDIDATE_GRAPH_BUILDER_BYTES.min(remaining_operations);
     #[cfg(test)]
     mark_candidate_preflight_entry();
-    let candidate = semantic_workspace::preflight_owned_for_operations(
+    let candidate = semantic_workspace::preflight_owned_for_operations_candidate(
         &path_set,
         candidate_sources,
         candidate_graph_limit,

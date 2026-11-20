@@ -300,8 +300,8 @@ const PARTS: [(&str, &str, usize, &str); 46] = [
             env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/declared-history-inputs-20261105/part-31.json"
         )),
-        1732,
-        "011bf39452fdcccafa1dac81fe744dee38618afc6f9e5e6d0fa194a6b3a2198f",
+        4984,
+        "1ef02f9a06c587a288f2beca1f33b55d2e3c3350a6b5c32cb2a579abef12aa65",
     ),
     (
         "docs/evidence/declared-history-inputs-20261105/part-32.json",

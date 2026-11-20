@@ -641,6 +641,7 @@ _ => panic!("unknown declared current source"), }
 pub(super) fn packet_slot(source: &str, expected: &str) -> Option<(usize, usize)> {
     match (source, expected) {
         ("src/hir.rs", "c1c11229c9dc431aea3939653a7ff611ed0207584ee26520c8a06506389f7797") => Some((45, 248)),
+        ("tests/hir_module_boundaries.rs", "b527dea6360c310fe9ff019dbf5166f651b353a5a11ba2be7e58cb7210d0640f") => Some((31, 2)),
         _ => None,
     }
 }

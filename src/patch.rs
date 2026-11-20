@@ -2849,7 +2849,7 @@ fn normalized_semantic_graph(
     let source = if hir::function_value::requires_function_values(resolved) {
         graph::to_json(program)?
     } else {
-        graph::to_legacy_json(program)?
+        graph::to_legacy_source_hir_json(program, resolved)?
     };
     let mut value: serde_json::Value = serde_json::from_str(&source).map_err(|error| {
         vec![Diagnostic::io(

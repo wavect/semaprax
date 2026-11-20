@@ -50,6 +50,28 @@ pub(crate) fn to_legacy_hir_json(
     source_revision: &str,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    render_legacy_hir(program, source_revision)
+}
+
+/// Replays checked-source HIR using the compiler's bounded cleanup scratch ledger.
+pub(crate) fn to_legacy_source_hir_json(
+    source: &Program,
+    program: &ResolvedProgram,
+) -> Result<String, Vec<Diagnostic>> {
+    if !source.session_protocols.is_empty() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G411",
+            "session protocol declarations require Graph v48",
+        )]);
+    }
+    hir::validate_with_static_text(program).map_err(|error| vec![error])?;
+    render_legacy_hir(program, &revision(source)).map_err(|error| vec![error])
+}
+
+fn render_legacy_hir(
+    program: &ResolvedProgram,
+    source_revision: &str,
+) -> Result<String, Diagnostic> {
     let functions = program
         .functions
         .iter()

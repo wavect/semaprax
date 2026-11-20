@@ -414,11 +414,20 @@ fn build_from_preflight_with_limits(
     max_candidate_bytes: Option<usize>,
     workspace_limits: Option<WorkspaceEvidenceLimits>,
 ) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    let validate_source = |program: &hir::ResolvedProgram| {
+        if max_candidate_bytes.is_some() {
+            // Keep independent cleanup replay under its bounded scratch ledger.
+            hir::validate_with_static_text(program).map(|_| ())
+        } else {
+            hir::validate(program)
+        }
+        .map_err(|error| vec![error])
+    };
     let resolve_checked = || -> Result<_, Vec<Diagnostic>> {
         let before_resolved = hir::resolve(preflight.before())?;
         let candidate_resolved = hir::resolve(preflight.candidate())?;
-        hir::validate(&before_resolved).map_err(|error| vec![error])?;
-        hir::validate(&candidate_resolved).map_err(|error| vec![error])?;
+        validate_source(&before_resolved)?;
+        validate_source(&candidate_resolved)?;
         graph::reject_native_rust_imports(&before_resolved).map_err(|error| vec![error])?;
         graph::reject_native_rust_imports(&candidate_resolved).map_err(|error| vec![error])?;
         Ok((before_resolved, candidate_resolved))

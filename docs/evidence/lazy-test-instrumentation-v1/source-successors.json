@@ -77,7 +77,7 @@
     ]
   },
   "src/workspace_graph/forecast_observation.rs": {
-    "current_sha256": "3d3126f89e21d639e6e726ad53984a2a855633b7bc438867e59fc0a23dc6ef94",
+    "current_sha256": "713f2af9ed2e875b3a0a6604e25d8dd0925da8706c376a5962065686d8fedc10",
     "previous_sha256": "678c0ec588b54c52f841258850af1b4a11447cb7cbf031da2f3d62c437b341a2",
     "inverse": [
       [
@@ -128,6 +128,211 @@
       [
         38535,
         "    #[test]\n    fn live_precharge_survives_history_eviction_and_excludes_reconstruction() {\n        let report = Report::prepare(\"live-precharge-contract\");\n        let capture = report.capture();\n        let (_, metrics) = crate::test_allocation_observer::measure(|| {\n            let pass = begin_pass(6);\n            pass.live_layout(1);\n            pass.module(0);\n            let mut components = [0; VALUES];\n            components[10] = 1;\n            components[11] = 6;\n            components[12] = 5;\n            components[17] = 4;\n            components[18] = 21;\n            components[13] = 21;\n            for imports in [true, false] {\n                record_live_hir_terms(\"actual/doc.spx\", imports, [1, 2, 3, 4, 5, 6, 21]);\n                record_components(\"actual/doc.spx\", 6, false, imports, components);\n            }\n            pass.live_formula(0, \"actual/doc.spx\", [31, 26, 21, 21, 5, 1, 1, 1, 10]);\n            pass.live_attempt([0, 9, 62_580_563, 6_125_249, 5_000_000, 1 << 26, 1]);\n            // The old bounded record ring intentionally loses its prefix.\n            // A differently-modeled nested observation is not the live module.\n            for _ in 0..SLOTS + 1 {\n                record_components(\"other-mode\", 5, false, false, [0; VALUES]);\n            }\n        });\n        assert!(!metrics.invalid);\n        assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));\n        drop(capture);\n        // This models the existing failure-only reconstruction after the live\n        // Capture has ended. It cannot replace the captured refusing formula.\n        let reconstructed = begin_pass(6);\n        reconstructed.live_layout(1);\n        reconstructed.module(0);\n        reconstructed.live_formula(0, \"reconstructed\", [0; 9]);\n        reconstructed.live_attempt([0; 7]);\n        record_live_hir_terms(\"reconstructed\", true, [0; 7]);\n        record_components(\"reconstructed\", 6, false, true, [0; VALUES]);\n        drop(reconstructed);\n        let mut output = Vec::new();\n        write_observation(&mut output, \"live-precharge-contract\", false);\n        let rows = output\n            .split(|byte| *byte == b'\\n')\n            .filter(|line| !line.is_empty())\n            .map(|line| serde_json::from_slice::<serde_json::Value>(line).unwrap())\n            .collect::<Vec<_>>();\n        assert_eq!(rows[0][\"schema\"], \"semaprax.forecast-live-precharge.v1\");\n        assert_eq!(rows[0][\"retained_before\"], 62_580_563);\n        assert_eq!(rows[0][\"full_cost\"], 6_125_249);\n        assert_eq!(rows[0][\"phase\"], \"resolve\");\n        assert_eq!(rows[0][\"would_refuse\"], true);\n        assert_eq!(rows[0][\"complete_live_components\"], true);\n        assert_eq!(rows[1][\"path\"], \"actual/doc.spx\");\n        assert_eq!(rows[1][\"paths_match_actual_module\"], true);\n        assert_eq!(rows[1][\"hir_term_paths_match\"], true);\n        assert_eq!(rows[1][\"hir_term_equations_valid\"], true);\n        assert_eq!(rows[1][\"hir_terms_match_returned_costs\"], true);\n        assert_eq!(rows[1][\"full_reconciles\"], true);\n        assert_eq!(rows[1][\"retained_reconciles\"], true);\n        assert_eq!(\n            rows[2][\"complete_records\"], false,\n            \"old lost-ring control unchanged\"\n        );\n        drop(report);\n    }\n",
+        ""
+      ],
+      [
+        697,
+        "    proof_bytes: [usize; 2],\n",
+        ""
+      ],
+      [
+        1530,
+        "#[derive(Clone, Copy)]\nenum LiveAttempt {\n    Module([usize; 7]),\n    LaterValidation {\n        retained: usize,\n        scratch: usize,\n        directory: usize,\n        limit: usize,\n    },\n}\n",
+        ""
+      ],
+      [
+        1836,
+        "    live_attempt: Option<LiveAttempt>,\n",
+        "    live_attempt: Option<[usize; 7]>,\n"
+      ],
+      [
+        3313,
+        "    capture(path, mode, semantic, false, Kind::Legacy, values, [0; 2]);\n",
+        "    capture(path, mode, semantic, false, Kind::Legacy, values);\n"
+      ],
+      [
+        3526,
+        ") {\n    record_components_with_proofs(path, mode, semantic, include_imports, values, [0; 2]);\n}\npub(crate) fn record_components_with_proofs(\n    path: &str,\n    mode: u8,\n    semantic: bool,\n    include_imports: bool,\n    values: [usize; VALUES],\n    proof_bytes: [usize; 2],\n",
+        ""
+      ],
+      [
+        4012,
+        "        proof_bytes,\n",
+        ""
+      ],
+      [
+        4447,
+        "    capture(path, 0, false, false, Kind::Authority, values, [0; 2]);\n",
+        "    capture(path, 0, false, false, Kind::Authority, values);\n"
+      ],
+      [
+        5415,
+        "            proof_bytes: [0; 2],\n",
+        ""
+      ],
+      [
+        5992,
+        "    proof_bytes: [usize; 2],\n",
+        ""
+      ],
+      [
+        6657,
+        "            proof_bytes,\n",
+        ""
+      ],
+      [
+        9637,
+        "            STATE.with(|state| state.borrow_mut().live_attempt = Some(LiveAttempt::Module(values)));\n        }\n    }\n    pub(crate) fn live_later_validation(\n        &self,\n        retained: usize,\n        scratch: usize,\n        directory: usize,\n        limit: usize,\n    ) {\n        if self.active {\n            STATE.with(|state| {\n                state.borrow_mut().live_attempt = Some(LiveAttempt::LaterValidation {\n                    retained,\n                    scratch,\n                    directory,\n                    limit,\n                });\n            });\n",
+        "            STATE.with(|state| state.borrow_mut().live_attempt = Some(values));\n"
+      ],
+      [
+        11307,
+        "        capture(path, self.mode, false, false, Kind::Step, values, [0; 2]);\n",
+        "        capture(path, self.mode, false, false, Kind::Step, values);\n"
+      ],
+      [
+        11477,
+        "        self.finish(peak, retained, transient, false);\n    }\n    pub(crate) fn complete_with_later_validation(\n        &mut self,\n        peak: usize,\n        retained: usize,\n        later: usize,\n    ) {\n        let later_wins = later > self.peak && later > retained;\n        self.finish(peak, retained, 0, later_wins);\n    }\n    fn finish(&mut self, peak: usize, retained: usize, transient: usize, later_wins: bool) {\n",
+        ""
+      ],
+      [
+        11965,
+        "            let (winner, term) = if later_wins {\n                (None, 2)\n            } else if peak > self.peak {\n                (self.last_module, 1)\n",
+        "            let retained_wins = peak > self.peak;\n            let winner = if retained_wins {\n                self.last_module\n"
+      ],
+      [
+        12140,
+        "                (self.winner, 0)\n",
+        "                self.winner\n"
+      ],
+      [
+        12371,
+        "                term,\n",
+        "                usize::from(retained_wins),\n"
+      ],
+      [
+        12409,
+        "            capture(\"\", self.mode, false, false, Kind::Global, values, [0; 2]);\n",
+        "            capture(\"\", self.mode, false, false, Kind::Global, values);\n"
+      ],
+      [
+        12642,
+        "                capture(\n                    \"\",\n                    self.mode,\n                    false,\n                    false,\n                    Kind::Global,\n                    [0; VALUES],\n                    [0; 2],\n                );\n",
+        "                capture(\"\", self.mode, false, false, Kind::Global, [0; VALUES]);\n"
+      ],
+      [
+        14953,
+        "fn hir_sum(v: &[usize; VALUES], [call_proof, shared_callee_proof]: [usize; 2]) -> Option<usize> {\n",
+        "fn hir_sum(v: &[usize; VALUES]) -> Option<usize> {\n"
+      ],
+      [
+        15061,
+        "        .checked_add(call_proof)\n        .and_then(|n| n.checked_add(shared_callee_proof))\n        .and_then(|n| n.checked_add(v[17]))\n",
+        "        .checked_add(v[17])\n"
+      ],
+      [
+        15286,
+        "",
+        "fn reconciles(v: &[usize; VALUES]) -> bool {\n    hir_sum(v) == Some(v[18]) && v[0].checked_add(v[18]) == Some(v[13])\n}\n"
+      ],
+      [
+        15408,
+        "}\nfn reconciles(v: &[usize; VALUES], proof_bytes: [usize; 2]) -> bool {\n    hir_sum(v, proof_bytes) == Some(v[18]) && v[0].checked_add(v[18]) == Some(v[13])\n",
+        ""
+      ],
+      [
+        15776,
+        "        reconciles(&item.values, item.proof_bytes)\n",
+        "        reconciles(&item.values)\n"
+      ],
+      [
+        16093,
+        "    attempt: LiveAttempt,\n",
+        "    attempt: [usize; 7],\n"
+      ],
+      [
+        16123,
+        "    let (phase, retained, additional, limit, module, validation) = match attempt {\n        LiveAttempt::Module([index, ordinal, retained, full, kept, limit, resolving]) => {\n            let (phase, additional) = if resolving != 0 {\n                (\"resolve\", full)\n            } else {\n                (\"retain\", kept)\n            };\n            (\n                phase,\n                retained,\n                Some(additional),\n                limit,\n                Some([index, ordinal, full, kept]),\n                None,\n            )\n        }\n        LiveAttempt::LaterValidation {\n            retained,\n            scratch,\n            directory,\n            limit,\n        } => (\n            \"later_validation\",\n            retained,\n            scratch.checked_add(directory),\n            limit,\n            None,\n            Some([scratch, directory]),\n        ),\n    };\n    let total = additional.and_then(|bytes| retained.checked_add(bytes));\n",
+        "    let [index, ordinal, retained, full, kept, limit, resolving] = attempt;\n    let additional = if resolving != 0 { full } else { kept };\n"
+      ],
+      [
+        18948,
+        "        \"retained_before\":retained,\"phase\":phase,\n        \"module_index\":module.map(|m| m[0]),\"sorted_step\":module.map(|m| m[1]),\n        \"full_cost\":module.map(|m| m[2]),\"retained_cost\":module.map(|m| m[3]),\n        \"maximum_scratch_bytes\":validation.map(|v| v[0]),\"directory_bytes\":validation.map(|v| v[1]),\n        \"additional\":additional,\"limit\":limit,\"total\":total,\n        \"would_refuse\":total.is_none_or(|total|total>limit),\n",
+        "        \"module_index\":index,\"sorted_step\":ordinal,\"retained_before\":retained,\n        \"full_cost\":full,\"retained_cost\":kept,\"phase\":if resolving!=0 {\"resolve\"} else {\"retain\"},\n        \"additional\":additional,\"limit\":limit,\"total\":retained.checked_add(additional),\n        \"would_refuse\":retained.checked_add(additional).is_none_or(|total|total>limit),\n"
+      ],
+      [
+        22200,
+        "            \"proof_byte_order\":\"call_proof,shared_callee_proof\",\n            \"actual_full_proof_bytes\":module.full.map(|row|row.proof_bytes),\n            \"actual_retained_proof_bytes\":module.retained.map(|row|row.proof_bytes),\n            \"historical_component_equations_valid\":module.full.is_some_and(|row|reconciles(&row.values, [0; 2])) && module.retained.is_some_and(|row|reconciles(&row.values, [0; 2])),\n            \"component_equations_valid\":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),\n",
+        "            \"historical_component_equations_valid\":module.full.is_some_and(|row|record_reconciles(&row)) && module.retained.is_some_and(|row|record_reconciles(&row)),\n"
+      ],
+      [
+        25740,
+        "                let winning_term = match v[5] {\n                    2 => \"later_validation\",\n                    1 => \"retained_sum\",\n                    _ => \"resolve_step\",\n                };\n",
+        ""
+      ],
+      [
+        26573,
+        "                    \"winning_term\":(item.mode==6 && v[0]!=0 && complete).then_some(winning_term),\n                    \"winner_selection\":\"first strict resolve maximum; later validation or final retained sum only when larger\",\n",
+        "                    \"winning_term\":if item.mode==6 && v[0]!=0 && complete {Some(if v[5]!=0 {\"retained_sum\"} else {\"resolve_step\"})} else {None},\n                    \"winner_selection\":\"first strict resolve maximum; final retained sum only when larger\",\n"
+      ],
+      [
+        28341,
+        "                        assert_eq!(hir_sum(&v, item.proof_bytes), Some(v[18]), \"complete HIR bound includes proof charges and prelude\");\n",
+        "                        assert_eq!(hir_sum(&v), Some(v[18]), \"complete HIR bound includes prelude\");\n"
+      ],
+      [
+        30028,
+        "                    \"call_proof_bytes\":(!item.legacy_components).then_some(item.proof_bytes[0]),\n                    \"shared_callee_proof_bytes\":(!item.legacy_components).then_some(item.proof_bytes[1]),\n",
+        ""
+      ],
+      [
+        34926,
+        "        let proofs = [23, 29];\n        let mut current = components();\n        current[18] += 52;\n        current[13] += 52;\n",
+        ""
+      ],
+      [
+        35240,
+        "            record_components_with_proofs(\"first\", 6, false, true, current, proofs);\n            record_components_with_proofs(\"first\", 6, false, false, current, proofs);\n",
+        "            record_components(\"first\", 5, false, true, components());\n            record_components(\"first\", 5, false, false, components());\n"
+      ],
+      [
+        35877,
+        "        assert_eq!(hir_sum(&components(), [0; 2]), Some(60));\n        assert!(reconciles(&components(), [0; 2]));\n        assert!(reconciles(&current, proofs));\n        assert!(!reconciles(&current, [23, 0]));\n        assert!(!reconciles(&current, [0, 29]));\n        assert!(!reconciles(&current, [usize::MAX, 29]));\n",
+        "        assert_eq!(hir_sum(&components()), Some(60));\n        assert!(reconciles(&components()));\n"
+      ],
+      [
+        36292,
+        "            !reconciles(&missing_prelude, [0; 2]),\n",
+        "            !reconciles(&missing_prelude),\n"
+      ],
+      [
+        36474,
+        "        assert!(!reconciles(&bad_clone, [0; 2]));\n",
+        "        assert!(!reconciles(&bad_clone));\n"
+      ],
+      [
+        37173,
+        "        assert_eq!(rows[1][\"hir_upper\"], 112);\n        assert_eq!(rows[1][\"call_proof_bytes\"], 23);\n        assert_eq!(rows[1][\"shared_callee_proof_bytes\"], 29);\n",
+        "        assert_eq!(rows[1][\"hir_upper\"], 60);\n"
+      ],
+      [
+        38842,
+        "        assert!(rows[1][\"call_proof_bytes\"].is_null());\n        assert!(rows[1][\"shared_callee_proof_bytes\"].is_null());\n",
+        ""
+      ],
+      [
+        43551,
+        "                record_components_with_proofs(\n                    \"actual/doc.spx\",\n                    6,\n                    false,\n                    imports,\n                    components,\n                    [2, 3],\n                );\n",
+        "                record_components(\"actual/doc.spx\", 6, false, imports, components);\n"
+      ],
+      [
+        45895,
+        "        assert_eq!(rows[1][\"historical_component_equations_valid\"], false);\n        assert_eq!(rows[1][\"component_equations_valid\"], true);\n        assert_eq!(\n            rows[1][\"actual_full_proof_bytes\"],\n            serde_json::json!([2, 3])\n        );\n        assert_eq!(\n            rows[1][\"actual_retained_proof_bytes\"],\n            serde_json::json!([2, 3])\n        );\n",
+        ""
+      ],
+      [
+        46607,
+        "\n    #[test]\n    fn later_validation_replaces_the_last_module_attempt_and_preserves_resolve_ties() {\n        for (scratch, limit, total, winner) in [\n            (3, 12, Some(13), None),\n            (3, 13, Some(13), Some(\"later_validation\")),\n            (2, 13, Some(12), Some(\"resolve_step\")),\n            (usize::MAX, 13, None, None),\n        ] {\n            let report = Report::prepare(\"live-later-validation\");\n            let ((), metrics) = crate::test_allocation_observer::measure(|| {\n                let _capture = report.capture();\n                let mut pass = begin_pass(6);\n                pass.live_layout(1);\n                pass.live_attempt([0, 0, 0, 12, 8, limit, 0]);\n                pass.step(\"source.spx\", 0, 0, (0, 12, 8), (12, 8));\n                pass.live_later_validation(8, scratch, 2, limit);\n                if winner.is_some() {\n                    let later = total.unwrap();\n                    pass.complete_with_later_validation(later.max(12), 8, later);\n                }\n            });\n            assert!(!metrics.invalid);\n            assert_eq!((metrics.allocated, metrics.freed, metrics.live), (0, 0, 0));\n            let mut output = Vec::new();\n            write_observation(&mut output, \"live-later-validation\", true);\n            let mut rows = serde_json::Deserializer::from_slice(&output)\n                .into_iter::<serde_json::Value>()\n                .map(Result::unwrap);\n            let attempt = rows.next().unwrap();\n            assert_eq!(attempt[\"phase\"], \"later_validation\");\n            assert!(attempt[\"module_index\"].is_null());\n            assert!(attempt[\"sorted_step\"].is_null());\n            assert_eq!(attempt[\"retained_before\"], 8);\n            assert_eq!(attempt[\"maximum_scratch_bytes\"], scratch);\n            assert_eq!(attempt[\"directory_bytes\"], 2);\n            assert_eq!(\n                attempt[\"additional\"],\n                serde_json::json!(scratch.checked_add(2))\n            );\n            assert_eq!(attempt[\"total\"], serde_json::json!(total));\n            assert_eq!(attempt[\"would_refuse\"], winner.is_none());\n            let pass = rows\n                .find(|row| row[\"schema\"] == \"semaprax.forecast-pass.v1\")\n                .unwrap();\n            assert_eq!(pass[\"completed\"], winner.is_some());\n            assert_eq!(pass[\"winning_term\"], serde_json::json!(winner));\n            let module = (winner == Some(\"resolve_step\")).then_some(0);\n            assert_eq!(pass[\"winning_module_index\"], serde_json::json!(module));\n            assert_eq!(\n                pass[\"global_peak\"],\n                serde_json::json!(total.filter(|_| winner.is_some()))\n            );\n            drop(report);\n        }\n    }\n",
         ""
       ]
     ]

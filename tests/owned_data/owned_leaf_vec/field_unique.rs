@@ -309,6 +309,7 @@ static void *probe_unique_malloc(size_t n){{
     let probe = format!(
         r#"
 int main(void){{
+ if(!fixture_binary_stdout())return 7;
  struct spx_status_entry entries[32];struct spx_context context={{0}};
  if(!spx_context_init(&context,17,entries,32,NULL,NULL,NULL))return 1;
  for(unsigned repeat=0;repeat<3;++repeat){{
@@ -333,7 +334,8 @@ int main(void){{
         count = scratch.len(),
     );
     let c = root.join(if refuse { "refuse.c" } else { "unique.c" });
-    std::fs::write(&c, format!("{allocator}\n{generated}\n{probe}")).unwrap();
+    let stdio = include_str!("../../support/native_fixture_stdio.c");
+    std::fs::write(&c, format!("{stdio}\n{allocator}\n{generated}\n{probe}")).unwrap();
     for optimization in ["-O0", "-O2"] {
         let binary = root.join(format!("unique-{refuse}-{optimization}"));
         let output = Command::new("clang")

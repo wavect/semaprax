@@ -180,6 +180,11 @@ pub(crate) fn current_1e_value(source: &str, supplied: &str) -> String {
 // The cursor source gained exactly this later acquisition call. Restore its
 // complete packet epoch before the existing full-source comparisons on both
 // independently acquired channels.
+fn current_packet_view(source: &str, expected: &str, supplied: &str) -> String {
+    let view = before_cursor_call(source, expected, supplied);
+    super::main_e177_final_inputs::declared_history_inputs::expected_value(source, expected, &view)
+        .unwrap_or(view)
+}
 fn before_cursor_call(source: &str, expected: &str, supplied: &str) -> String {
     if source != "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
         || expected != "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34"
@@ -252,7 +257,7 @@ fn latest_current(
         };
         let historical =
             super::main67107_inputs::accepted_expected_value(source, expected, &historical);
-        let historical = before_cursor_call(source, expected, &historical);
+        let historical = current_packet_view(source, expected, &historical);
         assert_eq!(
             historical.len(),
             length,
@@ -324,7 +329,7 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
             &compiled,
         );
         let compiled =
-            before_cursor_call(relative, row["current_sha256"].as_str().unwrap(), &compiled);
+            current_packet_view(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(
             current, compiled,
             "complete physical/compiled main-c883 owner"
@@ -447,7 +452,7 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
             &compiled,
         );
         let compiled =
-            before_cursor_call(relative, row["current_sha256"].as_str().unwrap(), &compiled);
+            current_packet_view(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(
             current, compiled,
             "actual complete compiled f247 current owner"

@@ -1,61 +1,35 @@
-name: Complete wire diagnostic
+name: Desktop MSVC toolchain diagnostic
 on:
   workflow_dispatch:
-    inputs:
-      runner:
-        description: Native host for complete fixture receipts
-        type: choice
-        options: [ubuntu-latest, windows-latest, macos-latest]
-        default: ubuntu-latest
-        required: true
 permissions:
   contents: read
-concurrency:
-  group: wire-diagnostic-${{ github.ref }}-${{ inputs.runner }}
-  cancel-in-progress: false
 jobs:
   capture:
-    name: Complete fixture capture (diagnostic only)
-    runs-on: ${{ inputs.runner }}
-    timeout-minutes: 180
-    env:
-      CARGO_BUILD_JOBS: "1"
-      CARGO_PROFILE_DEV_DEBUG: "0"
-      CARGO_PROFILE_TEST_DEBUG: "0"
-      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
-      CARGO_INCREMENTAL: "0"
-      RUST_TEST_THREADS: "1"
-      SEMAPRAX_CAPTURE_PUBLIC_WIRES: "1"
+    runs-on: windows-2025
+    timeout-minutes: 10
     steps:
-      - name: Enable long evidence paths on Windows
-        shell: bash
+      - name: Capture native compiler, linker, and SDK identities
+        shell: pwsh
         run: |
-          if [ "$RUNNER_OS" = Windows ]; then
-            git config --system core.longpaths true
-          fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 1
-          filter: blob:none
-          fetch-tags: false
-          lfs: false
-      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
-        with:
-          toolchain: 1.97.1
-      - name: Fetch locked dependencies
-        run: cargo fetch --locked
-      - name: Prepare separate data-capture fixtures while preserving original tests
-        run: python scripts/prepare-wire-diagnostic.py
-      - name: Build the original complete library harness
-        shell: bash
-        run: cargo test --locked --offline -p semaprax --lib --all-features --no-run --jobs 1 --config profile.test.package.semaprax.opt-level=0 --message-format=json > wire-build.jsonl
-      - name: Capture complete fixtures and original verdicts
-        run: python scripts/diagnostic-public-wires.py
-      - name: Retain full wires and exact build provenance
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: complete-wire-diagnostic-${{ runner.os }}-${{ github.sha }}
-          path: target/wire-diagnostic/
-          if-no-files-found: error
-          retention-days: 2
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $visualStudio = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json)[0]
+          $msvc = Join-Path $visualStudio.installationPath 'VC/Tools/MSVC'
+          $default = (Get-Content -Raw (Join-Path $visualStudio.installationPath 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt')).Trim()
+          $versions = @(Get-ChildItem -LiteralPath $msvc -Directory | ForEach-Object {
+            $link = Join-Path $_.FullName 'bin/Hostx64/x64/link.exe'
+            if (Test-Path -LiteralPath $link -PathType Leaf) {
+              $linkInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($link)
+              $banner = (& $link '/?' | Select-Object -First 1).Trim()
+              $toolset = $_.Name
+              $libraries = @(Get-ChildItem -LiteralPath (Join-Path $_.FullName 'lib/x64') -File |
+                Where-Object Name -in 'libcmt.lib', 'libvcruntime.lib', 'libucrt.lib', 'oldnames.lib' |
+                ForEach-Object { @{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath $_.FullName).Hash } })
+              @{ toolset = $toolset; link = $linkInfo.FileVersion; banner = $banner; libraries = $libraries }
+            }
+          })
+          $kits = Get-ItemPropertyValue -LiteralPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Kits\Installed Roots' -Name KitsRoot10
+          $kitLibraries = @(Get-ChildItem -Path (Join-Path $kits 'Lib/10.0.26100.0/*/x64/*.lib') -File |
+            Where-Object Name -in 'libucrt.lib', 'ucrt.lib', 'kernel32.lib', 'user32.lib', 'oleacc.lib', 'ole32.lib', 'oleaut32.lib', 'shell32.lib', 'uuid.lib', 'bcrypt.lib' |
+            ForEach-Object { @{ name = $_.Name; sha256 = (Get-FileHash -LiteralPath $_.FullName).Hash } })
+          @{ image = $env:ImageVersion; vswhere = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($vswhere).FileVersion; visual_studio = $visualStudio.installationVersion; default = $default; toolsets = $versions; sdk_libraries = $kitLibraries } | ConvertTo-Json -Depth 9

@@ -18,7 +18,8 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 2095638, 'sha256': '79eb93e3db31fdf6a6bedba4ba9c6e15019fdf262cb91be369fba2e46cfa0e0c'}
+_FRONT_PIN = {'length': 1673071, 'sha256': 'cfc159133171658359bcdad79592fd224a061ea2cc64dc9675b732da984b746f'}
+_PRIOR_FRONT_PIN = {'length': 2095638, 'sha256': '79eb93e3db31fdf6a6bedba4ba9c6e15019fdf262cb91be369fba2e46cfa0e0c'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -397,6 +398,21 @@ class ViewLabels(unittest.TestCase):
     def test_entire_previous_controller_and_caps_restore_exactly(self):
         # Exercise every stale front without changing this owning test count.
         front_raw, fronts, legacy_raw, legacy = _front_data()
+        prior_path = 'e/' + _PRIOR_FRONT_PIN['sha256']
+        prior = _front_decode_bytes(_pin_bytes(_source_bytes(prior_path), _PRIOR_FRONT_PIN))
+        baseline = copy.deepcopy(fronts)
+        for previous, live in zip(prior['rows'], baseline['rows'], strict=True):
+            for field in ('length', 'sha256'):
+                live[field] = previous[field]
+            for stage in ('middle', 'target'):
+                if previous[stage] is not None:
+                    live[stage]['edits'] = previous[stage]['edits']
+        old_raw_rows = prior['main8_raw_current_fronts']['rows']
+        current_raw_rows = baseline['main8_raw_current_fronts']['rows']
+        for previous, live in zip(old_raw_rows, current_raw_rows, strict=True):
+            live['after'] = previous['after']
+            live['inverse'] = previous['inverse']
+        self.assertEqual(baseline, prior)
         for owner, source in _PAIRS:
             physical = _source_bytes(source).decode()
             acquired = _acquire_next_current(owner, source, physical)

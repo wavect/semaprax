@@ -1431,28 +1431,31 @@ del _load_fixed_codecs
         // two-field transport to the immutable published source image.
         for prefix in ["POLICY_LENGTH = ", "POLICY_SHA256 = "] {             let current: Vec<_> = parent.lines().filter(|line| line.starts_with(prefix)).collect();             let previous: Vec<_> = PYTHON_BEFORE.lines().filter(|line| line.starts_with(prefix)).collect();             assert_eq!((current.len(), previous.len()), (1, 1));             assert_eq!(restored.matches(current[0]).count(), 1);             restored = restored.replacen(current[0], previous[0], 1);         }         assert_eq!(             restored, PYTHON_BEFORE,             "ENTIRE published pre-split Python parent"
         );         restored
-    }     fn physical_codec_loader(hostile: bool) {         const PROBE: &str = r####"import os, pathlib, subprocess, sys, tempfile
-parent, child, mode = sys.argv[1:]
+    }     fn physical_codec_loader(hostile: bool) {         const PROBE: &str = r####"import json, os, pathlib, subprocess, sys, tempfile
+parent, child = json.load(sys.stdin.buffer)
+mode = sys.argv[1]
 probe = "import runpy,sys; ns=runpy.run_path(sys.argv[1],run_name='codec_fixture'); assert callable(ns['encode_v12_view_labels']); assert ns['PAGE_CAP']==262144 and ns['SOURCE_CAP']==9753094"
 with tempfile.TemporaryDirectory(prefix='semaprax-codec-loader-') as temporary:
  directory=pathlib.Path(temporary)
  program=directory/'overlay_page.py'; codec=directory/'overlay_page_codecs.py'
- program.write_text(parent); codec.write_text(child)
+ program.write_bytes(parent.encode()); codec.write_bytes(child.encode())
  def invoke(code=probe):
   return subprocess.run([sys.executable,'-B','-c',code,str(program)],capture_output=True,timeout=3)
  result=invoke()
  assert result.returncode==0,result.stderr.decode()
  if mode=='hostile':
-  for case in ('missing','length','hash','symlink','directory','fifo','drift'):
+  special='locked-replace' if os.name=='nt' else 'fifo'
+  for case in ('missing','length','hash','symlink','directory',special,'drift'):
+   if case=='drift' and os.name=='nt':continue
    if codec.is_dir() and not codec.is_symlink():codec.rmdir()
    elif codec.exists() or codec.is_symlink():codec.unlink()
-   if case=='length':codec.write_text(child+' ')
-   elif case=='hash':codec.write_text(('x' if child[0]!='x' else 'y')+child[1:])
+   if case=='length':codec.write_bytes((child+' ').encode())
+   elif case=='hash':codec.write_bytes((('x' if child[0]!='x' else 'y')+child[1:]).encode())
    elif case=='symlink':
-    target=directory/'real-codec.py';target.write_text(child);codec.symlink_to(target)
+    target=directory/'real-codec.py';target.write_bytes(child.encode());codec.symlink_to(target)
    elif case=='directory':codec.mkdir()
    elif case=='fifo':os.mkfifo(codec)
-   elif case=='drift':codec.write_text(child)
+   elif case in ('drift','locked-replace'):codec.write_bytes(child.encode())
    code=probe
    if case=='drift':
     code="""import os,pathlib,runpy,sys
@@ -1470,10 +1473,24 @@ def replace_after_read(fd):
 os.fstat=replace_after_read
 runpy.run_path(sys.argv[1],run_name='codec_fixture')
 """
+   if case=='locked-replace':
+    code="""import os,pathlib,runpy,sys
+original=os.fdopen
+def replace_before_read(fd,*args,**kwargs):
+ path=pathlib.Path(sys.argv[1]).with_name('overlay_page_codecs.py')
+ replacement=path.with_name('replacement.py')
+ replacement.write_bytes(path.read_bytes())
+ try:os.replace(replacement,path)
+ except PermissionError:raise RuntimeError('codec handle refused replacement')
+ return original(fd,*args,**kwargs)
+os.fdopen=replace_before_read
+runpy.run_path(sys.argv[1],run_name='codec_fixture')
+"""
    result=invoke(code)
    assert result.returncode!=0,case
+   if case=='locked-replace':assert b'codec handle refused replacement' in result.stderr,result.stderr.decode()
    if case=='drift':assert b'codec postread identity' in result.stderr,result.stderr.decode()
-"####;         let output = std::process::Command::new("python3")             .args(["-B", "-c", PROBE, PYTHON, CODECS, if hostile { "hostile" } else { "positive" }])             .output().expect("run fixed codec loader controls");         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));     }     #[test]     fn census_lookup_and_codec_split_preserve_complete_published_parents_and_all_mappings() {         assert_eq!(parent_before(ROOT, LOOKUP), BEFORE);         assert_eq!(python_before(PYTHON, CODECS), PYTHON_BEFORE);         physical_codec_loader(false);         for key in KEYS {             assert!(super::compiled(key).is_some(), "missing new source {key}");         }     }     #[test]     fn census_lookup_and_codec_split_refuse_every_source_seam_drift() {         physical_codec_loader(true);         for parent in [             format!("{ROOT} "),             ROOT.replacen(GLUE, "", 1),             ROOT.replacen(BRIDGE, "", 1),         ] {             assert!(std::panic::catch_unwind(|| parent_before(&parent, LOOKUP)).is_err());         }         for child in [             format!("{LOOKUP} "),             LOOKUP.replacen("match source", "match sourcf", 1),             LOOKUP.replacen("Some(include_str!", "None/*include_str!", 1),         ] {             assert!(std::panic::catch_unwind(|| parent_before(ROOT, &child)).is_err());         }         let current_loader = LOADER.replacen(" length=10905\n", &format!(" length={}\n", CODECS.len()), 1).replacen("a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794", &digest(CODECS), 1); assert_eq!(PYTHON.matches(&current_loader).count(), 1); for parent in [             format!("{PYTHON} "),             PYTHON.replacen(&current_loader, "", 1),             PYTHON.replacen("os.O_NOFOLLOW", "0", 1),         ] {             assert!(std::panic::catch_unwind(|| python_before(&parent, CODECS)).is_err());         }         for child in [             format!("{CODECS} "),             CODECS.replacen("def v10_archive_slots", "def v10_archive_slotx", 1),         ] {             assert!(std::panic::catch_unwind(|| python_before(PYTHON, &child)).is_err());         }     } 
+"####;         let mut child = std::process::Command::new("python3").args(["-B", "-c", PROBE, if hostile { "hostile" } else { "positive" }]).stdin(std::process::Stdio::piped()).stderr(std::process::Stdio::piped()).spawn().expect("run fixed codec loader controls"); serde_json::to_writer(child.stdin.take().expect("fixed codec probe stdin"), &(PYTHON, CODECS)).expect("stream exact codec payloads"); let output = child.wait_with_output().expect("collect fixed codec probe verdict");         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));     }     #[test]     fn census_lookup_and_codec_split_preserve_complete_published_parents_and_all_mappings() {         assert_eq!(parent_before(ROOT, LOOKUP), BEFORE);         assert_eq!(python_before(PYTHON, CODECS), PYTHON_BEFORE);         physical_codec_loader(false);         for key in KEYS {             assert!(super::compiled(key).is_some(), "missing new source {key}");         }     }     #[test]     fn census_lookup_and_codec_split_refuse_every_source_seam_drift() {         physical_codec_loader(true);         for parent in [             format!("{ROOT} "),             ROOT.replacen(GLUE, "", 1),             ROOT.replacen(BRIDGE, "", 1),         ] {             assert!(std::panic::catch_unwind(|| parent_before(&parent, LOOKUP)).is_err());         }         for child in [             format!("{LOOKUP} "),             LOOKUP.replacen("match source", "match sourcf", 1),             LOOKUP.replacen("Some(include_str!", "None/*include_str!", 1),         ] {             assert!(std::panic::catch_unwind(|| parent_before(ROOT, &child)).is_err());         }         let current_loader = PYTHON.split_once("# Fixed local codec source; authenticate bytes before Python evaluates them.\n").expect("fixed loader source").1.split_once("def compose_values(").expect("end of fixed loader source").0; assert!(current_loader.contains("raw=_read_fixed_source(path,length)")); assert!(current_loader.contains(&digest(CODECS))); for parent in [             format!("{PYTHON} "),             PYTHON.replacen(&current_loader, "", 1),             PYTHON.replacen("os.O_NOFOLLOW", "0", 1),         ] {             assert!(std::panic::catch_unwind(|| python_before(&parent, CODECS)).is_err());         }         for child in [             format!("{CODECS} "),             CODECS.replacen("def v10_archive_slots", "def v10_archive_slotx", 1),         ] {             assert!(std::panic::catch_unwind(|| python_before(PYTHON, &child)).is_err());         }     }
     #[rustfmt::skip]     fn incoming48_wire_before(root: &str) -> String {         const INCOMING: &str = include_str!("../../e/066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f");         const TARGET: &str = include_str!("../../e/b66377d59526b82e1020058f9b8514419902bbeaf3bfa019a721b8ae087b6f3f");         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f");         let physical = super::main48_historical_reader::read(&path, 73910, "066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f", 2_097_152).expect("whole incoming48 root archive");         assert_eq!(root, INCOMING); assert_eq!(physical, INCOMING); assert_eq!(root.len(), 73910); assert_eq!(digest(root), "066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f");         // Undo only the complete new wire dispatch and its test view; all old inverses follow.
         let mut v11_root = root.to_owned();         let helper = "// Closed policy membership only; current source/archive bytes are never retained.\npub(super) fn declares_source(source: &str) -> bool {\n    REPLACEMENTS.contains(&source) || ADDITIONS.contains(&source)\n}\n\n";         assert_eq!(v11_root.matches(helper).count(), 1);         v11_root = v11_root.replacen(helper, "", 1);         let added = "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n        let expanded = fragments_v3::expand_v11(&before, policy, page)?;\n        return compose_values_v2(before, policy, &expanded);\n    }\n";         assert_eq!(v11_root.matches(added).count(), 1);         v11_root = v11_root.replacen(added, "", 1);         let added = "        // Decode only the new wire envelope before the unchanged full predecessor checks.\n        let page = if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n            fragments_v3::expand_v11(&before, &policy, &page).unwrap()\n        } else {\n            (*page).clone()\n        };\n";         assert_eq!(v11_root.matches(added).count(), 1);         v11_root = v11_root.replacen(added, "", 1);         let root = v11_root.as_str();         assert_eq!(root, TARGET, "ENTIRE named before-main48-wire stage"); assert_eq!(root.len(), 73227); assert_eq!(digest(root), "b66377d59526b82e1020058f9b8514419902bbeaf3bfa019a721b8ae087b6f3f");         assert_eq!(super::main48_historical_reader::read(&path, 73910, "066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f", 2_097_152).unwrap(), INCOMING, "late incoming archive reread");         v11_root
     }     #[rustfmt::skip] #[test]     fn incoming48_wire_inverse_preserves_the_entire_authenticated_named_stage() {         let incoming = include_str!("../../e/066e37a105113138b4fa62a0154ff94f54078da735e05fd924b3596954d8107f"); assert_eq!(incoming48_wire_before(incoming), include_str!("../../e/b66377d59526b82e1020058f9b8514419902bbeaf3bfa019a721b8ae087b6f3f"));         assert!(std::panic::catch_unwind(|| incoming48_wire_before(&format!("{incoming} "))).is_err());     } }

@@ -5,7 +5,7 @@ SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
 POLICY_LENGTH=212143
-POLICY_SHA256='332109b38859c55ab5a82a7d8780e68dbc7fc1b8de19d3d686ea4ab57240bd8a'
+POLICY_SHA256='ff4c6eecce876c5173d1fbfeda0ea452fa88ff3b5be24f16f2741db04f387993'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -251,165 +251,134 @@ def expand_v8_carriers(before, policy, page):
  return expand_canonical_indices(before,policy,result)
 
 V9_SCHEMA = 'semaprax.finite-source-overlay-page.v9'
-def v9_pin(value, named, encode=False):
- # Documented slots only; extra fields retain object form.
- if encode:
-  expected=('name','length','sha256','archive') if named else ('length','sha256','archive')
-  if not keys(value,expected):return copy.deepcopy(value)
-  pin(value)
-  if named and type(value['name']) is not str:return copy.deepcopy(value)
-  result=([value['name']] if named else [])+[value['length'],value['sha256']]
-  if value['archive']!='e/'+value['sha256']:result.append(value['archive'])
-  return result
- if type(value) is not list:return copy.deepcopy(value)
- count=3 if named else 2
- assert len(value) in (count,count+1), 'v9 pin arity'
- offset=1 if named else 0
- if named:assert type(value[0]) is str, 'v9 view name'
- length,sha=value[offset:offset+2]
- assert type(sha) is str, 'v9 digest type'
- result=dict(length=length,sha256=sha,archive=value[-1] if len(value)==count+1 else 'e/'+sha)
- if named:result['name']=value[0]
- pin(result)
- return result
+def _read_fixed_source(path, length):
+    """Read one authenticated-input candidate through a held regular file."""
+    import os
+    import stat
 
-def transform_v9_pin_slots(page, encode=False):
- # One row and one fragment; no recursive matching.
- result=copy.deepcopy(page)
- def row_pins(row):
-  assert type(row) is dict, 'v9 literal row'
-  if 'current' in row:row['current']=v9_pin(row['current'],False,encode)
-  if 'views' in row:
-   assert type(row['views']) is list, 'v9 views'
-   row['views']=[v9_pin(view,True,encode) for view in row['views']]
- def fragment_pins(fragments):
-  if fragments is None:return
-  assert type(fragments) is list, 'v9 fragments'
-  for fragment in fragments:
-   assert type(fragment) is dict, 'v9 fragment row'
-   if 'canonical_source' not in fragment:row_pins(fragment)
- for group in ('replacements','additions'):
-  assert type(result[group]) is list, 'v9 rows'
-  for row in result[group]:
-   assert type(row) is dict, 'v9 row'
-   if 'old519_index' in row:
-    assert group=='replacements' and keys(row,('old519_index',)), 'v9 indexed row'
-    reference=row['old519_index']
-    assert type(reference) is list and len(reference)==4, 'v9 old519 arity'
-    reference[1]=v9_pin(reference[1],False,encode)
-    assert type(reference[2]) is list, 'v9 appended views'
-    reference[2]=[v9_pin(view,True,encode) for view in reference[2]]
-    fragment_pins(reference[3])
-   else:
-    row_pins(row)
-    if 'fragments' in row:fragment_pins(row['fragments'])
- return result
+    if os.name == "nt":
+        return _read_fixed_source_windows(path, length)
 
-def expand_v9_pins(page):
- assert page['schema']==V9_SCHEMA
- result=transform_v9_pin_slots(page);result['schema']=V8_SCHEMA
- return result
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(fd)
+        assert stat.S_ISREG(before.st_mode) and before.st_size == length, "codec regular fixed length"
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            data = stream.read(length + 1)
+        after = os.fstat(fd)
+        named = os.lstat(path)
+        assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), "codec postread regularity"
 
-def encode_v9_pins(page):
- assert page['schema']==V8_SCHEMA
- result=transform_v9_pin_slots(page,True);result['schema']=V9_SCHEMA
- assert canonical(expand_v9_pins(result))==canonical(page), 'v9 ENTIRE V8 page inverse'
- assert len(canonical(result))<=PAGE_CAP, 'v9 same one-page cap'
- return result
+        def identity(info):
+            return (
+                info.st_dev, info.st_ino, info.st_mode, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns,
+            )
+
+        assert identity(before) == identity(after) == identity(named), "codec postread identity"
+        return data
+    finally:
+        os.close(fd)
+
+
+def _read_fixed_source_windows(path, length):
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+    import os
+
+    class FileInfo(ctypes.Structure):
+        _fields_ = [
+            ("attributes", wintypes.DWORD),
+            ("creation", wintypes.FILETIME),
+            ("access", wintypes.FILETIME),
+            ("write", wintypes.FILETIME),
+            ("volume", wintypes.DWORD),
+            ("size_high", wintypes.DWORD),
+            ("size_low", wintypes.DWORD),
+            ("links", wintypes.DWORD),
+            ("index_high", wintypes.DWORD),
+            ("index_low", wintypes.DWORD),
+        ]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    open_file = kernel.CreateFileW
+    open_file.argtypes = [
+        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+        wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+    ]
+    open_file.restype = wintypes.HANDLE
+    close_handle = kernel.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+    get_type = kernel.GetFileType
+    get_type.argtypes = [wintypes.HANDLE]
+    get_type.restype = wintypes.DWORD
+    get_info = kernel.GetFileInformationByHandle
+    get_info.argtypes = [wintypes.HANDLE, ctypes.POINTER(FileInfo)]
+    get_info.restype = wintypes.BOOL
+
+    generic_read = 0x80000000
+    share_read = 1
+    open_existing = 3
+    open_reparse_point = 0x00200000
+    disk_file = 1
+    directory_or_reparse = 0x10 | 0x400
+
+    def acquire():
+        # Hold a read-only handle, reject writes and deletion while it is open,
+        # and inspect the final component without following reparse points.
+        handle = open_file(
+            os.fspath(path), generic_read, share_read, None,
+            open_existing, open_reparse_point, None,
+        )
+        if handle == wintypes.HANDLE(-1).value:
+            raise ctypes.WinError(ctypes.get_last_error())
+        return handle
+
+    def identify(handle):
+        metadata = FileInfo()
+        assert get_type(handle) == disk_file, "codec regular fixed length"
+        if not get_info(handle, ctypes.byref(metadata)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        size = (metadata.size_high << 32) | metadata.size_low
+        assert not metadata.attributes & directory_or_reparse and size == length, "codec regular fixed length"
+        return (
+            metadata.volume, metadata.index_high, metadata.index_low, size,
+            metadata.attributes, metadata.write.dwHighDateTime, metadata.write.dwLowDateTime,
+        )
+
+    handle = acquire()
+    try:
+        before = identify(handle)
+        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except BaseException:
+        close_handle(handle)
+        raise
+    try:
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            data = stream.read(length + 1)
+        after = identify(handle)
+        named = acquire()
+        try:
+            assert before == after == identify(named), "codec postread identity"
+        finally:
+            close_handle(named)
+        return data
+    finally:
+        os.close(fd)
+
 
 # Fixed local codec source; authenticate bytes before Python evaluates them.
 def _load_fixed_codecs():
- import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=81356
- fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
- try:
-  info=os.fstat(fd)
-  assert stat.S_ISREG(info.st_mode) and info.st_size==length, 'codec regular fixed length'
-  with os.fdopen(fd,'rb',closefd=False) as stream:raw=stream.read(length+1)
-  after=os.fstat(fd);named=os.lstat(path)
-  identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
-  assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
-  assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='06fc90ba57e5f7a960a067dd798d3218e51f5704a5da374f490f0cbe211cfb8a', 'codec fixed bytes'
- finally:os.close(fd)
+ length=86864
+ raw=_read_fixed_source(path,length)
+ assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='8f0caf8fd6ed4d85397d8cb6975d6ca9b29b570c7a5899b88db45a1b0c6af787', 'codec fixed bytes'
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()
 del _load_fixed_codecs
-
-def v10_base(before,policy):
- assert len(before['rows'])==519 and type(policy['predecessor']['rows']) is int and policy['predecessor']['rows']==519, 'v10 old rows'
- assert type(before['source_cap']) is int and before['source_cap']==SOURCE_CAP, 'v10 source cap'
- assert H(canonical(before))==policy['predecessor']['logical_sha256'], 'v10 authenticated old519'
-
-
-def v10_pin(value,named,before,encode=False):
- if type(value) is not list:return copy.deepcopy(value)
- if encode:
-  expanded=v9_pin(value,named)
-  if v9_pin(expanded,named,True)!=value:return copy.deepcopy(value)
-  name=expanded.pop('name') if named else None
-  index=next((i for i,row in enumerate(before['rows']) if row['current']==expanded),None)
-  return copy.deepcopy(value) if index is None else ([name,index] if named else [index])
- offset=int(named)
- if len(value)!=offset+1:return copy.deepcopy(value)
- if named:assert type(value[0]) is str, 'v10 view name'
- index=value[offset];assert type(index) is int and 0<=index<519, 'v10 pin index'
- current=copy.deepcopy(before['rows'][index]['current']);assert keys(current,('length','sha256','archive')), 'v10 exact current pin'
- pin(current)
- if named:current['name']=value[0]
- return v9_pin(current,named,True)
-
-
-def transform_v10_pin_slots(page, before, policy, encode=False):
- v10_base(before,policy)
- def convert(value,named,encode=False):return v10_pin(value,named,before,encode)
- # One row and one fragment; no recursive matching.
- result=copy.deepcopy(page)
- def row_pins(row):
-  assert type(row) is dict, 'v9 literal row'
-  if 'current' in row:row['current']=convert(row['current'],False,encode)
-  if 'views' in row:
-   assert type(row['views']) is list, 'v9 views'
-   row['views']=[convert(view,True,encode) for view in row['views']]
- def fragment_pins(fragments):
-  if fragments is None:return
-  assert type(fragments) is list, 'v9 fragments'
-  for fragment in fragments:
-   assert type(fragment) is dict, 'v9 fragment row'
-   if 'canonical_source' not in fragment:row_pins(fragment)
- for group in ('replacements','additions'):
-  assert type(result[group]) is list, 'v9 rows'
-  for row in result[group]:
-   assert type(row) is dict, 'v9 row'
-   if 'old519_index' in row:
-    assert group=='replacements' and keys(row,('old519_index',)), 'v9 indexed row'
-    reference=row['old519_index']
-    assert type(reference) is list and len(reference)==4, 'v9 old519 arity'
-    reference[1]=convert(reference[1],False,encode)
-    assert type(reference[2]) is list, 'v9 appended views'
-    reference[2]=[convert(view,True,encode) for view in reference[2]]
-    fragment_pins(reference[3])
-   else:
-    row_pins(row)
-    if 'fragments' in row:fragment_pins(row['fragments'])
- return result
-
-
-def expand_v10_pins(before,policy,page):
- assert page['schema']==V10_SCHEMA
- result=transform_v10_pin_slots(page,before,policy);result['schema']=V9_SCHEMA
- return result
-
-
-def encode_v10_pins(before,policy,page):
- assert page['schema']==V9_SCHEMA
- result=transform_v10_pin_slots(page,before,policy,True);result['schema']=V10_SCHEMA
- assert canonical(expand_v10_pins(before,policy,result))==canonical(page), 'v10 ENTIRE V9 page inverse'
- assert len(canonical(result))<=PAGE_CAP, 'v10 same one-page cap'
- return result
-
 
 def compose_values(before, policy, page):
  if page['schema'] in COMPRESSED_SCHEMAS:return compose_v20(before,policy,expand_compressed_page(page),V21_OUTPUT_CAP)

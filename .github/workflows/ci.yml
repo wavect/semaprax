@@ -273,6 +273,7 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
       CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
     steps:
       - name: Allow Windows to check out long evidence paths
         shell: bash

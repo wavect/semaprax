@@ -635,3 +635,12 @@ pub(crate) fn compiled(source: &str) -> &'static str {
 "src/cleanup_plan/replay/structural_control.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/structural_control.rs")),
 _ => panic!("unknown declared current source"), }
 }
+
+// Whole source inputs pinned by closed source acquisition packets.
+#[rustfmt::skip]
+pub(super) fn packet_slot(source: &str, expected: &str) -> Option<(usize, usize)> {
+    match (source, expected) {
+        ("src/hir.rs", "c1c11229c9dc431aea3939653a7ff611ed0207584ee26520c8a06506389f7797") => Some((45, 248)),
+        _ => None,
+    }
+}

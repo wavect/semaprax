@@ -1,6 +1,6 @@
 {
   "src/test_allocation_observer.rs": {
-    "current_sha256": "5d899ed9b2f2e6d7825407d0bda4af0c23a6d641bd1b4ab536c19bbbcde210bc",
+    "current_sha256": "b3f21304a8aeb4c3b4af350552f6b2943df7730489ff4948eef9571eb67f9c9d",
     "previous_sha256": "fcfef5e2d88c4dc9f93ba66ac4fe003910fbeca7117e4150b55579cc5f473f05",
     "inverse": [
       [
@@ -9,54 +9,124 @@
         ""
       ],
       [
-        1343,
-        "    local_intervals: [Option<PhaseObservation>; 64],\n",
+        1347,
+        "local_intervals: [Option<PhaseObservation>; 64],\n    ",
         ""
       ],
       [
-        1427,
-        "}\nimpl PhaseTrace {\n    /// Largest real interval peak for this owner, with that occurrence's\n    /// entry/exit snapshots. Existing cumulative intervals remain independent.\n    pub(crate) fn function_peak(&self, label: &'static str) -> Option<(Metrics, usize, Metrics)> {\n        self.local_intervals\n            .iter()\n            .flatten()\n            .find(|interval| interval.stage == PhaseLabel::Function(label))\n            .map(|interval| (interval.entry, interval.local_peak, interval.exit))\n    }\n",
+        1426,
+        "\n}\nimpl PhaseTrace {\n    /// Largest real interval peak for this owner, with that occurrence's\n    /// entry/exit snapshots. Existing cumulative intervals remain independent.\n    pub(crate) fn function_peak(&self, label: &'static str) -> Option<(Metrics, usize, Metrics)> {\n        self.local_intervals\n            .iter()\n            .flatten()\n            .find(|interval| interval.stage == PhaseLabel::Function(label))\n            .map(|interval| (interval.entry, interval.local_peak, interval.exit))\n    }",
         ""
       ],
       [
-        2041,
-        "pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics, usize)>);\n",
-        "pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics)>);\n"
-      ],
-      [
-        2639,
-        "        let entry = current_metrics();\n        if let Some(slot) = phase_peaks::begin(entry.live) {\n            Some((stage, entry, slot))\n        } else {\n            PHASE_TRACE.with(|trace| trace.borrow_mut().as_mut().unwrap().overflow = true);\n            None\n        }\n",
-        "        Some((stage, current_metrics()))\n"
-      ],
-      [
-        3001,
-        "        let Some((stage, entry, active_slot)) = self.0 else {\n",
-        "        let Some((stage, entry)) = self.0 else {\n"
-      ],
-      [
-        3132,
-        "        let local_peak = phase_peaks::finish(active_slot);\n",
+        1993,
+        "Box<",
         ""
       ],
       [
-        3925,
-        "                    trace.intervals[slot] = Some(PhaseObservation {\n                        stage,\n                        entry,\n                        exit,\n                        local_peak,\n                    });\n                }\n                if trace.local_intervals[slot].is_none_or(|old| local_peak > old.local_peak) {\n                    trace.local_intervals[slot] = Some(PhaseObservation {\n                        stage,\n                        entry,\n                        exit,\n                        local_peak,\n                    });\n",
-        "                    trace.intervals[slot] = Some(PhaseObservation { stage, entry, exit });\n"
-      ],
-      [
-        4988,
-        "            local_intervals: [None; 64],\n",
+        2007,
+        ">",
         ""
       ],
       [
-        5486,
-        "    #[test]\n    fn interval_peak_is_not_masked_by_an_earlier_cumulative_peak() {\n        let operation = || {\n            let early = vec![1_u8; 4096];\n            std::hint::black_box(&early);\n            drop(early);\n            let retained = vec![2_u8; 37];\n            {\n                let _guard = function_phase_guard(\"test::later_overlap\");\n                let scratch = vec![3_u8; 113];\n                std::hint::black_box((&retained, &scratch));\n            }\n            drop(retained);\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert_eq!(observed.highwater, 4096);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        let (entry, peak, exit) = trace.function_peak(\"test::later_overlap\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (37, 150, 37));\n        assert_eq!((entry.highwater, exit.highwater), (4096, 4096));\n    }\n\n    #[test]\n    fn interval_peak_tracks_nested_replacement_overlap_and_each_occurrence() {\n        let operation = || {\n            let _outer = function_phase_guard(\"test::outer_peak\");\n            let retained = vec![0_u8; 31];\n            for size in [127, 43] {\n                let _inner = function_phase_guard(\"test::repeated_peak\");\n                let mut scratch = Vec::<u8>::with_capacity(size);\n                scratch.resize(size, 9);\n                scratch.reserve_exact(size);\n                std::hint::black_box((&retained, &scratch));\n            }\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        let (entry, peak, exit) = trace.function_peak(\"test::repeated_peak\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (31, 31 + 127 + 254, 31));\n        assert_eq!(trace.function_peak(\"test::outer_peak\").unwrap().1, peak);\n        assert_eq!(observed.highwater, peak);\n    }\n",
+        2102,
+        ", usize",
         ""
       ],
       [
-        20123,
-        "            drop(std::hint::black_box(Box::new(7u8)));\n",
-        "            drop(Box::new(7u8));\n"
+        2652,
+        "l",
+        "Som"
+      ],
+      [
+        2654,
+        "",
+        "((s"
+      ],
+      [
+        2655,
+        " ",
+        "ag"
+      ],
+      [
+        2657,
+        "ntry =",
+        ","
+      ],
+      [
+        2681,
+        ";\n        if let Some(slot) = phase_peaks::begin(entry.live) {\n            Some((stage, entry, slot",
+        ""
+      ],
+      [
+        2782,
+        "\n        } else {\n            PHASE_TRACE.with(|trace| trace.borrow_mut().as_mut().unwrap().overflow = true);\n            None\n        }",
+        ""
+      ],
+      [
+        3036,
+        ", active_slot",
+        ""
+      ],
+      [
+        3134,
+        ");\n        let local_peak = phase_peaks::finish(active_slot",
+        ""
+      ],
+      [
+        3997,
+        "\n                       ",
+        ""
+      ],
+      [
+        4028,
+        "\n                       ",
+        ""
+      ],
+      [
+        4059,
+        "\n                       ",
+        ""
+      ],
+      [
+        4088,
+        ",\n                        local_peak,\n                    });\n                }\n                if trace.local_intervals[slot].is_none_or(|old| local_peak > old.local_peak) {\n                    trace.local_intervals[slot] = Some(PhaseObservation {\n                        stage,\n                        entry,\n                        exit,\n                        local_peak,\n                   ",
+        ""
+      ],
+      [
+        4945,
+        "Box::new(",
+        ""
+      ],
+      [
+        4979,
+        "intervals: [None; 64],\n            local_",
+        ""
+      ],
+      [
+        5081,
+        ")",
+        ""
+      ],
+      [
+        5449,
+        "*",
+        ""
+      ],
+      [
+        5501,
+        "\n    #[test]\n    fn interval_peak_is_not_masked_by_an_earlier_cumulative_peak() {\n        let operation = || {\n            let early = vec![1_u8; 4096];\n            std::hint::black_box(&early);\n            drop(early);\n            let retained = vec![2_u8; 37];\n            {\n                let _guard = function_phase_guard(\"test::later_overlap\");\n                let scratch = vec![3_u8; 113];\n                std::hint::black_box((&retained, &scratch));\n            }\n            drop(retained);\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert_eq!(observed.highwater, 4096);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        let (entry, peak, exit) = trace.function_peak(\"test::later_overlap\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (37, 150, 37));\n        assert_eq!((entry.highwater, exit.highwater), (4096, 4096));\n    }\n\n    #[test]\n    fn interval_peak_tracks_nested_replacement_overlap_and_each_occurrence() {\n        let operation = || {\n            let _outer = function_phase_guard(\"test::outer_peak\");\n            let retained = vec![0_u8; 31];\n            for size in [127, 43] {\n                let _inner = function_phase_guard(\"test::repeated_peak\");\n                let mut scratch = Vec::<u8>::with_capacity(size);\n                scratch.resize(size, 9);\n                scratch.reserve_exact(size);\n                std::hint::black_box((&retained, &scratch));\n            }\n        };\n        let (_, plain) = measure(operation);\n        let (((), observed), trace) = with_phase_trace(|| measure(operation));\n        assert_eq!(plain, observed);\n        assert!(!observed.invalid);\n        assert!(!trace.overflow);\n        assert_eq!(observed.live, 0);\n        assert_eq!(observed.allocated, observed.freed);\n        let (entry, peak, exit) = trace.function_peak(\"test::repeated_peak\").unwrap();\n        assert_eq!((entry.live, peak, exit.live), (31, 31 + 127 + 254, 31));\n        assert_eq!(trace.function_peak(\"test::outer_peak\").unwrap().1, peak);\n        assert_eq!(observed.highwater, peak);\n    }",
+        ""
+      ],
+      [
+        20156,
+        "std::hint::black_box(",
+        ""
+      ],
+      [
+        20189,
+        ")",
+        ""
       ]
     ]
   },

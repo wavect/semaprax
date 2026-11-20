@@ -204,7 +204,14 @@ fn complete_old_preflight_bodies_and_real_function_scope_paid_joins_are_locked()
             .count(),
         4
     );
-    let production = include_str!("../validation/function_scope.rs");
+    let dispatch = include_str!("../validation/function_scope.rs");
+    assert_eq!(
+        dispatch
+            .matches("self.validate_function_with_frames(function, execution, None)")
+            .count(),
+        1
+    );
+    let production = include_str!("../validation/frame_reuse/function.rs");
     assert!(production.contains("iterator_loop::validate_function_paid(function)?"));
     assert!(production.contains("owner_renewal::validate_function_paid(self.program"));
     assert!(production.contains("unsafe_scan::contains_unsafe_boundary_paid(&function.body)?"));

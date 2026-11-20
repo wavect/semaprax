@@ -38,6 +38,7 @@ src/semantic_workspace_structural_change.rs	1571
 src/semantic_workspace_structural_change/artifact.rs	2837
 src/semantic_workspace_structural_change/tests.rs	2677
 src/simd_report.rs	1536
+src/source_reflows/declared_history_inputs.rs	1501
 src/source_verify/capacity.rs	1672
 src/wasm.rs	4770
 src/wasm/aggregate.rs	8698

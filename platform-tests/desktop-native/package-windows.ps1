@@ -107,11 +107,17 @@ if ($LASTEXITCODE -ne 0 -or $visualStudioRoot.Length -eq 0 -or
 $visualStudioRoot = Resolve-CanonicalNonReparsePath $visualStudioRoot 'Visual Studio root'
 $vcToolsVersionFile = Resolve-CanonicalNonReparsePath (Join-Path $visualStudioRoot 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt') 'MSVC tools version file'
 $vcToolsVersion = (Get-Content -LiteralPath $vcToolsVersionFile -Raw).Trim()
-if ($vcToolsVersion -ne (Lock 'windows.msvc.tools.version')) { throw "MSVC tools pin mismatch: $vcToolsVersion" }
+$vcToolsV1452 = Lock 'windows.msvc.tools.v1452-version'
+if ($vcToolsVersion -ne (Lock 'windows.msvc.tools.version') -and $vcToolsVersion -ne $vcToolsV1452) {
+  throw "MSVC tools pin mismatch: $vcToolsVersion"
+}
 $vcToolsRoot = Resolve-CanonicalNonReparsePath (Join-Path $visualStudioRoot "VC/Tools/MSVC/$vcToolsVersion") 'MSVC tools root'
 $linkExe = Resolve-CanonicalNonReparsePath (Join-Path $vcToolsRoot 'bin/Hostx64/x64/link.exe') 'link.exe'
 $linkVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($linkExe).FileVersion
 $linkVersions = @((Lock 'windows.link.version'), (Lock 'windows.link.alternate-version'), (Lock 'windows.link.additional-version'))
+if ($vcToolsVersion -eq $vcToolsV1452) {
+  $linkVersions = @((Lock 'windows.link.v1452-version'))
+}
 if ($linkVersion -notin $linkVersions) { throw "link.exe identity mismatch: $linkVersion" }
 $linkLines = @(& $linkExe '/?' 2>&1)
 $linkExit = $LASTEXITCODE

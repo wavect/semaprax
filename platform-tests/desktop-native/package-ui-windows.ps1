@@ -85,7 +85,10 @@ if ($LASTEXITCODE -ne 0 -or $visualStudioRoot.Length -eq 0 -or
 $visualStudioRoot = Resolve-CanonicalNonReparsePath $visualStudioRoot 'Visual Studio root'
 $vcToolsVersionFile = Resolve-CanonicalNonReparsePath (Join-Path $visualStudioRoot 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt') 'MSVC tools version file'
 $vcToolsVersion = (Get-Content -LiteralPath $vcToolsVersionFile -Raw).Trim()
-if ($vcToolsVersion -ne (Lock 'windows.msvc.tools.version')) { throw "Windows UI MSVC tools pin mismatch: $vcToolsVersion" }
+$vcToolsV1452 = Lock 'windows.msvc.tools.v1452-version'
+if ($vcToolsVersion -ne (Lock 'windows.msvc.tools.version') -and $vcToolsVersion -ne $vcToolsV1452) {
+  throw "Windows UI MSVC tools pin mismatch: $vcToolsVersion"
+}
 $vcToolsRoot = Resolve-CanonicalNonReparsePath (Join-Path $visualStudioRoot "VC/Tools/MSVC/$vcToolsVersion") 'MSVC tools root'
 $kitsRegistry = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Kits\Installed Roots'
 $kitsRoot = Resolve-CanonicalNonReparsePath (Get-ItemPropertyValue -LiteralPath $kitsRegistry -Name KitsRoot10) 'Windows Kits root'
